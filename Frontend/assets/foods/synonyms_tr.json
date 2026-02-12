@@ -1,0 +1,132 @@
+{
+    "patates kızartması": [
+        "french fries",
+        "cips"
+    ],
+    "kola": [
+        "cola",
+        "coca cola",
+        "pepsi"
+    ],
+    "su": [
+        "water",
+        "h2o"
+    ],
+    "kahve": [
+        "coffee",
+        "nescafe",
+        "espresso",
+        "latte",
+        "cappuccino",
+        "americano"
+    ],
+    "çay": [
+        "tea",
+        "ice tea",
+        "soğuk çay"
+    ],
+    "yumurta": [
+        "egg",
+        "haşlanmış yumurta",
+        "omlet"
+    ],
+    "ekmek": [
+        "bread",
+        "simit",
+        "poğaça"
+    ],
+    "peynir": [
+        "cheese",
+        "kaşar",
+        "beyaz peynir",
+        "lor"
+    ],
+    "süt": [
+        "milk",
+        "laktozsuz"
+    ],
+    "yoğurt": [
+        "yogurt",
+        "yoghurt",
+        "ayran"
+    ],
+    "tavuk": [
+        "chicken",
+        "piliç",
+        "kanat",
+        "göğüs"
+    ],
+    "et": [
+        "meat",
+        "dana",
+        "kuzu",
+        "kıyma",
+        "köfte",
+        "kebap",
+        "döner"
+    ],
+    "balık": [
+        "fish",
+        "somon",
+        "ton",
+        "levrek",
+        "çupra",
+        "hamsi"
+    ],
+    "pilav": [
+        "rice",
+        "pirinç",
+        "bulgur"
+    ],
+    "makarna": [
+        "pasta",
+        "spaghetti",
+        "noodle"
+    ],
+    "tatlı": [
+        "dessert",
+        "çikolata",
+        "pasta",
+        "kek",
+        "baklava",
+        "dondurma"
+    ],
+    "salata": [
+        "salad",
+        "yeşillik",
+        "marul",
+        "roka",
+        "maydanoz"
+    ],
+    "çorba": [
+        "soup",
+        "mercimek",
+        "ezogelin",
+        "domates",
+        "yayla"
+    ],
+    "fast food": [
+        "hamburger",
+        "pizza",
+        "döner",
+        "kebap",
+        "lahmacun",
+        "pide"
+    ],
+    "meyve": [
+        "fruit",
+        "elma",
+        "muz",
+        "portakal",
+        "çilek",
+        "karpuz"
+    ],
+    "sebze": [
+        "vegetable",
+        "domates",
+        "salatalık",
+        "biber",
+        "patlıcan",
+        "kabak"
+    ]
+}
