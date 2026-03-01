@@ -1,0 +1,5 @@
+// iPhone Simulator'da MLKit (MLImage) sadece x86_64 slice içeriyor; simulator'ı x86_64 zorla
+EXCLUDED_ARCHS[sdk=iphonesimulator*]=arm64
+ARCHS[sdk=iphonesimulator*]=x86_64
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+#include "Generated.xcconfig"
