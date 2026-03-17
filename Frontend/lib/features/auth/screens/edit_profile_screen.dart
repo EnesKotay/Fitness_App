@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
+import '../../weight/presentation/providers/weight_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -18,10 +19,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _ageController;
   late TextEditingController _heightController;
   late TextEditingController _weightController;
+  late TextEditingController _targetWeightController;
 
   Gender _gender = Gender.male;
   ActivityLevel _activityLevel = ActivityLevel.sedentary;
-  Goal _goal = Goal.maintainWeight;
+  Goal _goal = Goal.maintain;
 
   bool _isLoading = false;
 
@@ -38,6 +40,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _weightController = TextEditingController(
       text: _formatNumberForInput(profile?.weight, fractionDigits: 1),
     );
+    _targetWeightController = TextEditingController(
+      text: _formatNumberForInput(profile?.targetWeight, fractionDigits: 1),
+    );
 
     if (profile != null) {
       _gender = profile.gender;
@@ -52,6 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _ageController.dispose();
     _heightController.dispose();
     _weightController.dispose();
+    _targetWeightController.dispose();
     super.dispose();
   }
 
@@ -61,6 +67,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
     final dietProvider = context.read<DietProvider>();
     final authProvider = context.read<AuthProvider>();
+    final weightProvider = context.read<WeightProvider>();
 
     try {
       final name = _nameController.text.trim();
@@ -71,8 +78,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final weightRaw = double.parse(
         _weightController.text.trim().replaceAll(',', '.'),
       );
+      final targetWeightText = _targetWeightController.text.trim().replaceAll(',', '.');
+      final targetWeightRaw = targetWeightText.isEmpty ? null : double.parse(targetWeightText);
+
       final height = _roundTo(heightRaw, 1);
       final weight = _roundTo(weightRaw, 1);
+      final targetWeight = targetWeightRaw != null ? _roundTo(targetWeightRaw, 1) : null;
 
       final newProfile = UserProfile(
         name: name,
@@ -82,6 +93,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         gender: _gender,
         activityLevel: _activityLevel,
         goal: _goal,
+        targetWeight: targetWeight,
       );
 
       await dietProvider.saveUserProfile(newProfile);
@@ -89,6 +101,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         await authProvider.updateProfileFromDiet(newProfile);
       } catch (e) {
         debugPrint('EditProfile backend sync hatasi: $e');
+      }
+
+      // Kilo değişmiş olabileceği için takip verilerini yenile
+      try {
+        await weightProvider.loadEntries();
+      } catch (e) {
+        debugPrint('Weight refresh hatasi: $e');
       }
 
       if (!mounted) return;
@@ -199,6 +218,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                label: 'Hedef Kilo (kg)',
+                controller: _targetWeightController,
+                isNumber: true,
+                isRequired: false,
+              ),
               const SizedBox(height: 24),
 
               _buildSectionTitle('AKTİVİTE & HEDEF'),
@@ -227,12 +253,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 items: Goal.values,
                 label: (val) {
                   switch (val) {
-                    case Goal.loseWeight:
-                      return 'Kilo Ver';
-                    case Goal.maintainWeight:
+                    case Goal.cut:
+                      return 'Kilo Ver (Definasyon)';
+                    case Goal.maintain:
                       return 'Kilomu Koru';
-                    case Goal.gainWeight:
-                      return 'Kilo Al';
+                    case Goal.bulk:
+                      return 'Kilo Al (Hacim)';
+                    case Goal.strength:
+                      return 'Güç Artışı (Kuvvet)';
                   }
                 },
                 onChanged: (val) => setState(() => _goal = val!),
@@ -263,6 +291,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     required TextEditingController controller,
     bool isNumber = false,
+    bool isRequired = true,
   }) {
     return TextFormField(
       controller: controller,
@@ -285,8 +314,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
       validator: (value) {
-        if (value == null || value.isEmpty) return 'Gerekli';
-        if (isNumber && double.tryParse(value.replaceAll(',', '.')) == null) {
+        if (isRequired && (value == null || value.isEmpty)) return 'Gerekli';
+        if (value != null && value.isNotEmpty && isNumber && double.tryParse(value.replaceAll(',', '.')) == null) {
           return 'Geçersiz sayı';
         }
         return null;

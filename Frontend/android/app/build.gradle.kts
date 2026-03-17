@@ -24,12 +24,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.fitness"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // ⚠️ Play Store'a yüklemeden önce kendi paket adını yaz, örn: com.fitnessapp.tracker
+        applicationId = "com.fitnessapp.tracker"
+        minSdk = 21          // Android 5.0+ (geniş cihaz desteği)
+        targetSdk = 34       // Google Play 2024 zorunluluğu
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

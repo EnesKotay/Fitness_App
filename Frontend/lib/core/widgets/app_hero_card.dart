@@ -76,7 +76,7 @@ class AppHeroCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) trailing!,
+              trailing ?? const SizedBox.shrink(),
             ],
           ),
           if (progress != null) ...[

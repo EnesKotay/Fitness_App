@@ -1,15 +1,19 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/services/ai_safety_helper.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/food_item.dart';
 import '../../domain/entities/food_entry.dart';
+import '../../domain/entities/grocery_item.dart';
 import '../../domain/entities/meal_type.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../../domain/repositories/food_repository.dart';
 import '../../domain/repositories/remote_food_repository.dart';
 import '../../domain/usecases/food_calculator.dart';
 import '../../domain/usecases/diary_service.dart';
+import '../../data/datasources/weekly_meal_plan_storage.dart';
 import '../../data/repositories/local_diary_repository.dart';
 import '../../data/repositories/local_food_repository.dart';
 import '../../data/repositories/open_food_facts_repository.dart';
@@ -17,10 +21,12 @@ import '../../data/datasources/hive_diet_storage.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../weight/presentation/providers/weight_provider.dart';
-import '../../../weight/domain/entities/weight_entry.dart';
 import '../../../workout/providers/workout_provider.dart';
 import '../../../../core/services/ai_service.dart';
 import '../../models/nutrition_ai_response.dart';
+import '../../../../core/models/workout.dart';
+import '../../../../core/services/pdf_report_service.dart';
+import '../../../../core/models/daily_diet_log.dart';
 
 /// Günlük makro hedefleri (gram).
 class MacroTargets {
@@ -36,13 +42,35 @@ class MacroTargets {
 
 enum SuggestionMode { balanced, highProtein, lowCarb }
 
+class SuggestedFoodInsight {
+  final FoodItem item;
+  final double score;
+  final List<String> reasons;
+  final double suggestedPortionG;
+  final bool isFavoriteLike;
+
+  const SuggestedFoodInsight({
+    required this.item,
+    required this.score,
+    required this.reasons,
+    required this.suggestedPortionG,
+    required this.isFavoriteLike,
+  });
+}
+
 class DietProvider with ChangeNotifier {
-  final DiaryRepository _diaryRepo = LocalDiaryRepository();
+  late final DiaryRepository _diaryRepo;
   final FoodRepository _foodRepo = LocalFoodRepository();
   final RemoteFoodRepository _remoteRepo = OpenFoodFactsRepository();
-  final DiaryService _diaryService = DiaryService(LocalDiaryRepository());
+  late final DiaryService _diaryService;
+
+  DietProvider() {
+    _diaryRepo = LocalDiaryRepository();
+    _diaryService = DiaryService(_diaryRepo);
+  }
   final _hive = HiveDietStorage();
   final _uuid = const Uuid();
+  final _weeklyMealPlanStorage = WeeklyMealPlanStorage();
 
   // Dependency
   WeightProvider? _weightProvider;
@@ -59,6 +87,16 @@ class DietProvider with ChangeNotifier {
   String? _error;
   bool _useRemoteSearch = false;
   SuggestionMode _suggestionMode = SuggestionMode.balanced;
+  int _currentStreak = 0;
+  String? _activeUserSuffix;
+  double _waterLiters = 0.0; // V5: Water tracking
+
+  double get waterLiters => _waterLiters;
+
+  void addWater(double amount) {
+    _waterLiters += amount;
+    notifyListeners();
+  }
 
   static double getCategoryDefaultGrams(String? category) {
     if (category == null) return 100.0;
@@ -73,6 +111,15 @@ class DietProvider with ChangeNotifier {
     return 100.0;
   }
 
+  static double getDefaultPortionForFood(FoodItem food) {
+    if (food.servings.isNotEmpty) {
+      final defaults = food.servings.where((item) => item.isDefault);
+      if (defaults.isNotEmpty) return defaults.first.grams;
+      return food.servings.first.grams;
+    }
+    return getCategoryDefaultGrams(food.category);
+  }
+
   UserProfile? get profile => _profile;
   double? get dailyTargetKcal => _dailyTargetKcal;
   DateTime get selectedDate => _selectedDate;
@@ -83,6 +130,7 @@ class DietProvider with ChangeNotifier {
   bool get useRemoteSearch => _useRemoteSearch;
   FoodRepository get foodRepository => _foodRepo;
   SuggestionMode get suggestionMode => _suggestionMode;
+  int get currentStreak => _currentStreak;
 
   /// Antrenmanlardan yakılan bugünkü toplam kalori.
   double get todayBurnedKcal {
@@ -100,6 +148,17 @@ class DietProvider with ChangeNotifier {
       0,
       (sum, w) => sum + (w.caloriesBurned?.toDouble() ?? 0.0),
     );
+  }
+
+  /// Seçili güne ait antrenman listesi.
+  List<Workout> get todayWorkouts {
+    if (_workoutProvider == null) return [];
+    return _workoutProvider!.workouts.where((w) {
+      final wDate = w.workoutDate;
+      return wDate.year == _selectedDate.year &&
+          wDate.month == _selectedDate.month &&
+          wDate.day == _selectedDate.day;
+    }).toList();
   }
 
   /// Bazal hedef + Antrenman bonusu = Toplam yakılabilir kalori
@@ -132,12 +191,8 @@ class DietProvider with ChangeNotifier {
     _weightProvider = provider;
     _recalculateTarget();
 
-    // Sync ve yükleme işlemleri
+    // Kilo güncellendiyse profili senkronla; burada otomatik başlangıç kaydı ekleme yapma.
     if (_profile != null) {
-      if (!_didSyncInitialWeight) {
-        Future.microtask(() => _syncInitialWeight());
-      }
-      // Kilo değişmiş olabilir, re-init gerekebilir veya sadece notify
       onWeightUpdated();
     }
   }
@@ -156,8 +211,8 @@ class DietProvider with ChangeNotifier {
   }
 
   double get remainingKcal {
-    // Bazal + Bonus - Tüketilen
-    return (effectiveTargetKcal - _totals.totalKcal).clamp(0, double.infinity);
+    // Bazal + Bonus - Tüketilen (negatif olabilir)
+    return effectiveTargetKcal - _totals.totalKcal;
   }
 
   /// Profil kiloya göre makro hedefleri (g): protein 1.6g/kg, kalan kalori %50 karb / %50 yağ.
@@ -177,12 +232,46 @@ class DietProvider with ChangeNotifier {
     );
   }
 
+  /// Vücut Kitle Endeksi (BMI) hesaplaması.
+  double get bmi {
+    final w =
+        _weightProvider?.latestEntry?.weightKg ?? _profile?.weight ?? 70.0;
+    final h = (_profile?.height ?? 170.0) / 100.0;
+    if (h == 0) return 0;
+    return double.parse((w / (h * h)).toStringAsFixed(1));
+  }
+
+  /// BMI Kategorisi.
+  String get bmiCategory {
+    final val = bmi;
+    if (val < 18.5) return 'Zayıf';
+    if (val < 25) return 'Normal';
+    if (val < 30) return 'Fazla Kilolu';
+    return 'Kilolu / Obez';
+  }
+
+  /// BMI bazlı tavsiye metni.
+  String get bmiAdvice {
+    final val = bmi;
+    if (val < 18.5) {
+      return 'Sağlıklı kilo alımı için protein ağırlıklı beslenme ve direnç egzersizi önerilir.';
+    }
+    if (val < 25) {
+      return 'İdeal kilonuzdasınız. Formunuzu korumak için dengeli beslenmeye devam edin.';
+    }
+    if (val < 30) {
+      return 'Kardiyo egzersizlerini artırarak hafif kalori kısıtlaması uygulamanız faydalı olabilir.';
+    }
+    return 'Düşük tempolu egzersizler ve sıkı kalori takibi ile kilonuzu kontrol altına alabilirsiniz.';
+  }
+
   /// Hesap değişince çağrılır (login/register). Önceki kullanıcının bellekte kalan verisini temizleyip
   /// yeni kullanıcının Hive/SharedPreferences verisini yükler; böylece her hesabın kendi profili olur.
   Future<void> init() async {
     if (_loading) return;
     _loading = true;
     _error = null;
+    _ensureUserScope();
     notifyListeners();
     try {
       await _loadFrequentFoods(); // Favorileri yükle (StorageHelper artık kullanıcıya göre)
@@ -200,6 +289,7 @@ class DietProvider with ChangeNotifier {
   }
 
   Future<void> _initInternal() async {
+    _activeUserSuffix = StorageHelper.getUserStorageSuffix();
     _profile = await _diaryRepo.getProfile();
     debugPrint(
       'DietProvider: active suffix ${StorageHelper.getUserStorageSuffix()}, profile name=${_profile?.name ?? "null"}',
@@ -211,9 +301,32 @@ class DietProvider with ChangeNotifier {
       _selectedDate.day,
     );
     if (_weightProvider != null) {
-      await Future.wait([_syncInitialWeight(), _loadDayInternal(dateToLoad)]);
+      await _ensureWeightEntriesReady();
+      await _loadDayInternal(dateToLoad);
     } else {
       await _loadDayInternal(dateToLoad);
+    }
+  }
+
+  Future<void> _ensureWeightEntriesReady() async {
+    final wp = _weightProvider;
+    if (wp == null) return;
+
+    // Kayıtlar henüz yüklenmediyse senkron kararından önce mutlaka yükle.
+    if (wp.entries.isEmpty && !wp.isLoading) {
+      await wp.loadEntries();
+      return;
+    }
+
+    // Splash akışında loadEntries arka planda çalışıyor olabilir; bitmesini bekle (max 4s).
+    if (wp.isLoading) {
+      await Future.any([
+        Future.doWhile(() async {
+          await Future.delayed(const Duration(milliseconds: 50));
+          return wp.isLoading;
+        }),
+        Future.delayed(const Duration(seconds: 4)),
+      ]);
     }
   }
 
@@ -258,11 +371,14 @@ class DietProvider with ChangeNotifier {
 
   Future<void> loadDay(DateTime date) async {
     final normalized = DateTime(date.year, date.month, date.day);
+    final dateStr = DateFormat('yyyy-MM-dd').format(normalized);
     try {
       _selectedDate = normalized;
       _error = null;
       _entries = await _diaryService.getEntriesByDate(_selectedDate);
-      _totals = await _diaryService.getTotalsByDate(_selectedDate);
+      _totals = await _diaryRepo.getTotalsByDate(dateStr);
+      _currentStreak = await _diaryRepo.getCurrentStreak();
+      _error = null;
       notifyListeners();
     } catch (e) {
       debugPrint('DietProvider.loadDay hatası: $e');
@@ -278,19 +394,8 @@ class DietProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      // Kilo değiştiyse Tracking tarafına da ekle (Senkronizasyon)
-      if (_weightProvider != null &&
-          _profile != null &&
-          (p.weight - _profile!.weight).abs() > 0.1) {
-        final entry = WeightEntry(
-          id: _uuid.v4(),
-          date: DateTime.now(),
-          weightKg: p.weight,
-        );
-        // Arka planda ekle, await etmeye gerek yok (UI bloklanmasın)
-        _weightProvider!.addEntry(entry);
-      }
-
+      // Kilo değişimi backend tarafından profile güncellendiğinde otomatik olarak
+      // Kilo Geçmişi'ne (WeightRecord) yansıtılmaktadır.
       await _diaryRepo.saveProfile(p);
       _profile = p;
       _recalculateTarget();
@@ -349,8 +454,29 @@ class DietProvider with ChangeNotifier {
       return searchFoods(query);
     }
 
+    final safety = AiSafetyHelper.instance;
+
+    // Rate limit kontrolü
+    if (!(await safety.canMakeRequest())) {
+      debugPrint('DietProvider.aiSearch: Günlük limit aşıldı');
+      return searchFoods(query);
+    }
+
     try {
-      final items = await _aiService!.extractFoodItems(query);
+      // Cache kontrolü
+      final cached = safety.getCachedSearch(query);
+      List<String> items;
+      if (cached != null) {
+        items = cached;
+        debugPrint('DietProvider.aiSearch: Cache\'den geldi → $items');
+      } else {
+        items = await _aiService!.extractFoodItems(query);
+        safety.recordRequest();
+        if (items.isNotEmpty) {
+          safety.cacheSearchResult(query, items);
+        }
+      }
+
       if (items.isEmpty) return searchFoods(query);
 
       final List<FoodItem> results = [];
@@ -379,6 +505,231 @@ class DietProvider with ChangeNotifier {
     return 'Bugün $kcal kcal alındı. Hedef: $target kcal. Kalan: $remaining kcal. Makrolar: $p/P, $c/C, $f/F.';
   }
 
+  Map<String, dynamic> getNutritionAiContext({String? mealType}) {
+    final context = <String, dynamic>{
+      'summaryText': getDietContext(),
+      'dailySummary': {
+        'calories': totals.totalKcal.round(),
+        'water': double.parse(_waterLiters.toStringAsFixed(1)),
+      },
+    };
+
+    final profile = _profile;
+    if (profile != null) {
+      context['goal'] = _goalLabel(profile.goal);
+    }
+    if (mealType != null && mealType.trim().isNotEmpty) {
+      context['mealType'] = mealType.trim();
+    }
+
+    final availableIngredients = _entries
+        .map((entry) => entry.foodName.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .take(12)
+        .toList();
+    if (availableIngredients.isNotEmpty) {
+      context['availableIngredients'] = availableIngredients;
+    }
+
+    return context;
+  }
+
+  DateTime currentWeekStart([DateTime? reference]) {
+    final date = reference ?? DateTime.now();
+    final weekStart = date.subtract(Duration(days: date.weekday - 1));
+    return DateTime(weekStart.year, weekStart.month, weekStart.day);
+  }
+
+  Future<WeeklyMealPlan> loadWeeklyMealPlan({DateTime? weekStart}) {
+    return _weeklyMealPlanStorage.load(currentWeekStart(weekStart));
+  }
+
+  Future<void> saveWeeklyMealPlan(
+    WeeklyMealPlan plan, {
+    DateTime? weekStart,
+  }) async {
+    await _weeklyMealPlanStorage.save(currentWeekStart(weekStart), plan);
+  }
+
+  Future<List<GroceryItem>> generateSmartGroceryItems({
+    DateTime? weekStart,
+    bool includePersonalSuggestions = true,
+  }) async {
+    final plan = await loadWeeklyMealPlan(weekStart: weekStart);
+    final groceries = <String, GroceryItem>{};
+
+    void mergeItem(GroceryItem item) {
+      if (item.name.trim().isEmpty) return;
+      final key = item.normalizedName.isNotEmpty
+          ? item.normalizedName
+          : _normalizeGroceryName(item.name);
+      final existing = groceries[key];
+      if (existing == null) {
+        groceries[key] = item;
+        return;
+      }
+      final mergedMeals = {
+        ...existing.linkedMeals,
+        ...item.linkedMeals,
+      }.toList()..sort();
+      groceries[key] = GroceryItem(
+        name: existing.name.length >= item.name.length
+            ? existing.name
+            : item.name,
+        normalizedName: key,
+        category: existing.category.isNotEmpty
+            ? existing.category
+            : item.category,
+        totalGrams: existing.totalGrams + item.totalGrams,
+        quantityLabel: existing.quantityLabel ?? item.quantityLabel,
+        linkedMeals: mergedMeals,
+        source: existing.source == 'planned' ? existing.source : item.source,
+      );
+    }
+
+    final sortedDays = plan.keys.toList()..sort();
+    for (final dayIndex in sortedDays) {
+      final slots = plan[dayIndex];
+      if (slots == null) continue;
+      for (final slotEntry in slots.entries) {
+        final meal = slotEntry.value;
+        if (meal == null || meal.name.trim().isEmpty) continue;
+        final mealLabel =
+            '${_weekdayShortLabel(dayIndex)} ${meal.mealType.label}';
+
+        if (meal.ingredients.isNotEmpty) {
+          for (final ingredient in meal.ingredients) {
+            mergeItem(
+              GroceryItem(
+                name: ingredient,
+                normalizedName: _normalizeGroceryName(ingredient),
+                category: meal.category,
+                totalGrams: 0,
+                quantityLabel: null,
+                linkedMeals: [mealLabel],
+                source: 'planned',
+              ),
+            );
+          }
+          continue;
+        }
+
+        String category = meal.category;
+        if (category.isEmpty &&
+            meal.foodId != null &&
+            meal.foodId!.isNotEmpty) {
+          final food = await _foodRepo.getFoodById(meal.foodId!);
+          if (food != null) category = food.category;
+        }
+
+        mergeItem(
+          GroceryItem(
+            name: meal.name,
+            normalizedName: _normalizeGroceryName(meal.name),
+            category: category,
+            totalGrams: meal.portionGrams,
+            quantityLabel: null,
+            linkedMeals: [mealLabel],
+            source: 'planned',
+          ),
+        );
+      }
+    }
+
+    if (includePersonalSuggestions) {
+      final favoriteIds = StorageHelper.getFavoriteFoodIds();
+      for (final foodId in favoriteIds.take(4)) {
+        final food = await _foodRepo.getFoodById(foodId);
+        if (food == null) continue;
+        final normalized = _normalizeGroceryName(food.name);
+        if (groceries.containsKey(normalized)) continue;
+        mergeItem(
+          GroceryItem(
+            name: food.name,
+            normalizedName: normalized,
+            category: food.category,
+            totalGrams: _defaultPortionForFood(food),
+            linkedMeals: ['Favorilerinden'],
+            source: 'favorite',
+          ),
+        );
+      }
+    }
+
+    final items = groceries.values.toList()
+      ..sort((a, b) {
+        final sourceCompare = a.source.compareTo(b.source);
+        if (sourceCompare != 0) {
+          if (a.source == 'planned') return -1;
+          if (b.source == 'planned') return 1;
+        }
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+    return items;
+  }
+
+  Future<List<Map<String, dynamic>>> getWeeklyPlanSummaryAsync({
+    DateTime? weekStart,
+  }) async {
+    final plan = await loadWeeklyMealPlan(weekStart: weekStart);
+    final summary = <Map<String, dynamic>>[];
+    final sortedDays = plan.keys.toList()..sort();
+    for (final dayIndex in sortedDays) {
+      final slots = plan[dayIndex];
+      if (slots == null) continue;
+      for (final slot in slots.entries) {
+        final meal = slot.value;
+        if (meal == null || meal.name.trim().isEmpty) continue;
+        summary.add({
+          'day': _weekdayShortLabel(dayIndex),
+          'slot': meal.mealType.label,
+          'name': meal.name,
+          'kcal': meal.kcal,
+          'portionGrams': meal.portionGrams,
+          if (meal.ingredients.isNotEmpty) 'ingredients': meal.ingredients,
+        });
+      }
+    }
+    return summary;
+  }
+
+  String _normalizeGroceryName(String input) {
+    final lower = input.trim().toLowerCase();
+    return lower
+        .replaceAll('ğ', 'g')
+        .replaceAll('ü', 'u')
+        .replaceAll('ş', 's')
+        .replaceAll('ı', 'i')
+        .replaceAll('ö', 'o')
+        .replaceAll('ç', 'c')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim();
+  }
+
+  double _defaultPortionForFood(FoodItem food) {
+    return getDefaultPortionForFood(food);
+  }
+
+  String _weekdayShortLabel(int dayIndex) {
+    const labels = ['Pzt', 'Sal', 'Car', 'Per', 'Cum', 'Cmt', 'Paz'];
+    if (dayIndex < 0 || dayIndex >= labels.length) return 'Gun';
+    return labels[dayIndex];
+  }
+
+  String _goalLabel(Goal goal) {
+    switch (goal) {
+      case Goal.bulk:
+        return 'Kas kazanımı ve kilo alma';
+      case Goal.cut:
+        return 'Yağ yakımı ve kilo verme';
+      case Goal.maintain:
+        return 'Kilo koruma';
+      case Goal.strength:
+        return 'Güç artışı';
+    }
+  }
+
   /// Önerilen yemekler için AI ile açıklama üretir.
   Future<String> getAISuggestionReasoning(List<FoodItem> items) async {
     if (_aiService == null || !_aiService!.isReady || items.isEmpty) return '';
@@ -392,13 +743,17 @@ class DietProvider with ChangeNotifier {
   }
 
   Future<NutritionAiResponseModel?> getStructuredNutritionResponse(
-    String message,
-  ) async {
+    String message, {
+    String task = 'chat',
+    Map<String, dynamic>? nutritionContext,
+  }) async {
     if (_aiService == null || !_aiService!.isReady) return null;
     try {
       return await _aiService!.getStructuredNutritionResponse(
         message,
         getDietContext(),
+        task: task,
+        nutritionContext: nutritionContext ?? getNutritionAiContext(),
       );
     } catch (e) {
       debugPrint('DietProvider.getStructuredNutritionResponse error: $e');
@@ -445,6 +800,69 @@ class DietProvider with ChangeNotifier {
     }
   }
 
+  /// Son 7 günlük kalori özetini getirir.
+  Future<Map<String, DiaryTotals>> getWeeklySummary() async {
+    final result = <String, DiaryTotals>{};
+    try {
+      final today = DateTime.now();
+      for (int i = 6; i >= 0; i--) {
+        final day = today.subtract(Duration(days: i));
+        final dateStr =
+            '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+        final totals = await _diaryService.getTotalsByDate(day);
+        result[dateStr] = totals;
+      }
+    } catch (e) {
+      debugPrint('DietProvider.getWeeklySummary hatası: $e');
+    }
+    return result;
+  }
+
+  /// Son [days] günlük kalori + makro özetini getirir.
+  /// getWeeklySummary'nin genelleştirilmiş hali.
+  Future<Map<String, DiaryTotals>> getSummaryForRange(int days) async {
+    final result = <String, DiaryTotals>{};
+    try {
+      final today = DateTime.now();
+      for (int i = days - 1; i >= 0; i--) {
+        final day = today.subtract(Duration(days: i));
+        final dateStr =
+            '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+        final totals = await _diaryService.getTotalsByDate(day);
+        result[dateStr] = totals;
+      }
+    } catch (e) {
+      debugPrint('DietProvider.getSummaryForRange hatası: $e');
+    }
+    return result;
+  }
+
+  /// Favori yemekleri yükler.
+  Future<List<FoodItem>> loadFavorites() async {
+    try {
+      final ids = StorageHelper.getFavoriteFoodIds();
+      if (ids.isEmpty) return [];
+      final items = <FoodItem>[];
+      for (final id in ids) {
+        final item = await _foodRepo.getFoodById(id);
+        if (item != null) items.add(item);
+      }
+      return items;
+    } catch (e) {
+      debugPrint('DietProvider.loadFavorites hatası: $e');
+      return [];
+    }
+  }
+
+  /// Favori durumunu değiştirir.
+  void toggleFavorite(String foodId) {
+    StorageHelper.toggleFavorite(foodId);
+    notifyListeners();
+  }
+
+  /// Bir besinin favori olup olmadığını kontrol eder.
+  bool isFavorite(String foodId) => StorageHelper.isFavorite(foodId);
+
   Future<void> addCustomFood(FoodItem food) async {
     try {
       await _hive.addCustomFood(food);
@@ -457,12 +875,24 @@ class DietProvider with ChangeNotifier {
   }
 
   Future<FoodItem?> getFoodById(String id) async {
-    try {
-      return await _foodRepo.getFoodById(id);
-    } catch (e) {
-      debugPrint('DietProvider.getFoodById hatası: $e');
-      return null;
+    final f = await _foodRepo.getFoodById(id);
+    if (f != null) return f;
+    if (_useRemoteSearch) {
+      return await _remoteRepo.getFoodById(id);
     }
+    return null;
+  }
+
+  /// Barkod ile besin getir
+  Future<FoodItem?> getFoodByBarcode(String barcode) async {
+    final f = await _foodRepo.getFoodByBarcode(barcode);
+    if (f != null) return f;
+    // Barkodta remote fallback her zaman denensin.
+    final result = await _remoteRepo.getByBarcode(barcode);
+    if (result != null) {
+      return result;
+    }
+    return null;
   }
 
   double calculateCaloriesForFood(FoodItem food, double grams) {
@@ -512,7 +942,7 @@ class DietProvider with ChangeNotifier {
         createdAt: DateTime.now(),
       );
       await _diaryRepo.addEntry(entry);
-      await loadDay(_selectedDate);
+      await loadDay(DateTime(date.year, date.month, date.day));
     } catch (e) {
       debugPrint('DietProvider.addEntry hatası: $e');
       _error = e.toString();
@@ -527,6 +957,56 @@ class DietProvider with ChangeNotifier {
       await loadDay(_selectedDate);
     } catch (e) {
       debugPrint('DietProvider.deleteEntry hatası: $e');
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Mevcut bir günlük kaydını günceller (gramaj, öğün tipi değişikliği).
+  Future<void> updateEntry({
+    required String entryId,
+    required double newGrams,
+    required MealType newMealType,
+  }) async {
+    if (newGrams <= 0 || newGrams.isNaN || newGrams.isInfinite) {
+      debugPrint('DietProvider.updateEntry: Geçersiz gram: $newGrams');
+      return;
+    }
+    try {
+      // Mevcut entry'yi bul
+      final existing = _entries.firstWhere(
+        (e) => e.id == entryId,
+        orElse: () => throw StateError('Entry not found: $entryId'),
+      );
+
+      // Orijinal besin değerlerini 100g başına geri hesapla
+      final oldRatio = existing.grams > 0 ? existing.grams / 100 : 1;
+      final per100Kcal = oldRatio > 0 ? existing.calculatedKcal / oldRatio : 0;
+      final per100Protein = oldRatio > 0 ? existing.protein / oldRatio : 0;
+      final per100Carb = oldRatio > 0 ? existing.carb / oldRatio : 0;
+      final per100Fat = oldRatio > 0 ? existing.fat / oldRatio : 0;
+
+      // Yeni gramajla hesapla
+      final newRatio = newGrams / 100;
+      final updatedEntry = FoodEntry(
+        id: existing.id,
+        date: existing.date,
+        mealType: newMealType,
+        foodId: existing.foodId,
+        foodName: existing.foodName,
+        grams: newGrams,
+        calculatedKcal: per100Kcal * newRatio,
+        protein: per100Protein * newRatio,
+        carb: per100Carb * newRatio,
+        fat: per100Fat * newRatio,
+        createdAt: existing.createdAt,
+      );
+
+      await _diaryRepo.updateEntry(updatedEntry);
+      await loadDay(_selectedDate);
+    } catch (e) {
+      debugPrint('DietProvider.updateEntry hatası: $e');
       _error = e.toString();
       notifyListeners();
       rethrow;
@@ -568,7 +1048,9 @@ class DietProvider with ChangeNotifier {
         createdAt: DateTime.now(),
       );
       await _diaryRepo.addEntry(entry);
-      await loadDay(_selectedDate);
+      await loadDay(
+        DateTime(targetDate.year, targetDate.month, targetDate.day),
+      );
 
       // Send feedback to backend for taste learning (fire and forget)
       _sendMealFeedback(mealName, <String>[], mealType.name);
@@ -595,6 +1077,57 @@ class DietProvider with ChangeNotifier {
     } catch (e) {
       // Silent fail - feedback is not critical
       debugPrint('Feedback send failed (ignored): $e');
+    }
+  }
+
+  /// Haftalık rapor taslağını oluşturur ve PDF paylaşımını tetikler
+  Future<void> generateWeeklyPdfReport() async {
+    try {
+      final now = DateTime.now();
+      final weekStart = now.subtract(const Duration(days: 6));
+
+      List<DailyDietLog> logs = [];
+
+      for (int i = 0; i < 7; i++) {
+        final date = weekStart.add(Duration(days: i));
+        // O günün entry'lerini çek
+        final entriesForDay = await _diaryRepo.getEntriesByDate(
+          DiaryService.normalizeDate(date),
+        );
+
+        double kcal = 0;
+        double pro = 0;
+        double carb = 0;
+        double fat = 0;
+
+        for (var e in entriesForDay) {
+          kcal += e.calculatedKcal;
+          pro += e.protein;
+          carb += e.carb;
+          fat += e.fat;
+        }
+
+        logs.add(
+          DailyDietLog(
+            date: date,
+            totalCalories: kcal,
+            totalProtein: pro,
+            totalCarbs: carb,
+            totalFat: fat,
+          ),
+        );
+      }
+
+      await PdfReportService.generateAndShareWeeklyReport(
+        userName: _profile?.name ?? 'Kullanıcı',
+        weekStart: weekStart,
+        weekEnd: now,
+        dailyLogs: logs,
+      );
+    } catch (e) {
+      debugPrint('DietProvider.generateWeeklyPdfReport hatası: $e');
+      _error = 'Rapor oluşturulurken hata meydana geldi.';
+      notifyListeners();
     }
   }
 
@@ -739,31 +1272,135 @@ class DietProvider with ChangeNotifier {
 
   /// Kalan kalori ve makrolara göre "Ne ekleyeyim?" önerisi.
   /// [query] verilirse sadece o kelimeyle eşleşen yemekler arasından önerilir (örn. "lavaş" → lavaşlı yemekler).
+  /// Öğün tipine göre öncelikli ve hariç tutulan kategorileri döner.
+  static ({List<String> primary, List<String> excluded}) _mealCategories(
+    MealType type,
+  ) {
+    switch (type) {
+      case MealType.breakfast:
+        return (
+          primary: ['Kahvaltılık', 'Süt Ürünleri'],
+          excluded: ['Fast Food', 'Tatlı', 'İçecek'],
+        );
+      case MealType.lunch:
+        return (
+          primary: [
+            'Yemek',
+            'Et / Tavuk',
+            'Çorba',
+            'Salata',
+            'Tahıl & Bakliyat',
+            'Sebze',
+          ],
+          excluded: ['Kahvaltılık', 'Atıştırmalık', 'Tatlı', 'İçecek'],
+        );
+      case MealType.dinner:
+        return (
+          primary: [
+            'Yemek',
+            'Et / Tavuk',
+            'Çorba',
+            'Sebze',
+            'Salata',
+            'Tahıl & Bakliyat',
+          ],
+          excluded: ['Kahvaltılık', 'Atıştırmalık', 'Fast Food', 'İçecek'],
+        );
+      case MealType.snack:
+        return (
+          primary: [
+            'Atıştırmalık',
+            'Meyve',
+            'Meyve & Sebze',
+            'Süt Ürünleri',
+            'Tatlı',
+          ],
+          excluded: ['Yemek', 'Et / Tavuk', 'Çorba', 'Fast Food'],
+        );
+    }
+  }
+
   Future<List<FoodItem>> getSuggestedFoods(
     MealType mealType, {
     int limit = 24,
     String? query,
   }) async {
+    final insights = await getSuggestedFoodInsights(
+      mealType,
+      limit: limit,
+      query: query,
+    );
+    return insights.map((e) => e.item).toList();
+  }
+
+  Future<List<SuggestedFoodInsight>> getSuggestedFoodInsights(
+    MealType mealType, {
+    int limit = 24,
+    String? query,
+  }) async {
     final remKcal = remainingKcal;
-    final mealKeywords = _mealKeywords(mealType);
     final searchQuery = query?.trim();
     final useQuery = searchQuery != null && searchQuery.isNotEmpty;
+    final cats = _mealCategories(mealType);
 
     try {
-      final String searchTerm = useQuery ? searchQuery! : '';
-      final pool = await _foodRepo.searchFoods(searchTerm, category: null);
+      final recentSignals = await _buildRecentPreferenceSignals();
+      List<FoodItem> pool;
+
+      if (useQuery) {
+        // Arama sorgusunda kategori filtresi uygulanmaz — tüm havuzda ara
+        pool = await _foodRepo.searchFoods(searchQuery, category: null);
+      } else {
+        // Önce birincil kategorilerden yemekleri çek
+        final primaryPool = <FoodItem>[];
+        for (final cat in cats.primary) {
+          final items = await _foodRepo.searchFoods('', category: cat);
+          primaryPool.addAll(items);
+        }
+
+        if (primaryPool.length >= limit) {
+          pool = primaryPool;
+        } else {
+          // Yeterli sonuç yoksa hariç tutulanlar dışındaki kategorilerden tamamla
+          final full = await _foodRepo.searchFoods('', category: null);
+          final extras = full
+              .where(
+                (f) =>
+                    !cats.primary.contains(f.category) &&
+                    !cats.excluded.contains(f.category) &&
+                    !primaryPool.any((p) => p.id == f.id),
+              )
+              .toList();
+          pool = [...primaryPool, ...extras];
+        }
+      }
+
       final eatenIds = _entries.map((e) => e.foodId).toSet();
       final List<_ScoredSuggestion> scored = [];
 
       for (final item in pool) {
         double score = 0;
+        final reasons = <String>[];
 
-        // 1. Kalori uyumu
+        // 1. Kategori uyumu — birincil kategorideyse büyük bonus
+        final isPrimary = cats.primary.contains(item.category);
+        final isExcluded = cats.excluded.contains(item.category);
+        if (isPrimary) {
+          score += 120;
+          reasons.add('Bu öğün için uygun kategoride');
+        } else if (isExcluded) {
+          score -= 150; // hariç tutulanlar neredeyse hiç gelmez
+        }
+
+        // 2. Kalori uyumu
         final itemKcal = item.kcalPer100g;
         final kcalDiff = (remKcal - itemKcal).abs();
         score += (500 - kcalDiff).clamp(0, 500) / 10;
+        if (itemKcal > 0 && remKcal > 0 && itemKcal <= remKcal * 1.15) {
+          reasons.add('Kalan kaloriye rahat sığar');
+        }
 
-        // 2. Makro uyumu (moda göre)
+        // 3. Makro uyumu (moda göre)
         double weightP = 1.0, weightC = 1.0, weightF = 1.0;
         switch (_suggestionMode) {
           case SuggestionMode.highProtein:
@@ -781,65 +1418,117 @@ class DietProvider with ChangeNotifier {
         score += (item.proteinPer100g * weightP * 2);
         score += (item.carbPer100g * weightC);
         score += (item.fatPer100g * weightF);
-
-        // 3. Yenilen ürün cezası
-        if (eatenIds.contains(item.id)) score -= 20;
-
-        // 4. Favori Yemek Bonusu (+40 puan)
-        if (_frequentFoodIds.contains(item.id)) {
-          score += 40;
+        if (_suggestionMode == SuggestionMode.highProtein &&
+            item.proteinPer100g >= 18) {
+          reasons.add('Protein açığını kapatmaya yardımcı olur');
+        } else if (_suggestionMode == SuggestionMode.lowCarb &&
+            item.carbPer100g <= 8) {
+          reasons.add('Karbonhidratı düşük tutar');
+        } else if (_suggestionMode == SuggestionMode.balanced &&
+            item.proteinPer100g >= 10 &&
+            item.carbPer100g <= 35 &&
+            item.fatPer100g <= 18) {
+          reasons.add('Makro dengesi günlük hedefe uyumlu');
         }
 
-        // 5. Öğüne göre uyum (kahvaltıda kahvaltılık, öğlede çorba/yemek vb. öne çıksın)
-        final catNorm = _norm(item.category);
+        // 4. Yenilen ürün cezası
+        if (eatenIds.contains(item.id)) {
+          score -= 20;
+        }
+
+        // 5. Favori Yemek Bonusu
+        final isFavoriteLike = _frequentFoodIds.contains(item.id);
+        if (isFavoriteLike) {
+          score += 40;
+          reasons.add('Sık tercih ettiğin seçeneklere benziyor');
+        }
+
+        // 6. Keyword bonus (tag/isim eşleşmesi)
+        final mealKeywords = _mealKeywords(mealType);
         final tagsNorm = _norm(item.tags.join(' '));
         final nameNorm = _norm(item.name);
         for (final kw in mealKeywords) {
-          if (catNorm.contains(kw) ||
-              tagsNorm.contains(kw) ||
-              nameNorm.contains(kw)) {
-            score += 55;
+          if (tagsNorm.contains(kw) || nameNorm.contains(kw)) {
+            score += 30;
             break;
           }
         }
-        if (_norm(mealType.label).isNotEmpty &&
-            (tagsNorm.contains(_norm(mealType.label)))) {
-          score += 20;
-        }
 
-        // 5. Kullanıcı araması: isim/tag/category arama kelimesiyle eşleşiyorsa ek puan
-        if (useQuery) {
-          final qNorm = _norm(searchQuery);
-          if (nameNorm.contains(qNorm) ||
-              tagsNorm.contains(qNorm) ||
-              catNorm.contains(qNorm)) {
-            score += 80;
+        // 7. Son günlerdeki gerçek tercihlere göre kişiselleştirme
+        final recentCount = recentSignals.recentFoodCounts[item.id] ?? 0;
+        final mealTypeCount =
+            recentSignals.mealTypeFoodCounts['${mealType.name}:${item.id}'] ??
+            0;
+        if (recentCount > 0) {
+          score += (recentCount * 6).clamp(0, 24);
+          if (!reasons.contains('Sık tercih ettiğin seçeneklere benziyor')) {
+            reasons.add('Son günlerde benzer seçimlerin olmuş');
           }
         }
+        if (mealTypeCount > 0) {
+          score += (mealTypeCount * 10).clamp(0, 30);
+          reasons.add('Bu öğünde daha önce de iyi uyum sağlamış');
+        }
 
-        if (score > 0) scored.add(_ScoredSuggestion(item, score));
+        // 8. Hedefe göre yönlendirme
+        switch (_profile?.goal) {
+          case Goal.cut:
+            score += (180 - item.kcalPer100g).clamp(0, 120) / 6;
+            if (item.kcalPer100g <= 160) {
+              reasons.add('Daha hafif bir seçenek');
+            }
+            break;
+          case Goal.bulk:
+            score += item.kcalPer100g.clamp(0, 320) / 6;
+            if (item.kcalPer100g >= 180) {
+              reasons.add('Hedefin için daha doyurucu');
+            }
+            break;
+          case Goal.strength:
+            score += item.proteinPer100g * 1.2;
+            if (item.proteinPer100g >= 20) {
+              reasons.add('Kas onarımı için güçlü protein kaynağı');
+            }
+            break;
+          case Goal.maintain:
+          case null:
+            break;
+        }
+
+        final suggestedPortionG = _suggestedPortionForRemaining(item, remKcal);
+        if (score > 0) {
+          scored.add(
+            _ScoredSuggestion(
+              item,
+              score,
+              reasons.take(3).toList(),
+              suggestedPortionG,
+              isFavoriteLike,
+            ),
+          );
+        }
       }
 
       scored.sort((a, b) => b.score.compareTo(a.score));
 
-      final List<FoodItem> finalResults = [];
-      final Map<String, int> tagCounter = {};
+      final List<SuggestedFoodInsight> finalResults = [];
+      final Map<String, int> catCounter = {};
 
       for (final s in scored) {
         if (finalResults.length >= limit) break;
-        bool skip = false;
-        for (final tag in s.item.tags) {
-          if ((tagCounter[tag] ?? 0) >= 3) {
-            skip = true;
-            break;
-          }
-        }
-        if (!skip) {
-          finalResults.add(s.item);
-          for (final tag in s.item.tags) {
-            tagCounter[tag] = (tagCounter[tag] ?? 0) + 1;
-          }
-        }
+        // Tek kategoriden çok fazla yemek gelmesin (maks 8 adet)
+        final catCount = catCounter[s.item.category] ?? 0;
+        if (catCount >= 8) continue;
+        finalResults.add(
+          SuggestedFoodInsight(
+            item: s.item,
+            score: s.score,
+            reasons: s.reasons,
+            suggestedPortionG: s.suggestedPortionG,
+            isFavoriteLike: s.isFavoriteLike,
+          ),
+        );
+        catCounter[s.item.category] = catCount + 1;
       }
 
       return finalResults;
@@ -881,39 +1570,6 @@ class DietProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Uygulama oturumunda sadece bir kez çalışsın (geçmiş kayıtların sürekli artmasını önler)
-  bool _didSyncInitialWeight = false;
-
-  // Başlangıçta Profildeki kiloyu Tracking'e aktar (Eğer tracking boşsa)
-  Future<void> _syncInitialWeight() async {
-    if (_didSyncInitialWeight) return;
-    if (_weightProvider == null || _profile == null) return;
-    if (_weightProvider!.entries.isNotEmpty) return;
-    // Bugün için aynı kilo zaten varsa ekleme (yinelenen kayıt önlemi)
-    final now = DateTime.now();
-    final todaySameWeight = _weightProvider!.entries.any((e) {
-      return e.date.year == now.year &&
-          e.date.month == now.month &&
-          e.date.day == now.day &&
-          (e.weightKg - _profile!.weight).abs() < 0.01;
-    });
-    if (todaySameWeight) {
-      _didSyncInitialWeight = true;
-      return;
-    }
-
-    _didSyncInitialWeight = true;
-    final entry = WeightEntry(
-      id: _uuid.v4(),
-      date: DateTime.now(),
-      weightKg: _profile!.weight,
-    );
-    debugPrint(
-      'DietProvider: Profil kilosu (${_profile!.weight}) Tracking geçmişine tek seferlik ekleniyor.',
-    );
-    await _weightProvider!.addEntry(entry);
-  }
-
   void reset() {
     _profile = null;
     _dailyTargetKcal = null;
@@ -921,12 +1577,109 @@ class DietProvider with ChangeNotifier {
     _totals = const DiaryTotals();
     _error = null;
     _loading = false;
+    _currentStreak = 0;
+    _activeUserSuffix = null;
+    _waterLiters = 0.0;
     notifyListeners();
+  }
+
+  void _ensureUserScope() {
+    final current = StorageHelper.getUserStorageSuffix();
+    if (_activeUserSuffix == null) {
+      _activeUserSuffix = current;
+      return;
+    }
+    if (_activeUserSuffix != current) {
+      _profile = null;
+      _dailyTargetKcal = null;
+      _entries = [];
+      _totals = const DiaryTotals();
+      _error = null;
+      _currentStreak = 0;
+      _waterLiters = 0.0;
+      _activeUserSuffix = current;
+    }
+  }
+
+  /// Get logs for the last N days (for AI Coach analysis)
+  Future<List<DailyDietLog>> getRecentDaysLogs(int days) async {
+    final List<DailyDietLog> logs = [];
+    final today = DateTime.now();
+
+    for (int i = 0; i < days; i++) {
+      final date = today.subtract(Duration(days: i));
+      final dateStr = date.toIso8601String().split('T').first;
+      final entries = await _diaryRepo.getEntriesByDate(dateStr);
+      final totals = await _diaryRepo.getTotalsByDate(dateStr);
+
+      logs.add(
+        DailyDietLog(
+          date: date,
+          totalKcal: totals.totalKcal,
+          totalProtein: totals.totalProtein,
+          totalCarb: totals.totalCarb,
+          totalFat: totals.totalFat,
+          entries: entries,
+        ),
+      );
+    }
+    return logs;
+  }
+
+  Future<_RecentPreferenceSignals> _buildRecentPreferenceSignals() async {
+    final recentFoodCounts = <String, int>{};
+    final mealTypeFoodCounts = <String, int>{};
+    final today = DateTime.now();
+
+    for (int i = 0; i < 10; i++) {
+      final date = today.subtract(Duration(days: i));
+      final entriesForDay = await _diaryRepo.getEntriesByDate(
+        DiaryService.normalizeDate(date),
+      );
+      for (final entry in entriesForDay) {
+        recentFoodCounts.update(entry.foodId, (v) => v + 1, ifAbsent: () => 1);
+        final mealKey = '${entry.mealType.name}:${entry.foodId}';
+        mealTypeFoodCounts.update(mealKey, (v) => v + 1, ifAbsent: () => 1);
+      }
+    }
+
+    return _RecentPreferenceSignals(
+      recentFoodCounts: recentFoodCounts,
+      mealTypeFoodCounts: mealTypeFoodCounts,
+    );
+  }
+
+  double _suggestedPortionForRemaining(FoodItem item, double remKcal) {
+    if (item.kcalPer100g <= 0 || remKcal <= 0) {
+      return getCategoryDefaultGrams(item.category);
+    }
+    final targetGrams = (remKcal / item.kcalPer100g) * 100;
+    return targetGrams.clamp(60.0, 260.0);
   }
 }
 
 class _ScoredSuggestion {
   final FoodItem item;
   final double score;
-  _ScoredSuggestion(this.item, this.score);
+  final List<String> reasons;
+  final double suggestedPortionG;
+  final bool isFavoriteLike;
+
+  _ScoredSuggestion(
+    this.item,
+    this.score,
+    this.reasons,
+    this.suggestedPortionG,
+    this.isFavoriteLike,
+  );
+}
+
+class _RecentPreferenceSignals {
+  final Map<String, int> recentFoodCounts;
+  final Map<String, int> mealTypeFoodCounts;
+
+  const _RecentPreferenceSignals({
+    required this.recentFoodCounts,
+    required this.mealTypeFoodCounts,
+  });
 }

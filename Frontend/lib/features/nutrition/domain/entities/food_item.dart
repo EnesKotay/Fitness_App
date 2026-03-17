@@ -7,17 +7,20 @@ class FoodItem {
   final String id;
   final String name;
   final String category;
-  
+
   // v2 Fields
   final FoodBasis basis;
   @JsonKey(name: 'nutrientsPerBasis')
   final Nutrients nutrients;
   final List<ServingUnit> servings;
   final List<String> aliases;
+
   /// Geniş eşleşme: protein, kahvaltı, ev yemeği, fastfood, tavuk, pilav vb.
   final List<String> tags;
   final String? brand;
-  
+  final String? barcode;
+  final String? imageUrl;
+
   // Computed getters for backward compatibility (assuming basis is 100g)
   // If basis is not 100g, we should normalize, but for MVP we assume 100g basis for now
   // or calculate on the fly.
@@ -36,11 +39,17 @@ class FoodItem {
     this.aliases = const [],
     this.tags = const [],
     this.brand,
+    this.barcode,
+    this.imageUrl,
   });
 
   double _normalize(double val) {
     if (basis.unit == 'g' && basis.amount == 100) return val;
     if (basis.unit == 'ml' && basis.amount == 100) return val;
+    // Gram/ml dışındaki birimler (örn. porsiyon) zaten bir porsiyon değeri tutar.
+    if (basis.unit != 'g' && basis.unit != 'ml') {
+      return val;
+    }
     // Simple normalization for now
     if (basis.amount > 0) {
       return (val / basis.amount) * 100;
@@ -82,7 +91,8 @@ class FoodBasis {
 
   const FoodBasis({required this.amount, required this.unit});
 
-  factory FoodBasis.fromJson(Map<String, dynamic> json) => _$FoodBasisFromJson(json);
+  factory FoodBasis.fromJson(Map<String, dynamic> json) =>
+      _$FoodBasisFromJson(json);
   Map<String, dynamic> toJson() => _$FoodBasisToJson(this);
 }
 
@@ -100,7 +110,8 @@ class Nutrients {
     required this.fat,
   });
 
-  factory Nutrients.fromJson(Map<String, dynamic> json) => _$NutrientsFromJson(json);
+  factory Nutrients.fromJson(Map<String, dynamic> json) =>
+      _$NutrientsFromJson(json);
   Map<String, dynamic> toJson() => _$NutrientsToJson(this);
 }
 
@@ -118,6 +129,7 @@ class ServingUnit {
     this.isDefault = false,
   });
 
-  factory ServingUnit.fromJson(Map<String, dynamic> json) => _$ServingUnitFromJson(json);
+  factory ServingUnit.fromJson(Map<String, dynamic> json) =>
+      _$ServingUnitFromJson(json);
   Map<String, dynamic> toJson() => _$ServingUnitToJson(this);
 }

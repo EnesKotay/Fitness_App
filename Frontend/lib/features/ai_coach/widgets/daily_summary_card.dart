@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../nutrition/domain/entities/user_profile.dart';
 import '../models/ai_coach_models.dart';
-import 'coach_premium_panel.dart';
 
 class DailySummaryCard extends StatelessWidget {
   const DailySummaryCard({
@@ -11,137 +11,148 @@ class DailySummaryCard extends StatelessWidget {
     required this.summary,
   });
 
-  final CoachGoal goal;
+  final Goal goal;
   final DailySummary summary;
 
   @override
   Widget build(BuildContext context) {
-    return CoachPremiumPanel(
-      baseColor: const Color(0xFF141F37),
-      edgeColor: const Color(0xFF3B4F7A),
+    final metrics = [
+      ('Adım', '${summary.steps}', Icons.directions_walk_rounded),
+      ('Kalori', '${summary.calories} kcal', Icons.local_fire_department_rounded),
+      ('Su', '${summary.waterLiters} L', Icons.water_drop_rounded),
+      ('Uyku', '${summary.sleepHours} sa', Icons.dark_mode_rounded),
+      ('Antrenman', '${summary.workouts}', Icons.fitness_center_rounded),
+      ('Süre', '${summary.workoutMinutes} dk', Icons.timer_outlined),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827).withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF63B6FF).withValues(alpha: 0.4),
-                      const Color(0xFF63B6FF).withValues(alpha: 0.06),
-                    ],
-                  ),
-                  border: Border.all(color: const Color(0xFF6EBAFF)),
-                ),
-                child: const Icon(
-                  Icons.monitor_heart_outlined,
-                  color: Color(0xFFABDCFF),
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Gunluk Ozet',
-                style: GoogleFonts.cormorantGaramond(
-                  color: const Color(0xFFF2ECD8),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 27,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bugünkü özet',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Koç önerileri bu verileri baz alır.',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.58),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
+                  color: _goalAccent(goal).withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: const Color(0xFFEBC271).withValues(alpha: 0.5),
-                  ),
-                  color: const Color(0xFF2A1F0A).withValues(alpha: 0.65),
+                  border: Border.all(color: _goalAccent(goal).withValues(alpha: 0.32)),
                 ),
                 child: Text(
-                  goal.label.toUpperCase(),
+                  goal.label,
                   style: GoogleFonts.dmSans(
-                    color: const Color(0xFFF1CD88),
+                    color: _goalAccent(goal),
                     fontWeight: FontWeight.w700,
-                    fontSize: 10.5,
-                    letterSpacing: 0.7,
+                    fontSize: 12,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            'Hedef: ${goal.label}',
-            style: GoogleFonts.dmSans(
-              color: const Color(0xFFD5E2FF),
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: metrics.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.35,
             ),
-          ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final compact = width < 350;
-              final tileWidth = compact ? (width - 10) / 2 : (width - 20) / 3;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _Metric(
-                    width: tileWidth,
-                    label: 'Adim',
-                    value: '${summary.steps}',
-                    icon: Icons.directions_walk_rounded,
-                  ),
-                  _Metric(
-                    width: tileWidth,
-                    label: 'Kalori',
-                    value: '${summary.calories} kcal',
-                    icon: Icons.local_fire_department_rounded,
-                  ),
-                  _Metric(
-                    width: tileWidth,
-                    label: 'Su',
-                    value: '${summary.waterLiters} L',
-                    icon: Icons.water_drop_rounded,
-                  ),
-                  _Metric(
-                    width: tileWidth,
-                    label: 'Uyku',
-                    value: '${summary.sleepHours} sa',
-                    icon: Icons.dark_mode_rounded,
-                  ),
-                  _Metric(
-                    width: tileWidth,
-                    label: 'Antrenman',
-                    value: '${summary.workouts}',
-                    icon: Icons.fitness_center_rounded,
-                  ),
-                ],
+            itemBuilder: (context, index) {
+              final metric = metrics[index];
+              return _MetricTile(
+                label: metric.$1,
+                value: metric.$2,
+                icon: metric.$3,
               );
             },
           ),
+          if (summary.workoutHighlights.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Öne çıkan hareketler',
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withValues(alpha: 0.72),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: summary.workoutHighlights
+                  .take(4)
+                  .map(
+                    (name) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B1220),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
+                      ),
+                      child: Text(
+                        name,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.76),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.width,
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
     required this.label,
     required this.value,
     required this.icon,
   });
 
-  final double width;
   final String label;
   final String value;
   final IconData icon;
@@ -149,57 +160,49 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF121C32).withValues(alpha: 0.98),
-            const Color(0xFF0D1528).withValues(alpha: 0.98),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: const Color(0xFF32476E)),
+        color: const Color(0xFF0B1220),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF1A2A49),
-              border: Border.all(color: const Color(0xFF405A89)),
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, size: 13, color: const Color(0xFF9FC0F8)),
+            child: Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.72)),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.dmSans(
-                    color: const Color(0xFF9FB1D5),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withValues(alpha: 0.52),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 2),
                 Text(
                   value,
-                  style: GoogleFonts.dmSans(
-                    color: const Color(0xFFE4ECFF),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
-                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -207,5 +210,18 @@ class _Metric extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Color _goalAccent(Goal goal) {
+  switch (goal) {
+    case Goal.bulk:
+      return const Color(0xFFF0B54C);
+    case Goal.cut:
+      return const Color(0xFF53D3B4);
+    case Goal.strength:
+      return const Color(0xFF73A7FF);
+    case Goal.maintain:
+      return const Color(0xFFB388FF);
   }
 }

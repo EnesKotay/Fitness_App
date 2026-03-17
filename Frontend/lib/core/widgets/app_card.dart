@@ -37,7 +37,7 @@ class _AppCardState extends State<AppCard> {
   @override
   Widget build(BuildContext context) {
     const radius = 22.0;
-    final bg = widget.backgroundColor ?? AppColors.surfaceElevated;
+    final bg = widget.backgroundColor ?? AppColors.surfaceLight.withValues(alpha: 0.9);
     final hasAccent = widget.accentColor != null;
 
     final content = Container(

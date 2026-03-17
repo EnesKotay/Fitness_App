@@ -1,0 +1,861 @@
+{
+  "foods": [
+    {
+      "id": "tr_verified_salcali_makarna",
+      "name": "Salçalı Makarna",
+      "category": "Yemek",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 160.0,
+        "protein": 3.41,
+        "carb": 18.41,
+        "fat": 7.97
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_porsiyon",
+          "label": "1 Porsiyon",
+          "grams": 220,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Porsiyon",
+          "grams": 110,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "domates soslu makarna",
+        "napolitan makarna",
+        "marinara makarna",
+        "tomato sauce pasta"
+      ],
+      "tags": [
+        "makarna",
+        "salca",
+        "domates-sosu",
+        "yemek",
+        "tr_popular"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA Survey Foods (FNDDS) - Pasta with tomato-based sauce, restaurant"
+    },
+    {
+      "id": "tr_verified_tavuk_doner",
+      "name": "Tavuk Döner",
+      "category": "Et / Protein",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 196.0,
+        "protein": 22.1,
+        "carb": 0.0,
+        "fat": 11.9
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_porsiyon",
+          "label": "1 Porsiyon",
+          "grams": 120,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Porsiyon",
+          "grams": 60,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk doner",
+        "chicken doner",
+        "pilic doner"
+      ],
+      "tags": [
+        "tavuk",
+        "doner",
+        "protein",
+        "fastfood",
+        "sokak-lezzeti",
+        "tr_popular"
+      ],
+      "brand": "Tada",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "tada Tavuk Döner - 100 g resmi besin değeri"
+    },
+    {
+      "id": "tr_verified_tavuk_durum",
+      "name": "Tavuk Dürüm",
+      "category": "Fast Food / Dürüm",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 207.0,
+        "protein": 13.11,
+        "carb": 19.49,
+        "fat": 7.78
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_durum",
+          "label": "1 Dürüm",
+          "grams": 135,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Dürüm",
+          "grams": 68,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk durum",
+        "chicken wrap",
+        "chicken durum"
+      ],
+      "tags": [
+        "tavuk",
+        "durum",
+        "wrap",
+        "fastfood",
+        "sokak-lezzeti",
+        "tr_popular"
+      ],
+      "brand": "Mr. No",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Mr.No Tavuk Dürüm 135 G ürün etiketi"
+    },
+    {
+      "id": "tr_verified_et_durum",
+      "name": "Et Dürüm",
+      "category": "Fast Food / Dürüm",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 387.0,
+        "protein": 11.8,
+        "carb": 27.1,
+        "fat": 25.2
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_durum",
+          "label": "1 Dürüm",
+          "grams": 150,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Dürüm",
+          "grams": 75,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "et durum",
+        "et doner durum",
+        "beef durum",
+        "doner durum"
+      ],
+      "tags": [
+        "et",
+        "durum",
+        "doner",
+        "fastfood",
+        "sokak-lezzeti",
+        "tr_popular"
+      ],
+      "brand": "Tada",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Tada Et Döner Dürüm 150 G ürün etiketi"
+    },
+    {
+      "id": "tr_verified_cig_kofte_durum",
+      "name": "Çiğ Köfte Dürüm",
+      "category": "Fast Food / Dürüm",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 254.0,
+        "protein": 5.59,
+        "carb": 41.0,
+        "fat": 7.52
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_durum",
+          "label": "1 Dürüm",
+          "grams": 180,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Dürüm",
+          "grams": 90,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "cig kofte durum",
+        "etsiz cig kofte durum",
+        "cigkofte durum"
+      ],
+      "tags": [
+        "cig-kofte",
+        "durum",
+        "vegan",
+        "fastfood",
+        "sokak-lezzeti",
+        "tr_popular"
+      ],
+      "brand": "Gurumen",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Gurumen Çiğ Köfte Dürüm ve Acı Sos 180 G ürün etiketi"
+    },
+    {
+      "id": "tr_verified_tavuk_tantuni",
+      "name": "Tavuk Tantuni",
+      "category": "Et / Protein",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 269.0,
+        "protein": 32.4,
+        "carb": 2.9,
+        "fat": 14.2
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_porsiyon",
+          "label": "1 Porsiyon",
+          "grams": 200,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Porsiyon",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk tantuni",
+        "pilic tantuni",
+        "chicken tantuni"
+      ],
+      "tags": [
+        "tavuk",
+        "tantuni",
+        "protein",
+        "fastfood",
+        "sokak-lezzeti",
+        "tr_popular"
+      ],
+      "brand": "Gedik",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Gedik Piliç Piliç Tantuni 200 G ürün etiketi"
+    },
+    {
+      "id": "tr_verified_bolonez_makarna",
+      "name": "Bolonez Soslu Makarna",
+      "category": "Yemek",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 171.0,
+        "protein": 4.4,
+        "carb": 25.0,
+        "fat": 4.8
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_paket",
+          "label": "1 Paket",
+          "grams": 250,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Paket",
+          "grams": 125,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bolonez makarna",
+        "bolognese pasta",
+        "kiymali makarna"
+      ],
+      "tags": [
+        "makarna",
+        "bolonez",
+        "kiyma",
+        "yemek",
+        "tr_popular"
+      ],
+      "brand": "Yayla",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Yayla Bolonez Soslu Makarna 250 G ürün etiketi"
+    },
+    {
+      "id": "tr_verified_pesto_makarna",
+      "name": "Pesto Soslu Makarna",
+      "category": "Yemek",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 212.0,
+        "protein": 4.1,
+        "carb": 25.0,
+        "fat": 10.1
+      },
+      "servings": [
+        {
+          "id": "s_100g",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_paket",
+          "label": "1 Paket",
+          "grams": 250,
+          "isDefault": false
+        },
+        {
+          "id": "s_yarim",
+          "label": "Yarım Paket",
+          "grams": 125,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pesto makarna",
+        "pesto pasta",
+        "feslegen soslu makarna"
+      ],
+      "tags": [
+        "makarna",
+        "pesto",
+        "feslegen",
+        "yemek",
+        "tr_popular"
+      ],
+      "brand": "Yayla",
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Migros Sanal Market - Yayla Pesto Soslu Makarna 250 G ürün etiketi"
+    },
+    {
+      "id": "tr_numbers_ayran_asi_corbasi",
+      "name": "Ayran Aşı Çorbası",
+      "category": "Çorba",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 62.0, "protein": 2.37, "carb": 6.96, "fat": 2.73 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_kase", "label": "1 Kase", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["ayran asi", "ayran aşı", "ayran asi corbasi"],
+      "tags": ["corba", "yogurt", "geleneksel", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_kelle_paca_corbasi",
+      "name": "Kelle Paça Çorbası",
+      "category": "Çorba",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 128.0, "protein": 11.5, "carb": 4.67, "fat": 7.0 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_kase", "label": "1 Kase", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["kelle paca", "kelle paça", "kelle paca corbasi"],
+      "tags": ["corba", "sakatat", "geleneksel", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_izmir_kofte",
+      "name": "İzmir Köfte",
+      "category": "Etli Yemek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 107.0, "protein": 6.66, "carb": 10.03, "fat": 4.5 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["izmir kofte", "fırında izmir köfte"],
+      "tags": ["kofte", "etli-yemek", "firin", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_hunkar_begendi",
+      "name": "Hünkar Beğendi",
+      "category": "Etli Yemek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 134.0, "protein": 6.3, "carb": 5.6, "fat": 9.6 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["hunkar begendi", "beğendili et", "patlican beğendili et"],
+      "tags": ["etli-yemek", "begendi", "patlican", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_orman_kebabi",
+      "name": "Orman Kebabı",
+      "category": "Etli Yemek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 131.0, "protein": 7.3, "carb": 12.0, "fat": 6.0 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["orman kebabi"],
+      "tags": ["kebap", "etli-yemek", "sebzeli", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_kuzu_tandir",
+      "name": "Kuzu Tandır",
+      "category": "Etli Yemek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 175.0, "protein": 7.0, "carb": 12.0, "fat": 11.0 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["kuzu tandir", "firin kuzu tandir"],
+      "tags": ["kuzu", "tandir", "etli-yemek", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_hindi_tandir",
+      "name": "Hindi Tandır",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 107.0, "protein": 8.0, "carb": 4.0, "fat": 6.6 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["hindi tandir"],
+      "tags": ["hindi", "tandir", "protein", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_aci_soslu_tavuk",
+      "name": "Acı Soslu Tavuk",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 181.0, "protein": 10.0, "carb": 16.0, "fat": 8.6 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["aci soslu tavuk", "acı soslu tavuk"],
+      "tags": ["tavuk", "soslu", "baharatli", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_mantar_soslu_tavuk",
+      "name": "Mantar Soslu Tavuk",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 160.0, "protein": 9.8, "carb": 15.0, "fat": 6.8 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["mantar soslu tavuk"],
+      "tags": ["tavuk", "mantar", "soslu", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_kori_soslu_tavuk",
+      "name": "Köri Soslu Tavuk",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 130.0, "protein": 9.0, "carb": 14.0, "fat": 4.2 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["kori soslu tavuk", "köri soslu tavuk"],
+      "tags": ["tavuk", "kori", "soslu", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_mangalda_tavuk",
+      "name": "Mangalda Tavuk",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 103.0, "protein": 6.0, "carb": 7.6, "fat": 5.4 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["mangalda tavuk", "mangal tavuk"],
+      "tags": ["tavuk", "mangal", "izgara", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_duble_izgara_tavuk",
+      "name": "Duble Izgara Tavuk",
+      "category": "Tavuklu",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 102.0, "protein": 8.6, "carb": 3.3, "fat": 6.0 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 220, "isDefault": false }
+      ],
+      "aliases": ["duble izgara tavuk", "double grilled chicken"],
+      "tags": ["tavuk", "izgara", "protein", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "turkiye_yemek_100_besin_degerleri.numbers"
+    },
+    {
+      "id": "tr_numbers_granola",
+      "name": "Granola",
+      "category": "Kahvaltılık",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 200.0, "protein": 4.66, "carb": 36.12, "fat": 5.5 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_kase", "label": "1 Kase", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["granola gevreği", "granola cereal"],
+      "tags": ["granola", "kahvaltilik", "gevrek", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_ton_balikli_salata",
+      "name": "Ton Balığı Salatası",
+      "category": "Salata",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 150.0, "protein": 8.34, "carb": 4.21, "fat": 4.58 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["ton balıklı salata", "tuna salad"],
+      "tags": ["ton-baligi", "salata", "protein", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_kokorec",
+      "name": "Kokoreç",
+      "category": "Fast Food",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 133.0, "protein": 11.56, "carb": 4.03, "fat": 9.77 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["kokorec"],
+      "tags": ["kokorec", "sakatat", "sokak-lezzeti", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_midye_dolma",
+      "name": "Midye Dolma",
+      "category": "Atıştırmalık",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 104.0, "protein": 3.46, "carb": 6.58, "fat": 3.61 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["midye dolması", "stuffed mussels"],
+      "tags": ["midye", "deniz-urunu", "sokak-lezzeti", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_cheeseburger",
+      "name": "Cheeseburger",
+      "category": "Fast Food",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 156.5, "protein": 7.24, "carb": 13.06, "fat": 7.33 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_burger", "label": "1 Burger", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["cheese burger"],
+      "tags": ["burger", "cheeseburger", "fast-food", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_tavuk_nuggets",
+      "name": "Tavuk Nuggets",
+      "category": "Fast Food",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 145.0, "protein": 7.75, "carb": 8.21, "fat": 9.4 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["tavuk nugget", "chicken nuggets"],
+      "tags": ["tavuk", "nuggets", "fast-food", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_mozzarella_stick",
+      "name": "Mozzarella Stick",
+      "category": "Atıştırmalık",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 127.0, "protein": 12.13, "carb": 1.64, "fat": 7.95 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["mozzarella sticks"],
+      "tags": ["peynir", "mozzarella", "atistirmalik", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_sutlac",
+      "name": "Sütlaç",
+      "category": "Tatlı",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 77.0, "protein": 2.42, "carb": 13.31, "fat": 0.74 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_kase", "label": "1 Kase", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["sutlac", "rice pudding"],
+      "tags": ["sutlac", "tatli", "sutlu-tatli", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_brownie",
+      "name": "Brownie",
+      "category": "Tatlı",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 202.5, "protein": 2.4, "carb": 31.9, "fat": 13.08 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["chocolate brownie"],
+      "tags": ["brownie", "tatli", "cikolatali", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_trilece",
+      "name": "Trileçe",
+      "category": "Tatlı",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 108.0, "protein": 2.56, "carb": 17.4, "fat": 3.84 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["trilece", "tres leches cake"],
+      "tags": ["trilece", "tatli", "sutlu-tatli", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_san_sebastian_cheesecake",
+      "name": "San Sebastian Cheesecake",
+      "category": "Tatlı",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 160.0, "protein": 2.9, "carb": 14.4, "fat": 8.34 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_porsiyon", "label": "1 Porsiyon", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["san sebastian", "basque burnt cheesecake"],
+      "tags": ["cheesecake", "tatli", "san-sebastian", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_ayran",
+      "name": "Ayran",
+      "category": "İçecek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 17.0, "protein": 1.9, "carb": 1.5, "fat": 1.03 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_bardak", "label": "1 Bardak", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["ayran icecegi", "yogurt drink"],
+      "tags": ["ayran", "icecek", "sut-urunu", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_latte",
+      "name": "Latte",
+      "category": "İçecek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 14.0, "protein": 0.93, "carb": 1.31, "fat": 0.58 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_kucuk", "label": "1 Küçük Bardak", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["cafe latte"],
+      "tags": ["kahve", "latte", "icecek", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    },
+    {
+      "id": "tr_numbers_limonata",
+      "name": "Limonata",
+      "category": "İçecek",
+      "basis": { "amount": 100, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 21.0, "protein": 0.04, "carb": 5.41, "fat": 0.02 },
+      "servings": [
+        { "id": "s_100g", "label": "100 g", "grams": 100, "isDefault": true },
+        { "id": "s_bardak", "label": "1 Bardak", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["ev limonatası", "lemonade"],
+      "tags": ["limonata", "icecek", "serinletici", "tr_popular"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "ek_yemekler_veri_seti.numbers"
+    }
+  ]
+}

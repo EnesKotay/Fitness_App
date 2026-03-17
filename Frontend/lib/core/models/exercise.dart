@@ -4,13 +4,15 @@ class Exercise {
   final String name;
   final String? description;
   final String? instructions;
+  final String? tips;
 
-  Exercise({
+  const Exercise({
     required this.id,
     required this.muscleGroup,
     required this.name,
     this.description,
     this.instructions,
+    this.tips,
   });
 
   factory Exercise.fromJson(Map<String, dynamic>? json) {
@@ -24,6 +26,7 @@ class Exercise {
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString(),
       instructions: json['instructions']?.toString(),
+      tips: json['tips']?.toString(),
     );
   }
 }

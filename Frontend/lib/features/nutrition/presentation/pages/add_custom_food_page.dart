@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_gradient_background.dart';
 import '../../../../core/utils/app_snack.dart';
+import '../../models/nutrition_ai_response.dart';
 
 /// Özel yemek ekle: Premium tasarım, Canlı Önizleme.
 class AddCustomFoodPage extends StatefulWidget {
@@ -25,6 +26,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
   final _carbController = TextEditingController();
   final _fatController = TextEditingController();
   bool _saving = false;
+  bool _estimating = false;
 
   // Preview state
   String _name = '';
@@ -60,6 +62,45 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     _carbController.dispose();
     _fatController.dispose();
     super.dispose();
+  }
+
+  Future<void> _aiEstimate() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      AppSnack.showError(context, 'Önce yemek adını girin.');
+      return;
+    }
+    setState(() => _estimating = true);
+    try {
+      final provider = Provider.of<DietProvider>(context, listen: false);
+      final NutritionAiResponseModel? result =
+          await provider.getStructuredNutritionResponse(
+        '100g $name için besin değerlerini tahmin et: kalori (kcal), protein (g), karbonhidrat (g), yağ (g).',
+        task: 'estimate',
+      );
+      if (!mounted) return;
+      final macros = result?.meals.isNotEmpty == true
+          ? result!.meals.first.macros
+          : null;
+      if (macros != null) {
+        _kcalController.text =
+            macros.kcal != null ? macros.kcal.toString() : '';
+        _proteinController.text =
+            macros.proteinG != null ? macros.proteinG.toString() : '';
+        _carbController.text =
+            macros.carbsG != null ? macros.carbsG.toString() : '';
+        _fatController.text =
+            macros.fatG != null ? macros.fatG.toString() : '';
+        _updateValues();
+        AppSnack.showSuccess(context, 'AI makro tahmini uygulandı!');
+      } else {
+        AppSnack.showError(context, 'AI tahmin yapamadı. Manuel girin.');
+      }
+    } catch (e) {
+      if (mounted) AppSnack.showError(context, 'Tahmin hatası: $e');
+    } finally {
+      if (mounted) setState(() => _estimating = false);
+    }
   }
 
   Future<void> _save() async {
@@ -116,6 +157,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: AppGradientBackground(
+        imagePath: 'assets/images/nutrition_bg_dark.png',
         child: SafeArea(
           child: Column(
             children: [
@@ -159,7 +201,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                           boxShadow: [
                             BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 8)),
                           ],
@@ -195,7 +237,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                                       const SizedBox(width: 8),
                                       _previewBadge('P', '${_p.round()}', const Color(0xFF4CAF50)),
                                       const SizedBox(width: 4),
-                                      _previewBadge('C', '${_c.round()}', const Color(0xFF2196F3)),
+                                      _previewBadge('K', '${_c.round()}', const Color(0xFF2196F3)),
                                       const SizedBox(width: 4),
                                       _previewBadge('Y', '${_f.round()}', const Color(0xFFE91E63)),
                                     ],
@@ -215,7 +257,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                           controller: _nameController,
                           label: 'Yemek İsmi',
                           icon: Icons.edit,
-                          hint: 'Örn. Mercimek Çorbası',
+                          hint: 'Örn. Simit, Köfte, Mercimek Çorbası',
                         ),
                         const SizedBox(height: 16),
                         _GlassInput(
@@ -228,6 +270,41 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                       ]),
 
                       const SizedBox(height: 24),
+
+                      // AI estimation button
+                      OutlinedButton.icon(
+                        onPressed: _estimating ? null : _aiEstimate,
+                        icon: _estimating
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.primary),
+                                ),
+                              )
+                            : const Icon(Icons.auto_awesome_rounded,
+                                size: 16, color: AppColors.primary),
+                        label: Text(
+                          _estimating ? 'Tahmin ediliyor...' : 'AI ile Tahmin Et',
+                          style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                              color: AppColors.primary.withValues(alpha: 0.5)),
+                          backgroundColor:
+                              AppColors.primary.withValues(alpha: 0.07),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
                       _buildInputGroup('Besin Değerleri (100g için)', [
                         Row(
@@ -346,9 +423,9 @@ class _GlassInput extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: Colors.white.withValues(alpha: 0.09),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.25)),
           ),
           child: TextField(
             controller: controller,

@@ -1,7 +1,10 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../nutrition/data/datasources/hive_diet_storage.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
@@ -9,9 +12,13 @@ import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/data/repositories/weight_repository_impl.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
+import '../../tracking/providers/tracking_provider.dart';
+import '../../workout/providers/workout_provider.dart';
+import '../../nutrition/presentation/pages/diet_tab_container.dart';
 import '../../shell/main_shell.dart';
 import '../providers/auth_provider.dart';
 import 'edit_profile_screen.dart';
+import 'premium_screen.dart';
 
 const Color _warmAccent = Color(0xFFD89A6A);
 const Color _freshGreen = Color(0xFF5FAE78);
@@ -25,14 +32,65 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  bool _cancellingPremium = false;
+
   @override
   void initState() {
     super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DietProvider>().loadDay(DateTime.now());
+      _refreshPremiumState();
+      if (mounted) _entranceController.forward();
     });
   }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refreshProfileData() async {
+    final now = DateTime.now();
+    final authProvider = context.read<AuthProvider>();
+    final dietProvider = context.read<DietProvider>();
+    final weightProvider = context.read<WeightProvider>();
+    final workoutProvider = context.read<WorkoutProvider>();
+
+    final userId = authProvider.user?.id;
+    await Future.wait([
+      dietProvider.loadDay(DateTime(now.year, now.month, now.day)),
+      weightProvider.loadEntries(),
+      if (userId != null && userId > 0) workoutProvider.loadWorkouts(userId),
+    ]);
+    await _refreshPremiumState();
+  }
+
+  Future<void> _refreshPremiumState() async {
+    final aiService = context.read<DietProvider>().aiService;
+    if (aiService == null) {
+      return;
+    }
+    try {
+      final remotePremium = await aiService.checkPremiumStatus();
+      if (!mounted || remotePremium == null) {
+        return;
+      }
+      context.read<AuthProvider>().setPremiumActive(remotePremium);
+    } catch (e) {
+      debugPrint('ProfileScreen: premium kontrol hatası: $e');
+    }
+  }
+
+  bool _isPremium(AuthProvider authProvider) =>
+      authProvider.user?.premiumTier?.toLowerCase().trim() == 'premium';
 
   @override
   Widget build(BuildContext context) {
@@ -42,18 +100,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (context, authProvider, dietProvider, weightProvider, _) {
           final user = authProvider.user;
           final profile = dietProvider.profile;
-          final name =
-              profile?.name ??
-              StorageHelper.getUserName() ??
-              user?.name ??
-              'Kullanıcı';
+          final name = _capitalizeFirst(
+            profile?.name ??
+                StorageHelper.getUserName() ??
+                user?.name ??
+                'Kullanıcı',
+          );
           final email = StorageHelper.getUserEmail() ?? user?.email ?? '';
           final targetKcal = dietProvider.dailyTargetKcal;
           final consumedKcal = dietProvider.totals.totalKcal;
           final remainingKcal = dietProvider.remainingKcal;
           final latestWeight =
               weightProvider.latestEntry?.weightKg ?? profile?.weight;
-          final isToday = _isSameDay(dietProvider.selectedDate, DateTime.now());
           final dailyProgress = targetKcal != null && targetKcal > 0
               ? (consumedKcal / targetKcal).clamp(0.0, 1.0)
               : 0.0;
@@ -82,318 +140,849 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return Stack(
             children: [
               const _ProfileBackdrop(),
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // —— Hero: Avatar + İsim + Hedef rozeti ——
-                  SliverAppBar(
-                    expandedHeight: heroHeight,
-                    pinned: true,
-                    scrolledUnderElevation: 0,
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    surfaceTintColor: Colors.transparent,
-                    flexibleSpace: FlexibleSpaceBar(
-                      collapseMode: CollapseMode.parallax,
-                      background: SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: _glassPanel(
-                              radius: 28,
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                14,
-                                16,
-                                12,
-                              ),
-                              backgroundColor: Colors.black.withValues(
-                                alpha: 0.28,
-                              ),
-                              borderColor: Colors.white.withValues(alpha: 0.18),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildAvatar(name, size: avatarSize),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    name,
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (email.isNotEmpty)
+              RefreshIndicator.adaptive(
+                onRefresh: _refreshProfileData,
+                child: CustomScrollView(
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  slivers: [
+                    // —— Hero: Avatar + İsim + Hedef rozeti ——
+                    SliverAppBar(
+                      expandedHeight: heroHeight,
+                      pinned: true,
+                      scrolledUnderElevation: 0,
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      surfaceTintColor: Colors.transparent,
+                      flexibleSpace: FlexibleSpaceBar(
+                        collapseMode: CollapseMode.parallax,
+                        background: SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: _glassPanel(
+                                radius: 28,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  14,
+                                  16,
+                                  12,
+                                ),
+                                backgroundColor: Colors.black.withValues(
+                                  alpha: 0.28,
+                                ),
+                                borderColor: Colors.white.withValues(
+                                  alpha: 0.18,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildAvatar(name, size: avatarSize),
+                                    const SizedBox(height: 10),
                                     Text(
-                                      email,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        height: 1.1,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.72,
-                                        ),
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
                                       ),
+                                      textAlign: TextAlign.center,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                  const SizedBox(height: 7),
-                                  _buildGoalChip(profile?.goal),
-                                  const SizedBox(height: 10),
-                                  _buildHeroKpiStrip(
-                                    profileCompletion: profileCompletion,
-                                    dailyProgress: dailyProgress,
-                                    remainingKcal: remainingKcal,
-                                    latestWeight: latestWeight,
-                                    streakDays: streakDays,
-                                    compact: compactViewport,
-                                  ),
-                                  if (missingFields.isNotEmpty) ...[
+                                    if (email.isNotEmpty)
+                                      Text(
+                                        email,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          height: 1.1,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.72,
+                                          ),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    const SizedBox(height: 7),
+                                    _buildGoalChip(profile?.goal),
                                     const SizedBox(height: 10),
-                                    _buildMissingProfilePanel(
-                                      missingFields,
+                                    _buildHeroKpiStrip(
+                                      profileCompletion: profileCompletion,
+                                      dailyProgress: dailyProgress,
+                                      remainingKcal: remainingKcal,
+                                      latestWeight: latestWeight,
+                                      streakDays: streakDays,
                                       compact: compactViewport,
                                     ),
+                                    if (missingFields.isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      _buildMissingProfilePanel(
+                                        missingFields,
+                                        compact: compactViewport,
+                                      ),
+                                    ],
                                   ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // —— Hızlı erişim: Antrenman, Takip, Beslenme ——
+                    SliverToBoxAdapter(
+                      child: _buildEntrance(
+                        order: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionLabel('SENİN ALANIN'),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _quickAccessCard(
+                                      context,
+                                      icon: Icons.fitness_center_rounded,
+                                      label: 'Antrenman',
+                                      subtitle: 'Antrenmana başla',
+                                      color: _warmAccent,
+                                      tabIndex: 1,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _quickAccessCard(
+                                      context,
+                                      icon: Icons.trending_up_rounded,
+                                      label: 'Kilo Takibi',
+                                      subtitle: 'Grafik & geçmiş',
+                                      color: _freshGreen,
+                                      tabIndex: 2,
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
+                              const SizedBox(height: 12),
+                              _quickAccessCard(
+                                context,
+                                icon: Icons.restaurant_rounded,
+                                label: 'Beslenme',
+                                subtitle: 'Kalori & öğünler',
+                                color: _warmAccent,
+                                tabIndex: 3,
+                                fullWidth: true,
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // —— Bugünkü özet (kalbi) ——
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                        child: _buildTodayCard(
-                          targetKcal: targetKcal,
-                          consumedKcal: consumedKcal,
-                          remainingKcal: remainingKcal,
-                          isToday: isToday,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // —— Hızlı erişim: Antrenman, Takip, Beslenme ——
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 1,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _sectionLabel('SENİN ALANIN'),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _quickAccessCard(
-                                    context,
-                                    icon: Icons.fitness_center_rounded,
-                                    label: 'Antrenman',
-                                    subtitle: 'Antrenmana başla',
-                                    color: _warmAccent,
-                                    tabIndex: 1,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _quickAccessCard(
-                                    context,
-                                    icon: Icons.trending_up_rounded,
-                                    label: 'Kilo Takibi',
-                                    subtitle: 'Grafik & geçmiş',
-                                    color: _freshGreen,
-                                    tabIndex: 2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _quickAccessCard(
-                              context,
-                              icon: Icons.restaurant_rounded,
-                              label: 'Beslenme',
-                              subtitle: 'Kalori & öğünler',
-                              color: _warmAccent,
-                              tabIndex: 3,
-                              fullWidth: true,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _sectionLabel('PROFIL BILGILERI'),
-                            _buildProfileDetailsCard(
-                              profile: profile,
-                              latestWeight: latestWeight,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // —— Özet istatistikler ——
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _sectionLabel('ÖZET'),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                _buildStatCard(
-                                  'Kilo',
-                                  latestWeight != null
-                                      ? '${latestWeight.toStringAsFixed(1)} kg'
-                                      : '--',
-                                  Icons.monitor_weight_outlined,
-                                  _softBlue,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildStatCard(
-                                  'Hedef',
-                                  targetKcal != null
-                                      ? '${targetKcal.round()} kcal'
-                                      : '--',
-                                  Icons.local_fire_department_outlined,
-                                  _warmAccent,
-                                ),
-                                const SizedBox(width: 12),
-                                _buildStatCard(
-                                  'BMI',
-                                  _bmiString(profile),
-                                  Icons.accessibility_new_outlined,
-                                  _freshGreen,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // —— Profili düzenle ——
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _openEditProfile(context),
-                            icon: const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 18,
-                              color: _warmAccent,
-                            ),
-                            label: const Text('Profili Düzenle'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.03,
+                    SliverToBoxAdapter(
+                      child: _buildEntrance(
+                        order: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionLabel('PROFIL BILGILERI'),
+                              const SizedBox(height: 12),
+                              _buildMembershipCard(authProvider),
+                              const SizedBox(height: 12),
+                              _buildProfileDetailsCard(
+                                profile: profile,
+                                latestWeight: latestWeight,
                               ),
-                              side: BorderSide(
-                                color: _warmAccent.withValues(alpha: 0.42),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // —— Profili düzenle ——
+                    SliverToBoxAdapter(
+                      child: _buildEntrance(
+                        order: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _openEditProfile(context),
+                              icon: const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 18,
+                                color: _warmAccent,
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
+                              label: const Text('Profili Düzenle'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.03,
+                                ),
+                                side: BorderSide(
+                                  color: _warmAccent.withValues(alpha: 0.42),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
-                  // —— Ayarlar ——
-                  SliverToBoxAdapter(
-                    child: _buildEntrance(
-                      order: 5,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _sectionLabel('HESAP & AYARLAR'),
-                            _settingsTile(
-                              icon: Icons.lock_outline_rounded,
-                              accent: _warmAccent,
-                              title: 'Şifre Değiştir',
-                              onTap: () {},
-                            ),
-                            _settingsTile(
-                              icon: Icons.notifications_none_rounded,
-                              accent: _softBlue,
-                              title: 'Bildirimler',
-                              onTap: () {},
-                            ),
-                            _settingsTile(
-                              icon: Icons.palette_outlined,
-                              accent: _freshGreen,
-                              title: 'Tema & Görünüm',
-                              subtitle: 'Koyu Mod',
-                              onTap: () {},
-                            ),
-                            _settingsTile(
-                              icon: Icons.help_outline_rounded,
-                              accent: _warmAccent,
-                              title: 'Yardım',
-                              onTap: () {},
-                            ),
-                            _settingsTile(
-                              icon: Icons.privacy_tip_outlined,
-                              accent: _softBlue,
-                              title: 'Gizlilik',
-                              onTap: () {},
-                            ),
-                            const SizedBox(height: 24),
-                            _logoutTile(context, authProvider),
-                            const SizedBox(height: 32),
-                          ],
+                    // —— Ayarlar ——
+                    SliverToBoxAdapter(
+                      child: _buildEntrance(
+                        order: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _sectionLabel('HESAP & AYARLAR'),
+                              _settingsTile(
+                                icon: Icons.auto_awesome_rounded,
+                                accent: const Color(0xFFD97706),
+                                title: 'Premium Üyelik',
+                                subtitle: 'Yapay Zekayı Yükselt',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const PremiumScreen(),
+                                  ),
+                                ),
+                              ),
+                              _settingsTile(
+                                icon: Icons.lock_outline_rounded,
+                                accent: _warmAccent,
+                                title: 'Şifre Değiştir',
+                                subtitle: 'Hesap güvenliği',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-password'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.notifications_none_rounded,
+                                accent: _softBlue,
+                                title: 'Bildirimler',
+                                subtitle: 'Hatırlatıcı ve hedefler',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-notifications'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.privacy_tip_outlined,
+                                accent: _softBlue,
+                                title: 'Gizlilik',
+                                subtitle: 'Veri ve izin yonetimi',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-privacy'),
+                              ),
+                              const SizedBox(height: 24),
+                              _logoutTile(context, authProvider),
+                              const SizedBox(height: 32),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           );
         },
       ),
     );
+  }
+
+  static String _fmtDate(DateTime dt) =>
+      '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+
+  Widget _buildMembershipCard(AuthProvider authProvider) {
+    final isPremium = _isPremium(authProvider);
+    final user = authProvider.user;
+    final plan = user?.premiumPlan?.toLowerCase().trim();
+    final expiresAt = user?.premiumExpiresAt;
+    final cancelAtEnd = user?.premiumCancelAtPeriodEnd == true;
+    final isMonthly = plan == 'monthly';
+    const gold = Color(0xFFD97706);
+    const goldLight = Color(0xFFFBBF24);
+
+    if (!isPremium) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.06),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              ),
+              child: const Icon(
+                Icons.workspace_premium_rounded,
+                color: Colors.white38,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'PRO Özellikler',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Premium\'a geç, tüm AI araçlarını aç.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PremiumScreen(),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: gold.withValues(alpha: 0.85),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text(
+                        'Premium\'u İncele',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final totalDays = plan == 'yearly' ? 365 : 30;
+    final daysLeft = expiresAt != null
+        ? expiresAt.difference(DateTime.now()).inDays.clamp(0, totalDays)
+        : 0;
+    final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
+    final planPrice = plan == 'yearly' ? '1.199₺ / yıl' : '149₺ / ay';
+    final statusColor =
+        cancelAtEnd ? Colors.orangeAccent : const Color(0xFF69F0AE);
+    final statusLabel = cancelAtEnd ? 'İptal Planlandı' : 'Aktif';
+    final progress = (daysLeft / totalDays).clamp(0.0, 1.0);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            gold.withValues(alpha: 0.18),
+            const Color(0xFF0E0A04).withValues(alpha: 0.9),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: gold.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: gold.withValues(alpha: 0.12),
+            blurRadius: 30,
+            spreadRadius: -5,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        gold.withValues(alpha: 0.45),
+                        gold.withValues(alpha: 0.15),
+                      ],
+                    ),
+                    border: Border.all(color: gold.withValues(alpha: 0.5)),
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: goldLight,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Üyeliği Yönet',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      Text(
+                        '$planLabel · $planPrice',
+                        style: TextStyle(
+                          color: goldLight.withValues(alpha: 0.85),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Status chip
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: statusColor,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Divider
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Divider(
+              color: Colors.white.withValues(alpha: 0.07),
+              height: 1,
+            ),
+          ),
+
+          // Days remaining + arc
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kalan Süre',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '$daysLeft',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1,
+                              ),
+                            ),
+                            const TextSpan(
+                              text: ' gün',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (expiresAt != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '${cancelAtEnd ? 'Bitiş' : 'Yenileme'}: ${_fmtDate(expiresAt)}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 20),
+                SizedBox(
+                  width: 72,
+                  height: 72,
+                  child: CustomPaint(
+                    painter: _ProfileArcPainter(progress: progress),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$daysLeft',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            'gün',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Progress bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${(progress * 100).round()}% kaldı',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                    Text(
+                      plan == 'yearly' ? '365 günlük dönem' : '30 günlük dönem',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    valueColor: AlwaysStoppedAnimation(
+                      cancelAtEnd ? Colors.orangeAccent : goldLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Cancel info banner
+          if (cancelAtEnd && expiresAt != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orangeAccent.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.orangeAccent,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Otomatik yenileme kapalı. Erişimin ${_fmtDate(expiresAt)} tarihine kadar devam eder.',
+                        style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Action buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Row(
+              children: [
+                if (isMonthly && !cancelAtEnd) ...[
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PremiumScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.trending_up_rounded, size: 18),
+                      label: const Text(
+                        'Yıllıya Geç',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: gold,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                if (!cancelAtEnd)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: isMonthly && !_cancellingPremium
+                          ? () =>
+                              _cancelPremiumFromProfile(context, authProvider)
+                          : null,
+                      icon: Icon(
+                        Icons.cancel_outlined,
+                        size: 18,
+                        color: isMonthly ? Colors.redAccent : Colors.white24,
+                      ),
+                      label: Text(
+                        isMonthly ? 'İptal Et' : 'Yıllık Kilitli',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: isMonthly ? Colors.redAccent : Colors.white24,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        side: BorderSide(
+                          color: isMonthly
+                              ? Colors.redAccent.withValues(alpha: 0.4)
+                              : Colors.white.withValues(alpha: 0.08),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Colors.white38,
+                            size: 16,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'İptal Planlandı',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelPremiumFromProfile(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF111318),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Üyeliği İptal Et',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Otomatik yenileme kapanacak. Premium erişimin mevcut dönemin sonuna kadar devam edecek.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.72),
+            height: 1.45,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Vazgeç',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'İptal Et',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    _cancellingPremium = true;
+    try {
+      await ApiClient().post(ApiConstants.downgradePremium);
+      if (context.mounted) {
+        // Sunucudan güncel premium durumunu çek (PremiumScreen ile tutarlı)
+        await authProvider.checkAuthStatus();
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'İptal planlandı. Premium dönem sonuna kadar aktif kalacak.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('İptal işlemi başarısız oldu. Lütfen tekrar dene.'),
+          ),
+        );
+      }
+    } finally {
+      _cancellingPremium = false;
+    }
   }
 
   Future<void> _openEditProfile(BuildContext context) async {
@@ -404,15 +993,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildEntrance({required int order, required Widget child}) {
     final start = (order * 0.08).clamp(0.0, 0.55).toDouble();
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 760),
-      tween: Tween(begin: 0, end: 1),
+    final animation = CurvedAnimation(
+      parent: _entranceController,
       curve: Interval(start, 1, curve: Curves.easeOutCubic),
+    );
+    return AnimatedBuilder(
+      animation: animation,
       child: child,
-      builder: (context, value, child) {
-        final dy = (1 - value) * 18;
+      builder: (context, child) {
+        final t = animation.value.clamp(0.0, 1.0);
+        final dy = (1 - t) * 18;
         return Opacity(
-          opacity: value.clamp(0.0, 1.0),
+          opacity: t,
           child: Transform.translate(offset: Offset(0, dy), child: child),
         );
       },
@@ -495,15 +1087,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String text;
     Color color;
     switch (goal) {
-      case Goal.loseWeight:
+      case Goal.cut:
         text = 'Hedef: Kilo ver';
         color = _warmAccent;
         break;
-      case Goal.gainWeight:
+      case Goal.bulk:
         text = 'Hedef: Kilo al';
         color = _softBlue;
         break;
-      case Goal.maintainWeight:
+      case Goal.strength:
+        text = 'Hedef: Guc artir';
+        color = _freshGreen;
+        break;
+      case Goal.maintain:
       default:
         text = 'Hedef: Kiloyu koru';
         color = _freshGreen;
@@ -881,178 +1477,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildTodayCard({
-    required double? targetKcal,
-    required double consumedKcal,
-    required double remainingKcal,
-    required bool isToday,
-  }) {
-    final target = targetKcal ?? 2000.0;
-    final progress = target > 0 ? (consumedKcal / target).clamp(0.0, 1.0) : 0.0;
-    final consumedText = consumedKcal.round().toString();
-    final targetText = target.round().toString();
-    final remainingText = remainingKcal.round().toString();
-
-    return _glassPanel(
-      radius: 22,
-      padding: const EdgeInsets.all(22),
-      backgroundColor: Colors.black.withValues(alpha: 0.30),
-      borderColor: Colors.white.withValues(alpha: 0.16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isToday ? 'Bugunku ozet' : 'Gunluk ozet',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  letterSpacing: 0.8,
-                ),
-              ),
-              _progressBadge(progress),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    consumedText,
-                    style: const TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      height: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '/ $targetText kcal',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(_warmAccent),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Kalan: $remainingText kcal',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _miniMetaPill(
-                icon: Icons.flag_outlined,
-                text: 'Hedef $targetText',
-              ),
-              _miniMetaPill(
-                icon: Icons.check_circle_outline_rounded,
-                text: 'Alinan $consumedText',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniMetaPill({required IconData icon, required String text}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.white.withValues(alpha: 0.8)),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _progressBadge(double progress) {
-    final percent = (progress * 100).round();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _warmAccent.withValues(alpha: 0.28),
-            _warmAccent.withValues(alpha: 0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _warmAccent.withValues(alpha: 0.45)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.local_fire_department_rounded,
-            size: 15,
-            color: _warmAccent,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '%$percent',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _sectionLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
@@ -1352,49 +1776,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Expanded(
-      child: _glassPanel(
-        radius: 14,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        backgroundColor: Colors.black.withValues(alpha: 0.25),
-        borderColor: color.withValues(alpha: 0.24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 11,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _settingsTile({
     required IconData icon,
     required Color accent,
@@ -1492,7 +1873,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(Icons.logout_rounded, color: Colors.red.shade300, size: 20),
               const SizedBox(width: 10),
               Text(
-                'Cikis Yap',
+                'Çıkış Yap',
                 style: TextStyle(
                   color: Colors.red.shade300,
                   fontWeight: FontWeight.w700,
@@ -1508,11 +1889,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _goalLabel(Goal? goal) {
     switch (goal) {
-      case Goal.loseWeight:
+      case Goal.cut:
         return 'Kilo Ver';
-      case Goal.gainWeight:
+      case Goal.bulk:
         return 'Kilo Al';
-      case Goal.maintainWeight:
+      case Goal.strength:
+        return 'Guc';
+      case Goal.maintain:
         return 'Koru';
       default:
         return '--';
@@ -1558,6 +1941,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         (label: 'Yas', icon: Icons.cake_outlined),
         (label: 'Boy', icon: Icons.height_rounded),
         (label: 'Kilo', icon: Icons.monitor_weight_outlined),
+        (label: 'Cinsiyet', icon: Icons.wc_rounded),
+        (label: 'Aktivite', icon: Icons.directions_run_rounded),
         (label: 'Hedef', icon: Icons.flag_outlined),
       ];
     }
@@ -1575,10 +1960,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if ((latestWeight ?? profile.weight) <= 0) {
       fields.add((label: 'Kilo', icon: Icons.monitor_weight_outlined));
     }
-    if ((profile.targetWeight ?? 0) <= 0) {
-      fields.add((label: 'Hedef kilo', icon: Icons.flag_outlined));
+    if (profile.gender != Gender.male && profile.gender != Gender.female) {
+      fields.add((label: 'Cinsiyet', icon: Icons.wc_rounded));
     }
-    if ((targetKcal ?? 0) <= 0) {
+    if (profile.activityLevel.index < 0 ||
+        profile.activityLevel.index > ActivityLevel.values.length - 1) {
+      fields.add((label: 'Aktivite', icon: Icons.directions_run_rounded));
+    }
+    if ((targetKcal ?? 0) <= 0 && profile.customKcalTarget != null) {
       fields.add((
         label: 'Kalori hedefi',
         icon: Icons.local_fire_department_outlined,
@@ -1590,13 +1979,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double _profileCompletion(UserProfile? profile, double? latestWeight) {
     if (profile == null) return 0;
     var filled = 0;
+    const total = 7;
     if (profile.name.trim().isNotEmpty) filled++;
     if (profile.age > 0) filled++;
     if (profile.height > 0) filled++;
     if ((latestWeight ?? 0) > 0) filled++;
-    if ((profile.targetWeight ?? 0) > 0) filled++;
-    if ((profile.customKcalTarget ?? 0) > 0) filled++;
-    return (filled / 6).clamp(0.0, 1.0);
+    if (Goal.values.contains(profile.goal)) filled++;
+    if (ActivityLevel.values.contains(profile.activityLevel)) filled++;
+    if (Gender.values.contains(profile.gender)) filled++;
+    return (filled / total).clamp(0.0, 1.0);
   }
 
   int _trackingStreakDays(List<WeightEntry> entries) {
@@ -1647,15 +2038,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+  String _capitalizeFirst(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return text;
+    return trimmed[0].toUpperCase() + trimmed.substring(1);
   }
 
-  String _bmiString(UserProfile? p) {
-    if (p == null || p.height <= 0) return '--';
-    final h = p.height / 100;
-    final bmi = p.weight / (h * h);
-    return bmi.toStringAsFixed(1);
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   Future<void> _confirmLogout(AuthProvider authProvider) async {
@@ -1665,11 +2055,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          'Cikis yap?',
+          'Çıkış yap?',
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         content: Text(
-          'Hesabinizdan cikis yapmak istediginize emin misiniz?',
+          'Hesabınızdan çıkış yapmak istediğinize emin misiniz?',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.9),
             fontSize: 15,
@@ -1679,14 +2069,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
-              'Iptal',
+              'İptal',
               style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'Cikis Yap',
+              'Çıkış Yap',
               style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1699,9 +2089,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final oldSuffix = StorageHelper.getUserStorageSuffix();
     final dietProvider = context.read<DietProvider>();
     final weightProvider = context.read<WeightProvider>();
+    final trackingProvider = context.read<TrackingProvider>();
+    final workoutProvider = context.read<WorkoutProvider>();
 
     dietProvider.reset();
     weightProvider.reset();
+    trackingProvider.reset();
+    workoutProvider.reset();
+    DietTabContainer.reset();
 
     await authProvider.logout();
     await HiveDietStorage.closeBoxesForSuffix(oldSuffix);
@@ -1710,7 +2105,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
 
     await dietProvider.init();
-    await weightProvider.loadEntries();
 
     if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
@@ -1727,9 +2121,9 @@ class _ProfileBackdrop extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/ChatGPT Image 14 Şub 2026 07_28_10.png',
+              'assets/images/anasayfa.png',
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
+              alignment: Alignment.center,
               filterQuality: FilterQuality.medium,
             ),
           ),
@@ -1769,4 +2163,42 @@ class _ProfileBackdrop extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileArcPainter extends CustomPainter {
+  const _ProfileArcPainter({required this.progress});
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 5;
+    const strokeWidth = 5.0;
+
+    final bgPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.07)
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fgPaint = Paint()
+      ..color = const Color(0xFFFBBF24)
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawCircle(center, radius, bgPaint);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * progress,
+      false,
+      fgPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProfileArcPainter old) =>
+      old.progress != progress;
 }

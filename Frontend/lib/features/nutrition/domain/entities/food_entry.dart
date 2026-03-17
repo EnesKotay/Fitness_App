@@ -12,6 +12,8 @@ class FoodEntry {
   final double protein; // bu porsiyon için
   final double carb;
   final double fat;
+  final double fiber;
+  final double sugar;
   final DateTime createdAt;
 
   const FoodEntry({
@@ -25,6 +27,8 @@ class FoodEntry {
     this.protein = 0,
     this.carb = 0,
     this.fat = 0,
+    this.fiber = 0,
+    this.sugar = 0,
     required this.createdAt,
   });
 
@@ -39,6 +43,8 @@ class FoodEntry {
         'protein': protein,
         'carb': carb,
         'fat': fat,
+        'fiber': fiber,
+        'sugar': sugar,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -86,6 +92,8 @@ class FoodEntry {
         protein: safeDouble(json['protein'] as num?, 0),
         carb: safeDouble(json['carb'] as num?, 0),
         fat: safeDouble(json['fat'] as num?, 0),
+        fiber: safeDouble(json['fiber'] as num?, 0),
+        sugar: safeDouble(json['sugar'] as num?, 0),
         createdAt: createdAt,
       );
     } catch (e) {

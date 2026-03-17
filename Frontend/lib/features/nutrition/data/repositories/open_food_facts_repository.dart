@@ -6,12 +6,20 @@ import '../datasources/hive_diet_storage.dart';
 
 /// Open Food Facts API ile uzaktan yiyecek araması. Sonuçlar Hive'da cache'lenir.
 class OpenFoodFactsRepository implements RemoteFoodRepository {
-  static const String _searchUrl = 'https://world.openfoodfacts.org/cgi/search.pl';
-  static const String _productUrl = 'https://world.openfoodfacts.net/api/v2/product';
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  static const String _searchUrl =
+      'https://world.openfoodfacts.org/cgi/search.pl';
+  static const String _productUrl =
+      'https://world.openfoodfacts.org/api/v2/product';
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: const {
+        'Accept': 'application/json',
+        'User-Agent': 'FitnessApp/1.0 (contact: support@fitness.app)',
+      },
+    ),
+  );
   final HiveDietStorage _hive = HiveDietStorage();
 
   @override
@@ -59,6 +67,12 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
   }
 
   @override
+  Future<FoodItem?> getFoodById(String id) async {
+    final barcode = id.startsWith('off_') ? id.substring(4) : id;
+    return getByBarcode(barcode);
+  }
+
+  @override
   Future<FoodItem?> getByBarcode(String barcode) async {
     final code = barcode.trim();
     if (code.isEmpty) return null;
@@ -68,6 +82,10 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
     try {
       final response = await _dio.get('$_productUrl/$code');
       final data = response.data as Map<String, dynamic>?;
+      final status = data?['status'] as num?;
+      if (status != null && status.toInt() == 0) {
+        return null;
+      }
       final product = data?['product'] as Map<String, dynamic>?;
       if (product == null) return null;
       final item = _productToFoodItem(product);
@@ -81,7 +99,9 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
   static FoodItem? _productToFoodItem(Map<String, dynamic> p) {
     final code = p['code']?.toString();
     final name = p['product_name']?.toString().trim();
-    if (code == null || code.isEmpty || name == null || name.isEmpty) return null;
+    if (code == null || code.isEmpty || name == null || name.isEmpty) {
+      return null;
+    }
     final nut = p['nutriments'] as Map<String, dynamic>? ?? {};
     num? kcal = nut['energy-kcal_100g'] ?? nut['energy_100g'];
     if (kcal == null && nut['energy-kcal_100g'] == null) {

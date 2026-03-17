@@ -1,5 +1,35 @@
 import 'package:flutter/foundation.dart';
 
+enum TaskPriority { high, medium, low }
+
+enum TaskCategory { sport, nutrition, water, other }
+
+const _priorityToString = {
+  TaskPriority.high: 'high',
+  TaskPriority.medium: 'medium',
+  TaskPriority.low: 'low',
+};
+
+const _priorityFromString = {
+  'high': TaskPriority.high,
+  'medium': TaskPriority.medium,
+  'low': TaskPriority.low,
+};
+
+const _categoryToString = {
+  TaskCategory.sport: 'sport',
+  TaskCategory.nutrition: 'nutrition',
+  TaskCategory.water: 'water',
+  TaskCategory.other: 'other',
+};
+
+const _categoryFromString = {
+  'sport': TaskCategory.sport,
+  'nutrition': TaskCategory.nutrition,
+  'water': TaskCategory.water,
+  'other': TaskCategory.other,
+};
+
 @immutable
 class DailyTask {
   const DailyTask({
@@ -9,6 +39,9 @@ class DailyTask {
     required this.source,
     required this.isDone,
     required this.createdAt,
+    this.priority = TaskPriority.medium,
+    this.category = TaskCategory.other,
+    this.isRecurring = false,
   });
 
   final String id;
@@ -17,6 +50,9 @@ class DailyTask {
   final String source;
   final bool isDone;
   final DateTime createdAt;
+  final TaskPriority priority;
+  final TaskCategory category;
+  final bool isRecurring;
 
   DailyTask copyWith({
     String? id,
@@ -25,6 +61,9 @@ class DailyTask {
     String? source,
     bool? isDone,
     DateTime? createdAt,
+    TaskPriority? priority,
+    TaskCategory? category,
+    bool? isRecurring,
   }) {
     return DailyTask(
       id: id ?? this.id,
@@ -33,6 +72,9 @@ class DailyTask {
       source: source ?? this.source,
       isDone: isDone ?? this.isDone,
       createdAt: createdAt ?? this.createdAt,
+      priority: priority ?? this.priority,
+      category: category ?? this.category,
+      isRecurring: isRecurring ?? this.isRecurring,
     );
   }
 
@@ -44,6 +86,9 @@ class DailyTask {
       'source': source,
       'isDone': isDone,
       'createdAt': createdAt.toIso8601String(),
+      'priority': _priorityToString[priority],
+      'category': _categoryToString[category],
+      'isRecurring': isRecurring,
     };
   }
 
@@ -57,6 +102,9 @@ class DailyTask {
       createdAt:
           DateTime.tryParse((json['createdAt'] ?? '').toString()) ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      priority: _priorityFromString[json['priority'] ?? ''] ?? TaskPriority.medium,
+      category: _categoryFromString[json['category'] ?? ''] ?? TaskCategory.other,
+      isRecurring: json['isRecurring'] == true,
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:fitness/features/ai_coach/controllers/ai_coach_controller.dart';
 import 'package:fitness/features/ai_coach/models/ai_coach_models.dart';
 import 'package:fitness/features/ai_coach/screens/ai_coach_screen.dart';
 import 'package:fitness/features/ai_coach/services/ai_coach_service.dart';
+import 'package:fitness/features/nutrition/domain/entities/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +11,7 @@ import 'package:provider/provider.dart';
 class _RateLimitService extends AiCoachService {
   @override
   Future<CoachResponse> generatePlan({
-    required CoachGoal goal,
+    required Goal goal,
     required DailySummary summary,
     required String userPrompt,
   }) async {

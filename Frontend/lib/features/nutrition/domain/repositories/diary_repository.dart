@@ -12,9 +12,11 @@ abstract class DiaryRepository {
   Future<DiaryTotals> getTotalsByDate(String date);
   Future<Map<MealType, double>> getTotalsByMeal(String date);
   Future<void> deleteEntry(String entryId);
+  Future<void> updateEntry(FoodEntry entry);
 
   /// Debug: tüm günlük kayıtlarını siler (sadece kReleaseMode false iken kullanılmalı).
   Future<void> clearAllEntries();
+  Future<int> getCurrentStreak();
 
   /// Son eklenen yemeklerin ID'lerini getirir (tekilleştirilmiş).
   Future<List<String>> getRecentFoodIds(int limit);
@@ -23,17 +25,21 @@ abstract class DiaryRepository {
   Future<List<String>> getFrequentFoodIds(int limit);
 }
 
-/// Tarih bazlı toplam: kcal + makrolar.
+/// Tarih bazlı toplam: kcal + makrolar + mikro besinler.
 class DiaryTotals {
   final double totalKcal;
   final double totalProtein;
   final double totalCarb;
   final double totalFat;
+  final double totalFiber;
+  final double totalSugar;
 
   const DiaryTotals({
     this.totalKcal = 0,
     this.totalProtein = 0,
     this.totalCarb = 0,
     this.totalFat = 0,
+    this.totalFiber = 0,
+    this.totalSugar = 0,
   });
 }

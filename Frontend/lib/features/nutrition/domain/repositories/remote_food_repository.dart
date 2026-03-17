@@ -7,4 +7,7 @@ abstract class RemoteFoodRepository {
 
   /// Barkod ile tek ürün getirir.
   Future<FoodItem?> getByBarcode(String barcode);
+
+  /// ID ile tek ürün getirir.
+  Future<FoodItem?> getFoodById(String id);
 }

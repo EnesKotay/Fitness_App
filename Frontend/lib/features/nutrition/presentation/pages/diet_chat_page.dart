@@ -5,8 +5,11 @@ import '../../domain/entities/meal_type.dart';
 import '../../domain/entities/food_item.dart';
 import '../state/diet_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/ai_safety_helper.dart';
+import '../../../../core/widgets/premium_state_badge.dart';
 import '../../models/nutrition_ai_response.dart';
 import '../widgets/meal_card.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 /// Sohbet botu: "Bugün ne yedim?" → özet; "Öğle yemeğine döner ekle" → ekle ve onayla.
 class DietChatPage extends StatefulWidget {
@@ -33,13 +36,51 @@ class _DietChatPageState extends State<DietChatPage> {
   final _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [];
   bool _loading = false;
+  bool _isPremium = false;
+  bool _backendReady = true;
 
   @override
   void initState() {
     super.initState();
-    _addBot(
-      'Merhaba! "Bugün ne yedim?" diye sorabilir veya "Öğle yemeğine döner ekle" gibi cümlelerle yemek ekleyebilirsin.',
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      // Premium badge sadece görsel amaçlı — erişim engellenmez
+      _checkPremiumBadge();
+      _checkBackendStatus();
+      _addBot(
+        'Merhaba! "Bugün ne yedim?" diye sorabilir veya "Öğle yemeğine döner ekle" gibi cümlelerle yemek ekleyebilirsin.',
+      );
+    });
+  }
+
+  Future<void> _checkPremiumBadge() async {
+    final auth = context.read<AuthProvider>();
+    final tier = auth.user?.premiumTier?.toLowerCase().trim();
+    if (tier == 'premium') {
+      if (mounted) setState(() => _isPremium = true);
+      return;
+    }
+    try {
+      final aiService = context.read<DietProvider>().aiService;
+      final ok = await aiService?.checkPremiumStatus() ?? false;
+      if (mounted && ok) {
+        auth.setPremiumActive(true);
+        setState(() => _isPremium = true);
+      }
+    } catch (_) {
+      // Badge check failed — badge stays false, feature still accessible
+    }
+  }
+
+  Future<void> _checkBackendStatus() async {
+    try {
+      final ok = await AiSafetyHelper.instance.checkBackendHealth();
+      if (!mounted) return;
+      setState(() => _backendReady = ok);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _backendReady = false);
+    }
   }
 
   @override
@@ -79,59 +120,92 @@ class _DietChatPageState extends State<DietChatPage> {
     });
   }
 
-  /// Türkçe cümleyi parse et: "X yemeğine Y ekle" → (MealType, foodName, amount, unit)
+  /// Öğün anahtar kelimesini MealType'a çevirir.
+  static MealType? _parseMealType(String word) {
+    switch (word) {
+      case 'kahvaltı':
+        return MealType.breakfast;
+      case 'öğle':
+      case 'öğleye':
+      case 'öğlene':
+      case 'öğlen':
+        return MealType.lunch;
+      case 'akşam':
+      case 'akşama':
+      case 'akşamıma':
+        return MealType.dinner;
+      case 'atıştırma':
+      case 'ara öğün':
+      case 'atıştırmalık':
+      case 'snack':
+      case 'atıştırmalığa':
+        return MealType.snack;
+      default:
+        return null;
+    }
+  }
+
+  /// Türkçe cümleyi parse et — kelime sırası bağımsız.
+  /// Desteklenen formlar:
+  ///   "öğle yemeğine 200g tavuk ekle"
+  ///   "tavuk ekle öğleye"
+  ///   "kahvaltıya yumurta ekle"
+  ///   "akşam yemeğine ekle tavuk"
   static (MealType?, String?, double?, String?) _parseAddIntent(String text) {
     final lower = text.trim().toLowerCase();
 
-    // Miktar Regex: "200g", "100 gram", "2 adet", "yarım porsiyon" vb.
+    // "ekle" fiili yok → add intent değil
+    if (!lower.contains('ekle')) return (null, null, null, null);
+
+    // Miktar: "200g", "100 gram", "2 adet", "yarım porsiyon" vb.
     final quantityMatch = RegExp(
-      r'(\d+)\s*(gram|g|adet|porsiyon|dilim|bardak)',
+      r'(\d+(?:[.,]\d+)?)\s*(gram|g|adet|porsiyon|dilim|bardak|ml|litre)',
     ).firstMatch(lower);
     double? amount;
     String? unit;
     if (quantityMatch != null) {
-      amount = double.tryParse(quantityMatch.group(1) ?? '');
+      amount = double.tryParse(quantityMatch.group(1)!.replaceAll(',', '.'));
       unit = quantityMatch.group(2);
     }
-    if (lower.contains('yarım')) amount = 0.5;
+    if (lower.contains('yarım')) amount ??= 0.5;
 
-    final addMatch = RegExp(
-      r'(kahvaltı|öğle|akşam|atıştırma|ara öğün|atıştırmalık|snack)\s*(yemeğine?|yemeği|öğününe?)?\s*(.+?)\s+ekle\s*$',
-      caseSensitive: false,
-      dotAll: true,
-    ).firstMatch(lower);
-
-    if (addMatch != null) {
-      final mealStr = addMatch.group(1) ?? '';
-      MealType? type;
-      switch (mealStr) {
-        case 'kahvaltı':
-          type = MealType.breakfast;
-          break;
-        case 'öğle':
-          type = MealType.lunch;
-          break;
-        case 'akşam':
-          type = MealType.dinner;
-          break;
-        case 'atıştırma':
-        case 'ara öğün':
-        case 'atıştırmalık':
-        case 'snack':
-          type = MealType.snack;
-          break;
+    // Öğün tespiti: herhangi bir konumda öğün kelimesi ara
+    MealType? type;
+    final mealKeywords = [
+      'kahvaltı', 'öğle', 'öğleye', 'öğlene', 'öğlen',
+      'akşam', 'akşama', 'atıştırma', 'atıştırmalık',
+      'atıştırmalığa', 'ara öğün', 'snack',
+    ];
+    for (final kw in mealKeywords) {
+      if (lower.contains(kw)) {
+        type = _parseMealType(kw);
+        if (type != null) break;
       }
-      var foodName = addMatch.group(3)?.trim() ?? '';
+    }
 
-      // Yemek adından miktar kısımlarını temizle
-      if (quantityMatch != null) {
-        foodName = foodName.replaceAll(quantityMatch.group(0)!, '').trim();
-      }
-      foodName = foodName.replaceAll('yarım', '').trim();
+    if (type == null) return (null, null, null, null);
 
-      if (type != null && foodName.isNotEmpty) {
-        return (type, foodName, amount, unit);
-      }
+    // Yemek adı: öğün kelimeleri, "ekle", miktar ve bağlaçlar çıkarıldıktan sonra kalan
+    var foodName = lower;
+    // Çıkar: öğün ifadeleri
+    for (final kw in [
+      'yemeğine', 'yemeği', 'öğününe', 'öğünüme', ...mealKeywords,
+    ]) {
+      foodName = foodName.replaceAll(kw, ' ');
+    }
+    // Çıkar: miktar
+    if (quantityMatch != null) {
+      foodName = foodName.replaceAll(quantityMatch.group(0)!, ' ');
+    }
+    // Çıkar: "ekle" ve "yarım"
+    foodName = foodName
+        .replaceAll(RegExp(r'\bekle\b'), ' ')
+        .replaceAll('yarım', ' ')
+        .replaceAll(RegExp(r'\s{2,}'), ' ')
+        .trim();
+
+    if (foodName.isNotEmpty) {
+      return (type, foodName, amount, unit);
     }
     return (null, null, null, null);
   }
@@ -268,7 +342,11 @@ class _DietChatPageState extends State<DietChatPage> {
       }
 
       // Gemini fallback with structured response
-      if (provider.aiService != null && provider.aiService!.isReady) {
+      if (!_backendReady) {
+        _addBot(
+          'AI servisi şu an erişilemiyor. "Bugün ne yedim?" özeti ve manuel ekleme komutları çalışmaya devam ediyor.',
+        );
+      } else if (provider.aiService != null && provider.aiService!.isReady) {
         final contextStr = provider.getDietContext();
         final aiService = provider.aiService!;
 
@@ -276,23 +354,18 @@ class _DietChatPageState extends State<DietChatPage> {
         final structuredResponse = await aiService
             .getStructuredNutritionResponse(text, contextStr);
 
-        if (structuredResponse != null) {
-          final reply = structuredResponse.reply;
-          if (reply != null && reply.isNotEmpty) {
-            _addBot(reply);
-          }
-          if (structuredResponse.hasMeals) {
-            _addBot('', structuredResponse: structuredResponse);
-          } else if (reply == null || reply.isEmpty) {
-            _addBot('Bir yanit olusturulamadi. Lutfen tekrar deneyin.');
-          }
-        } else {
-          final response = await aiService.getChatResponse(text, contextStr);
-          _addBot(response);
+        final reply = structuredResponse.reply;
+        if (reply != null && reply.isNotEmpty) {
+          _addBot(reply);
+        }
+        if (structuredResponse.hasMeals) {
+          _addBot('', structuredResponse: structuredResponse);
+        } else if (reply == null || reply.isEmpty) {
+          _addBot('Bir yanit olusturulamadi. Lutfen tekrar deneyin.');
         }
       } else {
         _addBot(
-          'Anlayamadım. "Bugün ne yedim?" veya "Öğle yemeğine 200g tavuk ekle" gibi yazabilirsin.',
+          'AI hazır değil. "Bugün ne yedim?" veya "Öğle yemeğine 200g tavuk ekle" gibi temel komutları kullanabilirsin.',
         );
       }
     } catch (e) {
@@ -307,9 +380,36 @@ class _DietChatPageState extends State<DietChatPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Beslenme Asistanı',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        title: Row(
+          children: [
+            const Text(
+              'Beslenme Asistanı',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _isPremium
+                      ? [const Color(0xFFD97706), const Color(0xFFF59E0B)]
+                      : [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _isPremium ? 'Claude AI' : 'Gemini',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -320,6 +420,71 @@ class _DietChatPageState extends State<DietChatPage> {
       ),
       body: Column(
         children: [
+          if (_isPremium)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111827),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: const Color(0xFFD97706).withValues(alpha: 0.22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const PremiumStateBadge(active: true, compact: true),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Premium aktif. AI diyet sohbeti tam erişimle açık.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (!_backendReady)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.15),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.45),
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    color: Colors.orangeAccent,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AI geçici olarak kapalı. Temel komutlarla devam edebilirsin.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _checkBackendStatus,
+                    child: const Text('Yenile'),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -354,6 +519,7 @@ class _DietChatPageState extends State<DietChatPage> {
                 ],
               ),
             ),
+          _buildQuickChips(),
           Container(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -373,7 +539,9 @@ class _DietChatPageState extends State<DietChatPage> {
                   child: TextField(
                     controller: _controller,
                     decoration: InputDecoration(
-                      hintText: 'Örn: Öğle yemeğine döner ekle',
+                      hintText: _backendReady
+                          ? 'Örn: Öğle yemeğine döner ekle'
+                          : 'AI kapalı: temel komut yaz',
                       hintStyle: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 14,
@@ -545,6 +713,46 @@ class _DietChatPageState extends State<DietChatPage> {
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildQuickChips() {
+    final chips = [
+      ('Bugün ne yedim?', Icons.summarize_rounded),
+      ('Geri al', Icons.undo_rounded),
+      ('Protein kaynağı öner', Icons.fitness_center_rounded),
+      ('Akşama tavuk ekle', Icons.dinner_dining_rounded),
+      ('Kalori açığım ne kadar?', Icons.analytics_rounded),
+    ];
+    return SizedBox(
+      height: 38,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: chips.map((chip) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              avatar: Icon(chip.$2, size: 13, color: AppColors.primaryLight),
+              label: Text(
+                chip.$1,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 11.5,
+                ),
+              ),
+              onPressed: () {
+                _controller.text = chip.$1;
+                _handleSend();
+              },
+              backgroundColor: Colors.white.withValues(alpha: 0.07),
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 

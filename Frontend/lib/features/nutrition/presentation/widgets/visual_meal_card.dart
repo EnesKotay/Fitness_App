@@ -9,6 +9,7 @@ class VisualMealCard extends StatelessWidget {
   final List<FoodEntry> entries;
   final VoidCallback onAdd;
   final Function(String) onDelete;
+  final Function(FoodEntry)? onEdit;
 
   const VisualMealCard({
     super.key,
@@ -16,6 +17,7 @@ class VisualMealCard extends StatelessWidget {
     required this.entries,
     required this.onAdd,
     required this.onDelete,
+    this.onEdit,
   });
 
   IconData get _icon {
@@ -148,23 +150,104 @@ class VisualMealCard extends StatelessWidget {
   }
 
   Widget _buildEntryItem(FoodEntry entry) {
-    return Dismissible(
-      key: Key(entry.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDelete(entry.id),
-      background: Container(
-        color: Colors.red.withValues(alpha: 0.8),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: const Icon(Icons.delete, color: Colors.white),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            // Renkli nokta
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _color.withValues(alpha: 0.7),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Yemek adı & gram
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.foodName,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${entry.grams.round()}g  •  ${entry.calculatedKcal.round()} kcal',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Düzenle butonu
+            if (onEdit != null)
+              _actionButton(
+                icon: Icons.edit_rounded,
+                color: const Color(0xFF5B9BFF),
+                tooltip: 'Düzenle',
+                onTap: () => onEdit!(entry),
+              ),
+
+            const SizedBox(width: 4),
+
+            // Sil butonu
+            _actionButton(
+              icon: Icons.delete_outline_rounded,
+              color: const Color(0xFFFF6B6B),
+              tooltip: 'Sil',
+              onTap: () => onDelete(entry.id),
+            ),
+          ],
+        ),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        visualDensity: VisualDensity.compact,
-        leading: const Icon(Icons.circle, size: 8, color: AppColors.textTertiary),
-        title: Text(entry.foodName, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-        subtitle: Text('${entry.grams.round()}g', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        trailing: Text('${entry.calculatedKcal.round()} kcal', style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500, fontSize: 13)),
+    );
+  }
+
+  Widget _actionButton({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Tooltip(
+          message: tooltip,
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Icon(icon, size: 16, color: color.withValues(alpha: 0.8)),
+          ),
+        ),
       ),
     );
   }

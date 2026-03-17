@@ -39,4 +39,7 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
   end
+
+  # Clear extended attributes manually to avoid CodeSign Resource Fork detritus errors
+  system("xattr -rc .")
 end

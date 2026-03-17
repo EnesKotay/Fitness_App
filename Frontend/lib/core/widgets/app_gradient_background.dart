@@ -6,8 +6,16 @@ import '../theme/app_colors.dart';
 /// [lightOverlay] true ise açık arka planlar için daha hafif overlay (görsel daha görünür).
 class AppGradientBackground extends StatelessWidget {
   final Widget child;
+
   /// Opsiyonel: Arka plan görseli yolu (örn: 'assets/images/home_bg.jpg')
   final String? imagePath;
+
+  /// Görsel sığdırma modu (varsayılan: cover).
+  final BoxFit imageFit;
+
+  /// Görsel hizalama (varsayılan: center).
+  final Alignment imageAlignment;
+
   /// Açık temalı arka plan için hafif overlay (takip sayfası vb.)
   final bool lightOverlay;
 
@@ -15,6 +23,8 @@ class AppGradientBackground extends StatelessWidget {
     super.key,
     required this.child,
     this.imagePath,
+    this.imageFit = BoxFit.cover,
+    this.imageAlignment = Alignment.center,
     this.lightOverlay = false,
   });
 
@@ -27,18 +37,18 @@ class AppGradientBackground extends StatelessWidget {
         Color(0xFF0A0B0E),
         AppColors.background,
       ];
-      } else if (lightOverlay) {
-        overlayColors = [
-          Colors.black.withValues(alpha: 0.60), // Significantly darker
-          Colors.black.withValues(alpha: 0.75),
-          Colors.black.withValues(alpha: 0.90),
-        ];
-      } else {
-        overlayColors = [
-          Colors.black.withValues(alpha: 0.6),
-          Colors.black.withValues(alpha: 0.75),
-          Colors.black.withValues(alpha: 0.9),
-        ];
+    } else if (lightOverlay) {
+      overlayColors = [
+        Colors.black.withValues(alpha: 0.70), // Even darker
+        Colors.black.withValues(alpha: 0.82),
+        Colors.black.withValues(alpha: 0.94),
+      ];
+    } else {
+      overlayColors = [
+        Colors.black.withValues(alpha: 0.6),
+        Colors.black.withValues(alpha: 0.75),
+        Colors.black.withValues(alpha: 0.9),
+      ];
     }
 
     return Container(
@@ -48,7 +58,8 @@ class AppGradientBackground extends StatelessWidget {
         image: imagePath != null
             ? DecorationImage(
                 image: AssetImage(imagePath!),
-                fit: BoxFit.cover,
+                fit: imageFit,
+                alignment: imageAlignment,
               )
             : null,
         gradient: LinearGradient(

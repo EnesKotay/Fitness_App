@@ -51,6 +51,11 @@ class AppColors {
   static final Color glassBorder = Colors.white.withValues(alpha: 0.1);
   static final Color glassElevated = Colors.white.withValues(alpha: 0.08);
 
+  // Chart / data-viz accents
+  static const Color chartGreen = Color(0xFF4CD1A3);   // haftalık özet, grafik vurgusu
+  static const Color chartBlue = Color(0xFF5B9BFF);    // minimum, info barları
+  static const Color chartRed = Color(0xFFFF6B6B);     // aşım, uyarı barları
+
   // Neon accents (for glow effects)
   static final Color neonGreen = primaryLight.withValues(alpha: 0.3);
   static final Color neonPurple = const Color(0xFF7C4DFF).withValues(alpha: 0.3);

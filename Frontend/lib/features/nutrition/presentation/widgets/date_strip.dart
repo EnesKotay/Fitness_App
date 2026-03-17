@@ -41,7 +41,7 @@ class DateStrip extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: days.length,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            separatorBuilder: (_, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final date = days[index];
               final isSelected = _isSameDay(date, selectedDate);

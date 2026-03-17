@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1A1108"/>
+      <stop offset="100%" stop-color="#060607"/>
+    </radialGradient>
+
+    <!-- Gold ring gradient -->
+    <linearGradient id="ringGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="50%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#92400E"/>
+    </linearGradient>
+
+    <!-- Bolt fill gradient -->
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="60%" y2="100%">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+
+    <!-- Pulse line gradient -->
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FBBF24" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#FBBF24" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#D97706" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#D97706" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glowGold" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Soft glow for pulse -->
+    <filter id="glowPulse" x="-20%" y="-80%" width="140%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Outer ring glow -->
+    <filter id="ringGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Sparkle glow -->
+    <filter id="sparkleGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip to rounded square (app icon shape) -->
+    <clipPath id="iconClip">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+
+  <!-- ── Background ── -->
+  <g clip-path="url(#iconClip)">
+    <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+    <!-- Ambient glow center -->
+    <circle cx="512" cy="460" r="340" fill="#D97706" opacity="0.07"/>
+    <circle cx="512" cy="460" r="200" fill="#FBBF24" opacity="0.06"/>
+
+    <!-- ── Outer decorative ring ── -->
+    <circle cx="512" cy="460" r="340"
+            fill="none"
+            stroke="url(#ringGold)"
+            stroke-width="3"
+            stroke-dasharray="12 8"
+            opacity="0.35"
+            filter="url(#ringGlow)"/>
+
+    <!-- ── Mid ring ── -->
+    <circle cx="512" cy="460" r="290"
+            fill="none"
+            stroke="#FBBF24"
+            stroke-width="1.5"
+            opacity="0.12"/>
+
+    <!-- ── Main bolt (lightning / energy) ── -->
+    <!-- Shadow/glow layer -->
+    <polygon points="560,180 430,490 510,490 455,760 620,430 530,430 600,180"
+             fill="#D97706"
+             opacity="0.35"
+             filter="url(#glowGold)"/>
+    <!-- Main bolt -->
+    <polygon points="560,180 430,490 510,490 455,760 620,430 530,430 600,180"
+             fill="url(#boltGrad)"
+             filter="url(#glowGold)"/>
+
+    <!-- ── Pulse / ECG line ── -->
+    <polyline
+      points="100,620  220,620  260,560  295,680  330,530  365,690  400,620  524,620"
+      fill="none"
+      stroke="url(#pulseGrad)"
+      stroke-width="9"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      filter="url(#glowPulse)"/>
+    <!-- Right side fade-out continuation -->
+    <line x1="524" y1="620" x2="680" y2="620"
+          stroke="url(#pulseGrad)"
+          stroke-width="9"
+          stroke-linecap="round"
+          opacity="0.4"/>
+
+    <!-- ── AI sparkles ── -->
+    <!-- Top-right sparkle -->
+    <g filter="url(#sparkleGlow)" opacity="0.95">
+      <line x1="720" y1="200" x2="720" y2="270" stroke="#FBBF24" stroke-width="5" stroke-linecap="round"/>
+      <line x1="685" y1="235" x2="755" y2="235" stroke="#FBBF24" stroke-width="5" stroke-linecap="round"/>
+      <line x1="695" y1="210" x2="745" y2="260" stroke="#FBBF24" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <line x1="745" y1="210" x2="695" y2="260" stroke="#FBBF24" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+    </g>
+
+    <!-- Small sparkle top-left -->
+    <g filter="url(#sparkleGlow)" opacity="0.7">
+      <line x1="290" y1="240" x2="290" y2="290" stroke="#FBBF24" stroke-width="4" stroke-linecap="round"/>
+      <line x1="265" y1="265" x2="315" y2="265" stroke="#FBBF24" stroke-width="4" stroke-linecap="round"/>
+      <line x1="272" y1="247" x2="308" y2="283" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+      <line x1="308" y1="247" x2="272" y2="283" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+    </g>
+
+    <!-- Tiny dot sparkles -->
+    <circle cx="770" cy="360" r="6" fill="#FBBF24" opacity="0.7" filter="url(#sparkleGlow)"/>
+    <circle cx="240" cy="360" r="4" fill="#FBBF24" opacity="0.5" filter="url(#sparkleGlow)"/>
+    <circle cx="730" cy="540" r="5" fill="#D97706" opacity="0.55" filter="url(#sparkleGlow)"/>
+    <circle cx="300" cy="520" r="3.5" fill="#FBBF24" opacity="0.4"/>
+
+    <!-- ── Bottom wordmark: app name ── -->
+    <text x="512" y="880"
+          font-family="'Arial Black', 'Arial', sans-serif"
+          font-size="72"
+          font-weight="900"
+          fill="#FBBF24"
+          text-anchor="middle"
+          letter-spacing="10"
+          opacity="0.95">FİTAI</text>
+
+    <!-- Tagline -->
+    <text x="512" y="930"
+          font-family="'Arial', sans-serif"
+          font-size="28"
+          font-weight="400"
+          fill="#FBBF24"
+          text-anchor="middle"
+          letter-spacing="5"
+          opacity="0.45">AI POWERED FITNESS</text>
+
+    <!-- Bottom separator line -->
+    <line x1="340" y1="856" x2="684" y2="856"
+          stroke="#FBBF24"
+          stroke-width="1.5"
+          opacity="0.2"/>
+  </g>
+</svg>

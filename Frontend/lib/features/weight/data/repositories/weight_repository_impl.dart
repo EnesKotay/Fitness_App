@@ -21,6 +21,22 @@ class HiveWeightRepository implements WeightRepository {
     }
   }
 
+  /// Yeni kayıt olan kullanıcı için lokaldeki çöp verileri tamamen temizler
+  static Future<void> clearBoxesForSuffix(String suffix) async {
+    final name = 'weight_entries_$suffix';
+    try {
+      if (Hive.isBoxOpen(name)) {
+        await Hive.box(name).clear();
+      } else {
+        final box = await Hive.openBox(name);
+        await box.clear();
+      }
+      debugPrint('HiveWeightRepository: cleared box $name');
+    } catch (e) {
+      debugPrint('HiveWeightRepository.clearBoxesForSuffix: $e');
+    }
+  }
+
   Future<Box<dynamic>> _getBox() async {
     if (Hive.isBoxOpen(_boxName)) {
       return Hive.box(_boxName);
@@ -54,5 +70,11 @@ class HiveWeightRepository implements WeightRepository {
   Future<void> updateEntry(WeightEntry entry) async {
     final box = await _getBox();
     await box.put(entry.id, entry.toJson());
+  }
+
+  /// Tüm kayıtları temizle (cache resync için)
+  Future<void> clearAll() async {
+    final box = await _getBox();
+    await box.clear();
   }
 }

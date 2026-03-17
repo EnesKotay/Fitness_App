@@ -8,11 +8,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 class HistoryList extends StatelessWidget {
   final WeightProvider provider;
   final Function(WeightEntry) onDelete;
+  final Function(WeightEntry)? onEdit;
 
   const HistoryList({
     super.key,
     required this.provider,
     required this.onDelete,
+    this.onEdit,
   });
 
   /// Kilo gösterimi için güvenli format (taşma ve float gürültüsü önlenir).
@@ -44,6 +46,10 @@ class HistoryList extends StatelessWidget {
     return date.year == now.year && date.month == now.month && date.day == now.day;
   }
 
+  static bool isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   /// Tüm kayıtları döndürür (en yeni en üstte).
   static List<WeightEntry> entriesWithWeightChange(List<WeightEntry> entries) {
     return entries; // Artık filtreleme yapmıyoruz, her gelişim değerli.
@@ -63,6 +69,8 @@ class HistoryList extends StatelessWidget {
           final entry = entries[index];
           final isLast = index == entries.length - 1;
           final isFirst = index == 0;
+          final showDateLabel = index == 0 ||
+              !isSameDay(entries[index - 1].date, entry.date);
           // Bir sonraki (daha eski) kayda göre fark: pozitif = kilo almış, negatif = vermiş
           double? diff;
           if (index < entries.length - 1) {
@@ -78,7 +86,9 @@ class HistoryList extends StatelessWidget {
               diff: diff,
               isLast: isLast,
               isFirst: isFirst,
+              showDateLabel: showDateLabel,
               onDelete: () => onDelete(entry),
+              onEdit: onEdit != null ? () => onEdit!(entry) : null,
               index: index,
             ),
           );
@@ -93,7 +103,9 @@ class _HistoryListItem extends StatelessWidget {
   final double? diff;
   final bool isLast;
   final bool isFirst;
+  final bool showDateLabel;
   final VoidCallback onDelete;
+  final VoidCallback? onEdit;
   final int index;
 
   const _HistoryListItem({
@@ -101,7 +113,9 @@ class _HistoryListItem extends StatelessWidget {
     required this.diff,
     required this.isLast,
     required this.isFirst,
+    required this.showDateLabel,
     required this.onDelete,
+    this.onEdit,
     required this.index,
   });
 
@@ -223,28 +237,53 @@ class _HistoryListItem extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            Text(
-                              dateStr,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                                letterSpacing: -0.2,
+                            if (showDateLabel) ...[
+                              Text(
+                                dateStr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              weekdayStr,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                              const SizedBox(height: 2),
+                              Text(
+                                weekdayStr,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            ] else ...[
+                              const SizedBox(height: 18),
+                            ],
+                            if (entry.note != null && entry.note!.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(Icons.notes_rounded, size: 12, color: Colors.white38),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      entry.note!,
+                                      style: const TextStyle(
+                                        color: Colors.white38,
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                             if (diffValue != null && diffValue.abs() >= 0.05) ...[
                               const SizedBox(height: 8),
                               Row(
@@ -292,7 +331,7 @@ class _HistoryListItem extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '$weightStr',
+                            weightStr,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -312,6 +351,25 @@ class _HistoryListItem extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(width: 4),
+                      if (onEdit != null)
+                        Tooltip(
+                          message: 'Düzenle',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: onEdit,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.edit_rounded,
+                                  size: 18,
+                                  color: AppColors.primary.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       Tooltip(
                         message: 'Kaydı sil',
                         child: Material(

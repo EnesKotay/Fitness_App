@@ -1,16 +1,26 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../constants/api_constants.dart';
 import '../../features/nutrition/models/nutrition_ai_response.dart';
+import '../../features/nutrition/ai_scan/domain/models/scanned_nutrition_result.dart';
+import '../../features/nutrition/ai_scan/domain/models/scanned_meal_result.dart';
+import '../../features/ai_coach/models/ai_coach_models.dart';
 
 class AIService {
   AIService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
 
   final ApiClient _apiClient;
 
-  bool get isReady => true;
+  bool get isReady {
+    // Basic readiness check - we assume it's ready if we have a token
+    // A more thorough check could involve pinging a backend health endpoint
+    return true; // StorageHelper is async, so we'll just return true and let ApiClient interceptors handle 401s
+  }
 
   /// Serbest metinden yemek aramasi yapar.
   /// Ornek: "Bir tabak pilav ve tavuk sote yedim" -> ['pilav', 'tavuk sote']
@@ -47,8 +57,10 @@ class AIService {
   /// Returns NutritionAiResponseModel with meals, shoppingList, followUpQuestions
   Future<NutritionAiResponseModel> getStructuredNutritionResponse(
     String message,
-    String context,
-  ) async {
+    String context, {
+    String task = 'chat',
+    Map<String, dynamic>? nutritionContext,
+  }) async {
     final normalized = message.trim();
     if (normalized.isEmpty) {
       return NutritionAiResponseModel(reply: 'Mesaj bos olamaz.');
@@ -56,9 +68,10 @@ class AIService {
 
     try {
       final response = await _sendNutritionRequest(
-        task: 'chat',
+        task: task,
         message: normalized,
         contextSummary: context.trim(),
+        nutritionContext: nutritionContext,
       );
       return response;
     } on ApiException catch (e) {
@@ -144,16 +157,27 @@ class AIService {
     required String task,
     required String message,
     String? contextSummary,
+    Map<String, dynamic>? nutritionContext,
   }) async {
     final payload = <String, dynamic>{'task': task, 'message': message};
+    final context = <String, dynamic>{...?nutritionContext};
     final summary = contextSummary?.trim();
-    if (summary != null && summary.isNotEmpty) {
-      payload['context'] = {'summaryText': summary};
+    if (summary != null &&
+        summary.isNotEmpty &&
+        !context.containsKey('summaryText')) {
+      context['summaryText'] = summary;
+    }
+    if (context.isNotEmpty) {
+      payload['context'] = context;
     }
 
     final response = await _apiClient.post(
       ApiConstants.aiNutrition,
       data: payload,
+      options: Options(
+        sendTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 45),
+      ),
     );
 
     final raw = response.data;
@@ -213,5 +237,170 @@ class AIService {
       }
     }
     return null;
+  }
+
+  /// Besin etiketi fotoğrafını backend'e gönderip yapılandırılmış sonuç alır.
+  /// Gemini Vision API backend tarafında çağrılır.
+  Future<ScannedNutritionResult> scanNutritionLabel(File imageFile) async {
+    try {
+      final fileName = imageFile.path.split('/').last;
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _apiClient.dio.post(
+        ApiConstants.aiScanLabel,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 15),
+        ),
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('error')) {
+          throw ApiException(
+            message: data['error'] as String? ?? 'Bilinmeyen hata',
+          );
+        }
+        return ScannedNutritionResult.fromJson(data);
+      }
+
+      throw ApiException(message: 'Beklenmeyen yanıt formatı');
+    } on DioException catch (e) {
+      debugPrint('AIService.scanNutritionLabel DioException: ${e.message}');
+      final errorMsg = e.response?.data is Map
+          ? (e.response?.data['error'] as String? ?? 'Bağlantı hatası')
+          : 'Sunucuya bağlanılamadı';
+      throw ApiException(message: errorMsg);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      debugPrint('AIService.scanNutritionLabel: $e');
+      throw ApiException(message: 'Etiket tarama hatası: $e');
+    }
+  }
+
+  /// Yemek fotoğrafını backend'e gönderip yapılandırılmış makro analizi alır.
+  Future<ScannedMealResult> analyzeFoodImage(File imageFile) async {
+    try {
+      final fileName = imageFile.path.split('/').last;
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _apiClient.dio.post(
+        ApiConstants.aiAnalyzeImage,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 15),
+        ),
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        if (data.containsKey('error')) {
+          throw ApiException(
+            message: data['error'] as String? ?? 'Bilinmeyen hata',
+          );
+        }
+        return ScannedMealResult.fromJson(data);
+      }
+
+      throw ApiException(message: 'Beklenmeyen yanıt formatı');
+    } on DioException catch (e) {
+      debugPrint('AIService.analyzeFoodImage DioException: ${e.message}');
+      final errorMsg = e.response?.data is Map
+          ? (e.response?.data['error'] as String? ?? 'Bağlantı hatası')
+          : 'Sunucuya bağlanılamadı';
+      throw ApiException(message: errorMsg);
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      debugPrint('AIService.analyzeFoodImage: $e');
+      throw ApiException(message: 'Yemek fotoğrafı analiz hatası: $e');
+    }
+  }
+
+  /// Check if the current user has premium status.
+  /// Returns true if premium is active, false otherwise, null on error.
+  Future<bool?> checkPremiumStatus() async {
+    try {
+      final response = await _apiClient.get(ApiConstants.premiumStatus);
+      if (response.statusCode == 200 && response.data is Map) {
+        return response.data['isActive'] == true;
+      }
+      return false;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Takip sayfası için AI Koç analizi alır.
+  Future<CoachAdviceView> getTrackingAdvice({
+    required String goal,
+    required String question,
+    DailySummary? dailySummary,
+  }) async {
+    try {
+      final summary =
+          dailySummary ??
+          const DailySummary(
+            steps: 0,
+            calories: 0,
+            waterLiters: 0,
+            sleepHours: 0,
+            workouts: 0,
+            workoutMinutes: 0,
+            workoutHighlights: <String>[],
+          );
+
+      final requestPayload = {
+        'goal': goal,
+        'question': question,
+        'dailySummary': summary.toJson(),
+      };
+
+      final response = await _apiClient.post(
+        ApiConstants.aiCoach,
+        data: requestPayload,
+        options: Options(
+          sendTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 45),
+        ),
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return CoachAdviceView(
+          focus: data['todayFocus'] ?? '',
+          actions:
+              (data['actionItems'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [],
+          nutritionNote: data['nutritionNote'] ?? '',
+        );
+      }
+      throw ApiException(message: 'Beklenmeyen yanıt formatı');
+    } on ApiException catch (e) {
+      if (e.statusCode == 429) {
+        throw ApiException(
+          message: 'Çok fazla istek. Lütfen biraz bekleyip tekrar deneyin.',
+        );
+      }
+      rethrow;
+    } catch (e) {
+      debugPrint('AIService.getTrackingAdvice: $e');
+      throw ApiException(message: 'AI Koç analizi alınamadı');
+    }
   }
 }

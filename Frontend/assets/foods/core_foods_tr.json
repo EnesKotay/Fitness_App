@@ -1,0 +1,144 @@
+{
+  "coreFoods": [
+    {
+      "matchName": "Yumurta (Haşlanmış)",
+      "displayName": "Haşlanmış Yumurta",
+      "category": "Kahvaltılık",
+      "aliases": ["yumurta", "haslanmis yumurta", "kahvaltilik yumurta"],
+      "tags": ["turk-mutfagi", "kahvalti", "protein"]
+    },
+    {
+      "matchName": "Menemen",
+      "displayName": "Menemen",
+      "category": "Kahvaltılık",
+      "aliases": ["domatesli yumurta", "kahvaltilik menemen"],
+      "tags": ["turk-mutfagi", "kahvalti"]
+    },
+    {
+      "matchName": "Simit",
+      "displayName": "Simit",
+      "category": "Kahvaltılık",
+      "aliases": ["susamli simit"],
+      "tags": ["turk-mutfagi", "kahvalti", "firin"]
+    },
+    {
+      "matchName": "Beyaz Peynir",
+      "displayName": "Beyaz Peynir",
+      "category": "Kahvaltılık",
+      "aliases": ["peynir", "feta", "kahvaltilik peynir"],
+      "tags": ["turk-mutfagi", "kahvalti", "sut-urunleri"]
+    },
+    {
+      "matchName": "Yoğurt (Tam Yağlı)",
+      "displayName": "Yoğurt",
+      "category": "Süt Ürünleri",
+      "aliases": ["tam yagli yogurt", "yogurt"],
+      "tags": ["turk-mutfagi", "sut-urunleri"]
+    },
+    {
+      "matchName": "Yayık Ayranı",
+      "displayName": "Ayran",
+      "category": "İçecek",
+      "aliases": ["yayik ayrani", "tuzlu yogurt icecegi"],
+      "tags": ["turk-mutfagi", "icecek", "sut-urunleri"]
+    },
+    {
+      "matchName": "Çorba, Mercimek",
+      "displayName": "Mercimek Çorbası",
+      "category": "Yemek",
+      "aliases": ["mercimek corbasi", "corba"],
+      "tags": ["turk-mutfagi", "corba", "mercimek"]
+    },
+    {
+      "matchName": "Tarhana Çorbası",
+      "displayName": "Tarhana Çorbası",
+      "category": "Yemek",
+      "aliases": ["tarhana", "tarhana corbasi"],
+      "tags": ["turk-mutfagi", "corba"]
+    },
+    {
+      "matchName": "Ezogelin Çorbası",
+      "displayName": "Ezogelin Çorbası",
+      "category": "Yemek",
+      "aliases": ["ezogelin", "ezogelin corbasi"],
+      "tags": ["turk-mutfagi", "corba"]
+    },
+    {
+      "matchName": "Pirinç Pilavı",
+      "displayName": "Pirinç Pilavı",
+      "category": "Tahıl",
+      "aliases": ["pilav", "pirinc pilavi"],
+      "tags": ["turk-mutfagi", "yan-yemek"]
+    },
+    {
+      "matchName": "Bulgur Pilavı (Pişmiş)",
+      "displayName": "Bulgur Pilavı",
+      "category": "Tahıl",
+      "aliases": ["bulgur", "bulgur pilavi"],
+      "tags": ["turk-mutfagi", "yan-yemek"]
+    },
+    {
+      "matchName": "Tavuk Göğsü (Pişmiş)",
+      "displayName": "Tavuk Göğsü",
+      "category": "Et / Protein",
+      "aliases": ["izgara tavuk", "tavuk", "tavuk gogsu"],
+      "tags": ["turk-mutfagi", "protein"]
+    },
+    {
+      "matchName": "Izgara Köfte",
+      "displayName": "Izgara Köfte",
+      "category": "Et / Protein",
+      "aliases": ["kofte", "izgara kofte"],
+      "tags": ["turk-mutfagi", "protein"]
+    },
+    {
+      "matchName": "Döner Kebap (Karışık Et)",
+      "displayName": "Döner",
+      "category": "Et / Protein",
+      "aliases": ["doner", "doner kebap", "et doner"],
+      "tags": ["turk-mutfagi", "protein", "sokak-lezzeti"]
+    },
+    {
+      "matchName": "Humus",
+      "displayName": "Humus",
+      "category": "Meze",
+      "aliases": ["hummus", "humus meze"],
+      "tags": ["turk-mutfagi", "meze"]
+    },
+    {
+      "matchName": "Domates",
+      "displayName": "Domates",
+      "category": "Sebze",
+      "aliases": ["domates cigeri", "kahvaltilik domates"],
+      "tags": ["turk-mutfagi", "kahvalti"]
+    },
+    {
+      "matchName": "Salatalık",
+      "displayName": "Salatalık",
+      "category": "Sebze",
+      "aliases": ["salatalik", "kahvaltilik salatalik"],
+      "tags": ["turk-mutfagi", "kahvalti"]
+    },
+    {
+      "matchName": "Çay (Demlenmiş)",
+      "displayName": "Çay",
+      "category": "İçecek",
+      "aliases": ["demlenmis cay", "siyah cay"],
+      "tags": ["turk-mutfagi", "icecek", "kahvalti"]
+    },
+    {
+      "matchName": "Kahve (Demlenmiş)",
+      "displayName": "Kahve",
+      "category": "İçecek",
+      "aliases": ["demlenmis kahve", "filtre kahve"],
+      "tags": ["icecek"]
+    },
+    {
+      "matchName": "Baklava",
+      "displayName": "Baklava",
+      "category": "Tatlı",
+      "aliases": ["fistikli baklava", "serbetli tatli"],
+      "tags": ["turk-mutfagi", "tatli"]
+    }
+  ]
+}

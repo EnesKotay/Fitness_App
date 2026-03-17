@@ -1,7 +1,5 @@
-
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'barcode_link_food_page.dart';
@@ -20,73 +18,51 @@ class BarcodeScanPage extends StatefulWidget {
 }
 
 class _BarcodeScanPageState extends State<BarcodeScanPage> {
-  CameraController? _controller;
-  final _barcodeScanner = BarcodeScanner();
+  final MobileScannerController _controller = MobileScannerController();
   bool _isBusy = false;
   bool _isPermissionGranted = false;
+  bool _isPermissionPermanentlyDenied = false;
   DateTime? _lastScanTime;
   final _repo = BarcodeFoodRepository();
+  late final Future<void> _repoInitFuture;
 
   @override
   void initState() {
     super.initState();
-    _requestPermission();
-    _repo.init();
+    _repoInitFuture = _repo.init();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _requestPermission();
+    });
   }
 
   Future<void> _requestPermission() async {
     final status = await Permission.camera.request();
-    if (status.isGranted) {
-      setState(() {
-        _isPermissionGranted = true;
-      });
-      _initializeCamera();
-    }
-  }
-
-  Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) return;
-
-    final firstCamera = cameras.first;
-    _controller = CameraController(
-      firstCamera,
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
-
-    await _controller!.initialize();
     if (!mounted) return;
-    setState(() {});
-
-    _controller!.startImageStream(_processImage);
+    setState(() {
+      _isPermissionGranted = status.isGranted;
+      _isPermissionPermanentlyDenied = status.isPermanentlyDenied;
+    });
   }
 
-  Future<void> _processImage(CameraImage image) async {
-    if (_isBusy || !_isPermissionGranted || _controller == null) return;
-    
-    // Cooldown check (2 seconds)
-    if (_lastScanTime != null && DateTime.now().difference(_lastScanTime!).inSeconds < 2) {
+  Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
+    if (_isBusy) return;
+
+    if (_lastScanTime != null &&
+        DateTime.now().difference(_lastScanTime!).inSeconds < 2) {
       return;
     }
 
+    final barcodes = capture.barcodes;
+    if (barcodes.isEmpty) return;
+
+    final rawValue = barcodes.first.rawValue;
+    if (rawValue == null) return;
+
     _isBusy = true;
+    _lastScanTime = DateTime.now();
 
     try {
-      final inputImage = _inputImageFromCameraImage(image);
-      if (inputImage == null) return;
-
-      final barcodes = await _barcodeScanner.processImage(inputImage);
-
-      if (barcodes.isNotEmpty) {
-        final barcode = barcodes.first;
-        final rawValue = barcode.rawValue;
-        
-        if (rawValue != null) {
-            _lastScanTime = DateTime.now();
-            await _handleBarcodeDetected(rawValue);
-        }
-      }
+      await _handleBarcodeDetected(rawValue);
     } catch (e) {
       debugPrint('Error processing barcode: $e');
     } finally {
@@ -95,128 +71,88 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
   }
 
   Future<void> _handleBarcodeDetected(String barcode) async {
-      // Pause camera during processing
-      await _controller?.pausePreview();
+    await _controller.stop();
+
+    if (!mounted) return;
+
+    await _repoInitFuture;
+    if (!mounted) return;
+
+    final dietProvider = context.read<DietProvider>();
+
+    // 1. Önce kullanıcının manuel bağladığı barcode -> food eşleşmesini ara
+    final foodId = _repo.getFoodId(barcode);
+    if (foodId != null) {
+      final food = await dietProvider.getFoodById(foodId);
+
+      if (food != null && mounted) {
+        _showFoundDialog(food);
+        return;
+      }
+    }
+
+    // 2. Sonra lokal barkod alanı + remote OFF fallback
+    final directFood = await dietProvider.getFoodByBarcode(barcode);
+    if (directFood != null && mounted) {
+      _showFoundDialog(directFood);
+      return;
+    }
+
+    if (mounted) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BarcodeLinkFoodPage(
+            barcode: barcode,
+            mealType: widget.initialMealType,
+          ),
+        ),
+      );
 
       if (!mounted) return;
-
-      // 1. Check local mapping first
-      final foodId = _repo.getFoodId(barcode);
-      
-      if (foodId != null) {
-          // Found locally mapped food
-          final dietProvider = context.read<DietProvider>();
-          final food = await dietProvider.getFoodById(foodId);
-          
-          if (food != null && mounted) {
-              _showFoundDialog(food);
-              return;
-          }
+      if (result is FoodItem) {
+        Navigator.pop(context, result);
+      } else if (result == true) {
+        Navigator.pop(context);
+      } else {
+        await _controller.start();
       }
-
-      // 2. If not mapped, check existing DB by barcode (if supported) 
-      // or check OpenFoodFacts via DietProvider's remote repo
-      
-      // For this MVP, we will simulate a "Not Found" scenario which leads to linking
-      // Or we can try to search in DietProvider if it supports searching by "barcode:{code}"
-      // But typically we just redirect to Link Page if local mapping fails or returns nothing.
-      
-      if (mounted) {
-          final result = await Navigator.push(
-              context, 
-              MaterialPageRoute(
-                  builder: (_) => BarcodeLinkFoodPage(barcode: barcode, mealType: widget.initialMealType)
-              )
-          );
-          
-          if (result == true) {
-              // Successfully linked and added
-              if (mounted) Navigator.pop(context);
-          } else {
-              // Cancelled, resume scanning
-              await _controller?.resumePreview();
-          }
-      }
+    }
   }
 
   void _showFoundDialog(FoodItem food) {
-      showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-              title: Text('Ürün Bulundu!'),
-              content: Text(food.name),
-              actions: [
-                  TextButton(
-                      onPressed: () {
-                          Navigator.pop(ctx); // Close dialog
-                          _controller?.resumePreview();
-                      }, 
-                      child: Text('İptal')
-                  ),
-                  FilledButton(
-                      onPressed: () {
-                          Navigator.pop(ctx); // Close dialog
-                          // Navigate to add portion page or add directly
-                          // For now, let's close scanner and return result
-                           _addFoodToMeal(food);
-                      }, 
-                      child: Text('Ekle')
-                  ),
-              ],
-          )
-      );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ürün Bulundu!'),
+        content: Text(food.name),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _controller.start();
+            },
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _addFoodToMeal(food);
+            },
+            child: const Text('Ekle'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _addFoodToMeal(FoodItem food) {
-      // Here we should probably show a bottom sheet or dialog to select grams
-      // For MVP, simplified:
-      Navigator.pop(context, food); 
-  }
-
-  InputImage? _inputImageFromCameraImage(CameraImage image) {
-    if (_controller == null) return null;
-
-    final camera = _controller!.description;
-    final sensorOrientation = camera.sensorOrientation;
-    
-    // InputImageRotationValue.fromRawValue is not always reliable across versions/platforms.
-    // We map it manually or assume rotation0deg if failing, but checking rotation is safer.
-    final rotation = InputImageRotationValue.fromRawValue(sensorOrientation) ?? InputImageRotation.rotation0deg;
-
-    // Determine format
-    final format = InputImageFormatValue.fromRawValue(image.format.raw);
-    
-    // Validate format and rotation
-    if (format == null) return null;
-
-    // Create InputImageMetadata
-    // Note: older versions used InputImageData, newer use InputImageMetadata
-    // And fromBytes takes 'metadata' named argument.
-    
-    // For specific Android/iOS bytesPerRow:
-    // On Android, planes[0].bytesPerRow is often the stride.
-    // On iOS, it's consistent.
-    if (image.planes.isEmpty) return null;
-    
-    final plane = image.planes.first;
-    
-    final metadata = InputImageMetadata(
-      size: Size(image.width.toDouble(), image.height.toDouble()),
-      rotation: rotation,
-      format: format,
-      bytesPerRow: plane.bytesPerRow,
-    );
-
-    return InputImage.fromBytes(
-      bytes: plane.bytes, 
-      metadata: metadata,
-    );
+    Navigator.pop(context, food);
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
-    _barcodeScanner.close();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -229,27 +165,41 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Kamera izni gerekli'),
+              Text(
+                _isPermissionPermanentlyDenied
+                    ? 'Kamera izni kalıcı olarak kapalı'
+                    : 'Kamera izni gerekli',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isPermissionPermanentlyDenied
+                    ? 'Ayarlar ekranından kamerayı açın.'
+                    : 'Barkod taramak için kamera izni verin.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: openAppSettings,
-                child: const Text('Ayarları Aç'),
-              )
+                onPressed: _isPermissionPermanentlyDenied
+                    ? openAppSettings
+                    : _requestPermission,
+                child: Text(
+                  _isPermissionPermanentlyDenied
+                      ? 'Ayarları Aç'
+                      : 'İzni Tekrar Sor',
+                ),
+              ),
             ],
           ),
         ),
       );
     }
 
-    if (_controller == null || !_controller!.value.isInitialized) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          CameraPreview(_controller!),
-          
+          MobileScanner(controller: _controller, onDetect: _onBarcodeDetected),
+
           // Overlay
           Container(
             decoration: ShapeDecoration(
@@ -262,7 +212,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
               ),
             ),
           ),
-          
+
           Positioned(
             top: 50,
             left: 20,
@@ -274,24 +224,28 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
               ),
             ),
           ),
-          
+
           const Positioned(
-             bottom: 80,
-             left: 0,
-             right: 0,
-             child: Text(
-                 'Barkodu kare içine alın',
-                 textAlign: TextAlign.center,
-                 style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-             ),
-          )
+            bottom: 80,
+            left: 0,
+            right: 0,
+            child: Text(
+              'Barkodu kare içine alın',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// Helper for Overlay
+// Overlay shape (değişmedi)
 class QrScannerOverlayShape extends ShapeBorder {
   final Color borderColor;
   final double borderWidth;
@@ -300,7 +254,7 @@ class QrScannerOverlayShape extends ShapeBorder {
   final double borderLength;
   final double cutOutSize;
 
-  QrScannerOverlayShape({
+  const QrScannerOverlayShape({
     this.borderColor = Colors.red,
     this.borderWidth = 10.0,
     this.overlayColor = const Color.fromRGBO(0, 0, 0, 80),
@@ -340,14 +294,13 @@ class QrScannerOverlayShape extends ShapeBorder {
     final height = rect.height;
     final cutOutWidth = cutOutSize;
     final cutOutHeight = cutOutSize;
-    
+
     final backgroundPaint = Paint()
       ..color = overlayColor
       ..style = PaintingStyle.fill;
-      
+
     final borderPaint = Paint()
       ..color = borderColor
-      ..style = PaintingStyle.stroke
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;
 
@@ -365,47 +318,41 @@ class QrScannerOverlayShape extends ShapeBorder {
       ..restore();
 
     final r = cutOutRect;
-    final borderRadius = this.borderRadius;
-    final borderLength = this.borderLength;
 
-    // Top left
     canvas.drawPath(
-       Path()
+      Path()
         ..moveTo(r.left, r.top + borderLength)
         ..lineTo(r.left, r.top + borderRadius)
         ..quadraticBezierTo(r.left, r.top, r.left + borderRadius, r.top)
         ..lineTo(r.left + borderLength, r.top),
-       borderPaint
+      borderPaint,
     );
-     // Top right
     canvas.drawPath(
-       Path()
+      Path()
         ..moveTo(r.right, r.top + borderLength)
         ..lineTo(r.right, r.top + borderRadius)
         ..quadraticBezierTo(r.right, r.top, r.right - borderRadius, r.top)
         ..lineTo(r.right - borderLength, r.top),
-       borderPaint
+      borderPaint,
     );
-    // Bottom right
     canvas.drawPath(
-       Path()
+      Path()
         ..moveTo(r.right, r.bottom - borderLength)
         ..lineTo(r.right, r.bottom - borderRadius)
         ..quadraticBezierTo(r.right, r.bottom, r.right - borderRadius, r.bottom)
         ..lineTo(r.right - borderLength, r.bottom),
-       borderPaint
+      borderPaint,
     );
-    // Bottom left
     canvas.drawPath(
-       Path()
+      Path()
         ..moveTo(r.left, r.bottom - borderLength)
         ..lineTo(r.left, r.bottom - borderRadius)
         ..quadraticBezierTo(r.left, r.bottom, r.left + borderRadius, r.bottom)
         ..lineTo(r.left + borderLength, r.bottom),
-       borderPaint
+      borderPaint,
     );
   }
-  
+
   @override
   ShapeBorder scale(double t) {
     return QrScannerOverlayShape(

@@ -45,11 +45,13 @@ extension ActivityLevelMultiplier on ActivityLevel {
 @HiveType(typeId: 4)
 enum Goal {
   @HiveField(0)
-  loseWeight, // Kilo Ver
+  bulk, // Kas Gelişimi ve Kilo Alma (Hacim)
   @HiveField(1)
-  maintainWeight, // Kiloyu Koru
+  cut, // Yağ Yakımı ve Kilo Verme (Definasyon)
   @HiveField(2)
-  gainWeight, // Kilo Al
+  maintain, // Kilo Koruma
+  @HiveField(3)
+  strength, // Güç Artışı (Kuvvet)
 }
 
 @HiveType(typeId: 5) // UserProfile 1 idi, buna 5 verdik çakışmasın diye
@@ -134,17 +136,43 @@ class UserProfile {
   // Hedefe Göre Günlük Kalori İhtiyacı
   double get targetCalories {
     if (customKcalTarget != null) return customKcalTarget!;
-    
+
     // TDEE üzerinden hesapla
     double dailyNeed = tdee;
 
     switch (goal) {
-      case Goal.loseWeight:
-        return dailyNeed - 500; // Günde 500 kalori açık (haftada ~0.5kg verdirir)
-      case Goal.gainWeight:
-        return dailyNeed + 300; // Günde 300 kalori fazla (temiz büyüme)
-      case Goal.maintainWeight:
-        return dailyNeed;
+      case Goal.cut:
+        return dailyNeed - 500; // Günde 500 kalori açık
+      case Goal.bulk:
+        return dailyNeed + 300; // Günde 300 kalori fazla
+      case Goal.strength:
+        return dailyNeed + 100; // Maksimum performans için hafif kalori fazlası
+      case Goal.maintain:
+        return dailyNeed; // TDEE kadar ye
     }
+  }
+
+  // İdeal Kilo Hesabı (Devine Formülü)
+  double get idealWeight {
+    // Boyu inç cinsine çevir
+    double heightInInches = height / 2.54;
+
+    if (heightInInches <= 60) {
+      return gender == Gender.male ? 50.0 : 45.5;
+    }
+
+    // Devine Formülü
+    if (gender == Gender.male) {
+      return 50.0 + (2.3 * (heightInInches - 60.0));
+    } else {
+      return 45.5 + (2.3 * (heightInInches - 60.0));
+    }
+  }
+
+  // Sağlıklı kilo aralığı (BMI 20-25) ve merkez hedef (BMI 22)
+  ({double min, double target, double max}) get healthyWeightRange {
+    final heightM = height / 100.0;
+    final square = heightM * heightM;
+    return (min: 20.0 * square, target: 22.0 * square, max: 25.0 * square);
   }
 }

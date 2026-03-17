@@ -1,4 +1,2 @@
-EXCLUDED_ARCHS[sdk=iphonesimulator*]=arm64
-ARCHS[sdk=iphonesimulator*]=x86_64
-#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include? "../Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"

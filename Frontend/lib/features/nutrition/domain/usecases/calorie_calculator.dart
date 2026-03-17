@@ -20,12 +20,14 @@ class CalorieCalculator {
   static double calculateDailyTarget(UserProfile p) {
     final tdee = calculateTdee(p);
     switch (p.goal) {
-      case Goal.maintainWeight:
+      case Goal.maintain:
         return tdee;
-      case Goal.loseWeight:
-        return tdee * 0.85;
-      case Goal.gainWeight:
-        return tdee * 1.10;
+      case Goal.cut:
+        return tdee * 0.85; // %15 kalori açığı
+      case Goal.bulk:
+        return tdee * 1.10; // %10 kalori fazlası
+      case Goal.strength:
+        return tdee * 1.05; // Kuvvet için ufak kalori fazlası
     }
   }
 }

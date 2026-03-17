@@ -11,13 +11,25 @@ class HiveDietStorage {
   static const String _profileKey = 'profile';
   static const String _entriesListKey = 'entries';
   static const String _customFoodsListKey = 'list';
+  static Future<void>? _initFuture;
 
   static Future<void> init() async {
+    _initFuture ??= _initOnce();
+    await _initFuture;
+  }
+
+  static Future<void> _initOnce() async {
     await Hive.initFlutter();
     if (!Hive.isAdapterRegistered(2)) Hive.registerAdapter(GenderAdapter());
-    if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(ActivityLevelAdapter());
+    if (!Hive.isAdapterRegistered(3)) {
+      Hive.registerAdapter(ActivityLevelAdapter());
+    }
     if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(GoalAdapter());
     if (!Hive.isAdapterRegistered(5)) Hive.registerAdapter(UserProfileAdapter());
+  }
+
+  Future<void> _ensureInitialized() async {
+    await HiveDietStorage.init();
   }
 
   // Box adları getter; cache yok. closeBoxesForSuffix sonrası bir sonraki erişimde _suffix yeni kullanıcıyı verir, yeni box açılır.
@@ -47,11 +59,35 @@ class HiveDietStorage {
     }
   }
 
+  /// Yeni kayıt olan bir kullanıcı için lokaldeki çöp/eski verileri (örn. aynı email ile tekrar kayıt olunduysa) tamamen sil.
+  static Future<void> clearBoxesForSuffix(String suffix) async {
+    final names = [
+      'diet_profile_$suffix',
+      'diet_entries_$suffix',
+      'diet_custom_foods_$suffix',
+      'diet_remote_food_cache_$suffix',
+    ];
+    for (final name in names) {
+      try {
+        if (Hive.isBoxOpen(name)) {
+          await Hive.box(name).clear();
+        } else {
+          final box = await Hive.openBox(name);
+          await box.clear();
+        }
+        debugPrint('HiveDietStorage: cleared box $name');
+      } catch (e) {
+        debugPrint('HiveDietStorage.clearBoxesForSuffix: $name $e');
+      }
+    }
+  }
+
   /// Aktif kullanıcı suffix'i (debug / login-logout akışında hangi box'ların kapatılacağı için).
   static String getCurrentSuffix() => StorageHelper.getUserStorageSuffix();
 
   Future<UserProfile?> getProfile() async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_profileBox)) {
         await Hive.openBox(_profileBox);
         debugPrint('HiveDietStorage.getProfile: opened box $_profileBox');
@@ -59,36 +95,6 @@ class HiveDietStorage {
       final box = Hive.box(_profileBox);
       var profile = box.get(_profileKey);
       if (profile is UserProfile) return profile;
-      final uid = StorageHelper.getUserId();
-      final emailSafe = StorageHelper.getUserStorageSuffix();
-      // Eski format: userId_email (örn. 5_ahmet_gmail_com) -> yeni format email (ahmet_gmail_com) taşıma
-      if (uid != null && !emailSafe.startsWith('user_') && emailSafe != 'guest') {
-        final oldBoxName = 'diet_profile_${uid}_$emailSafe';
-        if (oldBoxName != _profileBox) {
-          try {
-            if (!Hive.isBoxOpen(oldBoxName)) await Hive.openBox(oldBoxName);
-            final oldBox = Hive.box(oldBoxName);
-            profile = oldBox.get(_profileKey);
-            if (profile is UserProfile) {
-              await box.put(_profileKey, profile);
-              return profile;
-            }
-          } catch (_) {}
-        }
-      }
-      // Eski format: sadece userId
-      if (uid != null) {
-        final oldBoxName = 'diet_profile_$uid';
-        try {
-          if (!Hive.isBoxOpen(oldBoxName)) await Hive.openBox(oldBoxName);
-          final oldBox = Hive.box(oldBoxName);
-          profile = oldBox.get(_profileKey);
-          if (profile is UserProfile) {
-            await box.put(_profileKey, profile);
-            return profile;
-          }
-        } catch (_) {}
-      }
       return null;
     } catch (e) {
       debugPrint('HiveDietStorage.getProfile hatası: $e');
@@ -98,6 +104,7 @@ class HiveDietStorage {
 
   Future<void> saveProfile(UserProfile profile) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_profileBox)) await Hive.openBox(_profileBox);
       final box = Hive.box(_profileBox);
       await box.put(_profileKey, profile);
@@ -110,31 +117,10 @@ class HiveDietStorage {
 
   Future<List<FoodEntry>> getAllEntries() async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_entriesBox)) await Hive.openBox(_entriesBox);
       final box = Hive.box(_entriesBox);
       var list = box.get(_entriesListKey) as List?;
-      final uid = StorageHelper.getUserId();
-      final emailSafe = StorageHelper.getUserStorageSuffix();
-      if (list == null || list.isEmpty) {
-        if (uid != null && !emailSafe.startsWith('user_') && emailSafe != 'guest') {
-          final oldBoxName = 'diet_entries_${uid}_$emailSafe';
-          if (oldBoxName != _entriesBox) {
-            try {
-              if (!Hive.isBoxOpen(oldBoxName)) await Hive.openBox(oldBoxName);
-              list = Hive.box(oldBoxName).get(_entriesListKey) as List?;
-              if (list != null && list.isNotEmpty) await box.put(_entriesListKey, list);
-            } catch (_) {}
-          }
-        }
-        if ((list == null || list.isEmpty) && uid != null) {
-          try {
-            final oldBoxName = 'diet_entries_$uid';
-            if (!Hive.isBoxOpen(oldBoxName)) await Hive.openBox(oldBoxName);
-            list = Hive.box(oldBoxName).get(_entriesListKey) as List?;
-            if (list != null && list.isNotEmpty) await box.put(_entriesListKey, list);
-          } catch (_) {}
-        }
-      }
       if (list == null) return [];
       final entries = <FoodEntry>[];
       for (final e in list) {
@@ -155,6 +141,7 @@ class HiveDietStorage {
 
   Future<void> saveAllEntries(List<FoodEntry> entries) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_entriesBox)) await Hive.openBox(_entriesBox);
       final box = Hive.box(_entriesBox);
       await box.put(_entriesListKey, entries.map((e) => e.toJson()).toList());
@@ -166,6 +153,7 @@ class HiveDietStorage {
 
   Future<List<String>> getRecentFoodIds(int limit) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_entriesBox)) await Hive.openBox(_entriesBox);
       final box = Hive.box(_entriesBox);
       final list = box.get(_entriesListKey) as List?;
@@ -195,6 +183,7 @@ class HiveDietStorage {
 
   Future<List<String>> getFrequentFoodIds(int limit) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_entriesBox)) await Hive.openBox(_entriesBox);
       final box = Hive.box(_entriesBox);
       final list = box.get(_entriesListKey) as List?;
@@ -223,6 +212,7 @@ class HiveDietStorage {
   }
   Future<List<FoodItem>> getCustomFoods() async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_customFoodsBox)) await Hive.openBox(_customFoodsBox);
       final box = Hive.box(_customFoodsBox);
       final list = box.get(_customFoodsListKey) as List?;
@@ -246,6 +236,7 @@ class HiveDietStorage {
 
   Future<void> addCustomFood(FoodItem food) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_customFoodsBox)) await Hive.openBox(_customFoodsBox);
       final box = Hive.box(_customFoodsBox);
       final list = box.get(_customFoodsListKey) as List? ?? [];
@@ -271,6 +262,7 @@ class HiveDietStorage {
   Future<List<FoodItem>?> getRemoteCached(String query) async {
     if (query.trim().isEmpty) return null;
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_remoteCacheBox)) await Hive.openBox(_remoteCacheBox);
       final box = Hive.box(_remoteCacheBox);
       final key = 'q_${query.trim().toLowerCase()}';
@@ -296,6 +288,7 @@ class HiveDietStorage {
   Future<void> saveRemoteCache(String query, List<FoodItem> items) async {
     if (query.trim().isEmpty) return;
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_remoteCacheBox)) await Hive.openBox(_remoteCacheBox);
       final box = Hive.box(_remoteCacheBox);
       final key = 'q_${query.trim().toLowerCase()}';
@@ -308,6 +301,7 @@ class HiveDietStorage {
   /// Barkod ile tek ürün cache (key: barcode).
   Future<FoodItem?> getRemoteCachedByBarcode(String barcode) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_remoteCacheBox)) await Hive.openBox(_remoteCacheBox);
       final box = Hive.box(_remoteCacheBox);
       final key = 'b_$barcode';
@@ -322,6 +316,7 @@ class HiveDietStorage {
 
   Future<void> saveRemoteCacheByBarcode(String barcode, FoodItem item) async {
     try {
+      await _ensureInitialized();
       if (!Hive.isBoxOpen(_remoteCacheBox)) await Hive.openBox(_remoteCacheBox);
       final box = Hive.box(_remoteCacheBox);
       await box.put('b_$barcode', item.toJson());

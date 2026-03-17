@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/app_snack.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -11,7 +12,7 @@ class PremiumSummaryCard extends StatelessWidget {
   final WeightProvider provider;
   final ScreenshotController screenshotController;
   final VoidCallback onShare;
-  final VoidCallback onSettingsTap; 
+  final VoidCallback onSettingsTap;
 
   const PremiumSummaryCard({
     super.key,
@@ -24,7 +25,7 @@ class PremiumSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = provider.latestEntry;
-    
+
     return Screenshot(
       controller: screenshotController,
       child: ClipRRect(
@@ -68,28 +69,59 @@ class PremiumSummaryCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                // 2. Share Button (Glass)
+
+                // 2. Action Buttons (PDF & Share)
                 Positioned(
                   top: 24,
                   right: 24,
-                  child: GestureDetector(
-                    onTap: onShare,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.1),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // PDF Rapor Butonu
+                      Consumer<DietProvider>(
+                        builder: (context, diet, _) => GestureDetector(
+                          onTap: () async {
+                            AppSnack.showInfo(context, 'Haftalık PDF raporu hazırlanıyor...');
+                            await diet.generateWeeklyPdfReport();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.picture_as_pdf_rounded,
+                              color: AppColors.primaryLight,
+                              size: 20,
+                            ),
+                          ),
                         ),
                       ),
-                      child: const Icon(
-                        Icons.share_rounded,
-                        color: Colors.white,
-                        size: 20,
+                      const SizedBox(width: 8),
+                      // Klasik Paylaşım Butonu
+                      GestureDetector(
+                        onTap: onShare,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.share_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
 
@@ -98,11 +130,13 @@ class PremiumSummaryCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
                   child: Consumer<DietProvider>(
                     builder: (context, diet, _) {
-                      final target = diet.profile?.targetWeight ?? 70.0;
+                      final target = diet.profile?.targetWeight;
+                      final healthyRange = diet.profile?.healthyWeightRange;
                       final currentKg = current?.weightKg ?? 0;
                       // İlk kilo: kayıtlardaki en eski, yoksa profil kilosu, yoksa güncel
                       final firstKg = provider.firstEntry?.weightKg;
-                      final startKg = firstKg ?? diet.profile?.weightKg ?? currentKg;
+                      final startKg =
+                          firstKg ?? diet.profile?.weightKg ?? currentKg;
 
                       return Column(
                         children: [
@@ -110,10 +144,14 @@ class PremiumSummaryCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               // Big Modern Progress Ring
-                              _buildModernProgressRing(startKg, currentKg, target),
-                              
+                              _buildModernProgressRing(
+                                startKg,
+                                currentKg,
+                                target ?? currentKg,
+                              ),
+
                               const SizedBox(width: 24),
-                              
+
                               // Weight Text Column
                               Expanded(
                                 child: Column(
@@ -122,7 +160,9 @@ class PremiumSummaryCard extends StatelessWidget {
                                     Text(
                                       'GÜNCEL AĞIRLIK',
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.5),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 1.5,
@@ -130,11 +170,15 @@ class PremiumSummaryCard extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
-                                          current?.weightKg.toStringAsFixed(1) ?? '--',
+                                          current?.weightKg.toStringAsFixed(
+                                                1,
+                                              ) ??
+                                              '--',
                                           style: const TextStyle(
                                             fontSize: 48,
                                             fontWeight: FontWeight.w800,
@@ -155,20 +199,58 @@ class PremiumSummaryCard extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      'Hedef: ${target.toStringAsFixed(1)} kg',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.4),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                    target != null 
+                                      ? Text(
+                                          'Hedef: ${target.toStringAsFixed(1)} kg',
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Hedef Belirlenmemiş',
+                                          style: TextStyle(
+                                            color: AppColors.warning.withValues(alpha: 0.6),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+
+                                    if (diet.profile != null) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Sağlıklı aralık: ${healthyRange!.min.toStringAsFixed(1)} - ${healthyRange.max.toStringAsFixed(1)} kg',
+                                        style: TextStyle(
+                                          color: const Color(
+                                            0xFF00F5A0,
+                                          ).withValues(alpha: 0.7),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Devine referans: ${diet.profile!.idealWeight.toStringAsFixed(1)} kg',
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.45,
+                                          ),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                     if (firstKg != null) ...[
                                       const SizedBox(height: 2),
                                       Text(
                                         'İlk kilo: ${firstKg.toStringAsFixed(1)} kg',
                                         style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.35),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.35,
+                                          ),
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -179,20 +261,32 @@ class PremiumSummaryCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 32),
-                          
+
                           // Refined BMI Bar
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.2), // Darker inner container
+                              color: Colors.black.withValues(
+                                alpha: 0.2,
+                              ), // Darker inner container
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.05),
+                              ),
                             ),
                             child: diet.profile == null || current == null
-                                ? const Center(child: Text('Profil bekleniyor...', style: TextStyle(color: Colors.white30)))
-                                : _buildModernBMIBar(current.weightKg, diet.profile!.heightCm),
+                                ? const Center(
+                                    child: Text(
+                                      'Profil bekleniyor...',
+                                      style: TextStyle(color: Colors.white30),
+                                    ),
+                                  )
+                                : _buildModernBMIBar(
+                                    current.weightKg,
+                                    diet.profile!.heightCm,
+                                  ),
                           ),
                         ],
                       );
@@ -209,7 +303,7 @@ class PremiumSummaryCard extends StatelessWidget {
 
   Widget _buildModernProgressRing(double start, double current, double target) {
     final progress = _calculateProgress(start, current, target);
-    
+
     return SizedBox(
       height: 90,
       width: 90,
@@ -246,25 +340,30 @@ class PremiumSummaryCard extends StatelessWidget {
           ),
           // Center Icon with Pulse
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  blurRadius: 15,
-                  spreadRadius: -2,
-                )
-              ],
-            ),
-            child: const Icon(
-              Icons.flag_rounded,
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-           .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 2.seconds),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      blurRadius: 15,
+                      spreadRadius: -2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              )
+              .animate(onPlay: (controller) => controller.repeat(reverse: true))
+              .scale(
+                begin: const Offset(1, 1),
+                end: const Offset(1.1, 1.1),
+                duration: 2.seconds,
+              ),
         ],
       ),
     );
@@ -274,11 +373,11 @@ class PremiumSummaryCard extends StatelessWidget {
     if (start == target) return 1.0;
     final totalDiff = (start - target).abs();
     final currentDiff = (start - current).abs();
-    
+
     bool isLosing = target < start;
     if (isLosing && current > start) return 0.0;
     if (!isLosing && current < start) return 0.0;
-    
+
     final progress = currentDiff / totalDiff;
     return progress.clamp(0.0, 1.0);
   }
@@ -286,7 +385,7 @@ class PremiumSummaryCard extends StatelessWidget {
   Widget _buildModernBMIBar(double weight, double heightCm) {
     final heightM = heightCm / 100;
     final bmi = weight / (heightM * heightM);
-    
+
     String status;
     Color color;
     double percent;
@@ -316,7 +415,11 @@ class PremiumSummaryCard extends StatelessWidget {
           children: [
             const Text(
               'Vücut Kitle İndeksi (BMI)',
-              style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
             Text(
               '$status (${bmi.toStringAsFixed(1)})',

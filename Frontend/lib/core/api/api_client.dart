@@ -107,6 +107,25 @@ class ApiClient {
       throw ApiException.fromDioError(e);
     }
   }
+
+  // PATCH request
+  Future<Response<dynamic>> patch(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+  }) async {
+    try {
+      return await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
+    } catch (e) {
+      throw ApiException.fromDioError(e);
+    }
+  }
 }
 
 // Token ekleyen interceptor. Her istekte suffix + tokenTail loglanÄ±r.
@@ -234,13 +253,13 @@ class _LoggingInterceptor extends Interceptor {
 class _ErrorInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // 401 Unauthorized - Oturumu sadece token doÄŸrulayan auth isteklerinde temizle.
-    // BÃ¶ylece nutrition/workouts vb. tek 401'de oturum silinmez (backend gecikmesi / eski build).
+    // 401 Unauthorized - Oturumu YALNIZCA /auth/me doğrulama isteği 401 dönerse temizle.
+    // Diğer endpoint'lerin (premium-status, nutrition, workouts vb.) 401'leri oturumu silmemeli;
+    // bunlar token yokken gönderilen yarış koşulu istekleri olabilir.
     if (err.response?.statusCode == 401) {
       final path = err.requestOptions.path;
-      final isLoginOrRegister =
-          path == ApiConstants.login || path == ApiConstants.register;
-      if (!isLoginOrRegister) {
+      // Sadece token geçerliliğini kontrol eden /me endpoint'i 401 dönerse oturum geçersiz.
+      if (path == ApiConstants.getMe) {
         StorageHelper.clearUserData();
       }
     }

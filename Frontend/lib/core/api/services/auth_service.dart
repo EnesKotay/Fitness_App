@@ -118,6 +118,19 @@ class AuthService {
     }
   }
 
+  Future<void> changeMyPassword(ChangePasswordRequest request) async {
+    try {
+      await _apiClient
+          .put(ApiConstants.updateMePassword, data: request.toJson())
+          .timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      throw ApiException(message: 'Baglanti zaman asimi');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Sifre guncellenemedi');
+    }
+  }
+
   Future<void> logout() async {
     await StorageHelper.clearUserData();
   }
@@ -125,6 +138,45 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = StorageHelper.getToken();
     return token != null && token.isNotEmpty;
+  }
+
+  Future<void> forgotPassword(ForgotPasswordRequest request) async {
+    try {
+      await _apiClient
+          .post('/api/auth/forgot-password', data: request.toJson())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      throw ApiException(message: 'Bağlantı zaman aşımı');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'E-posta gönderilemedi');
+    }
+  }
+
+  Future<void> verifyResetCode(VerifyResetCodeRequest request) async {
+    try {
+      await _apiClient
+          .post('/api/auth/verify-reset-code', data: request.toJson())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      throw ApiException(message: 'Bağlantı zaman aşımı');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Kod doğrulanamadı');
+    }
+  }
+
+  Future<void> resetPassword(ResetPasswordRequest request) async {
+    try {
+      await _apiClient
+          .post('/api/auth/reset-password', data: request.toJson())
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      throw ApiException(message: 'Bağlantı zaman aşımı');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Şifreniz sıfırlanamadı');
+    }
   }
 
   Future<void> _persistSession({
@@ -140,7 +192,9 @@ class AuthService {
 
     if (!tokenOk || !idOk || !emailOk || !nameOk) {
       await StorageHelper.clearUserData();
-      throw ApiException(message: 'Oturum bilgileri kaydedilemedi. Lutfen tekrar dene.');
+      throw ApiException(
+        message: 'Oturum bilgileri kaydedilemedi. Lutfen tekrar dene.',
+      );
     }
   }
 }

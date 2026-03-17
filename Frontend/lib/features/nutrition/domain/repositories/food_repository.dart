@@ -4,4 +4,5 @@ import '../entities/food_item.dart';
 abstract class FoodRepository {
   Future<List<FoodItem>> searchFoods(String query, {String? category});
   Future<FoodItem?> getFoodById(String id);
+  Future<FoodItem?> getFoodByBarcode(String barcode);
 }

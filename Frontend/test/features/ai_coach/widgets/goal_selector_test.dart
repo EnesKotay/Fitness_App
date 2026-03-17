@@ -1,11 +1,11 @@
-import 'package:fitness/features/ai_coach/models/ai_coach_models.dart';
 import 'package:fitness/features/ai_coach/widgets/goal_selector.dart';
+import 'package:fitness/features/nutrition/domain/entities/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('GoalSelector renders and triggers callback', (tester) async {
-    CoachGoal selected = CoachGoal.bulk;
+    Goal selected = Goal.bulk;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -28,6 +28,6 @@ void main() {
     await tester.tap(find.text('Yag Yakimi'));
     await tester.pump();
 
-    expect(selected, CoachGoal.cut);
+    expect(selected, Goal.cut);
   });
 }

@@ -1,9 +1,13 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/utils/storage_helper.dart';
+import '../../nutrition/domain/entities/user_profile.dart';
 import '../models/ai_coach_models.dart';
 
 class AiCoachService {
@@ -13,55 +17,70 @@ class AiCoachService {
     : _apiClient = apiClient ?? ApiClient();
 
   Future<CoachResponse> generatePlan({
-    required CoachGoal goal,
+    required Goal goal,
     required DailySummary summary,
     required String userPrompt,
+    CoachPersonality personality = CoachPersonality.supportive,
+    CoachTaskMode taskMode = CoachTaskMode.plan,
+    List<CoachConversationTurn> conversationHistory =
+        const <CoachConversationTurn>[],
   }) async {
     try {
       final token = StorageHelper.getToken();
       if (token == null || token.isEmpty) {
         throw ApiException(
-          message: 'Oturum bulunamadi. Lutfen tekrar giris yap.',
+          message: 'Oturum bulunamadı. Lütfen tekrar giriş yap.',
         );
       }
 
-      final response = await _apiClient.post(
-        ApiConstants.aiCoach,
-        options: Options(
-          headers: {'Authorization': 'Bearer $token'},
-          // AI response can take longer because backend may try fallback models.
-          sendTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 30),
-        ),
-        data: {
-          'goal': goal.name,
-          'dailySummary': {
-            'steps': summary.steps,
-            'calories': summary.calories,
-            'waterLiters': summary.waterLiters,
-            'sleepHours': summary.sleepHours,
-            'workouts': summary.workouts,
-          },
-          'question': userPrompt,
-        },
+      final baseOptions = Options(
+        headers: {'Authorization': 'Bearer $token'},
+        sendTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 30),
       );
+      final richPayload = {
+        'goal': goal.name,
+        'taskMode': taskMode.name,
+        'taskModeInstruction': taskMode.promptLead,
+        'personality': personality.name,
+        'personalityInstruction': personality.instruction,
+        'dailySummary': summary.toJson(),
+        'conversationHistory': conversationHistory
+            .map((turn) => turn.toJson())
+            .toList(),
+        'question': userPrompt,
+      };
+
+      Response<dynamic> response;
+      try {
+        response = await _apiClient.post(
+          ApiConstants.aiCoach,
+          options: baseOptions,
+          data: richPayload,
+        );
+      } on ApiException catch (e) {
+        if (e.statusCode == 400 || e.statusCode == 422) {
+          response = await _apiClient.post(
+            ApiConstants.aiCoach,
+            options: baseOptions,
+            data: {
+              'goal': goal.name,
+              'personality': personality.name,
+              'personalityInstruction': personality.instruction,
+              'dailySummary': summary.toJson(),
+              'question': userPrompt,
+            },
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       final raw = response.data;
       if (raw is! Map<String, dynamic>) {
-        throw ApiException(message: 'Koc yaniti beklenmeyen formatta.');
+        throw ApiException(message: 'Koç yanıtı beklenmeyen formatta.');
       }
-      final data = raw;
-      final actionItemsRaw = data['actionItems'] as List<dynamic>? ?? const [];
-      final actionItems = actionItemsRaw
-          .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty)
-          .toList();
-
-      return CoachResponse(
-        focus: (data['todayFocus'] ?? '').toString().trim(),
-        todoItems: actionItems,
-        nutritionNote: (data['nutritionNote'] ?? '').toString().trim(),
-      );
+      return CoachResponse.fromJson(raw);
     } catch (e) {
       if (e is ApiException) {
         if (e.statusCode == 429) {
@@ -82,7 +101,7 @@ class AiCoachService {
           if (backendError.contains('GEMINI_API_KEY')) {
             throw ApiException(
               message:
-                  'AI servisi henuz hazir degil. Backend GEMINI_API_KEY ayarini kontrol et.',
+                  'AI servisi henüz hazır değil. Backend GEMINI_API_KEY ayarını kontrol et.',
             );
           }
           if (backendError.isNotEmpty) {
@@ -90,13 +109,13 @@ class AiCoachService {
           }
           throw ApiException(
             message:
-                'AI servisi gecici olarak kullanilamiyor. Lutfen biraz sonra tekrar dene.',
+                'AI servisi geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.',
           );
         }
         rethrow;
       }
       throw ApiException(
-        message: 'Koc yaniti olusturulamadi. Lutfen tekrar dene.',
+        message: 'Koç yanıtı oluşturulamadı. Lütfen tekrar dene.',
       );
     }
   }
@@ -137,5 +156,90 @@ class AiCoachService {
       }
     }
     return null;
+  }
+
+  Future<CoachResponse> analyzeVision({
+    required XFile image,
+    required String userPrompt,
+    required Goal goal,
+    CoachPersonality personality = CoachPersonality.supportive,
+    required DailySummary summary,
+    CoachTaskMode taskMode = CoachTaskMode.nutrition,
+    List<CoachConversationTurn> conversationHistory =
+        const <CoachConversationTurn>[],
+  }) async {
+    try {
+      final token = StorageHelper.getToken();
+      if (token == null || token.isEmpty) {
+        throw ApiException(
+          message: 'Oturum bulunamadı. Lütfen tekrar giriş yap.',
+        );
+      }
+      // Backend vision endpoint expects dailySummary as JSON string
+      final dailySummaryJson = jsonEncode(summary.toJson());
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(image.path, filename: image.name),
+        'question': userPrompt,
+        'goal': goal.name,
+        'taskMode': taskMode.name,
+        'taskModeInstruction': taskMode.promptLead,
+        'personality': personality.name,
+        'personalityInstruction': personality.instruction,
+        'dailySummary': dailySummaryJson,
+        'conversationHistory': jsonEncode(
+          conversationHistory.map((turn) => turn.toJson()).toList(),
+        ),
+      });
+
+      Response<dynamic> response;
+      try {
+        response = await _apiClient.post(
+          '${ApiConstants.apiPrefix}/ai/vision',
+          data: formData,
+          options: Options(
+            headers: {'Authorization': 'Bearer $token'},
+            sendTimeout: const Duration(seconds: 30),
+            receiveTimeout: const Duration(seconds: 60),
+          ),
+        );
+      } on ApiException catch (e) {
+        if (e.statusCode == 400 || e.statusCode == 422) {
+          final fallbackForm = FormData.fromMap({
+            'image': await MultipartFile.fromFile(
+              image.path,
+              filename: image.name,
+            ),
+            'question': userPrompt,
+            'goal': goal.name,
+            'personality': personality.name,
+            'personalityInstruction': personality.instruction,
+            'dailySummary': dailySummaryJson,
+          });
+          response = await _apiClient.post(
+            '${ApiConstants.apiPrefix}/ai/vision',
+            data: fallbackForm,
+            options: Options(
+              headers: {'Authorization': 'Bearer $token'},
+              sendTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 60),
+            ),
+          );
+        } else {
+          rethrow;
+        }
+      }
+
+      final raw = response.data;
+      if (raw is! Map<String, dynamic>) {
+        throw ApiException(message: 'Görüntü yanıtı beklenmeyen formatta.');
+      }
+      return CoachResponse.fromJson(raw);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        message: 'Görüntü analizi başarısız oldu. Lütfen tekrar dene.',
+      );
+    }
   }
 }

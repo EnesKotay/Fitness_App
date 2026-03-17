@@ -14,64 +14,120 @@ class StatsGrid extends StatelessWidget {
     final totalChange = provider.totalChange;
     final avg7 = provider.average7Days;
     final count30 = provider.last30DaysCount;
+    final monthlyChange = provider.monthlyChange;
+    final prevMonthChange = provider.previousMonthChange;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Calculate width for 2 columns with spacing
-          final width = (constraints.maxWidth - 16) / 2;
-          
-          return Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              _buildModernCard(
-                title: 'Haftalık Değişim',
-                value: weeklyChange.abs() < 0.05
-                    ? 'Stabil'
-                    : '${weeklyChange > 0 ? '+' : ''}${weeklyChange.toStringAsFixed(1)}',
-                unit: weeklyChange.abs() < 0.05 ? '' : 'kg',
-                icon: weeklyChange < 0 ? Icons.trending_down_rounded : (weeklyChange > 0 ? Icons.trending_up_rounded : Icons.trending_flat_rounded),
-                color: weeklyChange < 0 ? const Color(0xFF00E676) : (weeklyChange > 0 ? const Color(0xFFFF5252) : Colors.white70),
-                width: width,
-                delay: 0,
-              ),
-              _buildModernCard(
-                title: 'Toplam Fark',
-                value: totalChange.abs() < 0.05
-                    ? 'Stabil'
-                    : '${totalChange > 0 ? '+' : ''}${totalChange.toStringAsFixed(1)}',
-                unit: totalChange.abs() < 0.05 ? '' : 'kg',
-                icon: Icons.functions_rounded,
-                color: totalChange < 0 ? const Color(0xFF00E676) : const Color(0xFFFF5252),
-                width: width,
-                delay: 100,
-              ),
-              _buildModernCard(
-                title: '7 Günlük Ort.',
-                value: avg7.toStringAsFixed(1),
-                unit: 'kg',
-                icon: Icons.bar_chart_rounded,
-                color: const Color(0xFF2979FF), // Bright Blue
-                width: width,
-                delay: 200,
-              ),
-              _buildModernCard(
-                title: 'İstikrar (30G)',
-                value: '$count30',
-                unit: 'Kayıt',
-                icon: Icons.calendar_month_rounded,
-                color: const Color(0xFFD500F9), // Vibrant Purple
-                width: width,
-                delay: 300,
-              ),
-            ],
-          );
-        },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 16) / 2;
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _buildModernCard(
+                    title: 'Haftalık Değişim',
+                    value: weeklyChange.abs() < 0.05
+                        ? 'Stabil'
+                        : '${weeklyChange > 0 ? '+' : ''}${weeklyChange.toStringAsFixed(1)}',
+                    unit: weeklyChange.abs() < 0.05 ? '' : 'kg',
+                    icon: weeklyChange < 0 ? Icons.trending_down_rounded : (weeklyChange > 0 ? Icons.trending_up_rounded : Icons.trending_flat_rounded),
+                    color: weeklyChange < 0 ? const Color(0xFF00E676) : (weeklyChange > 0 ? const Color(0xFFFF5252) : Colors.white70),
+                    width: width,
+                    delay: 0,
+                  ),
+                  _buildModernCard(
+                    title: 'Toplam Fark',
+                    value: totalChange.abs() < 0.05
+                        ? 'Stabil'
+                        : '${totalChange > 0 ? '+' : ''}${totalChange.toStringAsFixed(1)}',
+                    unit: totalChange.abs() < 0.05 ? '' : 'kg',
+                    icon: Icons.functions_rounded,
+                    color: totalChange < 0 ? const Color(0xFF00E676) : const Color(0xFFFF5252),
+                    width: width,
+                    delay: 100,
+                  ),
+                  _buildModernCard(
+                    title: '7 Günlük Ort.',
+                    value: avg7.toStringAsFixed(1),
+                    unit: 'kg',
+                    icon: Icons.bar_chart_rounded,
+                    color: const Color(0xFF2979FF),
+                    width: width,
+                    delay: 200,
+                  ),
+                  _buildModernCard(
+                    title: 'İstikrar (30G)',
+                    value: '$count30',
+                    unit: 'Kayıt',
+                    icon: Icons.calendar_month_rounded,
+                    color: const Color(0xFFD500F9),
+                    width: width,
+                    delay: 300,
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          // Monthly Comparison Card
+          _buildMonthlyComparisonCard(monthlyChange, prevMonthChange),
+        ],
       ),
     );
   }
+
+  Widget _buildMonthlyComparisonCard(double thisMonth, double prevMonth) {
+    Color thisColor = thisMonth < 0 ? const Color(0xFF00E676) : (thisMonth > 0 ? const Color(0xFFFF5252) : Colors.white70);
+    Color prevColor = prevMonth < 0 ? const Color(0xFF00E676) : (prevMonth > 0 ? const Color(0xFFFF5252) : Colors.white70);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E).withValues(alpha: 0.70),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.compare_arrows_rounded, color: Colors.white38, size: 20),
+              const SizedBox(width: 12),
+              const Text(
+                'Aylık Kıyaslama',
+                style: TextStyle(color: Colors.white60, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              _monthStat('Bu Ay', thisMonth, thisColor),
+              const SizedBox(width: 20),
+              _monthStat('Geçen Ay', prevMonth, prevColor),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: 400.ms, duration: 500.ms);
+  }
+
+  Widget _monthStat(String label, double value, Color color) {
+    final display = value.abs() < 0.05
+        ? 'Stabil'
+        : '${value > 0 ? '+' : ''}${value.toStringAsFixed(1)} kg';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        const SizedBox(height: 2),
+        Text(display, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800)),
+      ],
+    );
+  }
+
 
   Widget _buildModernCard({
     required String title,

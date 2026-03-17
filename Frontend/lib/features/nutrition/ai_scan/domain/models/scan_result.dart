@@ -1,19 +1,14 @@
-
-import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
-
 class BarcodeScanResult {
   final String value;
-  final BarcodeFormat format;
   final DateTime timestamp;
 
   BarcodeScanResult({
     required this.value,
-    this.format = BarcodeFormat.unknown,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
   
   @override
-  String toString() => 'BarcodeScanResult(value: $value, format: $format)';
+  String toString() => 'BarcodeScanResult(value: $value)';
 }
 
 class OcrNutritionResult {

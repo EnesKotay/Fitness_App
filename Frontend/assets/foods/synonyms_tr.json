@@ -81,7 +81,13 @@
     "makarna": [
         "pasta",
         "spaghetti",
-        "noodle"
+        "noodle",
+        "salçalı makarna",
+        "domatesli makarna",
+        "fırında makarna",
+        "yoğurtlu makarna",
+        "makarna salatası",
+        "tavuklu makarna"
     ],
     "tatlı": [
         "dessert",
