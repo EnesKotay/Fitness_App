@@ -96,18 +96,8 @@ public class AuthService {
             throw new RuntimeException("Email veya şifre hatalı!");
         }
 
-        boolean passwordOk = false;
-        if (isBcryptHash(user.password)) {
-            passwordOk = BCrypt.checkpw(request.password, user.password);
-        } else {
-            // Eski kayıt: düz metin şifre (BCrypt eklenmeden önce)
-            passwordOk = request.password.equals(user.password);
-            if (passwordOk) {
-                user.password = BCrypt.hashpw(request.password, BCrypt.gensalt());
-                userRepository.persist(user);
-            }
-        }
-        if (!passwordOk) {
+        // Yalnızca BCrypt hash'lenmiş şifreler kabul edilir
+        if (!isBcryptHash(user.password) || !BCrypt.checkpw(request.password, user.password)) {
             throw new RuntimeException("Email veya şifre hatalı!");
         }
 
@@ -125,10 +115,10 @@ public class AuthService {
     }
 
     private String buildJwt(User user) {
-        String secret = (jwtSignKey != null && !jwtSignKey.isBlank())
-                ? jwtSignKey
-                : "fitness-backend-jwt-secret-key-at-least-32-bytes-long";
-        SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
+        if (jwtSignKey == null || jwtSignKey.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET_KEY ortam değişkeni ayarlanmamış!");
+        }
+        SecretKey key = new SecretKeySpec(jwtSignKey.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
         long now = System.currentTimeMillis();
         return Jwts.builder()
                 .subject(user.id.toString())
@@ -244,10 +234,7 @@ public class AuthService {
             throw new RuntimeException("Yeni sifre en az 6 karakter olmali!");
         }
 
-        boolean currentOk = isBcryptHash(user.password)
-                ? BCrypt.checkpw(current, user.password)
-                : current.equals(user.password);
-        if (!currentOk) {
+        if (!isBcryptHash(user.password) || !BCrypt.checkpw(current, user.password)) {
             throw new RuntimeException("Mevcut sifre hatali!");
         }
         if (current.equals(next)) {
@@ -270,10 +257,10 @@ public class AuthService {
         if (token.isEmpty()) {
             throw new RuntimeException("Token boş");
         }
-        String secret = (jwtSignKey != null && !jwtSignKey.isBlank())
-                ? jwtSignKey
-                : "fitness-backend-jwt-secret-key-at-least-32-bytes-long";
-        SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
+        if (jwtSignKey == null || jwtSignKey.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET_KEY ortam değişkeni ayarlanmamış!");
+        }
+        SecretKey key = new SecretKeySpec(jwtSignKey.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
@@ -298,9 +285,9 @@ public class AuthService {
         String emailNorm = request.email == null ? null : request.email.trim().toLowerCase();
         User user = userRepository.findByEmail(emailNorm);
         if (user == null) {
-            // Güvenlik: Kullanıcı yoksa da "Email gönderildi" demek enumeration atağına karşı daha koruyucudur. 
-            // Fakat mobil uygulama için kullanıcıya "Böyle bir hesap yok" demek daha makuldur.
-            throw new RuntimeException("Bu email ile kayıtlı bir hesap bulunamadı.");
+            // Güvenlik: Email enumeration saldırılarına karşı koruma.
+            // Kayıtlı olmayan email'ler için de aynı başarı mesajı döner.
+            return;
         }
 
         // Önceki tokenları sil

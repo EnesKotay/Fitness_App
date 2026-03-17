@@ -1,0 +1,11 @@
+# Release Signing Configuration
+# Bu dosyayı key.properties olarak kopyala ve gerçek değerleri yaz.
+# key.properties dosyası .gitignore'da olduğu için repo'ya commit edilmez.
+#
+# Keystore oluşturmak için:
+#   keytool -genkey -v -keystore fitmentor-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias fitmentor
+#
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=fitmentor
+storeFile=../fitmentor-release.jks

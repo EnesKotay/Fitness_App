@@ -1,10 +1,21 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// ── Release Signing ─────────────────────────────────────────────
+// key.properties dosyası yoksa debug key ile devam et (geliştirme).
+// Production build için key.properties oluşturulmalı.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 kotlin {
@@ -14,7 +25,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.example.fitness"
+    namespace = "com.fitnessapp.tracker"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,19 +35,40 @@ android {
     }
 
     defaultConfig {
-        // ⚠️ Play Store'a yüklemeden önce kendi paket adını yaz, örn: com.fitnessapp.tracker
         applicationId = "com.fitnessapp.tracker"
-        minSdk = 21          // Android 5.0+ (geniş cihaz desteği)
-        targetSdk = 34       // Google Play 2024 zorunluluğu
+        minSdk = 23              // Android 6.0+ (güvenli alt sınır)
+        targetSdk = 35           // Google Play 2025 zorunluluğu
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    // ── Signing Configs ────────────────────────────────────────
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+
+            // R8 kod küçültme ve obfuscation
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
