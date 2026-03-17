@@ -13,10 +13,10 @@ Modern bir fitness, beslenme ve ilerleme takip uygulamasi. Proje; Flutter tabanl
 ## Ekran Goruntuleri
 
 <p align="center">
-  <img src="frontend/assets/images/anasayfa.png" alt="Ana sayfa" width="220" />
-  <img src="frontend/assets/images/workout_chest.png" alt="Antrenman" width="220" />
-  <img src="frontend/assets/images/tracking_bg_v2.jpg" alt="Takip" width="220" />
-  <img src="frontend/assets/images/nutrition_bg_dark.png" alt="Beslenme" width="220" />
+  <img src="docs/screenshots/home.png" alt="Ana sayfa" width="220" />
+  <img src="docs/screenshots/workout.png" alt="Antrenman" width="220" />
+  <img src="docs/screenshots/progress.png" alt="Takip" width="220" />
+  <img src="docs/screenshots/nutrition.png" alt="Beslenme" width="220" />
 </p>
 
 ## Proje Yapisi
@@ -53,4 +53,3 @@ Mail tabanli sifre sifirlama akisini gercek SMTP ile calistirmak istersen gerekl
 
 - [frontend/README.md](/Users/eneskotay/Development/Fitness_App-main/frontend/README.md)
 - [backend/README.md](/Users/eneskotay/Development/Fitness_App-main/backend/README.md)
-
