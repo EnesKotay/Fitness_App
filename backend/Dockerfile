@@ -1,8 +1,11 @@
 # ── Stage 1: Build ────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
-COPY . .
+COPY backend/pom.xml .
+RUN mvn dependency:go-offline -q
+COPY backend/src ./src
 RUN mvn package -DskipTests -q
+
 # ── Stage 2: Run ──────────────────────────────────────────
 FROM registry.access.redhat.com/ubi9/openjdk-21:1.23
 ENV LANGUAGE='en_US:en'
