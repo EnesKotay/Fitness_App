@@ -29,6 +29,10 @@ public class StartupValidator {
     Optional<String> dbPassword;
 
     @Inject
+    @ConfigProperty(name = "quarkus.datasource.jdbc.url", defaultValue = "")
+    String dbUrl;
+
+    @Inject
     @ConfigProperty(name = "iap.verify.mode", defaultValue = "dev")
     String iapMode;
 
@@ -59,6 +63,11 @@ public class StartupValidator {
             errors.add("DB_PASSWORD tanımlı değil.");
         } else if (isWeakPassword(dbPassword.get())) {
             (isProd ? errors : warnings).add("DB_PASSWORD güvensiz ('admin123', 'password' vb.). Production'da güçlü şifre kullanın.");
+        }
+
+        // DB URL — production'da localhost olmamalı
+        if (isProd && (dbUrl.isBlank() || dbUrl.contains("localhost") || dbUrl.contains("127.0.0.1"))) {
+            errors.add("DB_URL production ortamında localhost içeriyor veya tanımlı değil. Gerçek veritabanı URL'si gerekli.");
         }
 
         // Production'da IAP strict zorunlu
