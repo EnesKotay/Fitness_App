@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/constants/premium_features.dart';
 import '../../../../core/services/iap_service.dart';
 import '../../../core/widgets/premium_state_badge.dart';
 import '../providers/auth_provider.dart';
@@ -392,19 +393,19 @@ class _PremiumScreenState extends State<PremiumScreen>
             const SizedBox(height: 20),
             const _UnlockLine(
               icon: Icons.smart_toy_rounded,
-              text: 'AI Koç — Claude ile sınırsız kullanım',
-            ),
-            const _UnlockLine(
-              icon: Icons.camera_alt_rounded,
-              text: 'Besin etiketi ve yemek fotoğrafı analizi',
+              text: 'AI Koç ve adaptif planlar',
             ),
             const _UnlockLine(
               icon: Icons.insights_rounded,
-              text: 'Gelişmiş trend ve analiz araçları',
+              text: 'Gelişmiş analiz, grafikler ve raporlar',
             ),
             const _UnlockLine(
               icon: Icons.restaurant_menu_rounded,
-              text: 'Akıllı tarif ve alışveriş listesi',
+              text: 'Haftalık öğün planı ve akıllı alışveriş',
+            ),
+            const _UnlockLine(
+              icon: Icons.fitness_center_rounded,
+              text: 'Hazır antrenman programları',
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -628,12 +629,9 @@ class _PremiumScreenState extends State<PremiumScreen>
             runSpacing: 8,
             children: const [
               _ValuePill(icon: Icons.smart_toy_rounded, label: 'AI Koç'),
-              _ValuePill(icon: Icons.camera_alt_rounded, label: 'Besin Tarama'),
               _ValuePill(icon: Icons.insights_rounded, label: 'Derin Analiz'),
-              _ValuePill(
-                icon: Icons.restaurant_menu_rounded,
-                label: 'Akıllı Tarif',
-              ),
+              _ValuePill(icon: Icons.restaurant_menu_rounded, label: 'Öğün Planı'),
+              _ValuePill(icon: Icons.fitness_center_rounded, label: 'Programlar'),
             ],
           ),
         ],
@@ -651,7 +649,7 @@ class _PremiumScreenState extends State<PremiumScreen>
         children: [
           _SectionLabel(label: 'Premium ile açılanlar'),
           const SizedBox(height: 14),
-          ..._featureCards.map(
+          ...premiumFeatures.map(
             (f) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _buildFeatureCard(f),
@@ -662,7 +660,7 @@ class _PremiumScreenState extends State<PremiumScreen>
     );
   }
 
-  Widget _buildFeatureCard(_FeatureData f) {
+  Widget _buildFeatureCard(PremiumFeature f) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -1247,55 +1245,6 @@ class _PremiumScreenState extends State<PremiumScreen>
     return '$planLabel$expiryText';
   }
 }
-
-// ─── Static data ──────────────────────────────────────────────────────────────
-
-class _FeatureData {
-  final IconData icon;
-  final String title;
-  final String description;
-  final Color accent;
-  final String tag;
-
-  const _FeatureData({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.accent,
-    required this.tag,
-  });
-}
-
-const _featureCards = [
-  _FeatureData(
-    icon: Icons.smart_toy_rounded,
-    title: 'AI Koç — Claude ile',
-    description: 'Kişiselleştirilmiş koçluk, sınırsız soru ve derin analiz.',
-    accent: Color(0xFFFFB74D),
-    tag: 'KİŞİSEL',
-  ),
-  _FeatureData(
-    icon: Icons.camera_alt_rounded,
-    title: 'Kamera ile Besin Analizi',
-    description: 'Etiket tara veya yemek fotoğrafını analiz et.',
-    accent: Color(0xFFB388FF),
-    tag: 'HIZLI',
-  ),
-  _FeatureData(
-    icon: Icons.insights_rounded,
-    title: 'Beslenme Trendleri',
-    description: 'Kalori ve makro trendlerini grafiklerle derinlemesine incele.',
-    accent: Color(0xFF64B5F6),
-    tag: 'ANALİZ',
-  ),
-  _FeatureData(
-    icon: Icons.restaurant_menu_rounded,
-    title: 'Akıllı Tarif ve Alışveriş',
-    description: 'AI destekli tarif önerileri ve planına uygun alışveriş.',
-    accent: Color(0xFF81C784),
-    tag: 'PLANLAMA',
-  ),
-];
 
 // ─── Helper widgets ───────────────────────────────────────────────────────────
 

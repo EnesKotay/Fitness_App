@@ -9,6 +9,8 @@ import '../../../core/utils/storage_helper.dart';
 import '../data/workout_catalog_data.dart';
 import '../providers/workout_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/premium_screen.dart';
+import '../../../core/constants/premium_features.dart';
 import '../../nutrition/presentation/widgets/date_strip.dart';
 import 'exercise_guide_screen.dart';
 import 'add_workout_page.dart';
@@ -753,13 +755,22 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
   Widget _buildRegionGrid(BuildContext context) {
     final list = _filteredMuscleGroups();
+    final isPremium = isPremiumTier(
+      context.watch<AuthProvider>().user?.premiumTier,
+    );
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _DailyTipCard()),
         SliverToBoxAdapter(
           child: _WorkoutTemplatesSection(
+            isPremium: isPremium,
             onStartPressed: () => _openTemplateWorkout(context, []),
+            onUpgradePressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PremiumScreen()),
+              );
+            },
           ),
         ),
         if (_favoriteExercises.isNotEmpty)
@@ -2434,9 +2445,15 @@ const List<_TemplateData> _kWorkoutTemplates = [
 ];
 
 class _WorkoutTemplatesSection extends StatelessWidget {
+  final bool isPremium;
   final VoidCallback onStartPressed;
+  final VoidCallback onUpgradePressed;
 
-  const _WorkoutTemplatesSection({required this.onStartPressed});
+  const _WorkoutTemplatesSection({
+    required this.isPremium,
+    required this.onStartPressed,
+    required this.onUpgradePressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2457,10 +2474,12 @@ class _WorkoutTemplatesSection extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${_kWorkoutTemplates.length} program',
+                isPremium ? '${_kWorkoutTemplates.length} program' : 'Premium',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.4),
+                  color: isPremium
+                      ? Colors.white.withValues(alpha: 0.4)
+                      : const Color(0xFFFBBF24),
                 ),
               ),
             ],
@@ -2476,11 +2495,25 @@ class _WorkoutTemplatesSection extends StatelessWidget {
               final t = _kWorkoutTemplates[i];
               return _TemplateCard(
                 template: t,
-                onTap: () => _showTemplateDetail(context, t, onStartPressed),
+                locked: !isPremium,
+                onTap: () => isPremium
+                    ? _showTemplateDetail(context, t, onStartPressed)
+                    : onUpgradePressed(),
               );
             },
           ),
         ),
+        if (!isPremium)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Text(
+              'Hazır split ve hedef bazlı workout programları Premium üyeliğe dahildir.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.52),
+                fontSize: 12,
+              ),
+            ),
+          ),
         const SizedBox(height: 8),
       ],
     );
@@ -2506,8 +2539,13 @@ class _WorkoutTemplatesSection extends StatelessWidget {
 class _TemplateCard extends StatelessWidget {
   final _TemplateData template;
   final VoidCallback onTap;
+  final bool locked;
 
-  const _TemplateCard({required this.template, required this.onTap});
+  const _TemplateCard({
+    required this.template,
+    required this.onTap,
+    this.locked = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2521,7 +2559,15 @@ class _TemplateCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [t.color.withValues(alpha: 0.25), t.colorDark.withValues(alpha: 0.5)],
+            colors: locked
+                ? [
+                    t.color.withValues(alpha: 0.14),
+                    t.colorDark.withValues(alpha: 0.28),
+                  ]
+                : [
+                    t.color.withValues(alpha: 0.25),
+                    t.colorDark.withValues(alpha: 0.5),
+                  ],
           ),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: t.color.withValues(alpha: 0.4)),
@@ -2539,7 +2585,11 @@ class _TemplateCard extends StatelessWidget {
                       color: t.color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(t.icon, color: t.color, size: 20),
+                    child: Icon(
+                      locked ? Icons.lock_rounded : t.icon,
+                      color: t.color,
+                      size: 20,
+                    ),
                   ),
                   const Spacer(),
                   Container(
@@ -2610,7 +2660,7 @@ class _TemplateCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Detay Gör',
+                        locked ? 'Premium ile Aç' : 'Detay Gör',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

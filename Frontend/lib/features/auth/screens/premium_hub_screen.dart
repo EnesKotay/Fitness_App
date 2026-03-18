@@ -6,11 +6,13 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/constants/premium_features.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../features/nutrition/ai_scan/presentation/pages/meal_vision_scan_page.dart';
 import '../../../features/nutrition/domain/entities/meal_type.dart' show MealType;
 import '../../../features/nutrition/presentation/pages/nutrition_trends_page.dart';
 import '../../../features/nutrition/presentation/pages/smart_grocery_list_page.dart';
+import '../../../features/nutrition/presentation/pages/weekly_meal_plan_page.dart';
 import '../providers/auth_provider.dart';
 import 'premium_screen.dart';
 
@@ -249,6 +251,40 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _SmallCard(
+                                icon: Icons.calendar_month_rounded,
+                                label: 'Haftalık Öğün\nPlanı',
+                                accentColor: const Color(0xFFFFB74D),
+                                locked: !isPremium,
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const WeeklyMealPlanPage()),
+                                  );
+                                },
+                              ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.08),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _SmallCard(
+                                icon: Icons.fitness_center_rounded,
+                                label: 'Hazır Workout\nProgramları',
+                                accentColor: const Color(0xFFF06292),
+                                locked: !isPremium,
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                                  );
+                                },
+                              ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.08),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 24),
 
                         // ── Avantajlar / Upgrade ───────────────────────────
@@ -259,10 +295,17 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                             color: const Color(0xFFFFD54F),
                           ),
                           const SizedBox(height: 12),
-                          _BenefitRow(icon: Icons.bolt_rounded, color: const Color(0xFFFFD54F), title: 'Sınırsız AI Sorgusu', sub: 'Günde 75 Claude isteği'),
-                          _BenefitRow(icon: Icons.bar_chart_rounded, color: const Color(0xFF4FC3F7), title: 'Derinlemesine Trend Analizi', sub: 'Haftalık & aylık raporlar'),
-                          _BenefitRow(icon: Icons.restaurant_menu_rounded, color: const Color(0xFF69F0AE), title: 'Tarif Önerileri', sub: 'Hedefine göre kişisel menü'),
-                          _BenefitRow(icon: Icons.camera_rounded, color: const Color(0xFFB388FF), title: 'Görüntü ile Besin Tarama', sub: 'Etiket, barkod, yemek fotoğrafı'),
+                          ...premiumFeatures.map(
+                            (feature) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _BenefitRow(
+                                icon: feature.icon,
+                                color: feature.accent,
+                                title: feature.title,
+                                sub: feature.description,
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 20),
                           _UpgradeBanner(
                             onTap: () {
@@ -351,7 +394,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
             children: [
               _FreeStatPill(icon: Icons.smart_toy_rounded, label: 'AI Koç', color: const Color(0xFFFFB74D)),
               const SizedBox(width: 8),
-              _FreeStatPill(icon: Icons.camera_alt_rounded, label: 'Besin Tarama', color: const Color(0xFFB388FF)),
+              _FreeStatPill(icon: Icons.restaurant_menu_rounded, label: 'Öğün Planı', color: const Color(0xFF69F0AE)),
               const SizedBox(width: 8),
               _FreeStatPill(icon: Icons.insights_rounded, label: 'Trendler', color: const Color(0xFF4FC3F7)),
             ],

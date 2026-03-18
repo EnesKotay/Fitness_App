@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/constants/premium_features.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/widgets/app_gradient_background.dart';
@@ -146,8 +147,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
   Future<void> _checkPremiumAndFetch() async {
     try {
       final auth = context.read<AuthProvider>();
-      final localTier = auth.user?.premiumTier?.toLowerCase().trim();
-      if (localTier == 'premium') {
+      if (isPremiumTier(auth.user?.premiumTier)) {
         if (mounted) {
           setState(() {
             _isPremium = true;
@@ -167,13 +167,17 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
       }
     } finally {
       if (mounted) setState(() => _isCheckingPremium = false);
-      if (mounted && !_isLoading && widget.seedItems.isEmpty) {
+      if (mounted &&
+          !_isLoading &&
+          widget.seedItems.isEmpty &&
+          _hasPremiumAccess) {
         await _fetchGroceryList();
       }
     }
   }
 
   Future<void> _fetchGroceryList() async {
+    if (!_hasPremiumAccess) return;
     final provider = context.read<DietProvider>();
 
     setState(() {
@@ -1078,12 +1082,85 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     );
   }
 
+  Widget _buildLockedState() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFD97706).withValues(alpha: 0.14),
+                ),
+                child: const Icon(
+                  Icons.shopping_cart_rounded,
+                  color: Color(0xFFFBBF24),
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Akıllı alışveriş listesi Premium\'a özel',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Haftalık öğün planından otomatik liste üretmek ve AI yemek fikirleri görmek için Premium\'a geç.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.64),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBBF24),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Premium ile Aç',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final authPremium =
-        context.watch<AuthProvider>().user?.premiumTier?.toLowerCase().trim() ==
-        'premium';
-    final isPremiumAccess = authPremium || _isPremium;
+    final isPremiumAccess =
+        isPremiumTier(context.watch<AuthProvider>().user?.premiumTier) ||
+        _isPremium;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -1112,7 +1189,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: _isLoading ? null : _fetchGroceryList,
+            onPressed: _isLoading || !isPremiumAccess ? null : _fetchGroceryList,
           ),
         ],
       ),
@@ -1128,6 +1205,8 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
                         color: AppColors.secondary,
                       ),
                     )
+                  : !isPremiumAccess
+                  ? _buildLockedState()
                   : _isLoading && _groceryList.isEmpty
                   ? Center(
                       child: Padding(

@@ -101,6 +101,13 @@ public class IapVerificationService {
      * Satın almayı doğrular. Sonuca göre premium aktifleştirme yapılır.
      */
     public IapVerifyResult verify(IapVerifyRequest req) {
+        if (!isSupportedPlatform(req.platform())) {
+            return IapVerifyResult.fail("Desteklenmeyen platform.");
+        }
+        if (isProd() && !"strict".equalsIgnoreCase(verifyMode)) {
+            LOG.error("Production ortaminda strict olmayan IAP verify mode reddedildi.");
+            return IapVerifyResult.fail("Sunucu IAP dogrulama modu guvenli degil.");
+        }
         LOG.infof("IAP doğrulama — platform=%s plan=%s mode=%s txId=%s",
                 req.platform(), req.planId(), verifyMode, req.transactionId());
 
@@ -122,6 +129,10 @@ public class IapVerificationService {
      * Production'da kullanma!
      */
     private IapVerifyResult verifyDev(IapVerifyRequest req) {
+        if (isProd()) {
+            LOG.error("Production ortaminda DEV IAP dogrulamasi kullanilamaz.");
+            return IapVerifyResult.fail("Production ortaminda dev IAP dogrulamasi kullanilamaz.");
+        }
         final String token = "ios".equalsIgnoreCase(req.platform())
                 ? req.receiptData()
                 : req.purchaseToken();
@@ -129,8 +140,12 @@ public class IapVerificationService {
         if (token == null || token.isBlank()) {
             return IapVerifyResult.fail("Satın alma token'ı boş.");
         }
+        String normalizedPlan = normalizePlanId(req.planId());
+        if (normalizedPlan == null) {
+            return IapVerifyResult.fail("Gecersiz plan ID.");
+        }
         LOG.infof("[DEV] IAP kabul edildi — plan=%s txId=%s", req.planId(), req.transactionId());
-        return IapVerifyResult.ok(normalizePlanId(req.planId()));
+        return IapVerifyResult.ok(normalizedPlan);
     }
 
     // ─── Apple App Store ──────────────────────────────────────────────────────
@@ -140,8 +155,8 @@ public class IapVerificationService {
             return IapVerifyResult.fail("iOS receipt verisi boş.");
         }
         if ("__MISSING__".equals(appleSharedSecret)) {
-            LOG.warn("Apple shared secret yapılandırılmamış, dev moduna düşülüyor.");
-            return verifyDev(req);
+            LOG.error("Apple shared secret yapılandırılmamış.");
+            return IapVerifyResult.fail("Apple IAP dogrulamasi eksik yapilandirma nedeniyle basarisiz.");
         }
 
         try {
@@ -172,6 +187,12 @@ public class IapVerificationService {
                 return IapVerifyResult.fail(msg);
             }
 
+            String bundleId = root.path("receipt").path("bundle_id").asText("");
+            if (!appleBundleId.isBlank() && !appleBundleId.equals(bundleId)) {
+                LOG.warnf("Apple bundle_id uyusmuyor expected=%s actual=%s", appleBundleId, bundleId);
+                return IapVerifyResult.fail("Receipt uygulama kimligi eslesmiyor.");
+            }
+
             // En güncel aboneliği bul
             JsonNode latestInfo = root.path("latest_receipt_info");
             if (latestInfo.isArray() && latestInfo.size() > 0) {
@@ -185,6 +206,9 @@ public class IapVerificationService {
                 }
 
                 String plan = normalizePlanId(productId);
+                if (plan == null) {
+                    return IapVerifyResult.fail("Receipt icindeki urun kimligi taninmiyor.");
+                }
                 LOG.infof("Apple receipt geçerli — productId=%s plan=%s", productId, plan);
                 return IapVerifyResult.ok(plan);
             }
@@ -230,13 +254,16 @@ public class IapVerificationService {
             return IapVerifyResult.fail("Android purchase token boş.");
         }
         if ("__MISSING__".equals(googleServiceAccountJson)) {
-            LOG.warn("Google service account yapılandırılmamış, dev moduna düşülüyor.");
-            return verifyDev(req);
+            LOG.error("Google service account yapılandırılmamış.");
+            return IapVerifyResult.fail("Google Play IAP dogrulamasi eksik yapilandirma nedeniyle basarisiz.");
         }
 
         try {
             String accessToken = getGoogleAccessToken();
             String subscriptionId = toGoogleSubscriptionId(req.planId());
+            if (subscriptionId == null) {
+                return IapVerifyResult.fail("Gecersiz plan ID.");
+            }
             String url = String.format(
                     GOOGLE_SUBS_URL,
                     googlePackageName,
@@ -278,6 +305,9 @@ public class IapVerificationService {
             }
 
             String plan = normalizePlanId(req.planId());
+            if (plan == null) {
+                return IapVerifyResult.fail("Gecersiz plan ID.");
+            }
             LOG.infof("Google Play token geçerli — subscriptionId=%s plan=%s", subscriptionId, plan);
             return IapVerifyResult.ok(plan);
 
@@ -357,12 +387,15 @@ public class IapVerificationService {
      * "premium_monthly" → "monthly", "premium_yearly" → "yearly"
      */
     private String normalizePlanId(String productId) {
-        if (productId == null) return "monthly";
+        if (productId == null || productId.isBlank()) return null;
         String lower = productId.toLowerCase();
         if (lower.contains("yearly") || lower.contains("annual") || lower.contains("year")) {
             return "yearly";
         }
-        return "monthly";
+        if (lower.contains("monthly") || lower.contains("month")) {
+            return "monthly";
+        }
+        return null;
     }
 
     /**
@@ -370,7 +403,22 @@ public class IapVerificationService {
      * Google Play Console'daki ID'lerle eşleşmeli.
      */
     private String toGoogleSubscriptionId(String planId) {
-        if (planId == null) return "premium_monthly";
-        return planId.toLowerCase().contains("yearly") ? "premium_yearly" : "premium_monthly";
+        String normalizedPlan = normalizePlanId(planId);
+        if ("yearly".equals(normalizedPlan)) {
+            return "premium_yearly";
+        }
+        if ("monthly".equals(normalizedPlan)) {
+            return "premium_monthly";
+        }
+        return null;
+    }
+
+    private boolean isSupportedPlatform(String platform) {
+        return "ios".equalsIgnoreCase(platform) || "android".equalsIgnoreCase(platform);
+    }
+
+    private boolean isProd() {
+        return "prod".equals(System.getProperty("quarkus.profile"))
+                || "prod".equals(System.getenv("QUARKUS_PROFILE"));
     }
 }

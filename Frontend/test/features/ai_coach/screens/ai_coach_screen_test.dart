@@ -14,6 +14,10 @@ class _RateLimitService extends AiCoachService {
     required Goal goal,
     required DailySummary summary,
     required String userPrompt,
+    CoachPersonality personality = CoachPersonality.supportive,
+    CoachTaskMode taskMode = CoachTaskMode.plan,
+    List<CoachConversationTurn> conversationHistory =
+        const <CoachConversationTurn>[],
   }) async {
     throw ApiException(
       message: 'Cok fazla istek. 3s sonra tekrar dene.',

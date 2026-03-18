@@ -71,6 +71,9 @@ public class StartupValidator {
         }
 
         // Production'da IAP strict zorunlu
+        if (isProd && !"strict".equalsIgnoreCase(iapMode)) {
+            errors.add("Production ortaminda IAP_VERIFY_MODE=strict zorunludur.");
+        }
         if (isProd && "strict".equalsIgnoreCase(iapMode)) {
             if ("__MISSING__".equals(appleSharedSecret) || appleSharedSecret.isBlank()) {
                 errors.add("Production IAP strict modunda IAP_APPLE_SHARED_SECRET tanımlı değil.");

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../domain/entities/food_item.dart';
-import '../../domain/entities/food_item.dart';
 
 class OpenFoodFactsClient {
   static const String _baseUrl = 'https://world.openfoodfacts.org/api/v0/product/';

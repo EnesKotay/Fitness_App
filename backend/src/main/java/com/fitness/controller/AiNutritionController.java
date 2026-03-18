@@ -11,6 +11,7 @@ import com.fitness.dto.NutritionFeedbackRequest;
 import com.fitness.dto.NutritionLabelResult;
 import com.fitness.dto.FoodImageResult;
 import com.fitness.service.AiCoachServiceException;
+import com.fitness.service.AiEntitlementService;
 import com.fitness.service.AiNutritionRateLimiter;
 import com.fitness.service.AiProviderRouter;
 import com.fitness.service.AuthService;
@@ -21,6 +22,7 @@ import io.quarkus.security.Authenticated;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -55,6 +57,9 @@ public class AiNutritionController {
     @Inject
     AiProviderRouter aiProviderRouter;
 
+    @Inject
+    AiEntitlementService entitlementService;
+
     @POST
     @Path("/nutrition")
     public Response nutrition(@Context HttpHeaders headers, NutritionAiRequest request) {
@@ -64,6 +69,10 @@ public class AiNutritionController {
         try {
             userId = resolveUserId(headers);
             boolean isPremium = aiProviderRouter.isPremium(userId);
+            if (isPremiumTask(request)) {
+                entitlementService.ensurePremium(userId, "AI destekli premium planlama");
+                isPremium = true;
+            }
 
             if (!rateLimiter.tryAcquire(userId, isPremium)) {
                 int retryAfterSeconds = rateLimiter.retryAfterSeconds(userId, isPremium);
@@ -83,6 +92,11 @@ public class AiNutritionController {
 
             logResult("ok", userId, startNs);
             return Response.ok(response).build();
+        } catch (ForbiddenException e) {
+            logResult("forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
         } catch (SecurityException e) {
             logResult("unauthorized", userId, startNs);
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -137,6 +151,14 @@ public class AiNutritionController {
             return "";
         }
         return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+    }
+
+    private boolean isPremiumTask(NutritionAiRequest request) {
+        if (request == null || request.task == null || request.task.isBlank()) {
+            return false;
+        }
+        String task = request.task.trim().toUpperCase();
+        return "GROCERY_LIST".equals(task);
     }
 
     /**
@@ -195,6 +217,7 @@ public class AiNutritionController {
 
         try {
             userId = resolveUserId(headers);
+            entitlementService.ensurePremium(userId, "Besin etiketi tarama");
 
             if (!rateLimiter.tryAcquire(userId, aiProviderRouter.isPremium(userId))) {
                 int retryAfterSeconds = rateLimiter.retryAfterSeconds(userId, aiProviderRouter.isPremium(userId));
@@ -235,6 +258,11 @@ public class AiNutritionController {
             logResult("scan_ok", userId, startNs);
             return Response.ok(result).build();
 
+        } catch (ForbiddenException e) {
+            logResult("scan_forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
         } catch (SecurityException e) {
             logResult("scan_unauthorized", userId, startNs);
             return Response.status(Response.Status.UNAUTHORIZED)
@@ -272,6 +300,7 @@ public class AiNutritionController {
 
         try {
             userId = resolveUserId(headers);
+            entitlementService.ensurePremium(userId, "Yemek fotografi analizi");
 
             if (!rateLimiter.tryAcquire(userId, aiProviderRouter.isPremium(userId))) {
                 int retryAfterSeconds = rateLimiter.retryAfterSeconds(userId, aiProviderRouter.isPremium(userId));
@@ -312,6 +341,11 @@ public class AiNutritionController {
             logResult("analyze_image_ok", userId, startNs);
             return Response.ok(result).build();
 
+        } catch (ForbiddenException e) {
+            logResult("analyze_image_forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
         } catch (SecurityException e) {
             logResult("analyze_image_unauthorized", userId, startNs);
             return Response.status(Response.Status.UNAUTHORIZED)

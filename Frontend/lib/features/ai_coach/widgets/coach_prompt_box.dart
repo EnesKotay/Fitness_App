@@ -91,7 +91,7 @@ class _CoachPromptBoxState extends State<CoachPromptBox> {
                     const SizedBox(height: 4),
                     Text(
                       _isFreeLimitReached
-                          ? 'Bugünlük ücretsiz limit doldu.'
+                          ? 'Bugünkü 2 ücretsiz hak bitti.'
                           : 'Sorunu doğal cümleyle yaz, koç cevaplasın.',
                       style: GoogleFonts.dmSans(
                         color: Colors.white.withValues(alpha: 0.56),
@@ -302,7 +302,7 @@ class _FreeLimitNote extends StatelessWidget {
             child: Text(
               remainingFreePrompts > 0
                   ? 'Bugün $remainingFreePrompts ücretsiz AI koç hakkın kaldı.'
-                  : 'Ücretsiz hak bitti. Premium ile sınırsız devam edebilirsin.',
+                  : '2 ücretsiz hakkın bitti. Premium ile sınırsız devam edebilirsin.',
               style: GoogleFonts.dmSans(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 12,

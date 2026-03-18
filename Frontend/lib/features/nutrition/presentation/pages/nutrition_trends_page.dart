@@ -3,11 +3,13 @@ import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/constants/premium_features.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_gradient_background.dart';
 import '../../../../core/widgets/ambient_glow_background.dart';
 import '../../../../core/widgets/premium_state_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/screens/premium_screen.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../state/diet_provider.dart';
 
@@ -47,9 +49,19 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     setState(() { _loading = true; _hasError = false; });
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
-      final isPremium =
-          Provider.of<AuthProvider>(context, listen: false).user?.premiumTier ==
-          'premium';
+      final isPremium = isPremiumTier(
+        Provider.of<AuthProvider>(context, listen: false).user?.premiumTier,
+      );
+      if (!isPremium) {
+        if (mounted) {
+          setState(() {
+            _isPremium = false;
+            _trendData = {};
+            _loading = false;
+          });
+        }
+        return;
+      }
       // Tüm günler için gerçek veri çek (weeklySummary değil)
       final data = await provider.getSummaryForRange(_selectedDays);
       if (mounted) {
@@ -142,23 +154,26 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  if (_isPremium) _buildPremiumBadge(),
-                                  const SizedBox(height: 12),
-                                  _buildDaySelector(),
-                                  const SizedBox(height: 16),
-                                  if (!_hasAnyData)
-                                    _buildEmptyState()
-                                  else ...[
-                                    _buildSummaryRow(),
-                                    const SizedBox(height: 14),
-                                    _buildTrendCard(),
-                                    const SizedBox(height: 14),
-                                    _buildTargetHitRateCard(),
-                                    const SizedBox(height: 14),
-                                    _buildMacroDistributionCard(),
-                                    const SizedBox(height: 14),
-                                    _buildStatsCard(),
-                                  ],
+                                  if (_isPremium) ...[
+                                    _buildPremiumBadge(),
+                                    const SizedBox(height: 12),
+                                    _buildDaySelector(),
+                                    const SizedBox(height: 16),
+                                    if (!_hasAnyData)
+                                      _buildEmptyState()
+                                    else ...[
+                                      _buildSummaryRow(),
+                                      const SizedBox(height: 14),
+                                      _buildTrendCard(),
+                                      const SizedBox(height: 14),
+                                      _buildTargetHitRateCard(),
+                                      const SizedBox(height: 14),
+                                      _buildMacroDistributionCard(),
+                                      const SizedBox(height: 14),
+                                      _buildStatsCard(),
+                                    ],
+                                  ] else
+                                    _buildLockedState(),
                                 ],
                               ),
                             ),
@@ -232,6 +247,75 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildLockedState() {
+    return Container(
+      margin: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFD97706).withValues(alpha: 0.14),
+            ),
+            child: const Icon(
+              Icons.insights_rounded,
+              color: Color(0xFFFBBF24),
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Gelişmiş analizler Premium\'a özel',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Haftalık ve aylık grafikler, hedef vurma oranı ve detaylı makro istatistikleri için Premium\'a geç.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.62),
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFBBF24),
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text(
+                'Premium ile Aç',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.06);
   }
 
   // ─── Premium banner ──────────────────────────────────────────────────────

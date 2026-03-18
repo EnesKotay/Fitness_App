@@ -154,7 +154,7 @@ class WorkoutVisualCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    workout.name ?? 'Antrenman',
+                    workout.name,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,

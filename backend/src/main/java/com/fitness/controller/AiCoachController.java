@@ -11,7 +11,7 @@ import com.fitness.dto.AiCoachRequest;
 import com.fitness.dto.AiCoachResponse;
 import com.fitness.service.AiCoachRateLimiter;
 import com.fitness.service.AiCoachServiceException;
-import com.fitness.service.AiProviderRouter;
+import com.fitness.service.AiEntitlementService;
 import com.fitness.service.AuthService;
 import com.fitness.service.GeminiCoachService;
 
@@ -21,6 +21,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
@@ -46,23 +47,38 @@ public class AiCoachController {
     AuthService authService;
 
     @Inject
-    AiProviderRouter aiProviderRouter;
+    ObjectMapper objectMapper;
 
     @Inject
-    ObjectMapper objectMapper;
+    AiEntitlementService entitlementService;
 
     @POST
     @Path("/coach")
     public Response coach(@Context HttpHeaders headers, AiCoachRequest request) {
         long startNs = System.nanoTime();
         Long userId = null;
+        boolean consumedFreeEntitlement = false;
 
         try {
             userId = resolveUserId(headers);
             int promptLength = promptLength(request);
-            boolean isPremium = aiProviderRouter.isPremium(userId);
+            boolean isPremium = entitlementService.isPremium(userId);
+
+            if (!isPremium) {
+                if (!entitlementService.tryConsumeFreeCoachRequest(userId)) {
+                    Map<String, Object> payload = new HashMap<>();
+                    payload.put("error", "Gunluk 2 ucretsiz AI koç hakkin doldu. Premium ile sinirsiz devam edebilirsin.");
+                    payload.put("upgradeRequired", true);
+                    return Response.status(Response.Status.FORBIDDEN).entity(payload).build();
+                }
+                consumedFreeEntitlement = true;
+            }
 
             if (!rateLimiter.tryAcquire(userId, isPremium)) {
+                if (consumedFreeEntitlement) {
+                    entitlementService.refundFreeCoachRequest(userId);
+                    consumedFreeEntitlement = false;
+                }
                 int retryAfterSeconds = rateLimiter.retryAfterSeconds(userId, isPremium);
                 LOG.warnf("AI coach rate limit exceeded userId=%d promptLength=%d retryAfterSeconds=%d",
                         userId, promptLength, retryAfterSeconds);
@@ -78,12 +94,26 @@ public class AiCoachController {
             AiCoachResponse response = geminiCoachService.generateCoachResponse(userId, request);
             logResult("ok", userId, startNs);
             return Response.ok(response).build();
+        } catch (ForbiddenException e) {
+            if (consumedFreeEntitlement) {
+                entitlementService.refundFreeCoachRequest(userId);
+            }
+            logResult("forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
         } catch (SecurityException e) {
+            if (consumedFreeEntitlement) {
+                entitlementService.refundFreeCoachRequest(userId);
+            }
             logResult("unauthorized", userId, startNs);
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
                     .build();
         } catch (IllegalArgumentException e) {
+            if (consumedFreeEntitlement) {
+                entitlementService.refundFreeCoachRequest(userId);
+            }
             logResult("bad_request", userId, startNs);
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
@@ -92,6 +122,9 @@ public class AiCoachController {
             Response.Status status = Response.Status.fromStatusCode(e.getStatusCode());
             if (status == null) {
                 status = Response.Status.BAD_GATEWAY;
+            }
+            if (consumedFreeEntitlement && status.getStatusCode() >= 400) {
+                entitlementService.refundFreeCoachRequest(userId);
             }
             logResult("service_error", userId, startNs);
             Map<String, Object> payload = new HashMap<>();
@@ -105,11 +138,17 @@ public class AiCoachController {
             }
             return builder.entity(payload).build();
         } catch (IllegalStateException e) {
+            if (consumedFreeEntitlement) {
+                entitlementService.refundFreeCoachRequest(userId);
+            }
             logResult("service_unavailable", userId, startNs);
             return Response.status(Response.Status.SERVICE_UNAVAILABLE)
                     .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
                     .build();
         } catch (RuntimeException e) {
+            if (consumedFreeEntitlement) {
+                entitlementService.refundFreeCoachRequest(userId);
+            }
             logResult("bad_gateway", userId, startNs);
             return Response.status(Response.Status.BAD_GATEWAY)
                     .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
@@ -132,7 +171,8 @@ public class AiCoachController {
 
         try {
             userId = resolveUserId(headers);
-            boolean isPremium = aiProviderRouter.isPremium(userId);
+            entitlementService.ensurePremium(userId, "Gorsel AI analiz");
+            boolean isPremium = true;
 
             if (!rateLimiter.tryAcquire(userId, isPremium)) {
                 int retryAfterSeconds = rateLimiter.retryAfterSeconds(userId, isPremium);
@@ -176,6 +216,11 @@ public class AiCoachController {
 
             logResult("vision_ok", userId, startNs);
             return Response.ok(response).build();
+        } catch (ForbiddenException e) {
+            logResult("vision_forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
         } catch (SecurityException e) {
             logResult("vision_unauthorized", userId, startNs);
             return Response.status(Response.Status.UNAUTHORIZED)

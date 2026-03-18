@@ -12,7 +12,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: CoachPromptBox(
-            onSend: (text) {
+            onSend: (text) async {
               sent = text;
             },
           ),
@@ -41,7 +41,7 @@ void main() {
         home: Scaffold(
           body: CoachPromptBox(
             quickPrompts: const ['Ornek soru'],
-            onSend: (_) {},
+            onSend: (_) async {},
           ),
         ),
       ),
