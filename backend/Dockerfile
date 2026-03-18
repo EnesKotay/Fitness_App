@@ -1,9 +1,9 @@
 # ── Stage 1: Build ────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
-COPY backend/pom.xml .
+COPY pom.xml .
 RUN mvn dependency:go-offline -q
-COPY backend/src ./src
+COPY src ./src
 RUN mvn package -DskipTests -q
 
 # ── Stage 2: Run ──────────────────────────────────────────
