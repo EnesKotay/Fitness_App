@@ -2997,7 +2997,7 @@ class _WeeklyVolumeChart extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 80,
+            height: 86,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: data.map((d) {
@@ -3022,6 +3022,8 @@ class _WeeklyVolumeChart extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           d.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
                           style: TextStyle(
                             fontSize: 9,
                             color: isToday
