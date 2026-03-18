@@ -20,7 +20,7 @@ public class AiInsight extends PanacheEntity {
     @ManyToOne
     public User user;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     public LocalDateTime createdAt;
 
     @Column(columnDefinition = "TEXT")
@@ -29,7 +29,7 @@ public class AiInsight extends PanacheEntity {
     @Column(length = 50)
     public String type; // e.g., "WEEKLY_PROGRESS", "NUTRITION_TREND", "WORKOUT_MILESTONE"
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "metadata_json", columnDefinition = "TEXT")
     public String metadataJson; // Flexible storage for specific metrics
 
     public AiInsight() {
