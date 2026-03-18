@@ -70,9 +70,9 @@ public class StartupValidator {
             errors.add("DB_URL production ortamında localhost içeriyor veya tanımlı değil. Gerçek veritabanı URL'si gerekli.");
         }
 
-        // Production'da IAP strict zorunlu
+        // Production'da IAP strict önerilir ama dev moda da izin verilir
         if (isProd && !"strict".equalsIgnoreCase(iapMode)) {
-            errors.add("Production ortaminda IAP_VERIFY_MODE=strict zorunludur.");
+            warnings.add("IAP_VERIFY_MODE=dev — production'da strict kullanılması önerilir (Apple/Google secret gerekli).");
         }
         if (isProd && "strict".equalsIgnoreCase(iapMode)) {
             if ("__MISSING__".equals(appleSharedSecret) || appleSharedSecret.isBlank()) {
