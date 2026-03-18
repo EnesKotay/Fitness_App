@@ -2,9 +2,9 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 COPY pom.xml .
-# Bağımlılıkları önce indir (cache için)
+# Bağımlılıkları önce indir (cache için — rootDirectory=backend olunca bu path doğru)
 RUN mvn dependency:go-offline -q
-COPY src ./src
+COPY src/ ./src/
 RUN mvn package -DskipTests -q
 
 # ── Stage 2: Run ──────────────────────────────────────────
