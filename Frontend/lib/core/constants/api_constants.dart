@@ -42,6 +42,7 @@ class ApiConstants {
   static const String register = '$apiPrefix/auth/register';
   static const String login = '$apiPrefix/auth/login';
   static const String getMe = '$apiPrefix/auth/me';
+  static const String deleteMeAccount = '$apiPrefix/auth/me';
   static const String updateMeProfile = '$apiPrefix/auth/me/profile';
   static const String updateMePassword = '$apiPrefix/auth/me/password';
   static const String getUser = '$apiPrefix/auth/user';

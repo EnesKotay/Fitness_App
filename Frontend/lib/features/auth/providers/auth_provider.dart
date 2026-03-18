@@ -102,6 +102,32 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.deleteMyAccount();
+      await StorageHelper.clearDeletedAccountData();
+      _user = null;
+      _isAuthenticated = false;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Hesap silinemedi';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Oturum kontrolü (uygulama başlangıcında). User bilgisi token'dan GET /me ile alınır; local cache güncellenir.
   Future<void> checkAuthStatus() async {
     final token = StorageHelper.getToken();

@@ -105,14 +105,12 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
 
   Future<void> _deleteRequestFlow() async {
     if (_processingDelete) return;
-    final auth = context.read<AuthProvider>();
-    final user = auth.user;
     final approved = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Silme Talebi'),
+        title: const Text('Hesabı Sil'),
         content: const Text(
-          'Bu işlem hesabını hemen silmez. Silme talebi metnini kopyalayıp destek ekibine iletebilirsin.',
+          'Bu işlem hesabını ve bağlı verilerini kalıcı olarak siler. Bu işlem geri alınamaz. Aktif App Store aboneliğin varsa, faturalandırma iptalini ayrıca Apple aboneliklerinden yönetmelisin.',
         ),
         actions: [
           TextButton(
@@ -121,7 +119,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Talep Metni Oluştur'),
+            child: const Text('Kalıcı Olarak Sil'),
           ),
         ],
       ),
@@ -130,20 +128,21 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
 
     setState(() => _processingDelete = true);
     try {
-      final message = StringBuffer()
-        ..writeln('Konu: Hesap Silme Talebi')
-        ..writeln('Tarih: ${DateTime.now().toIso8601String()}')
-        ..writeln('Kullanıcı ID: ${user?.id ?? '-'}')
-        ..writeln(
-          'Email: ${user?.email ?? StorageHelper.getUserEmail() ?? '-'}',
-        )
-        ..writeln(
-          'Açıklama: Hesabımın ve bağlı verilerimin silinmesini talep ediyorum.',
-        );
-      await Clipboard.setData(ClipboardData(text: message.toString()));
       if (!mounted) return;
+      final auth = context.read<AuthProvider>();
+      final ok = await auth.deleteAccount();
+      if (!mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Hesabın silindi.')),
+        );
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silme talebi metni panoya kopyalandı.')),
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Hesap silinemedi.'),
+        ),
       );
     } finally {
       if (mounted) {
@@ -209,15 +208,15 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
               Icons.delete_outline_rounded,
               color: Colors.redAccent,
             ),
-            title: const Text('Hesap silme talebi'),
-            subtitle: const Text('Talep metni oluşturup panoya kopyala'),
+            title: const Text('Hesabı kalıcı olarak sil'),
+            subtitle: const Text('Hesabını ve bağlı verilerini uygulama içinden sil'),
             trailing: _processingDelete
                 ? const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.copy_rounded),
+                : const Icon(Icons.delete_forever_rounded),
             onTap: _deleteRequestFlow,
           ),
           const Divider(height: 22),

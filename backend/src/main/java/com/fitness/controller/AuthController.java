@@ -16,6 +16,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -124,6 +125,19 @@ public class AuthController {
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         Long userId = authService.getUserIdFromToken(auth);
         authService.changePassword(userId, request);
+        return Response.noContent().build();
+    }
+
+    /**
+     * Hesabı ve ilişkili tüm kullanıcı verilerini siler.
+     * DELETE /api/auth/me
+     */
+    @DELETE
+    @Path("/me")
+    public Response deleteMe(@Context HttpHeaders headers) {
+        String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
+        Long userId = authService.getUserIdFromToken(auth);
+        authService.deleteAccount(userId);
         return Response.noContent().build();
     }
 

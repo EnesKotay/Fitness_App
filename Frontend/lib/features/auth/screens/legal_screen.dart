@@ -2,10 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 
-// TODO: Yayın öncesinde bu URL'leri gerçek alan adınızla güncelleyin.
-const _kPrivacyPolicyUrl = 'https://fitnessapp.com/privacy';
-const _kTermsOfServiceUrl = 'https://fitnessapp.com/terms';
-const _kSupportUrl = 'https://fitnessapp.com/support';
+const _kPrivacyPolicyUrl = String.fromEnvironment(
+  'APP_PRIVACY_URL',
+  defaultValue: '',
+);
+const _kTermsOfServiceUrl = String.fromEnvironment(
+  'APP_TERMS_URL',
+  defaultValue: '',
+);
+const _kSupportUrl = String.fromEnvironment(
+  'APP_SUPPORT_URL',
+  defaultValue: '',
+);
+const _kPrivacyEmail = String.fromEnvironment(
+  'APP_PRIVACY_EMAIL',
+  defaultValue: 'privacy@fitmentor.app',
+);
+const _kLegalEmail = String.fromEnvironment(
+  'APP_LEGAL_EMAIL',
+  defaultValue: 'legal@fitmentor.app',
+);
 
 enum LegalTab { privacy, terms }
 
@@ -130,7 +146,7 @@ Bu haklarınızı Ayarlar → Gizlilik bölümünden kullanabilirsiniz.'''),
 Uygulamamız 13 yaşın altındaki çocuklara yönelik değildir. 13 yaşın altındaki bir kullanıcıya ait veri tespit edilirse derhal silinir.'''),
           const _LegalSection('8. İletişim', '''
 Gizlilik ile ilgili sorularınız için:
-E-posta: privacy@fitnessapp.com
+E-posta: $_kPrivacyEmail
 
 Bu politika zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim gönderilir.'''),
           const SizedBox(height: 8),
@@ -209,7 +225,7 @@ Bu koşullar zaman zaman güncellenebilir. Devam eden kullanım güncel koşulla
 Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklarda İstanbul mahkemeleri yetkilidir.'''),
           const _LegalSection('10. İletişim', '''
 Sorularınız için:
-E-posta: legal@fitnessapp.com'''),
+E-posta: $_kLegalEmail'''),
           const SizedBox(height: 8),
           _ExternalLinkButton(
             label: 'Tam Koşulları Tarayıcıda Aç',
@@ -299,11 +315,14 @@ class _ExternalLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trimmedUrl = url.trim();
     return OutlinedButton.icon(
-      onPressed: () => launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      ),
+      onPressed: trimmedUrl.isEmpty
+          ? null
+          : () => launchUrl(
+                Uri.parse(trimmedUrl),
+                mode: LaunchMode.externalApplication,
+              ),
       icon: const Icon(Icons.open_in_new, size: 16),
       label: Text(label),
       style: OutlinedButton.styleFrom(

@@ -440,6 +440,17 @@ class StorageHelper {
     return _prefs?.getString(StorageKeys.userName);
   }
 
+  static Future<void> clearCurrentUserScopedData() async {
+    if (_prefs == null) return;
+    final suffix = getUserStorageSuffix();
+    final suffixMarker = '_$suffix';
+    final keys = _prefs!.getKeys();
+    final scopedKeys = keys.where((key) => key.endsWith(suffixMarker)).toList();
+    for (final key in scopedKeys) {
+      await _prefs!.remove(key);
+    }
+  }
+
   // Onboarding durumu - kullanıcıya göre ayrı (eski global anahtara geri dönüş desteği).
   static Future<bool> saveOnboardingDone(bool done) async {
     if (_prefs == null) return false;
@@ -461,6 +472,14 @@ class StorageHelper {
     await _prefs!.remove(StorageKeys.userName);
     _cachedUserId = null;
     _cachedUserEmail = null;
+    return true;
+  }
+
+  /// Hesap silme sonrasında mevcut kullanıcıya ait local verileri ve oturumu temizler.
+  static Future<bool> clearDeletedAccountData() async {
+    if (_prefs == null) return false;
+    await clearCurrentUserScopedData();
+    await clearUserData();
     return true;
   }
 

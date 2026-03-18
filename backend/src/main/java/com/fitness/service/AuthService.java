@@ -13,9 +13,17 @@ import com.fitness.dto.ProfileUpdateRequest;
 import com.fitness.dto.RegisterRequest;
 import com.fitness.dto.UserResponse;
 import com.fitness.dto.WeightRecordRequest;
-import com.fitness.entity.User;
-import com.fitness.repository.UserRepository;
+import com.fitness.entity.AiInsight;
+import com.fitness.entity.AiRateLimit;
+import com.fitness.entity.AiUserPreference;
+import com.fitness.entity.Meal;
+import com.fitness.entity.Notification;
 import com.fitness.entity.PasswordResetToken;
+import com.fitness.entity.User;
+import com.fitness.entity.WeightRecord;
+import com.fitness.entity.Workout;
+import com.fitness.repository.BodyMeasurementRepository;
+import com.fitness.repository.UserRepository;
 import com.fitness.dto.ForgotPasswordRequest;
 import com.fitness.dto.VerifyResetCodeRequest;
 import com.fitness.dto.ResetPasswordRequest;
@@ -42,6 +50,9 @@ public class AuthService {
 
     @Inject
     TrackingService trackingService;
+
+    @Inject
+    BodyMeasurementRepository bodyMeasurementRepository;
 
     @Inject
     Mailer mailer;
@@ -243,6 +254,26 @@ public class AuthService {
 
         user.password = BCrypt.hashpw(next, BCrypt.gensalt());
         userRepository.persist(user);
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId);
+        if (user == null) {
+            throw new RuntimeException("Kullanici bulunamadi!");
+        }
+
+        PasswordResetToken.delete("user.id", userId);
+        Notification.delete("user.id", userId);
+        AiInsight.delete("user.id", userId);
+        AiRateLimit.delete("userId", userId);
+        AiUserPreference.delete("userId", userId);
+        bodyMeasurementRepository.delete("userId", userId);
+        WeightRecord.delete("user.id", userId);
+        Meal.delete("user.id", userId);
+        Workout.delete("user.id", userId);
+
+        userRepository.delete(user);
     }
 
     public Long getUserIdFromToken(String authorizationHeader) {

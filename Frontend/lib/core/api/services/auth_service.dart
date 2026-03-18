@@ -131,6 +131,19 @@ class AuthService {
     }
   }
 
+  Future<void> deleteMyAccount() async {
+    try {
+      await _apiClient
+          .delete(ApiConstants.deleteMeAccount)
+          .timeout(const Duration(seconds: 10));
+    } on TimeoutException {
+      throw ApiException(message: 'Baglanti zaman asimi');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Hesap silinemedi');
+    }
+  }
+
   Future<void> logout() async {
     await StorageHelper.clearUserData();
   }
