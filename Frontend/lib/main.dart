@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/services/iap_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/utils/storage_helper.dart';
@@ -13,6 +14,14 @@ import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
 import 'core/routes/app_page_transitions.dart';
 import 'features/shell/app_providers.dart';
+
+// Sentry DSN — App Store/Play Store yayınından önce Sentry projesinden al:
+// https://sentry.io → New Project → Flutter → DSN
+const _kSentryDsn = String.fromEnvironment(
+  'SENTRY_DSN',
+  defaultValue: '',
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -28,7 +37,20 @@ void main() async {
   // Türkçe tarih formatı - arka planda yükle (main thread bloklamasın)
   unawaited(initializeDateFormatting('tr_TR'));
 
-  runApp(const MyApp());
+  if (_kSentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (options) {
+        options.dsn = _kSentryDsn;
+        options.tracesSampleRate = 0.2;
+        options.environment = const bool.fromEnvironment('dart.vm.product')
+            ? 'production'
+            : 'development';
+      },
+      appRunner: () => runApp(const MyApp()),
+    );
+  } else {
+    runApp(const MyApp());
+  }
 
   unawaited(
     LocalNotificationService.instance.init().catchError((e) {

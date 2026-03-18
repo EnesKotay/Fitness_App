@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
+
+// TODO: Yayın öncesinde bu URL'leri gerçek alan adınızla güncelleyin.
+const _kPrivacyPolicyUrl = 'https://fitnessapp.com/privacy';
+const _kTermsOfServiceUrl = 'https://fitnessapp.com/terms';
+const _kSupportUrl = 'https://fitnessapp.com/support';
 
 enum LegalTab { privacy, terms }
 
@@ -69,10 +75,10 @@ class _PrivacyPolicyView extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _LegalTitle('Gizlilik Politikası'),
-          _LegalDate('Son güncelleme: Mart 2025'),
-          _LegalSection('1. Toplanan Veriler', '''
+        children: [
+          const _LegalTitle('Gizlilik Politikası'),
+          const _LegalDate('Son güncelleme: Mart 2025'),
+          const _LegalSection('1. Toplanan Veriler', '''
 FitMentor uygulaması ("Uygulama") aşağıdaki verileri toplar:
 
 • Hesap bilgileri: ad, e-posta adresi, şifre (şifrelenmiş)
@@ -82,7 +88,7 @@ FitMentor uygulaması ("Uygulama") aşağıdaki verileri toplar:
 • Vücut ölçümleri: ağırlık, beden ölçüleri
 • Cihaz bilgileri: cihaz türü, işletim sistemi versiyonu
 • Kullanım istatistikleri: özellik kullanımı, hata raporları (isteğe bağlı)'''),
-          _LegalSection('2. Verilerin Kullanım Amacı', '''
+          const _LegalSection('2. Verilerin Kullanım Amacı', '''
 Toplanan veriler yalnızca aşağıdaki amaçlarla kullanılır:
 
 • Kişiselleştirilmiş fitness ve beslenme takibi sağlamak
@@ -91,7 +97,7 @@ Toplanan veriler yalnızca aşağıdaki amaçlarla kullanılır:
 • Hesap güvenliğini sağlamak
 • Premium üyelik yönetimi
 • Yasal yükümlülükleri yerine getirmek'''),
-          _LegalSection('3. Veri Paylaşımı', """
+          const _LegalSection('3. Veri Paylaşımı', """
 Verileriniz üçüncü taraflarla şu durumlarda paylaşılabilir:
 
 • AI servisleri: Beslenme ve fitness analizleri için Google Gemini veya Anthropic Claude API'sine anonim veri gönderilir
@@ -100,16 +106,16 @@ Verileriniz üçüncü taraflarla şu durumlarda paylaşılabilir:
 • Yasal zorunluluk: Mahkeme kararı veya yasal mevzuat gerektirdiğinde
 
 Verileriniz hiçbir koşulda reklam amaçlı üçüncü taraflarla paylaşılmaz."""),
-          _LegalSection('4. Veri Güvenliği', """
+          const _LegalSection('4. Veri Güvenliği', """
 • Tüm veriler HTTPS/TLS ile şifreli aktarılır
 • Şifreler bcrypt ile hash'lenerek saklanır
 • JWT token'lar güvenli depolama (Keychain/Keystore) kullanır
 • Veriler Türkiye veya AB sunucularında saklanır"""),
-          _LegalSection('5. Veri Saklama Süresi', '''
+          const _LegalSection('5. Veri Saklama Süresi', '''
 • Aktif hesaplar: hesap silinene kadar
 • Silinen hesaplar: talebin ardından 30 gün içinde kalıcı olarak silinir
 • Yedekler: 90 gün içinde temizlenir'''),
-          _LegalSection('6. Kullanıcı Hakları (KVKK)', '''
+          const _LegalSection('6. Kullanıcı Hakları (KVKK)', '''
 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında şu haklarınız vardır:
 
 • Verilerinizin işlenip işlenmediğini öğrenme
@@ -120,13 +126,24 @@ Verileriniz hiçbir koşulda reklam amaçlı üçüncü taraflarla paylaşılmaz
 • Verilerinizin JSON formatında dışa aktarılmasını isteme
 
 Bu haklarınızı Ayarlar → Gizlilik bölümünden kullanabilirsiniz.'''),
-          _LegalSection('7. Çocukların Gizliliği', '''
+          const _LegalSection('7. Çocukların Gizliliği', '''
 Uygulamamız 13 yaşın altındaki çocuklara yönelik değildir. 13 yaşın altındaki bir kullanıcıya ait veri tespit edilirse derhal silinir.'''),
-          _LegalSection('8. İletişim', '''
+          const _LegalSection('8. İletişim', '''
 Gizlilik ile ilgili sorularınız için:
 E-posta: privacy@fitnessapp.com
 
 Bu politika zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim gönderilir.'''),
+          const SizedBox(height: 8),
+          _ExternalLinkButton(
+            label: 'Tam Politikayı Tarayıcıda Aç',
+            url: _kPrivacyPolicyUrl,
+          ),
+          const SizedBox(height: 8),
+          _ExternalLinkButton(
+            label: 'Destek',
+            url: _kSupportUrl,
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -144,17 +161,17 @@ class _TermsOfServiceView extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _LegalTitle('Kullanım Koşulları'),
-          _LegalDate('Son güncelleme: Mart 2025'),
-          _LegalSection('1. Kabul', """
+        children: [
+          const _LegalTitle('Kullanım Koşulları'),
+          const _LegalDate('Son güncelleme: Mart 2025'),
+          const _LegalSection('1. Kabul', """
 FitMentor uygulamasını kullanarak bu Kullanım Koşulları'nı kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız uygulamayı kullanmamalısınız."""),
-          _LegalSection('2. Hesap', '''
+          const _LegalSection('2. Hesap', '''
 • Hesap oluşturmak için doğru ve güncel bilgi sağlamalısınız
 • Hesabınızın güvenliğinden siz sorumlusunuz
 • Şüpheli bir erişim fark ederseniz hemen şifrenizi değiştirin
 • Bir kişi yalnızca bir hesap oluşturabilir'''),
-          _LegalSection('3. Kullanım Kuralları', '''
+          const _LegalSection('3. Kullanım Kuralları', '''
 Aşağıdaki davranışlar yasaktır:
 
 • Uygulamayı yasadışı amaçlarla kullanmak
@@ -162,37 +179,43 @@ Aşağıdaki davranışlar yasaktır:
 • Uygulamanın altyapısına zarar verecek işlemler yapmak
 • Yanlış sağlık veya tıbbi bilgi yaymak
 • Uygulamayı tersine mühendislik ile analiz etmek'''),
-          _LegalSection('4. Premium Üyelik', '''
+          const _LegalSection('4. Premium Üyelik', '''
 • Premium özellikler aylık veya yıllık abonelik gerektirir
 • Abonelikler App Store veya Google Play üzerinden yönetilir
 • Ödeme, satın alma onayında Apple/Google hesabınızdan çekilir
 • Abonelik, mevcut dönem sona ermeden en az 24 saat önce iptal edilmezse otomatik yenilenir
 • İptal işlemi için cihazınızın App Store/Google Play abonelik yönetimini kullanın
 • Kullanılmamış abonelik süresine geri ödeme yapılmaz (platform kuralları gereği)'''),
-          _LegalSection('5. Sağlık Uyarısı', '''
+          const _LegalSection('5. Sağlık Uyarısı', '''
 FitMentor bir tıbbi cihaz veya sağlık hizmeti değildir.
 
 • Uygulama yalnızca genel sağlıklı yaşam bilgisi sunar
 • Herhangi bir sağlık sorununda mutlaka bir doktora başvurun
 • AI koç önerileri profesyonel tıbbi tavsiye yerine geçmez
 • Aşırı egzersiz veya yetersiz beslenme ile ilgili kararlardan kullanıcı sorumludur'''),
-          _LegalSection('6. Fikri Mülkiyet', '''
+          const _LegalSection('6. Fikri Mülkiyet', '''
 • Uygulamanın tüm içeriği, tasarımı ve kodu telif hakkı ile korunmaktadır
 • Kullanıcılar uygulamayı yalnızca kişisel, ticari olmayan amaçlarla kullanabilir
 • Uygulama içeriğinin izinsiz kopyalanması, dağıtılması yasaktır'''),
-          _LegalSection('7. Sorumluluk Sınırlaması', '''
+          const _LegalSection('7. Sorumluluk Sınırlaması', '''
 Uygulama "olduğu gibi" sunulmaktadır. Şu konularda sorumluluk kabul edilmez:
 
 • Kullanıcının verdiği yanlış bilgilerden kaynaklanan sonuçlar
 • İnternet bağlantısı kesintilerinden kaynaklanan veri kaybı
 • Üçüncü taraf servislerden (AI, barcode DB) kaynaklanan hatalar'''),
-          _LegalSection('8. Değişiklikler', '''
+          const _LegalSection('8. Değişiklikler', '''
 Bu koşullar zaman zaman güncellenebilir. Devam eden kullanım güncel koşulları kabul ettiğiniz anlamına gelir.'''),
-          _LegalSection('9. Geçerli Hukuk', '''
+          const _LegalSection('9. Geçerli Hukuk', '''
 Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklarda İstanbul mahkemeleri yetkilidir.'''),
-          _LegalSection('10. İletişim', '''
+          const _LegalSection('10. İletişim', '''
 Sorularınız için:
 E-posta: legal@fitnessapp.com'''),
+          const SizedBox(height: 8),
+          _ExternalLinkButton(
+            label: 'Tam Koşulları Tarayıcıda Aç',
+            url: _kTermsOfServiceUrl,
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -264,6 +287,28 @@ class _LegalSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ExternalLinkButton extends StatelessWidget {
+  final String label;
+  final String url;
+  const _ExternalLinkButton({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () => launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      ),
+      icon: const Icon(Icons.open_in_new, size: 16),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primary,
+        side: const BorderSide(color: AppColors.primary),
       ),
     );
   }

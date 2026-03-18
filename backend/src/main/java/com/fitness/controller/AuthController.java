@@ -9,6 +9,7 @@ import com.fitness.dto.UserResponse;
 import com.fitness.dto.ForgotPasswordRequest;
 import com.fitness.dto.VerifyResetCodeRequest;
 import com.fitness.dto.ResetPasswordRequest;
+import com.fitness.service.AuthRateLimiter;
 import com.fitness.service.AuthService;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,15 +26,22 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 @ApplicationScoped
 @Path("/api/auth")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthController {
-    
+
     @Inject
     AuthService authService;
+
+    @Inject
+    AuthRateLimiter rateLimiter;
+
+    @Context
+    UriInfo uriInfo;
     
     /**
      * Kullanıcı kaydı
@@ -41,7 +49,14 @@ public class AuthController {
      */
     @POST
     @Path("/register")
-    public Response register(@Valid RegisterRequest request) {
+    public Response register(@Valid RegisterRequest request, @Context HttpHeaders headers) {
+        String ip = resolveIp(headers);
+        if (!rateLimiter.allowRegister(ip)) {
+            return Response.status(429)
+                    .header("Retry-After", rateLimiter.registerRetryAfter(ip))
+                    .entity("{\"error\": \"Çok fazla kayıt denemesi. Lütfen bir saat sonra tekrar deneyin.\"}")
+                    .build();
+        }
         AuthResponse response = authService.register(request);
         return Response.status(Response.Status.CREATED)
                 .entity(response)
@@ -54,7 +69,14 @@ public class AuthController {
      */
     @POST
     @Path("/login")
-    public Response login(@Valid LoginRequest request) {
+    public Response login(@Valid LoginRequest request, @Context HttpHeaders headers) {
+        String ip = resolveIp(headers);
+        if (!rateLimiter.allowLogin(ip)) {
+            return Response.status(429)
+                    .header("Retry-After", rateLimiter.loginRetryAfter(ip))
+                    .entity("{\"error\": \"Çok fazla giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin.\"}")
+                    .build();
+        }
         AuthResponse response = authService.login(request);
         return Response.ok()
                 .entity(response)
@@ -125,6 +147,18 @@ public class AuthController {
                 .build();
     }
     
+    private String resolveIp(HttpHeaders headers) {
+        String xff = headers.getHeaderString("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        String realIp = headers.getHeaderString("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return "unknown";
+    }
+
     /**
      * Test endpoint
      * GET /api/auth/test
@@ -142,7 +176,14 @@ public class AuthController {
      */
     @POST
     @Path("/forgot-password")
-    public Response forgotPassword(@Valid ForgotPasswordRequest request) {
+    public Response forgotPassword(@Valid ForgotPasswordRequest request, @Context HttpHeaders headers) {
+        String ip = resolveIp(headers);
+        if (!rateLimiter.allowForgotPassword(ip)) {
+            return Response.status(429)
+                    .header("Retry-After", rateLimiter.forgotPasswordRetryAfter(ip))
+                    .entity("{\"message\": \"Doğrulama kodu e-posta adresinize gönderildi.\"}")
+                    .build();
+        }
         authService.forgotPassword(request);
         return Response.ok()
                 .entity("{\"message\": \"Doğrulama kodu e-posta adresinize gönderildi.\"}")

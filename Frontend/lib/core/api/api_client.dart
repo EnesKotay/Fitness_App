@@ -249,17 +249,19 @@ class _LoggingInterceptor extends Interceptor {
   }
 }
 
-// Error interceptor
+// Error interceptor — 401 alındığında token temizle, kullanıcı login'e yönlendirilir.
 class _ErrorInterceptor extends Interceptor {
+  // Auth endpoint'leri 401 dönebilir (yanlış şifre vb.), oturum temizlenmemeli.
+  static const _authPaths = {'/api/auth/login', '/api/auth/register'};
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // 401 Unauthorized - Oturumu YALNIZCA /auth/me doğrulama isteği 401 dönerse temizle.
-    // Diğer endpoint'lerin (premium-status, nutrition, workouts vb.) 401'leri oturumu silmemeli;
-    // bunlar token yokken gönderilen yarış koşulu istekleri olabilir.
     if (err.response?.statusCode == 401) {
       final path = err.requestOptions.path;
-      // Sadece token geçerliliğini kontrol eden /me endpoint'i 401 dönerse oturum geçersiz.
-      if (path == ApiConstants.getMe) {
+      final isAuthEndpoint = _authPaths.any((p) => path.endsWith(p));
+      if (!isAuthEndpoint) {
+        // Token süresi dolmuş veya geçersiz → oturumu kapat.
+        // SplashScreen / AuthProvider bir sonraki navigasyonda durumu algılar.
         StorageHelper.clearUserData();
       }
     }

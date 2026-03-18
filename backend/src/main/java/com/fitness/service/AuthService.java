@@ -35,7 +35,7 @@ import java.security.SecureRandom;
 public class AuthService {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
-    private static final long JWT_LIFESPAN_MS = 86400L * 1000; // 24 saat
+    private static final long JWT_LIFESPAN_MS = 1800L * 1000; // 30 dakika
 
     @Inject
     UserRepository userRepository;
@@ -47,7 +47,7 @@ public class AuthService {
     Mailer mailer;
 
     @Inject
-    @ConfigProperty(name = "smallrye.jwt.sign.key", defaultValue = "fitness-backend-jwt-secret-key-at-least-32-bytes-long")
+    @ConfigProperty(name = "smallrye.jwt.sign.key")
     String jwtSignKey;
 
     /**
@@ -230,8 +230,8 @@ public class AuthService {
         if (current.isEmpty() || next.isEmpty()) {
             throw new RuntimeException("Mevcut ve yeni sifre gerekli!");
         }
-        if (next.length() < 6) {
-            throw new RuntimeException("Yeni sifre en az 6 karakter olmali!");
+        if (next.length() < 8) {
+            throw new RuntimeException("Yeni sifre en az 8 karakter olmali!");
         }
 
         if (!isBcryptHash(user.password) || !BCrypt.checkpw(current, user.password)) {
@@ -361,8 +361,8 @@ public class AuthService {
             throw new RuntimeException("Doğrulama kodunun süresi dolmuş.");
         }
 
-        if(request.newPassword.length() < 6){
-             throw new RuntimeException("Şifre en az 6 karakter olmalıdır.");
+        if(request.newPassword.length() < 8){
+             throw new RuntimeException("Şifre en az 8 karakter olmalıdır.");
         }
 
         // Yeni şifreyi kaydet
