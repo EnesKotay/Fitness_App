@@ -2597,7 +2597,6 @@ class _WorkoutTemplatesSection extends StatelessWidget {
       builder: (_) => _TemplateDetailSheet(
         template: t,
         onStart: onStartPressed,
-        onSave: onSavePressed,
       ),
     );
   }
@@ -2751,12 +2750,10 @@ class _TemplateCard extends StatelessWidget {
 class _TemplateDetailSheet extends StatelessWidget {
   final _TemplateData template;
   final VoidCallback onStart;
-  final VoidCallback onSave;
 
   const _TemplateDetailSheet({
     required this.template,
     required this.onStart,
-    required this.onSave,
   });
 
   @override
@@ -2998,61 +2995,31 @@ class _TemplateDetailSheet extends StatelessWidget {
                   },
                 ),
               ),
-              // Buttons
+              // Start button
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onStart();
-                        },
-                        icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                        label: const Text(
-                          'Antrenmanı Başlat',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: t.color,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onStart();
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                    label: const Text(
+                      'Antrenmanı Başlat',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onSave();
-                        },
-                        icon: Icon(Icons.bookmark_add_outlined, size: 20, color: t.color),
-                        label: Text(
-                          'Antrenmanlarıma Kaydet',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: t.color,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: t.color, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: t.color,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
