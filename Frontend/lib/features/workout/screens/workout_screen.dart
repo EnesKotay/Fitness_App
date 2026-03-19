@@ -2920,7 +2920,30 @@ class _TemplateDetailSheet extends StatelessWidget {
                   itemCount: t.exercises.length,
                   itemBuilder: (context, i) {
                     final ex = t.exercises[i];
-                    return Container(
+                    // Catalog'dan Exercise objesini bul (varsa guide'a yönlendir)
+                    Exercise? _findExercise() {
+                      for (final group in kMuscleGroupInfo.keys) {
+                        try {
+                          return buildExerciseCatalogForGroup(group)
+                              .firstWhere((e) => e.name.toLowerCase() == ex.name.toLowerCase());
+                        } catch (_) {}
+                      }
+                      return null;
+                    }
+                    return GestureDetector(
+                      onTap: () {
+                        final found = _findExercise();
+                        if (found == null) return;
+                        final muscleLabel = t.muscles.isNotEmpty ? t.muscles.first : null;
+                        Navigator.of(context).push(MaterialPageRoute<void>(
+                          builder: (_) => ExerciseGuideScreen(
+                            exercise: found,
+                            accentColor: t.color,
+                            muscleGroupLabel: muscleLabel,
+                          ),
+                        ));
+                      },
+                      child: Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -2991,7 +3014,8 @@ class _TemplateDetailSheet extends StatelessWidget {
                           ),
                         ],
                       ),
-                    );
+                    ),
+                    ); // GestureDetector
                   },
                 ),
               ),
