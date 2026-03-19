@@ -162,12 +162,23 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         _selectedMuscleGroup = tmpl.muscleGroup;
         _nameC.text = tmpl.workoutName;
         _durationC.text = tmpl.duration.toString();
+        if (tmpl.muscleGroup != null) {
+          _typeC.text = kMuscleGroupInfo[tmpl.muscleGroup]?.label ?? tmpl.muscleGroup!;
+        }
         final sets = List.generate(
           tmpl.sets,
-          (_) => _SetEntry.fromValues('', tmpl.reps.toString()),
+          (_) => _SetEntry.fromValues('', tmpl.reps.toString(), type: 'Normal'),
         );
-        setState(() => _sets.addAll(sets));
-        // Template pre-fill: egzersiz seçildi, direkt setler adımına geç
+        // Step'i 1'e ayarla — page ve step indicator senkron olsun
+        setState(() {
+          _sets.addAll(sets);
+          _step = 1;
+        });
+        // Kronometreyi otomatik başlat
+        _stopwatch.start();
+        _swTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (mounted) setState(() => _swElapsed = _stopwatch.elapsed);
+        });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _pageC.jumpToPage(1);
         });
@@ -415,8 +426,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         );
         return;
       }
-      _nameC.text = name;
-      if (_selectedMuscleGroup != null) {
+      if (_nameC.text.trim().isEmpty) _nameC.text = name;
+      if (_selectedMuscleGroup != null && _typeC.text.trim().isEmpty) {
         _typeC.text =
             kMuscleGroupInfo[_selectedMuscleGroup]?.label ??
             _selectedMuscleGroup!;
