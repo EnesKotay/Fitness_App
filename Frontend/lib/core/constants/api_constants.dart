@@ -12,7 +12,7 @@ class ApiConstants {
   ///   flutter build appbundle --dart-define=API_BASE_URL=https://api.fitnessapp.com
   ///
   /// Geliştirme ortamında dart-define verilmezse platform varsayılanları kullanılır.
-  static const String _productionUrl = 'https://api.fitnessapp.com'; // ← kendi domain'in
+  static const String _productionUrl = 'https://ample-bravery-production.up.railway.app';
 
   static String get baseUrl {
     // 1) Build-time dart-define (production build için)
