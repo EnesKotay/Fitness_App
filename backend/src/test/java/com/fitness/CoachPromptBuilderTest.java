@@ -48,7 +48,7 @@ public class CoachPromptBuilderTest {
         assertTrue(prompt.contains("USER PROFILE:"));
         assertTrue(prompt.contains("Sleep: 5.5 h"));
         assertTrue(prompt.contains("Workout Minutes: 48"));
-        assertTrue(prompt.contains("Target Calories: 2000"));
+        assertTrue(prompt.contains("Target: 2000 kcal"));
         assertTrue(prompt.contains("Current Weight: 82.0 kg"));
         assertTrue(prompt.contains("BMI: 25.3"));
         assertTrue(prompt.contains("DETERMINISTIC COACHING SIGNALS:"));
