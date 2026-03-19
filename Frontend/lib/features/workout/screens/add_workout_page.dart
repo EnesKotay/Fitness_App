@@ -49,10 +49,21 @@ class _SetEntry {
 // AddWorkoutPage
 // ---------------------------------------------------------------------------
 
+typedef TemplateData = ({
+  String exerciseName,
+  int sets,
+  int reps,
+  String workoutName,
+  int duration,
+  String? muscleGroup,
+  String? difficulty,
+});
+
 class AddWorkoutPage extends StatefulWidget {
   final Workout? workout; // null → create, non-null → edit
+  final TemplateData? templateData;
 
-  const AddWorkoutPage({super.key, this.workout});
+  const AddWorkoutPage({super.key, this.workout, this.templateData});
 
   @override
   State<AddWorkoutPage> createState() => _AddWorkoutPageState();
@@ -132,6 +143,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       _userWeight = diet.profile?.weight ?? 70.0;
 
       final w = widget.workout;
+      final tmpl = widget.templateData;
       if (w != null) {
         _nameC.text = w.name;
         _typeC.text = w.workoutType ?? '';
@@ -140,12 +152,25 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         _notesC.text = w.notes ?? '';
         _pickedDate = w.workoutDate;
         _selectedExerciseName = w.name;
-        // pre-fill one set row from existing values
         final entry = _SetEntry.fromValues(
           w.weight?.toString() ?? '',
           w.reps?.toString() ?? '',
         );
         setState(() => _sets.add(entry));
+      } else if (tmpl != null) {
+        _selectedExerciseName = tmpl.exerciseName;
+        _selectedMuscleGroup = tmpl.muscleGroup;
+        _nameC.text = tmpl.workoutName;
+        _durationC.text = tmpl.duration.toString();
+        final sets = List.generate(
+          tmpl.sets,
+          (_) => _SetEntry.fromValues('', tmpl.reps.toString()),
+        );
+        setState(() => _sets.addAll(sets));
+        // Template pre-fill: egzersiz seçildi, direkt setler adımına geç
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _pageC.jumpToPage(1);
+        });
       } else {
         _sets.add(_SetEntry());
       }

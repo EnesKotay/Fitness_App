@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/models/exercise.dart';
 import '../../../core/models/workout.dart';
+import '../../../core/models/workout_models.dart';
 import '../../../core/api/services/exercise_service.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../data/workout_catalog_data.dart';
@@ -765,7 +766,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         SliverToBoxAdapter(
           child: _WorkoutTemplatesSection(
             isPremium: isPremium,
-            onStartPressed: () => _openTemplateWorkout(context, []),
+            onStartPressed: (t) => _openTemplateWorkout(context, t),
+            onSavePressed: (t) => _saveTemplate(context, t),
             onUpgradePressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PremiumScreen()),
@@ -1745,16 +1747,77 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         });
   }
 
+  Future<void> _saveTemplate(BuildContext context, _TemplateData template) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    final userId = authProvider.user?.id;
+    if (userId == null) return;
+
+    int saved = 0;
+    for (final ex in template.exercises) {
+      int sets = 3, reps = 10;
+      final parts = ex.volume.split('×');
+      if (parts.length == 2) {
+        sets = int.tryParse(parts[0]) ?? 3;
+        reps = int.tryParse(parts[1]) ?? 10;
+      }
+      final request = WorkoutRequest(
+        name: ex.name,
+        sets: sets,
+        reps: reps,
+        muscleGroup: template.muscles.isNotEmpty ? template.muscles.first : null,
+        durationMinutes: template.estimatedMinutes ~/ template.exercises.length,
+        workoutDate: DateTime.now(),
+        notes: template.name,
+        difficulty: template.difficulty,
+      );
+      final ok = await workoutProvider.createWorkout(userId, request);
+      if (ok) saved++;
+    }
+
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          saved == template.exercises.length
+              ? '${template.name} antrenmanlarıma kaydedildi ✓'
+              : '$saved/${template.exercises.length} egzersiz kaydedildi',
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+      ),
+    );
+    _loadWorkoutsIfNeeded();
+  }
+
   void _openTemplateWorkout(
     BuildContext context,
-    List<String> exercises,
+    _TemplateData template,
   ) {
     final messenger = ScaffoldMessenger.of(context);
-    // Open AddWorkoutPage; exercises list is informational
+    final firstEx = template.exercises.isNotEmpty ? template.exercises.first : null;
+    int sets = 3, reps = 10;
+    if (firstEx != null) {
+      final parts = firstEx.volume.split('×');
+      if (parts.length == 2) {
+        sets = int.tryParse(parts[0]) ?? 3;
+        reps = int.tryParse(parts[1]) ?? 10;
+      }
+    }
     Navigator.of(context)
         .push<String>(
           MaterialPageRoute<String>(
-            builder: (_) => const AddWorkoutPage(),
+            builder: (_) => AddWorkoutPage(
+              templateData: firstEx == null ? null : (
+                exerciseName: firstEx.name,
+                sets: sets,
+                reps: reps,
+                workoutName: template.name,
+                duration: template.estimatedMinutes,
+                muscleGroup: template.muscles.isNotEmpty ? template.muscles.first : null,
+                difficulty: template.difficulty,
+              ),
+            ),
           ),
         )
         .then((message) {
@@ -2446,12 +2509,14 @@ const List<_TemplateData> _kWorkoutTemplates = [
 
 class _WorkoutTemplatesSection extends StatelessWidget {
   final bool isPremium;
-  final VoidCallback onStartPressed;
+  final void Function(_TemplateData) onStartPressed;
+  final void Function(_TemplateData) onSavePressed;
   final VoidCallback onUpgradePressed;
 
   const _WorkoutTemplatesSection({
     required this.isPremium,
     required this.onStartPressed,
+    required this.onSavePressed,
     required this.onUpgradePressed,
   });
 
@@ -2497,7 +2562,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
                 template: t,
                 locked: !isPremium,
                 onTap: () => isPremium
-                    ? _showTemplateDetail(context, t, onStartPressed)
+                    ? _showTemplateDetail(context, t, () => onStartPressed(t), () => onSavePressed(t))
                     : onUpgradePressed(),
               );
             },
@@ -2523,6 +2588,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
     BuildContext context,
     _TemplateData t,
     VoidCallback onStartPressed,
+    VoidCallback onSavePressed,
   ) {
     showModalBottomSheet(
       context: context,
@@ -2531,6 +2597,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
       builder: (_) => _TemplateDetailSheet(
         template: t,
         onStart: onStartPressed,
+        onSave: onSavePressed,
       ),
     );
   }
@@ -2684,8 +2751,13 @@ class _TemplateCard extends StatelessWidget {
 class _TemplateDetailSheet extends StatelessWidget {
   final _TemplateData template;
   final VoidCallback onStart;
+  final VoidCallback onSave;
 
-  const _TemplateDetailSheet({required this.template, required this.onStart});
+  const _TemplateDetailSheet({
+    required this.template,
+    required this.onStart,
+    required this.onSave,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2926,31 +2998,61 @@ class _TemplateDetailSheet extends StatelessWidget {
                   },
                 ),
               ),
-              // Start button
+              // Buttons
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onStart();
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                    label: const Text(
-                      'Antrenmanı Başlat',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: t.color,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onStart();
+                        },
+                        icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                        label: const Text(
+                          'Antrenmanı Başlat',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: t.color,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
                       ),
-                      elevation: 0,
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onSave();
+                        },
+                        icon: Icon(Icons.bookmark_add_outlined, size: 20, color: t.color),
+                        label: Text(
+                          'Antrenmanlarıma Kaydet',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: t.color,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: t.color, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
