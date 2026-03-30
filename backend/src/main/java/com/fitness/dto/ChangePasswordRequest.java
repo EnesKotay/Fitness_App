@@ -8,6 +8,6 @@ public class ChangePasswordRequest {
     public String currentPassword;
     
     @NotBlank(message = "Yeni şifre boş olamaz")
-    @Size(min = 6, message = "Yeni şifre en az 6 karakter olmalıdır")
+    @Size(min = 8, message = "Yeni şifre en az 8 karakter olmalıdır")
     public String newPassword;
 }

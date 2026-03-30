@@ -3,12 +3,15 @@ import '../../domain/repositories/food_repository.dart';
 import '../datasources/asset_food_loader.dart';
 import '../datasources/hive_diet_storage.dart';
 import '../datasources/open_food_facts_client.dart';
+import '../../../recipes/data/recipe_loader.dart';
+import '../../../recipes/domain/entities/recipe.dart';
 
 /// Local yiyecek listesi: JSON asset + kullanıcının eklediği özel yemekler (Hive).
 /// Arama: name, aliases, tags, category tarar; Türkçe normalizasyon + basit fuzzy.
 class LocalFoodRepository implements FoodRepository {
   List<FoodItem>? _assetCache;
   List<FoodItem>? _customCache;
+  List<FoodItem>? _recipeCache;
   Map<String, List<String>>? _synonyms;
   final Map<String, _IndexedFood> _indexCache = {};
   List<FoodItem>? _visiblePoolCache;
@@ -117,13 +120,34 @@ class LocalFoodRepository implements FoodRepository {
   Future<void> _ensureLoaded() async {
     _assetCache ??= await AssetFoodLoader.loadFoods();
     _customCache ??= await _hive.getCustomFoods();
+    _recipeCache ??= await _loadRecipeFoods();
     _synonyms ??= await AssetFoodLoader.loadSynonyms();
+
+    if (_assetCache != null &&
+        !_assetCache!.any((food) => food.id.startsWith('trverified_'))) {
+      final verifiedExtras = await AssetFoodLoader.loadVerifiedExtrasFoods();
+      if (verifiedExtras.isNotEmpty) {
+        final knownIds = _assetCache!.map((food) => food.id).toSet();
+        final missingExtras = verifiedExtras
+            .where((food) => !knownIds.contains(food.id))
+            .toList();
+
+        if (missingExtras.isNotEmpty) {
+          _assetCache = [...missingExtras, ..._assetCache!];
+          _indexCache.clear();
+          _visiblePoolCache = null;
+          _emptyQueryCache.clear();
+          _searchCache.clear();
+        }
+      }
+    }
   }
 
   /// Türkçe karakterleri normalize eder, özel karakterleri temizler
   static String normalize(String input) {
     return input
         .toLowerCase()
+        .replaceAll(RegExp('[\u0307\u0327\u0308\u0306\u0302]'), '')
         .replaceAll('ı', 'i')
         .replaceAll('ğ', 'g')
         .replaceAll('ü', 'u')
@@ -188,8 +212,61 @@ class LocalFoodRepository implements FoodRepository {
     return text.contains(token) || _wordStartsWith(text, token);
   }
 
+  static Set<String> _queryVariants(String query) {
+    final variants = <String>{query};
+
+    void addIfMeaningful(String value) {
+      final cleaned = value.trim();
+      if (cleaned.length >= 3) {
+        variants.add(cleaned);
+      }
+    }
+
+    addIfMeaningful(query.replaceAll('&', ' ve '));
+    addIfMeaningful(query.replaceAll('&', ' '));
+    addIfMeaningful(query.replaceAll('/', ' '));
+
+    const directReplacements = {
+      'hamburger': 'burger',
+      'burger': 'hamburger',
+      'cheeseburger': 'cheese burger',
+      'cheese burger': 'cheeseburger',
+      'tavuk burger': 'chicken burger',
+      'chicken burger': 'tavuk burger',
+    };
+
+    for (final entry in directReplacements.entries) {
+      if (query.contains(entry.key)) {
+        addIfMeaningful(query.replaceAll(entry.key, entry.value));
+        addIfMeaningful(entry.value);
+      }
+    }
+
+    const suffixReplacements = {
+      'corbasi': 'corba',
+      'kebabi': 'kebap',
+      'koftesi': 'kofte',
+      'pilavi': 'pilav',
+      'tatlisi': 'tatli',
+      'salatasi': 'salata',
+      'dolmasi': 'dolma',
+      'sarmasi': 'sarma',
+      'kizartmasi': 'kizartma',
+      'haslamasi': 'haslama',
+    };
+
+    for (final entry in suffixReplacements.entries) {
+      if (query.contains(entry.key)) {
+        addIfMeaningful(query.replaceAll(entry.key, entry.value));
+      }
+    }
+
+    return variants;
+  }
+
   void invalidateCache() {
     _customCache = null;
+    _recipeCache = null;
     _indexCache.clear();
     _visiblePoolCache = null;
     _emptyQueryCache.clear();
@@ -199,8 +276,71 @@ class LocalFoodRepository implements FoodRepository {
   List<FoodItem> _userFacingPool() {
     return _visiblePoolCache ??= [
       ..._customCache!,
+      ..._recipeCache!,
       ..._assetCache!,
     ].where(_isUserFacingFood).toList(growable: false);
+  }
+
+  Future<List<FoodItem>> _loadRecipeFoods() async {
+    final recipes = await RecipeLoader.loadAll();
+    return recipes.map(_mapRecipeToFoodItem).toList(growable: false);
+  }
+
+  static FoodItem _mapRecipeToFoodItem(Recipe recipe) {
+    final category = _recipeFoodCategory(recipe);
+    final aliases = {
+      recipe.name,
+      if (recipe.category == 'bowl') '${recipe.name} bowl',
+      if (recipe.category == 'smoothie') '${recipe.name} smoothie',
+    }.toList();
+    final tags = {
+      'tarif',
+      'recipe',
+      recipe.category,
+      recipe.difficulty,
+      ...recipe.tags,
+    }.toList();
+
+    return FoodItem(
+      id: 'recipe_${recipe.id}',
+      name: recipe.name,
+      category: category,
+      basis: const FoodBasis(amount: 1, unit: 'portion'),
+      nutrients: Nutrients(
+        kcal: recipe.kcalPerServing,
+        protein: recipe.proteinPerServing,
+        carb: recipe.carbPerServing,
+        fat: recipe.fatPerServing,
+      ),
+      servings: const [
+        ServingUnit(
+          id: 'recipe_portion',
+          label: '1 Porsiyon',
+          grams: 100,
+          isDefault: true,
+        ),
+      ],
+      aliases: aliases,
+      tags: tags,
+    );
+  }
+
+  static String _recipeFoodCategory(Recipe recipe) {
+    final normalizedTags = recipe.tags.map(normalize).toList();
+    if (normalizedTags.any((tag) => tag.contains('sabah')) ||
+        normalizedTags.any((tag) => tag.contains('kahvalti')) ||
+        normalizedTags.any((tag) => tag.contains('kahvaltilik'))) {
+      return 'Kahvaltılık';
+    }
+    if (recipe.category == 'salata') return 'Salata';
+    if (recipe.category == 'smoothie' ||
+        recipe.category == 'atistirmalik' ||
+        normalizedTags.any((tag) => tag.contains('ara ogun')) ||
+        normalizedTags.any((tag) => tag.contains('pre-workout')) ||
+        normalizedTags.any((tag) => tag.contains('post-workout'))) {
+      return 'Atıştırmalık';
+    }
+    return 'Yemek';
   }
 
   List<FoodItem> _poolForCategory(String? category) {
@@ -224,6 +364,12 @@ class LocalFoodRepository implements FoodRepository {
       ' stuffed crust',
       ' dondurulmus',
       ' sandvic wrap',
+      ' and ',
+      ' with ',
+      ' or ',
+      ' not ',
+      ' for ',
+      ' into ',
     };
 
     final padded = ' $name ';
@@ -231,35 +377,190 @@ class LocalFoodRepository implements FoodRepository {
       if (padded.contains(phrase)) return true;
     }
 
-    if (name.contains(' and ') || name.contains(' with ')) return true;
     return false;
   }
 
+  // İngilizce USDA teknik ve hazırlık terimleri — Türkçe yemek adında geçmemeli
   static const Set<String> _foreignNoiseTokens = {
-    'abalon',
-    'adobo',
-    'ambrosia',
-    'antipasto',
-    'arepa',
-    'armadillo',
-    'bagel',
-    'barfi',
-    'burfi',
-    'biscuit',
-    'blackeyed',
-    'chowder',
-    'coleslaw',
-    'cornbread',
-    'croissant',
-    'english muffin',
-    'griddle',
-    'horseradish',
-    'jute',
-    'mousse',
-    'tapenade',
-    'timbale',
-    'zwieback',
+    // Egzotik / yabancı mutfak
+    'abalon', 'adobo', 'ambrosia', 'antipasto', 'arepa', 'armadillo',
+    'bagel', 'barfi', 'burfi', 'biscuit', 'blackeyed', 'chowder',
+    'coleslaw', 'cornbread', 'croissant', 'english muffin', 'griddle',
+    'horseradish', 'jute', 'mousse', 'tapenade', 'timbale', 'zwieback',
+    'pretzel', 'muffin', 'waffle', 'pancake', 'brownie', 'cupcake',
+    'cheesecake', 'corndog', 'hotdog', 'hot dog', 'beef jerky',
+    // USDA yapısal/işlem tanımlayıcıları
+    'restructured', 'multigrain', 'whole grain', 'multicolor',
+    'enriched', 'fortified', 'textured', 'extruded', 'reconstituted',
+    'hydrolyzed', 'emulsified', 'dehydrated', 'powdered', 'modified',
+    'composite', 'substitute', 'imitation', 'analog', 'analogue',
+    'pasteurized', 'homogenized', 'ultra pasteurized',
+    // İngilizce pişirme/hazırlık tanımlayıcıları
+    'broiled', 'scrambled', 'hash brown', 'hash browns', 'creamed',
+    'au gratin', 'en papillote', 'blanched', 'parboiled', 'braised',
+    // İngilizce besin etiket terimleri
+    'nonfat', 'lowfat', 'low fat', 'reduced fat', 'fat free',
+    'low sodium', 'no salt', 'sugar free', 'calorie free',
+    'low calorie', 'low carb', 'high protein', 'high fiber',
+    // USDA survey kalıpları
+    'ns as to', 'not specified', 'nos', 'restaurant style',
+    'chain restaurant', 'commercially prepared', 'home prepared',
+    'home recipe', 'ready to eat', 'heat and serve',
+    'fast food restaurant', 'take out', 'carry out',
+    // Saf İngilizce yiyecek sıfatları
+    'flavored', 'flavoured', 'homestyle', 'assorted', 'variety pack',
+    'mixed flavors', 'seasonal', 'gourmet', 'artisan', 'artisanal',
+    'organic blend', 'natural flavor',
+    // İngilizce hayvan/et kesimleri
+    'chuck', 'sirloin', 'tenderloin', 'ribeye', 'brisket',
+    'short ribs', 'flank', 'shank', 'loin', 'rump', 'spare ribs',
+    'round steak', 'top round', 'bottom round',
+    // İngilizce süt ürünü terimleri
+    'skim milk', 'whole milk', 'evaporated', 'condensed', 'half and half',
+    'heavy cream', 'light cream', 'sour cream', 'cream cheese',
+    'cottage cheese', 'ricotta', 'brie', 'camembert', 'gouda',
+    // Diğer İngilizce gıda terimleri
+    'sourdough', 'pumpernickel', 'rye bread', 'flatbread',
+    'pita bread', 'naan', 'focaccia', 'ciabatta',
+    'chili', 'chilli', 'salsa', 'guacamole', 'burrito', 'quesadilla',
+    'taco', 'nachos', 'enchilada', 'fajita',
+    'sushi', 'sashimi', 'tempura', 'miso', 'teriyaki', 'ramen',
+    'pad thai', 'dim sum', 'wonton', 'spring roll', 'egg roll',
+    'tikka masala', 'curry', 'chutney', 'samosa',
   };
+
+  // Survey_ ID'li yiyecek adlarında geçmemesi gereken İngilizce kelimeler
+  static const Set<String> _englishDescriptorWords = {
+    'restructured',
+    'multigrain',
+    'enriched',
+    'fortified',
+    'flavored',
+    'flavoured',
+    'textured',
+    'extruded',
+    'reconstituted',
+    'hydrolyzed',
+    'dehydrated',
+    'powdered',
+    'modified',
+    'composite',
+    'substitute',
+    'imitation',
+    'pasteurized',
+    'homogenized',
+    'broiled',
+    'scrambled',
+    'nonfat',
+    'lowfat',
+    'reduced',
+    'commercial',
+    'processed',
+    'prepared',
+    'homestyle',
+    'assorted',
+    'variety',
+    'seasonal',
+    'gourmet',
+    'artisan',
+    'organic',
+    'natural',
+    'artificial',
+    'frozen',
+    'canned',
+    'dried',
+    'instant',
+    'precooked',
+    'boneless',
+    'skinless',
+    'trimmed',
+    'untrimmed',
+    'breaded',
+    'battered',
+    'coated',
+    'marinated',
+    'smoked',
+    'cured',
+    'salted',
+    'unsalted',
+    'sweetened',
+    'unsweetened',
+    'whole',
+    'ground',
+    'minced',
+    'chopped',
+    'sliced',
+    'diced',
+    'shredded',
+    'grated',
+    'pureed',
+    'mashed',
+    'creamed',
+    'blended',
+    'mixed',
+    'combined',
+    'strained',
+    'filtered',
+    'clarified',
+    'skimmed',
+    'chunk',
+    'chunks',
+    'pieces',
+    'strips',
+    'bits',
+    'style',
+    'type',
+    'kind',
+    'brand',
+    'grade',
+    'extra',
+    'premium',
+    'select',
+    'choice',
+    'prime',
+    'regular',
+    'standard',
+    'generic',
+    'store',
+    'with',
+    'without',
+    'added',
+    'containing',
+    'cooked',
+    'uncooked',
+    'baked',
+    'fried',
+    'grilled',
+    'roasted',
+    'boiled',
+    'steamed',
+    'sauteed',
+    'poached',
+    'stewed',
+    'simmered',
+    'braised',
+    'blanched',
+  };
+
+  /// Survey_ yiyecek adındaki kelimeleri tek tek kontrol eder;
+  /// 4+ harfli, tümü ASCII (Türkçe karakter içermeyen) ve İngilizce
+  /// tanımlayıcı listesinde olan herhangi bir kelime varsa true döner.
+  static bool _surveyNameContainsEnglish(String rawName) {
+    // normalize() Türkçe karakterleri ASCII'ye çevirir, bu yüzden
+    // ham isme bakıyoruz — İngilizce sözcükler büyük harf başlar veya
+    // tamamen ASCII'dir, Türkçe'de ise en az bir Türkçe harf bulunur.
+    final words = rawName.split(RegExp(r'[\s,/()-]+'));
+    for (final word in words) {
+      if (word.length < 4) continue;
+      // Türkçe özel karakter varsa (ğ,ş,ı,ö,ü,ç,İ,Ğ,Ş,Ö,Ü,Ç) → Türkçe kelime
+      final hasTurkishChar = word.contains(RegExp(r'[ğşıöüçĞŞİÖÜÇ]'));
+      if (hasTurkishChar) continue;
+      // Tamamen ASCII ve 4+ harf: İngilizce descriptor listesinde mi?
+      final wordLower = word.toLowerCase();
+      if (_englishDescriptorWords.contains(wordLower)) return true;
+    }
+    return false;
+  }
 
   static bool _hasRelevantTurkishSignal(FoodItem food) {
     final fields = <String>[
@@ -281,13 +582,32 @@ class LocalFoodRepository implements FoodRepository {
   }
 
   static bool _containsForeignNoise(FoodItem food) {
-    final haystack = normalize([
-      food.name,
-      food.category,
-      ...food.aliases,
-      ...food.tags,
-    ].join(' '));
+    final haystack = normalize(
+      [food.name, food.category, ...food.aliases, ...food.tags].join(' '),
+    );
     for (final token in _foreignNoiseTokens) {
+      if (haystack.contains(token)) return true;
+    }
+    return false;
+  }
+
+  static const Set<String> _excludedAnimalTokens = {
+    'domuz',
+    'pork',
+    'pig',
+    'hog',
+    'boar',
+    'bacon',
+    'ham',
+    'prosciutto',
+    'pancetta',
+  };
+
+  static bool _containsExcludedAnimal(FoodItem food) {
+    final haystack = normalize(
+      [food.name, food.category, ...food.aliases, ...food.tags].join(' '),
+    );
+    for (final token in _excludedAnimalTokens) {
       if (haystack.contains(token)) return true;
     }
     return false;
@@ -311,23 +631,45 @@ class LocalFoodRepository implements FoodRepository {
   }
 
   static bool _isUserFacingFood(FoodItem food) {
+    if (food.id.startsWith('recipe_')) {
+      return true;
+    }
+    if (_containsExcludedAnimal(food)) {
+      return false;
+    }
     if (food.id.startsWith('tr_') || food.id.startsWith('trverified_')) {
       return true;
     }
     if (food.tags.any((tag) => normalize(tag) == 'trcore')) {
       return true;
     }
-    final surveyLooksOverdescribed =
-        food.id.startsWith('survey_') &&
-        (food.name.contains(' veya ') ||
-            food.name.contains(' ile ') ||
-            ((food.name.length > 48 || ','.allMatches(food.name).length >= 2) &&
-                (food.name.contains(' ve/') || food.name.contains(' , '))));
-    if (surveyLooksOverdescribed) {
-      return false;
+    // Uzun / doğal olmayan USDA çevirisi görünen isimleri filtrele
+    if (food.id.startsWith('survey_')) {
+      final name = food.name;
+      final nameLower = name.toLowerCase();
+      final commaCount = ','.allMatches(name).length;
+      // "Üzerinde" kalıbı → "pasted on bread" USDA tarifi
+      if (nameLower.contains('üzerinde')) return false;
+      // 1+ virgül + 45 karakter üzeri → "Döner, Fırında, Üzerinde..." tarzı
+      if (commaCount >= 1 && name.length > 45) return false;
+      // Tek başına anlamsız sandviç kombinasyonları
+      if (name.contains('Sosisli Sandviç') || name.contains('Sandviç Ekmeği')) {
+        return false;
+      }
+      // Çok uzun tek isim (65+ karakter)
+      if (name.length > 65) return false;
+      // Klasik overdescription
+      if (name.contains(' veya ') ||
+          name.contains(' ile ') ||
+          name.contains(' ve/') ||
+          name.contains(' , ')) {
+        return false;
+      }
     }
     if (food.id.startsWith('survey_')) {
       if (_containsForeignNoise(food)) return false;
+      // İsimde İngilizce USDA teknik kelimesi varsa → çevrilmemiş / makine çevirisi
+      if (_surveyNameContainsEnglish(food.name)) return false;
       if (!_hasRelevantTurkishSignal(food) && !_isSimpleEverydayFood(food)) {
         return false;
       }
@@ -337,7 +679,8 @@ class LocalFoodRepository implements FoodRepository {
     }
 
     final aliasLooksClean = food.aliases.any(
-      (alias) => !_looksMachineTranslated(alias) && normalize(alias).length >= 4,
+      (alias) =>
+          !_looksMachineTranslated(alias) && normalize(alias).length >= 4,
     );
     return aliasLooksClean;
   }
@@ -441,7 +784,7 @@ class LocalFoodRepository implements FoodRepository {
         .where((t) => t.isNotEmpty)
         .toList();
 
-    final searchTerms = {normalizedQuery};
+    final searchTerms = _queryVariants(normalizedQuery);
     _synonyms?.forEach((key, values) {
       if (normalize(key).contains(normalizedQuery)) {
         searchTerms.addAll(values.map(normalize));
@@ -468,9 +811,12 @@ class LocalFoodRepository implements FoodRepository {
         ...indexed.aliases,
         ...indexed.tags,
       ];
-      final matchedTokenCount = queryTokens.where(
-        (token) => searchableFields.any((field) => _containsToken(field, token)),
-      ).length;
+      final matchedTokenCount = queryTokens
+          .where(
+            (token) =>
+                searchableFields.any((field) => _containsToken(field, token)),
+          )
+          .length;
       final exactPhraseMatch = searchableFields.any(
         (field) => field == normalizedQuery || field.contains(normalizedQuery),
       );
@@ -516,7 +862,7 @@ class LocalFoodRepository implements FoodRepository {
           currentAliasScore = 25;
         }
         if (currentAliasScore > maxAliasScore) {
-            maxAliasScore = currentAliasScore;
+          maxAliasScore = currentAliasScore;
         }
       }
       score += maxAliasScore;
@@ -532,7 +878,7 @@ class LocalFoodRepository implements FoodRepository {
           currentTagScore = 15;
         }
         if (currentTagScore > maxTagScore) {
-            maxTagScore = currentTagScore;
+          maxTagScore = currentTagScore;
         }
       }
       score += maxTagScore;
@@ -658,7 +1004,9 @@ class LocalFoodRepository implements FoodRepository {
           .firstOrNull;
       if (customMatch != null) return customMatch;
 
-      final localMatch = _assetCache?.where((f) => f.barcode == barcode).firstOrNull;
+      final localMatch = _assetCache
+          ?.where((f) => f.barcode == barcode)
+          .firstOrNull;
       if (localMatch != null) return localMatch;
 
       // Eğer lokalde bulamadıysa OpenFoodFacts API üzerinden sorgula

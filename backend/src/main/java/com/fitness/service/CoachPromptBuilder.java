@@ -27,57 +27,34 @@ public class CoachPromptBuilder {
 
         String goal = normalizeGoal(request.goal);
         String personalityBlock = buildPersonalityBlock(request.personality, request.personalityInstruction);
-        CoachPromptContext safeContext = context == null ? CoachPromptContext.empty() : context;
-
-        String knowledgeBase = """
-            [SCIENTIFIC PROTOCOLS]:
-            1. Basal Metabolic Rate (BMR): Calculated via Mifflin-St Jeor.
-            2. Caloric Balance: Weight loss requires ~500kcal deficit/day (3500kcal/week for ~0.5kg loss).
-            3. Protein Synthesis: Aim for 1.6g-2.2g of protein per kg of body weight for muscle growth.
-            4. Water: 2.5L is baseline, add 500ml per hour of intense exercise.
-            5. Sleep: 7-9 hours optimal for neural recovery and fat oxidation.
-            
-            [REASONING PROCESS]:
-            - Step 1: Analyze today's data, recovery state, and progress signals vs the user's long-term goal.
-            - Step 2: Compare today's metrics with the last 7-day averages to identify anomalies and trends.
-            - Step 3: Cross-check calorie intake, current weight, target weight, and BMI before recommending deficits or surplus.
-            - Step 4: If recovery is poor, lower training intensity and prioritize recovery behaviors.
-            - Step 5: Validate advice against Scientific Protocols and user profile data.
-            - Step 6: Formulate a direct, encouraging, or scientific response based on personality.
-            """;
+        String questionStrategy = buildQuestionStrategy(request.question);
+        String profileSnapshot = context != null ? context.profileSnapshot : CoachPromptContext.empty().profileSnapshot;
+        String recoverySnapshot = context != null ? context.recoverySnapshot : CoachPromptContext.empty().recoverySnapshot;
+        String progressSnapshot = context != null ? context.progressSnapshot : CoachPromptContext.empty().progressSnapshot;
+        String coachingSignals = context != null ? context.coachingSignals : CoachPromptContext.empty().coachingSignals;
+        String insightBlock = buildInsightBlock(insights);
+        String mealBlock = buildMealBlock(s);
+        String workoutHighlightBlock = buildWorkoutHighlightBlock(s);
 
         return """
-                %s
+                You are a high-quality fitness coach assistant. Give accurate, context-aware, practical answers.
+                Answer ONLY what the user asks, but use the available user data to make the answer feel personalized and intelligent.
 
-                ROLE: You are an elite Fitness Coach.
                 %s
-                USER GOAL: %s
+                RESPONSE STRATEGY:
+                - First identify the user's real intent: direct answer, analysis, plan, comparison, or explanation.
+                - Prefer answering with the user's own data instead of generic advice.
+                - If data is missing, say that briefly instead of inventing details.
+                - If recovery signals are poor, prioritize recovery over intensity.
+                - If progress data exists, use it to explain trend or direction when relevant.
+                - Never contradict the deterministic coaching signals.
+                - Avoid repeating generic advice such as "drink water" unless it is directly relevant.
+
+                QUESTION-SPECIFIC GUIDANCE:
+                %s
 
                 USER PROFILE:
                 %s
-                - Age: %s | Height: %s cm | Gender: %s
-                - Activity Level: %s
-                - TDEE (Total Daily Energy Expenditure): %s kcal
-
-                TODAY'S METRICS:
-                - Steps: %d
-                - Calories: %d / Target: %s kcal
-                - Macros: Protein %sg | Carbs %sg | Fat %sg
-                - Meals today: %s
-                - Water: %.1f L
-                - Sleep: %.1f h
-                - Workouts: %d (Highlights: %s)
-                - Workout Minutes: %d
-                - Current Weight: %s kg | Target: %s kg | BMI: %s
-
-                WEIGHT TREND:
-                - Weekly Change: %s kg
-                - Logging Streak: %s days
-
-                HISTORICAL TRENDS (Last 7 Days Avg):
-                - Avg Steps: %s
-                - Avg Calories: %s
-                - Avg Water: %s
 
                 RECOVERY SNAPSHOT:
                 %s
@@ -85,101 +62,189 @@ public class CoachPromptBuilder {
                 PROGRESS SNAPSHOT:
                 %s
 
-                LONG-TERM MEMORY (Past Insights):
-                %s
-
                 DETERMINISTIC COACHING SIGNALS:
                 %s
 
-                USER INPUT: %s
+                LONG-TERM MEMORY INSIGHTS:
+                %s
 
-                IF AN IMAGE IS PROVIDED:
-                Analyze food portions, estimate macronutrients (Protein/Carbs/Fat) AND calories.
-                Suggest if this fits their current daily budget.
+                USER CONTEXT (use only what's relevant to the question):
+                - Goal: %s | TDEE: %s kcal | Weight: %s kg → Target: %s kg
+                - Today: %d kcal eaten / Target: %s kcal | Protein: %sg | Carbs: %sg | Fat: %sg
+                - Water: %.1f L | Workouts: %d (%s min)
+                - Age: %s | Height: %s cm | Gender: %s | Activity: %s
+                - Steps: %d | Sleep: %s h | BMI: %s | 7d avg calories: %s | 7d avg steps: %s
+                - Weekly weight change: %s kg | Weight logging streak: %s days
+                - Current Weight: %s kg | Target Weight: %s kg | Workout Minutes: %s | Target: %s kcal
 
-                RESPONSE REQUIREMENTS:
-                Return only valid JSON with this exact shape:
+                TODAY'S MEALS:
+                %s
+
+                TODAY'S WORKOUT HIGHLIGHTS:
+                %s
+
+                %sCURRENT QUESTION: %s
+
+                IF AN IMAGE IS PROVIDED: identify the food, estimate calories and macros briefly.
+
+                Return only valid JSON:
                 {
-                  "todayFocus": "string (Start with a scientific insight or a personalized observation based on trends)",
-                  "actionItems": ["string (3-5 specific, micro-tasks)"],
-                  "nutritionNote": "string",
-                  "actions": [{"label": "button label", "type": "START_WORKOUT|ADD_WATER|TRACK_WEIGHT", "data": "optional"}],
-                  "isAchievement": boolean
+                  "todayFocus": "<formatted answer — see format rules below>",
+                  "actionItems": [],
+                  "nutritionNote": "",
+                  "actions": [],
+                  "isAchievement": false
                 }
 
-                Rules:
-                - Be specific. Don't say "eat less", say "Your calorie avg is high, try to stay under 2000 today".
-                - Always use TDEE and macro data when available to give precise targets, not generic advice.
-                - Reference the user's actual meals when giving nutrition feedback.
-                - If weight streak >= 3, acknowledge the consistency. If 0, encourage daily weigh-ins.
-                - If weekly weight change is positive during a cut, reduce calories by ~200kcal. If negative during a bulk, increase by ~200kcal.
-                - If today's water < 7-day avg, emphasize rehydration.
-                - If sleep is below 6 hours, prioritize recovery, walking, mobility, and earlier sleep instead of hard training.
-                - If target calories or body-weight goal are available, align recommendations to that budget and target direction.
-                - If BMI is unusually high or low, keep advice conservative and sustainable rather than extreme.
-                - Mention the user's progress trend when weight or measurements are available.
-                - Keep action items feasible within the next 24 hours.
-                - Use only these action types when relevant: START_WORKOUT, ADD_WATER, TRACK_WEIGHT.
+                FORMAT RULES for todayFocus:
+                - Write in the user's language (Turkish if question is in Turkish).
+                - Use a relevant emoji at the very start of the message.
+                - Bold (**...**) every key number or metric (e.g. **2539 kcal**, **95g protein**, **70 kg**).
+                - If the answer has 2+ distinct points, put each on its own line with a bullet emoji (▪ or relevant emoji per point).
+                - Keep total length under 3 lines. No long paragraphs.
+                - Do NOT give unsolicited advice. Answer only what was asked.
+
+                EXAMPLE FORMATS:
+                Simple: "💧 Bugün **2.1 L** su içtin, hedefe **0.4 L** kaldı."
+                Multi-point: "💪 Hedefin **2539 kcal** — bugün hiç kayıt yok.\\n▪ Akşam öğünü için **~800 kcal** ayır.\\n▪ Protein hedefin: **95–130g**."
+                Achievement: "🏆 Harika! Bu hafta **5 antrenman** tamamladın."
+
+                - actionItems, nutritionNote, actions: leave empty unless the user explicitly asked for them.
+
+                NUTRITION UPDATE ACTIONS:
+                If the user asks to change their nutrition goal or calorie target, add ONE action of type UPDATE_NUTRITION.
+                The data field must be a JSON string with any of these optional keys:
+                  "goal": one of [bulk, cut, maintain, strength]
+                  "customKcalTarget": number (daily kcal, null to reset to auto)
+                Example: {"label": "Hedefi güncelle", "type": "UPDATE_NUTRITION", "data": "{\"goal\":\"cut\",\"customKcalTarget\":2000}"}
+                Only include keys that the user explicitly requested to change.
                 """.formatted(
-                        knowledgeBase,
                         personalityBlock,
+                        questionStrategy,
+                        escape(profileSnapshot),
+                        escape(recoverySnapshot),
+                        escape(progressSnapshot),
+                        escape(coachingSignals),
+                        escape(insightBlock),
                         goal,
-                        safeContext.profileSnapshot,
-                        nullableInt(s.userAge),
-                        nullableDouble(s.userHeightCm),
-                        s.userGender != null ? s.userGender : "unknown",
-                        s.activityLevel != null ? s.activityLevel : "unknown",
                         nullableInt(s.tdee),
-                        safeInt(s.steps),
+                        nullableDouble(s.currentWeightKg),
+                        nullableDouble(s.targetWeightKg),
                         safeInt(s.calories),
                         nullableInt(s.targetCalories),
                         nullableInt(s.proteinGrams),
                         nullableInt(s.carbsGrams),
                         nullableInt(s.fatGrams),
-                        safeHighlights(s.mealNames),
                         safeDouble(s.waterLiters),
-                        safeDouble(s.sleepHours),
                         safeInt(s.workouts),
-                        safeHighlights(s.workoutHighlights),
                         safeInt(s.workoutMinutes),
+                        nullableInt(s.userAge),
+                        nullableDouble(s.userHeightCm),
+                        s.userGender != null ? s.userGender : "unknown",
+                        s.activityLevel != null ? s.activityLevel : "unknown",
+                        safeInt(s.steps),
+                        nullableDouble(s.sleepHours),
+                        nullableDouble(s.bmi),
+                        nullableInt(s.avgCaloriesLast7Days),
+                        nullableInt(s.avgStepsLast7Days),
+                        nullableDouble(s.weeklyWeightChangeKg),
+                        nullableInt(s.weightStreak),
                         nullableDouble(s.currentWeightKg),
                         nullableDouble(s.targetWeightKg),
-                        nullableDouble(s.bmi),
-                        s.weeklyWeightChangeKg != null ? String.format(java.util.Locale.US, "%+.1f", s.weeklyWeightChangeKg) : "no data",
-                        s.weightStreak != null ? s.weightStreak : "no data",
-                        s.avgStepsLast7Days != null ? s.avgStepsLast7Days : "no data",
-                        s.avgCaloriesLast7Days != null ? s.avgCaloriesLast7Days : "no data",
-                        s.avgWaterLast7Days != null ? s.avgWaterLast7Days : "no data",
-                        safeContext.recoverySnapshot,
-                        safeContext.progressSnapshot,
-                        formatInsights(insights),
-                        safeContext.coachingSignals,
-                        request.question.trim());
+                        nullableInt(s.workoutMinutes),
+                        nullableInt(s.targetCalories),
+                        escape(mealBlock),
+                        escape(workoutHighlightBlock),
+                        escape(buildConversationBlock(request.conversationHistory)),
+                        escape(request.question.trim()));
+    }
+
+    /** Escapes '%' so user content doesn't break String.formatted() */
+    private String escape(String s) {
+        return s == null ? "" : s.replace("%", "%%");
+    }
+
+    private String buildConversationBlock(java.util.List<AiCoachRequest.ConversationTurn> history) {
+        if (history == null || history.isEmpty()) return "";
+        var sb = new StringBuilder("CONVERSATION SO FAR:\n");
+        int start = Math.max(0, history.size() - 8);
+        for (int i = start; i < history.size(); i++) {
+            var turn = history.get(i);
+            if (turn.role != null && turn.content != null && !turn.content.isBlank()) {
+                sb.append(turn.role.equals("user") ? "User: " : "Coach: ")
+                  .append(turn.content.trim())
+                  .append("\n");
+            }
+        }
+        sb.append("\n");
+        return sb.toString();
+    }
+
+    private String buildQuestionStrategy(String question) {
+        String normalized = question == null ? "" : question.trim().toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("neden") || normalized.contains("why")) {
+            return "- Explain the cause briefly, then tie it to the user's current metrics.";
+        }
+        if (normalized.contains("karşılaştır") || normalized.contains("compare") || normalized.contains("fark")) {
+            return "- Compare the requested items directly and highlight the most important difference first.";
+        }
+        if (normalized.contains("plan") || normalized.contains("ne yap") || normalized.contains("odaklan")) {
+            return "- Give a concrete next-step plan with the minimum number of actions needed.";
+        }
+        if (normalized.contains("kalori") || normalized.contains("makro") || normalized.contains("protein")) {
+            return "- Use calories, macros, TDEE, and target gap to answer numerically where possible.";
+        }
+        if (normalized.contains("antrenman") || normalized.contains("workout") || normalized.contains("egzersiz")) {
+            return "- Use recovery and recent training load to calibrate intensity and exercise guidance.";
+        }
+        return "- Answer directly, using the most relevant numbers and trends from the provided context.";
     }
 
     private String buildPersonalityBlock(String personality, String personalityInstruction) {
         if (personalityInstruction != null && !personalityInstruction.isBlank()) {
-            return "COACH TONE (strictly follow this style): " + personalityInstruction.trim();
+            return "Tone: " + personalityInstruction.trim();
         }
         if (personality != null && !personality.isBlank()) {
-            String normalized = personality.trim().toLowerCase();
-            return switch (normalized) {
-                case "motivator" -> "COACH TONE: Be direct, disciplined, and demanding. No excuses. Short, punchy answers.";
-                case "scientist" -> "COACH TONE: Be analytical and evidence-based. Reference studies and physiology. Technical but clear.";
-                case "supportive" -> "COACH TONE: Be warm, encouraging, and supportive. Celebrate small wins. Gentle language.";
-                default -> "COACH TONE: Be encouraging and clear.";
+            return switch (personality.trim().toLowerCase()) {
+                case "motivator" -> "Tone: direct and motivating.";
+                case "scientist" -> "Tone: analytical, use numbers.";
+                case "supportive" -> "Tone: warm and encouraging.";
+                default -> "Tone: clear and friendly.";
             };
         }
-        return "COACH TONE: Be encouraging and clear.";
+        return "Tone: clear and friendly.";
     }
 
-    private String formatInsights(java.util.List<com.fitness.entity.AiInsight> insights) {
+    private String buildInsightBlock(java.util.List<com.fitness.entity.AiInsight> insights) {
         if (insights == null || insights.isEmpty()) {
-            return "No prior insights recorded.";
+            return "No saved insights.";
         }
         return insights.stream()
-                .map(i -> "[" + i.type + " at " + i.createdAt + "]: " + i.summary)
+                .filter(insight -> insight != null && insight.summary != null && !insight.summary.isBlank())
+                .limit(3)
+                .map(insight -> {
+                    String type = insight.type == null || insight.type.isBlank() ? "INSIGHT" : insight.type.trim();
+                    return "- " + type + ": " + insight.summary.trim();
+                })
                 .collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    private String buildMealBlock(AiCoachRequest.DailySummaryDto summary) {
+        if (summary == null || summary.mealNames == null || summary.mealNames.isEmpty()) {
+            return "No meals logged today.";
+        }
+        return summary.mealNames.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .map(String::trim)
+                .limit(6)
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    private String buildWorkoutHighlightBlock(AiCoachRequest.DailySummaryDto summary) {
+        if (summary == null) {
+            return "No workout highlights available.";
+        }
+        return safeHighlights(summary.workoutHighlights);
     }
 
     private String normalizeGoal(String goal) {

@@ -332,13 +332,13 @@ public class AuthService {
         token.persist();
 
         // Email Gönder
-        String htmlBody = "<h2>Fitness Tracker</h2>"
+        String htmlBody = "<h2>FitMentor</h2>"
                 + "<p>Şifre sıfırlama talebinde bulundunuz.</p>"
                 + "<p>Doğrulama kodunuz: <b style='font-size:24px; color:#CC7A4A;'>" + code + "</b></p>"
                 + "<p>Kodunuz 15 dakika boyunca geçerlidir.</p>";
 
         try {
-            mailer.send(Mail.withHtml(user.email, "Şifre Sıfırlama Kodu", htmlBody));
+            mailer.send(Mail.withHtml(user.email, "FitMentor Şifre Sıfırlama Kodu", htmlBody));
         } catch (Exception e) {
             System.err.println("=== MAIL GONDERIM HATASI ===");
             e.printStackTrace();

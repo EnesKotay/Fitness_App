@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/services/ai_service.dart';
+import '../../../core/api/api_client.dart';
+import '../../../core/constants/api_constants.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/premium_screen.dart';
-import '../presentation/state/diet_provider.dart';
 
 class PremiumFeatureGate {
   const PremiumFeatureGate._();
 
+  /// Tek yetkili premium kontrol noktası.
+  ///
+  /// Önce AuthProvider'daki önbelleklenmiş tier'e bakar (hızlı, ağ yok).
+  /// Bulunamazsa backend'e `/api/user/premium-status` isteği atar,
+  /// gelen sonucu AuthProvider'a yazar ve bir sonraki çağrıda ağ gitmez.
   static Future<bool> ensureAccess(
     BuildContext context, {
     required String featureName,
   }) async {
     final auth = context.read<AuthProvider>();
-    final tier = auth.user?.premiumTier?.toLowerCase().trim();
-    if (tier == 'premium') {
+
+    // 1. Hızlı yol: önbelleklenmiş tier
+    if (auth.user?.premiumTier?.toLowerCase().trim() == 'premium') {
       return true;
     }
 
-    final aiService = context.read<DietProvider>().aiService;
-    final isPremium = await _checkPremium(aiService);
-    if (isPremium) {
-      auth.setPremiumActive(true);
-      return true;
-    }
+    // 2. Yavaş yol: backend'e sor, AuthProvider'ı güncelle
+    final isPremium = await _fetchAndSyncPremium(auth);
+    if (isPremium) return true;
 
     if (!context.mounted) return false;
 
@@ -145,10 +148,22 @@ class PremiumFeatureGate {
     return false;
   }
 
-  static Future<bool> _checkPremium(AIService? aiService) async {
-    if (aiService == null) return false;
+  /// Backend'den premium durumunu çekip AuthProvider'a yazar.
+  static Future<bool> _fetchAndSyncPremium(AuthProvider auth) async {
     try {
-      return await aiService.checkPremiumStatus() ?? false;
+      final response = await ApiClient().get(ApiConstants.premiumStatus);
+      final data = response.data;
+      if (data is! Map) return false;
+      final isActive = data['isActive'] == true;
+      auth.setPremiumActive(
+        isActive,
+        premiumPlan: data['planId']?.toString(),
+        premiumExpiresAt: data['expiresAt'] != null
+            ? DateTime.tryParse(data['expiresAt'].toString())
+            : null,
+        premiumCancelAtPeriodEnd: data['cancelAtPeriodEnd'] == true,
+      );
+      return isActive;
     } catch (_) {
       return false;
     }

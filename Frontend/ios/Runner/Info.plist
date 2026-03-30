@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Uygulama deneyimini kişiselleştirmek ve analitik amaçlar için kullanılır. Kişisel verileriniz üçüncü taraflarla paylaşılmaz.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Barkod ve besin etiketi taraması için kamera izni gereklidir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

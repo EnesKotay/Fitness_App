@@ -1,10 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../controllers/ai_coach_controller.dart';
 import '../models/ai_coach_models.dart';
@@ -111,45 +112,83 @@ class _ChatBubbleState extends State<ChatBubble> {
                     : null,
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 560),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 13,
-                  ),
                   decoration: BoxDecoration(
-                    color: isError
-                        ? const Color(0xFF2A1318)
-                        : const Color(0xFF101826),
+                    gradient: isError
+                        ? null
+                        : const LinearGradient(
+                            colors: [Color(0xFF141E30), Color(0xFF0F1822)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: isError ? const Color(0xFF2A1318) : null,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(4),
-                      topRight: Radius.circular(22),
-                      bottomLeft: Radius.circular(22),
-                      bottomRight: Radius.circular(22),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
                     border: Border.all(
                       color: isError
                           ? const Color(0xFFFF6B6B).withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.07),
+                          : const Color(0xFFEBC374).withValues(alpha: 0.12),
                     ),
                     boxShadow: isError
                         ? []
                         : [
                             BoxShadow(
-                              color: const Color(0xFFEBC374).withValues(alpha: 0.05),
-                              blurRadius: 20,
-                              offset: const Offset(-3, 2),
+                              color: const Color(0xFFEBC374).withValues(alpha: 0.07),
+                              blurRadius: 24,
+                              spreadRadius: -4,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (widget.message.imagePath != null) _buildSentImage(context),
-                      !isError
-                          ? _buildMarkdownContent()
-                          : _buildPlainContent(isError),
-                      if (!isError && widget.message.structuredResponse != null)
-                        _buildRichContent(context, widget.message.structuredResponse!),
-                    ],
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!isError)
+                          Container(
+                            height: 2,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFEBC374), Color(0xFF73D4FF)],
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 13),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (widget.message.imagePath != null) _buildSentImage(context),
+                              !isError
+                                  ? _buildMarkdownContent()
+                                  : _buildPlainContent(isError),
+                              if (!isError &&
+                                  widget.message.structuredResponse?.actions != null &&
+                                  widget.message.structuredResponse!.actions!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: widget.message.structuredResponse!.actions!
+                                        .map((a) => _buildActionButton(context, a))
+                                        .toList(),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -322,48 +361,51 @@ class _ChatBubbleState extends State<ChatBubble> {
   }
 
   Widget _buildMarkdownContent() {
+    // \n → markdown hard line break (two spaces + newline)
+    final data = widget.message.content.replaceAll(r'\n', '  \n');
     return MarkdownBody(
-      data: widget.message.content,
+      data: data,
       shrinkWrap: true,
       styleSheet: MarkdownStyleSheet(
         p: GoogleFonts.dmSans(
-          color: Colors.white.withValues(alpha: 0.9),
-          fontSize: 14,
-          height: 1.6,
+          color: Colors.white.withValues(alpha: 0.88),
+          fontSize: 15,
+          height: 1.7,
+          fontWeight: FontWeight.w400,
         ),
         strong: GoogleFonts.dmSans(
-          color: Colors.white,
+          color: const Color(0xFFEBC374),
           fontWeight: FontWeight.w700,
-          fontSize: 14,
+          fontSize: 15,
         ),
         em: GoogleFonts.dmSans(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: Colors.white.withValues(alpha: 0.75),
           fontStyle: FontStyle.italic,
-          fontSize: 14,
+          fontSize: 15,
         ),
         listBullet: GoogleFonts.dmSans(
           color: const Color(0xFFEBC374),
-          fontSize: 14,
+          fontSize: 15,
         ),
         blockquote: GoogleFonts.dmSans(
-          color: Colors.white.withValues(alpha: 0.7),
+          color: Colors.white.withValues(alpha: 0.6),
           fontSize: 14,
           fontStyle: FontStyle.italic,
         ),
         h1: GoogleFonts.dmSans(
-          color: const Color(0xFFEBC374),
-          fontSize: 15.5,
-          fontWeight: FontWeight.w800,
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
         ),
         h2: GoogleFonts.dmSans(
-          color: const Color(0xFFEBC374),
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          fontSize: 15.5,
+          fontWeight: FontWeight.w600,
         ),
         h3: GoogleFonts.dmSans(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
+          color: Colors.white.withValues(alpha: 0.9),
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
         ),
         code: GoogleFonts.dmMono(
           color: const Color(0xFFEBC374),
@@ -374,7 +416,8 @@ class _ChatBubbleState extends State<ChatBubble> {
           color: Colors.black26,
           borderRadius: BorderRadius.circular(8),
         ),
-        blockSpacing: 10,
+        blockSpacing: 6,
+        pPadding: EdgeInsets.zero,
       ),
     );
   }
@@ -409,245 +452,7 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-  Widget _buildRichContent(BuildContext context, CoachResponse response) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (response.focus.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          _buildStructuredCard(
-            icon: Icons.track_changes_rounded,
-            title: 'BUGÜNÜN ODAĞI',
-            color: const Color(0xFFEBC374),
-            child: Text(
-              response.focus,
-              style: GoogleFonts.dmSans(
-                color: Colors.white.withValues(alpha: 0.92),
-                fontSize: 13.5,
-                height: 1.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-        if (response.todoItems.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _buildStructuredCard(
-            icon: Icons.checklist_rounded,
-            title: 'YAPILACAKLAR',
-            color: const Color(0xFF34D399),
-            child: Column(
-              children: response.todoItems
-                  .take(4)
-                  .toList()
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(top: 3),
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF34D399).withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF34D399).withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${entry.key + 1}',
-                                style: GoogleFonts.dmMono(
-                                  color: const Color(0xFF34D399),
-                                  fontSize: 8.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Text(
-                              entry.value,
-                              style: GoogleFonts.dmSans(
-                                color: Colors.white.withValues(alpha: 0.88),
-                                fontSize: 13,
-                                height: 1.45,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
-        if (response.nutritionNote.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _buildStructuredCard(
-            icon: Icons.restaurant_rounded,
-            title: 'BESLENME NOTU',
-            color: const Color(0xFF73D4FF),
-            child: Text(
-              response.nutritionNote,
-              style: GoogleFonts.dmSans(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13.5,
-                height: 1.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-        if (response.media != null && response.media!.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          ...response.media!.map((m) => _buildMediaCard(m)),
-        ],
-        if (response.actions != null && response.actions!.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: response.actions!
-                .map((a) => _buildActionButton(context, a))
-                .toList(),
-          ),
-        ],
-      ],
-    );
-  }
 
-  Widget _buildStructuredCard({
-    required IconData icon,
-    required String title,
-    required Color color,
-    required Widget child,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: 0.1),
-            color.withValues(alpha: 0.04),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(icon, size: 12, color: color),
-              ),
-              const SizedBox(width: 7),
-              Text(
-                title,
-                style: GoogleFonts.dmMono(
-                  color: color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMediaCard(CoachMedia media) {
-    if (media.type == 'IMAGE') {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: CachedNetworkImage(
-            imageUrl: media.url,
-            placeholder: (context, url) => Container(
-              height: 150,
-              color: Colors.white.withValues(alpha: 0.05),
-              child: const Center(
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-            errorWidget: (context, url, error) => const SizedBox.shrink(),
-          ),
-        ),
-      );
-    }
-    if (media.type == 'VIDEO_LINK') {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEBC374).withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.play_circle_fill_rounded,
-                color: Color(0xFFEBC374),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                media.title ?? 'Eğitici İçerik',
-                style: GoogleFonts.dmSans(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 13,
-              color: Colors.white.withValues(alpha: 0.3),
-            ),
-          ],
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
 
   Widget _buildActionButton(BuildContext context, CoachAction action) {
     final (color, bgColor) = _getActionColors(action.type);
@@ -744,6 +549,67 @@ class _ChatBubbleState extends State<ChatBubble> {
       case 'OPEN_TRACKING':
         Navigator.pushNamed(context, '/tracking');
         break;
+      case 'UPDATE_NUTRITION':
+        _handleNutritionUpdate(context, action.data);
+        break;
+    }
+  }
+
+  Future<void> _handleNutritionUpdate(BuildContext context, String? data) async {
+    if (data == null || data.isEmpty) return;
+
+    final diet = context.read<DietProvider>();
+    final profile = diet.profile;
+    if (profile == null) return;
+
+    try {
+      final Map<String, dynamic> updates = jsonDecode(data);
+
+      Goal? newGoal;
+      final goalStr = updates['goal']?.toString();
+      if (goalStr != null) {
+        newGoal = Goal.values.firstWhere(
+          (g) => g.name == goalStr,
+          orElse: () => profile.goal,
+        );
+      }
+
+      double? newKcal;
+      if (updates.containsKey('customKcalTarget')) {
+        final raw = updates['customKcalTarget'];
+        newKcal = raw == null ? null : (raw as num).toDouble();
+      }
+
+      final updated = UserProfile(
+        name: profile.name,
+        age: profile.age,
+        weight: profile.weight,
+        height: profile.height,
+        gender: profile.gender,
+        activityLevel: profile.activityLevel,
+        goal: newGoal ?? profile.goal,
+        customKcalTarget: updates.containsKey('customKcalTarget') ? newKcal : profile.customKcalTarget,
+        targetWeight: profile.targetWeight,
+      );
+
+      await diet.saveUserProfile(updated);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Beslenme planın güncellendi.',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF1A2035),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('UPDATE_NUTRITION parse hatası: $e');
     }
   }
 

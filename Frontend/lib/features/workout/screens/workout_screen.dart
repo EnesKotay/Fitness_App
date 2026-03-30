@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/models/exercise.dart';
 import '../../../core/models/workout.dart';
 import '../../../core/models/workout_models.dart';
@@ -13,6 +14,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 import '../../../core/constants/premium_features.dart';
 import '../../nutrition/presentation/widgets/date_strip.dart';
+import '../services/recovery_engine.dart';
 import 'exercise_guide_screen.dart';
 import 'add_workout_page.dart';
 
@@ -39,24 +41,28 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   bool _loadingExercises = false;
   String? _errorMessage;
   late TabController _tabController;
-  Set<String> _favoriteExercises = {};
+  List<FavoriteExerciseEntry> _favoriteExercises = const [];
   bool _sortAZ = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _favoriteExercises = StorageHelper.getFavoriteExerciseNames().toSet();
+    _favoriteExercises = StorageHelper.getFavoriteExercises();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadMuscleGroups();
       _loadWorkoutsIfNeeded();
     });
   }
 
-  Future<void> _toggleFavoriteExercise(String name) async {
-    await StorageHelper.toggleFavoriteExercise(name);
+  Future<void> _toggleFavoriteExercise(Exercise exercise) async {
+    await StorageHelper.toggleFavoriteExercise(
+      exercise.name,
+      muscleGroup: _normalizeMuscleGroupCode(exercise.muscleGroup),
+      exerciseId: exercise.id,
+    );
     setState(() {
-      _favoriteExercises = StorageHelper.getFavoriteExerciseNames().toSet();
+      _favoriteExercises = StorageHelper.getFavoriteExercises();
     });
   }
 
@@ -81,6 +87,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     } else {
       workoutProvider.reset();
     }
+  }
+
+  bool _isFavoriteExercise(Exercise exercise) {
+    return _favoriteExercises.any(
+      (favorite) => favorite.matches(
+        exercise.name,
+        otherMuscleGroup: exercise.muscleGroup,
+      ),
+    );
   }
 
   Future<void> _loadMuscleGroups() async {
@@ -178,9 +193,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       'SIRT': 'BACK',
       'BACK': 'BACK',
       'BACAK': 'LEGS',
+      'QUADS': 'LEGS',
+      'HAMSTRING': 'LEGS',
+      'CALF': 'LEGS',
       'LEG': 'LEGS',
       'LEGS': 'LEGS',
       'OMUZ': 'SHOULDERS',
+      'DELT': 'SHOULDERS',
+      'TRAP': 'SHOULDERS',
       'SHOULDER': 'SHOULDERS',
       'SHOULDERS': 'SHOULDERS',
       'BİSEPS': 'BICEPS',
@@ -204,8 +224,20 @@ class _WorkoutScreenState extends State<WorkoutScreen>
 
     if (upper.contains('GÖĞ') || upper.contains('GOG')) return 'CHEST';
     if (upper.contains('SIRT') || upper.contains('BACK')) return 'BACK';
-    if (upper.contains('BACAK') || upper.contains('LEG')) return 'LEGS';
-    if (upper.contains('OMUZ') || upper.contains('SHOUL')) return 'SHOULDERS';
+    if (upper.contains('BACAK') ||
+        upper.contains('LEG') ||
+        upper.contains('QUAD') ||
+        upper.contains('HAMSTRING') ||
+        upper.contains('CALF') ||
+        upper.contains('BALDIR')) {
+      return 'LEGS';
+    }
+    if (upper.contains('OMUZ') ||
+        upper.contains('SHOUL') ||
+        upper.contains('DELT') ||
+        upper.contains('TRAP')) {
+      return 'SHOULDERS';
+    }
     if (upper.contains('BİS') ||
         upper.contains('BIS') ||
         upper.contains('BICEP')) {
@@ -573,6 +605,63 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
+  String? _normalizedTemplateMuscleGroup(String? raw) {
+    final normalized = _normalizeMuscleGroupCode(raw ?? '');
+    return normalized.isEmpty ? null : normalized;
+  }
+
+  Exercise? _findExerciseForFavorite(FavoriteExerciseEntry favorite) {
+    Exercise? partialMatch;
+    final preferredGroup = _normalizedTemplateMuscleGroup(favorite.muscleGroup);
+    final groups = <String>[
+      ...[preferredGroup].whereType<String>(),
+      ...kMuscleGroupInfo.keys.where((group) => group != preferredGroup),
+    ];
+
+    for (final group in groups) {
+      final catalog = _exerciseCatalogForGroup(group);
+      for (final exercise in catalog) {
+        if (exercise.name.toLowerCase() == favorite.name.toLowerCase()) {
+          return exercise;
+        }
+        if (partialMatch == null) {
+          final exerciseName = exercise.name.toLowerCase();
+          final favoriteName = favorite.name.toLowerCase();
+          if (exerciseName.contains(favoriteName) ||
+              favoriteName.contains(exerciseName)) {
+            partialMatch = exercise;
+          }
+        }
+      }
+    }
+
+    return partialMatch;
+  }
+
+  void _openQuickStartWorkout(BuildContext context, _QuickStartPreset preset) {
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context)
+        .push<String>(
+          MaterialPageRoute<String>(
+            builder: (_) => AddWorkoutPage(templateData: preset.templateData),
+          ),
+        )
+        .then((message) {
+          if (!mounted) return;
+          _loadWorkoutsIfNeeded();
+          if (message != null && message.isNotEmpty) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: message.contains('Kişisel Rekor')
+                    ? Colors.amber.shade700
+                    : const Color(0xFF2E7D32),
+              ),
+            );
+          }
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -649,6 +738,30 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 },
               ),
               actions: [
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                    child: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () {
+                    final provider = context.read<WorkoutProvider>();
+                    final today = DateTime.now();
+                    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+                    final thisWeekCount = provider.workouts.where((w) =>
+                      w.workoutDate.isAfter(weekStart.subtract(const Duration(seconds: 1)))).length;
+                    final totalCount = provider.workouts.length;
+                    
+                    final text = 'FitMentor\'da bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
+                        'Toplamda $totalCount antrenmana ulaştım.\n\n'
+                        'Hemen bana katıl: fitmentor://workout';
+                    Share.share(text);
+                  },
+                ),
                 IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(7),
@@ -759,9 +872,32 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     final isPremium = isPremiumTier(
       context.watch<AuthProvider>().user?.premiumTier,
     );
+    final provider = context.watch<WorkoutProvider>();
+    final recovery = RecoveryEngine.computeAll(provider.workouts);
+    final stats = provider.workoutStats;
 
     return CustomScrollView(
       slivers: [
+        SliverToBoxAdapter(
+          child: _RecoveryInsightsCard(
+            workoutSuggestion: provider.workoutSuggestion,
+            recoveryStatuses: recovery,
+            totalWorkouts: (stats['totalWorkouts'] as num?)?.toInt() ??
+                provider.workouts.length,
+            totalSets: (stats['totalSets'] as num?)?.toInt() ??
+                provider.workouts.fold<int>(
+                  0,
+                  (sum, workout) => sum + (workout.sets ?? 0),
+                ),
+            totalCaloriesBurned:
+                (stats['totalCaloriesBurned'] as num?)?.toInt() ??
+                    provider.workouts.fold<int>(
+                      0,
+                      (sum, workout) => sum + (workout.caloriesBurned ?? 0),
+                    ),
+            onSelectGroup: _selectMuscleGroup,
+          ),
+        ),
         SliverToBoxAdapter(child: _DailyTipCard()),
         SliverToBoxAdapter(
           child: _WorkoutTemplatesSection(
@@ -778,14 +914,18 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         if (_favoriteExercises.isNotEmpty)
           SliverToBoxAdapter(
             child: _FavoritesQuickStrip(
-              names: _favoriteExercises.toList(),
-              onTap: (name) {
-                // find exercise and open guide
-                final ex = _exercises.where((e) => e.name == name).firstOrNull;
-                if (ex != null) {
-                  final code = _selectedMuscleGroup ?? 'CHEST';
+              favorites: _favoriteExercises,
+              onTap: (favorite) {
+                final exercise = _findExerciseForFavorite(favorite);
+                if (exercise != null) {
+                  final code = _normalizeMuscleGroupCode(exercise.muscleGroup);
                   final info = kMuscleGroupInfo[code];
-                  _openExerciseGuide(context, ex, info?.color ?? const Color(0xFF2E7D32), info?.label);
+                  _openExerciseGuide(
+                    context,
+                    exercise,
+                    info?.color ?? const Color(0xFF2E7D32),
+                    info?.label,
+                  );
                 }
               },
             ),
@@ -1095,7 +1235,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Üst Vücut',
                       subtitle: 'Göğüs · Sırt · Kol',
                       color: const Color(0xFF1E88E5),
-                      onTap: () => _openAddWorkoutPage(context),
+                      onTap: () =>
+                          _openQuickStartWorkout(context, _kQuickStartPresets[0]),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1103,7 +1244,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Bacak',
                       subtitle: 'Squat · Leg Press',
                       color: const Color(0xFFE53935),
-                      onTap: () => _openAddWorkoutPage(context),
+                      onTap: () =>
+                          _openQuickStartWorkout(context, _kQuickStartPresets[1]),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1111,7 +1253,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Full Body',
                       subtitle: 'Tüm kas grupları',
                       color: const Color(0xFF8E24AA),
-                      onTap: () => _openAddWorkoutPage(context),
+                      onTap: () =>
+                          _openQuickStartWorkout(context, _kQuickStartPresets[2]),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1119,7 +1262,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Cardio',
                       subtitle: 'Yağ yakım · Kondisyon',
                       color: const Color(0xFFF57C00),
-                      onTap: () => _openAddWorkoutPage(context),
+                      onTap: () =>
+                          _openQuickStartWorkout(context, _kQuickStartPresets[3]),
                     ),
                   ],
                 ),
@@ -1183,6 +1327,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           );
         }
 
+        // Deload tespiti: son 6 günde her gün antrenman yapıldıysa
+        final recentDays = <DateTime>{};
+        final now = DateTime.now();
+        for (final w in provider.workouts) {
+          final d = DateTime(
+            w.workoutDate.year,
+            w.workoutDate.month,
+            w.workoutDate.day,
+          );
+          if (now.difference(d).inDays <= 6) recentDays.add(d);
+        }
+        final showDeload = recentDays.length >= 6;
+
         return RefreshIndicator(
           onRefresh: _loadWorkoutsIfNeeded,
           color: const Color(0xFF2E7D32),
@@ -1191,13 +1348,26 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             itemCount: selectedWorkouts.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
-                return _WeeklyVolumeChart(workouts: provider.workouts);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _WeeklyVolumeChart(workouts: provider.workouts),
+                    const SizedBox(height: 16),
+                    _MuscleGroupChart(workouts: provider.workouts),
+                    if (showDeload) ...[
+                      const SizedBox(height: 16),
+                      _DeloadBanner(),
+                    ],
+                    const SizedBox(height: 8),
+                  ],
+                );
               }
               final workout = selectedWorkouts[index - 1];
               return _HistoryCard(
                 workout: workout,
                 onDelete: () => _confirmDelete(context, workout),
                 onEdit: () => _openAddWorkoutPage(context, workout: workout),
+                onRepeat: () => _repeatWorkout(context, workout),
               );
             },
           ),
@@ -1633,8 +1803,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     final exercise = item as Exercise;
                     final subRegion =
                         _detectSubRegionLabel(exercise, code);
-                    final isFav =
-                        _favoriteExercises.contains(exercise.name);
+                    final isFav = _isFavoriteExercise(exercise);
                     return _ExerciseCard(
                       exercise: exercise,
                       accentColor: info.color,
@@ -1642,8 +1811,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           ? null
                           : subRegion,
                       isFavorite: isFav,
-                      onFavoriteTap: () =>
-                          _toggleFavoriteExercise(exercise.name),
+                      onFavoriteTap: () => _toggleFavoriteExercise(exercise),
                       onTap: () => _openExerciseGuide(
                         context,
                         exercise,
@@ -1723,9 +1891,134 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     }
   }
 
-  void _openAddWorkoutPage(BuildContext context, {Workout? workout}) {
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context)
+  void _repeatWorkout(BuildContext ctx, Workout workout) {
+    final messenger = ScaffoldMessenger.of(ctx);
+    Navigator.of(ctx)
+        .push<String>(
+          MaterialPageRoute<String>(
+            builder: (_) => AddWorkoutPage(
+              templateData: (
+                exerciseName: workout.name,
+                sets: workout.sets ?? 3,
+                reps: workout.reps ?? 10,
+                workoutName: workout.name,
+                duration: workout.durationMinutes ?? 45,
+                muscleGroup: workout.muscleGroup,
+                difficulty: null,
+              ),
+            ),
+          ),
+        )
+        .then((message) {
+          if (!mounted) return;
+          _loadWorkoutsIfNeeded();
+          if (message != null && message.isNotEmpty) {
+            final isPR = message.contains('Kişisel Rekor');
+            if (isPR) _showPRCelebration();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: isPR
+                    ? Colors.amber.shade700
+                    : const Color(0xFF2E7D32),
+              ),
+            );
+          }
+        });
+  }
+
+  void _showPRCelebration() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'PR',
+      barrierColor: Colors.black.withValues(alpha: 0.75),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim, _) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF2A1A00), Color(0xFF1A1A1A)],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.amber.withValues(alpha: 0.6),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  blurRadius: 40,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🏆', style: TextStyle(fontSize: 64)),
+                const SizedBox(height: 16),
+                const Text(
+                  'Kişisel Rekor!',
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Harika! Yeni bir zirveye ulaştın!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Süper! 💪',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      transitionBuilder: (ctx, anim, _, child) => ScaleTransition(
+        scale: CurvedAnimation(parent: anim, curve: Curves.elasticOut),
+        child: FadeTransition(opacity: anim, child: child),
+      ),
+    );
+  }
+
+  void _openAddWorkoutPage(BuildContext ctx, {Workout? workout}) {
+    final messenger = ScaffoldMessenger.of(ctx);
+    Navigator.of(ctx)
         .push<String>(
           MaterialPageRoute<String>(
             builder: (_) => AddWorkoutPage(workout: workout),
@@ -1735,10 +2028,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           if (!mounted) return;
           _loadWorkoutsIfNeeded();
           if (message != null && message.isNotEmpty) {
+            final isPR = message.contains('Kişisel Rekor');
+            if (isPR) _showPRCelebration();
             messenger.showSnackBar(
               SnackBar(
                 content: Text(message),
-                backgroundColor: message.contains('Kişisel Rekor')
+                backgroundColor: isPR
                     ? Colors.amber.shade700
                     : const Color(0xFF2E7D32),
               ),
@@ -1766,7 +2061,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         name: ex.name,
         sets: sets,
         reps: reps,
-        muscleGroup: template.muscles.isNotEmpty ? template.muscles.first : null,
+        muscleGroup: template.muscles.isNotEmpty
+            ? _normalizedTemplateMuscleGroup(template.muscles.first)
+            : null,
         durationMinutes: template.estimatedMinutes ~/ template.exercises.length,
         workoutDate: DateTime.now(),
         notes: template.name,
@@ -1814,7 +2111,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 reps: reps,
                 workoutName: template.name,
                 duration: template.estimatedMinutes,
-                muscleGroup: template.muscles.isNotEmpty ? template.muscles.first : null,
+                muscleGroup: template.muscles.isNotEmpty
+                    ? _normalizedTemplateMuscleGroup(template.muscles.first)
+                    : null,
                 difficulty: template.difficulty,
               ),
             ),
@@ -2138,11 +2437,13 @@ class _HistoryCard extends StatelessWidget {
   final Workout workout;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
+  final VoidCallback? onRepeat;
 
   const _HistoryCard({
     required this.workout,
     required this.onDelete,
     required this.onEdit,
+    this.onRepeat,
   });
 
   @override
@@ -2262,8 +2563,26 @@ class _HistoryCard extends StatelessWidget {
                     onSelected: (val) {
                       if (val == 'edit') onEdit();
                       if (val == 'delete') onDelete();
+                      if (val == 'repeat') onRepeat?.call();
                     },
                     itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'repeat',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.replay_rounded,
+                              color: Colors.greenAccent,
+                              size: 18,
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              'Tekrarla',
+                              style: TextStyle(color: Colors.greenAccent),
+                            ),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'edit',
                         child: Text(
@@ -2334,6 +2653,45 @@ class _HistoryCard extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              // Paylaş butonu
+              GestureDetector(
+                onTap: () {
+                  final setInfo = workout.sets != null
+                      ? '${workout.sets} set × ${workout.reps ?? '?'} tekrar'
+                      : '';
+                  final weightInfo = workout.weight != null
+                      ? ' — ${workout.weight!.toStringAsFixed(1)} kg'
+                      : '';
+                  final rmInfo = workout.oneRepMax != null
+                      ? '\n🏆 1RM: ${workout.oneRepMax!.toStringAsFixed(1)} kg'
+                      : '';
+                  final durInfo = workout.durationMinutes != null
+                      ? '\n⏱ ${workout.durationMinutes} dk'
+                      : '';
+                  Share.share(
+                    '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nFitness App ile kaydedildi.',
+                  );
+                },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Icon(
+                      Icons.share_rounded,
+                      color: Colors.white.withValues(alpha: 0.3),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Paylaş',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -2381,6 +2739,169 @@ class _InfoTag extends StatelessWidget {
   }
 }
 
+// ── Muscle Group Distribution Chart ─────────────────────────────────────────
+
+class _MuscleGroupChart extends StatelessWidget {
+  final List<Workout> workouts;
+  const _MuscleGroupChart({required this.workouts});
+
+  @override
+  Widget build(BuildContext context) {
+    // Kas grubu sayısını hesapla
+    final counts = <String, int>{};
+    for (final w in workouts) {
+      final mg = w.muscleGroup ?? w.workoutType ?? 'Diğer';
+      counts[mg] = (counts[mg] ?? 0) + 1;
+    }
+    if (counts.isEmpty) return const SizedBox.shrink();
+
+    final sorted = counts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final max = sorted.first.value.toDouble();
+
+    const accent = Color(0xFF2E7D32);
+    final groupColors = <String, Color>{
+      'CHEST': const Color(0xFF1E88E5),
+      'BACK': const Color(0xFF00ACC1),
+      'LEGS': const Color(0xFFE53935),
+      'SHOULDERS': const Color(0xFFFFB300),
+      'BICEPS': const Color(0xFF8E24AA),
+      'TRICEPS': const Color(0xFF6D4C41),
+      'CORE': const Color(0xFF43A047),
+      'GLUTES': const Color(0xFFFF7043),
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.bar_chart_rounded,
+                color: accent,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Kas Grubu Dağılımı',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...sorted.take(6).map((entry) {
+            final color = groupColors[entry.key] ?? accent;
+            final pct = entry.value / max;
+            final label = kMuscleGroupInfo[entry.key]?.label ?? entry.key;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 90,
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: pct,
+                            minHeight: 8,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.07),
+                            valueColor: AlwaysStoppedAnimation<Color>(color),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${entry.value}',
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Deload Banner ─────────────────────────────────────────────────────────────
+
+class _DeloadBanner extends StatelessWidget {
+  const _DeloadBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bed_rounded, color: Colors.blueAccent, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Deload Haftası Zamanı?',
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'Son 6 günde sürekli antrenman yaptın. Hafif bir toparlanma haftası performansını artırabilir.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Workout Templates ────────────────────────────────────────────────────────
 
 typedef _TemplateExercise = ({String name, String volume, String tip});
@@ -2398,6 +2919,62 @@ typedef _TemplateData = ({
   List<_TemplateExercise> exercises,
   String description,
 });
+
+typedef _QuickStartPreset = ({
+  String label,
+  TemplateData templateData,
+});
+
+const List<_QuickStartPreset> _kQuickStartPresets = [
+  (
+    label: 'Üst Vücut',
+    templateData: (
+      exerciseName: 'Bench Press',
+      sets: 4,
+      reps: 8,
+      workoutName: 'Üst Vücut Hızlı Başlangıç',
+      duration: 40,
+      muscleGroup: 'CHEST',
+      difficulty: 'Orta',
+    ),
+  ),
+  (
+    label: 'Bacak',
+    templateData: (
+      exerciseName: 'Back Squat',
+      sets: 4,
+      reps: 6,
+      workoutName: 'Bacak Güç Seansı',
+      duration: 50,
+      muscleGroup: 'LEGS',
+      difficulty: 'İleri',
+    ),
+  ),
+  (
+    label: 'Full Body',
+    templateData: (
+      exerciseName: 'Romanian Deadlift',
+      sets: 3,
+      reps: 8,
+      workoutName: 'Full Body Hızlı Seans',
+      duration: 45,
+      muscleGroup: 'BACK',
+      difficulty: 'Orta',
+    ),
+  ),
+  (
+    label: 'Cardio',
+    templateData: (
+      exerciseName: 'Air Bike Interval',
+      sets: 6,
+      reps: 2,
+      workoutName: 'Cardio Interval Seansı',
+      duration: 20,
+      muscleGroup: 'CORE',
+      difficulty: 'Başlangıç',
+    ),
+  ),
+];
 
 const List<_TemplateData> _kWorkoutTemplates = [
   (
@@ -2438,7 +3015,7 @@ const List<_TemplateData> _kWorkoutTemplates = [
       (name: 'Seated Cable Row', volume: '3×12', tip: 'Omuzları geri-aşağı al, sıkıştır'),
       (name: 'Face Pull', volume: '3×15', tip: 'Arka omuz ve rotator cuff için kritik'),
       (name: 'Barbell Curl', volume: '4×10', tip: 'Dirsek öne gelmesin, tam ROM'),
-      (name: 'Hammer Curl', volume: '3×12', tip: 'Önkol ve brachialis geliştirrir'),
+      (name: 'Hammer Curl', volume: '3×12', tip: 'Önkol ve brachialis geliştirir'),
     ],
     description: 'Lat genişliği, sırt kalınlığı ve güçlü biseps için eksiksiz çekme günü. Deadlift\'i ısındıktan sonra yap.',
   ),
@@ -2597,6 +3174,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
       builder: (_) => _TemplateDetailSheet(
         template: t,
         onStart: onStartPressed,
+        onSave: onSavePressed,
       ),
     );
   }
@@ -2750,10 +3328,12 @@ class _TemplateCard extends StatelessWidget {
 class _TemplateDetailSheet extends StatelessWidget {
   final _TemplateData template;
   final VoidCallback onStart;
+  final VoidCallback onSave;
 
   const _TemplateDetailSheet({
     required this.template,
     required this.onStart,
+    required this.onSave,
   });
 
   @override
@@ -2921,18 +3501,31 @@ class _TemplateDetailSheet extends StatelessWidget {
                   itemBuilder: (context, i) {
                     final ex = t.exercises[i];
                     // Catalog'dan Exercise objesini bul (varsa guide'a yönlendir)
-                    Exercise? _findExercise() {
+                    Exercise? findExercise() {
+                      final query = ex.name.toLowerCase();
+                      Exercise? partial;
                       for (final group in kMuscleGroupInfo.keys) {
-                        try {
-                          return buildExerciseCatalogForGroup(group)
-                              .firstWhere((e) => e.name.toLowerCase() == ex.name.toLowerCase());
-                        } catch (_) {}
+                        final catalog = buildExerciseCatalogForGroup(group);
+                        // Exact match
+                        for (final e in catalog) {
+                          if (e.name.toLowerCase() == query) return e;
+                        }
+                        // Partial match (either direction)
+                        if (partial == null) {
+                          for (final e in catalog) {
+                            final cat = e.name.toLowerCase();
+                            if (cat.contains(query) || query.contains(cat)) {
+                              partial = e;
+                              break;
+                            }
+                          }
+                        }
                       }
-                      return null;
+                      return partial;
                     }
                     return GestureDetector(
                       onTap: () {
-                        final found = _findExercise();
+                        final found = findExercise();
                         if (found == null) return;
                         final muscleLabel = t.muscles.isNotEmpty ? t.muscles.first : null;
                         Navigator.of(context).push(MaterialPageRoute<void>(
@@ -3022,28 +3615,56 @@ class _TemplateDetailSheet extends StatelessWidget {
               // Start button
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onStart();
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                    label: const Text(
-                      'Antrenmanı Başlat',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: t.color,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onSave();
+                        },
+                        icon: const Icon(Icons.bookmark_add_rounded, size: 18),
+                        label: const Text(
+                          'Programı Kaydet',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: t.color,
+                          side: BorderSide(color: t.color.withValues(alpha: 0.45)),
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
-                      elevation: 0,
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onStart();
+                        },
+                        icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                        label: const Text(
+                          'Başlat',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: t.color,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(54),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -3080,6 +3701,212 @@ class _StatChip extends StatelessWidget {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RecoveryInsightsCard extends StatelessWidget {
+  final TodayWorkoutSuggestion? workoutSuggestion;
+  final Map<String, FatigueStatus> recoveryStatuses;
+  final int totalWorkouts;
+  final int totalSets;
+  final int totalCaloriesBurned;
+  final void Function(String group) onSelectGroup;
+
+  const _RecoveryInsightsCard({
+    required this.workoutSuggestion,
+    required this.recoveryStatuses,
+    required this.totalWorkouts,
+    required this.totalSets,
+    required this.totalCaloriesBurned,
+    required this.onSelectGroup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final freshEntries = recoveryStatuses.entries
+        .where((entry) => entry.value.level == FatigueLevel.fresh)
+        .take(3)
+        .toList();
+    final highlightEntries = freshEntries.isNotEmpty
+        ? freshEntries
+        : recoveryStatuses.entries.take(3).toList();
+    final accent = workoutSuggestion?.color ?? const Color(0xFF2E7D32);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accent.withValues(alpha: 0.18),
+            const Color(0xFF121212),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  workoutSuggestion?.icon ?? Icons.auto_graph_rounded,
+                  color: accent,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      workoutSuggestion?.title ?? 'Bugün için akıllı öneri',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      workoutSuggestion?.detail ??
+                          'Toparlanma durumuna göre hazır bölgeler burada listelenir.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _MiniStat(label: 'Toplam', value: '$totalWorkouts'),
+              const SizedBox(width: 8),
+              _MiniStat(label: 'Set', value: '$totalSets'),
+              const SizedBox(width: 8),
+              _MiniStat(label: 'Kcal', value: '$totalCaloriesBurned'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Hazır Bölgeler',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.52),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: highlightEntries.map((entry) {
+              final info = kMuscleGroupInfo[entry.key];
+              final status = entry.value;
+              final isFresh = status.level == FatigueLevel.fresh;
+              final chipColor = isFresh
+                  ? accent
+                  : status.level == FatigueLevel.recovering
+                      ? Colors.amber
+                      : Colors.redAccent;
+              return GestureDetector(
+                onTap: () => onSelectGroup(entry.key),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: chipColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: chipColor.withValues(alpha: 0.35)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        info?.label ?? entry.key,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        status.levelLabel,
+                        style: TextStyle(
+                          color: chipColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _MiniStat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3515,10 +4342,13 @@ class _DailyTipCard extends StatelessWidget {
 // ── Favorites Quick Strip ────────────────────────────────────────────────────
 
 class _FavoritesQuickStrip extends StatelessWidget {
-  final List<String> names;
-  final void Function(String name) onTap;
+  final List<FavoriteExerciseEntry> favorites;
+  final void Function(FavoriteExerciseEntry favorite) onTap;
 
-  const _FavoritesQuickStrip({required this.names, required this.onTap});
+  const _FavoritesQuickStrip({
+    required this.favorites,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -3541,7 +4371,7 @@ class _FavoritesQuickStrip extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${names.length} egzersiz',
+                '${favorites.length} egzersiz',
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.white.withValues(alpha: 0.35),
@@ -3555,10 +4385,11 @@ class _FavoritesQuickStrip extends StatelessWidget {
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
-            itemCount: names.length,
+            itemCount: favorites.length,
             itemBuilder: (context, i) {
+              final favorite = favorites[i];
               return GestureDetector(
-                onTap: () => onTap(names[i]),
+                onTap: () => onTap(favorite),
                 child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(
@@ -3577,7 +4408,7 @@ class _FavoritesQuickStrip extends StatelessWidget {
                           size: 12, color: Colors.amber),
                       const SizedBox(width: 5),
                       Text(
-                        names[i],
+                        favorite.name,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,

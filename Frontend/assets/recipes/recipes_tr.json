@@ -1,0 +1,4730 @@
+[
+  {
+    "id": "bowl_001",
+    "name": "Yüksek Protein Buddha Bowl",
+    "description": "Tavuk, kinoa, avokado ve sebzelerle dolu besleyici bir protein kasesi.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 20,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 520,
+    "proteinPerServing": 42,
+    "carbPerServing": 45,
+    "fatPerServing": 16,
+    "tags": [
+      "yüksek protein",
+      "sağlıklı",
+      "gluten free"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tavuk göğsü",
+        "amount": 150,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "kinoa",
+        "amount": 80,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "avokado",
+        "amount": 0.5,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bebek ıspanak",
+        "amount": 50,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "cherry domates",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "salatalık",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytin yağı",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon suyu",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "tuz, karabiber, kimyon",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Kinoa'yı 1.5 kat su ile haşlayın, 15 dakika kısık ateşte pişirin.",
+      "Tavuk göğsünü küp küp doğrayın, tuz, karabiber ve kimyon ile iyice karıştırın.",
+      "Tavuğu zeytinyağında 8-10 dakika pişirin.",
+      "Avokadoyu dilimlere, domates ve salatalığı küçük parçalara kesin.",
+      "Geniş bir kaseye kinoa, tavuk, ıspanak, avokado, domates ve salatalığı yerleştirin.",
+      "Üzerine zeytinyağı ve limon suyu gezdirin."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_001.jpg"
+  },
+  {
+    "id": "bowl_002",
+    "name": "Akdeniz Humus Bowl",
+    "description": "Humus, falafel, taze sebzeler ve tam tahıllı pilavla hazırlanan vejetaryen bowl.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 5,
+    "imageEmoji": "🥙",
+    "kcalPerServing": 480,
+    "proteinPerServing": 18,
+    "carbPerServing": 62,
+    "fatPerServing": 17,
+    "tags": [
+      "vejetaryen",
+      "Akdeniz",
+      "lif açısından zengin"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "humus",
+        "amount": 100,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "tam tahıllı bulgur pilavı",
+        "amount": 100,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "salatalık",
+        "amount": 100,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates",
+        "amount": 100,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kırmızı soğan",
+        "amount": 40,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "maydanoz",
+        "amount": 10,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 0.5,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "pul biber, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Bulguru haşlayın, soğumaya bırakın.",
+      "Salatalık, domates ve kırmızı soğanı ince ince doğrayın.",
+      "Maydanozla karıştırın, zeytinyağı ve limon sıkın.",
+      "Kaseye humusu yayın, bulguru ve sebzeleri üstüne koyun.",
+      "Üzerine pul biber ve bir miktar daha zeytinyağı gezdirin."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_002.jpg"
+  },
+  {
+    "id": "bowl_003",
+    "name": "Smoothie Bowl",
+    "description": "Dondurulmuş meyve, yulaf ve tohumlarla süper besleyici sabah kasesi.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🫐",
+    "kcalPerServing": 390,
+    "proteinPerServing": 14,
+    "carbPerServing": 68,
+    "fatPerServing": 9,
+    "tags": [
+      "vegan",
+      "hızlı",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dondurulmuş muz",
+        "amount": 150,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "dondurulmuş yaban mersini",
+        "amount": 100,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bitkisel süt (yulaf/badem)",
+        "amount": 100,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "protein tozu (vanilyalı)",
+        "amount": 20,
+        "unit": "g",
+        "category": "takviye"
+      },
+      {
+        "name": "granola",
+        "amount": 40,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "chia tohumu",
+        "amount": 10,
+        "unit": "g",
+        "category": "tohum"
+      },
+      {
+        "name": "taze çilek",
+        "amount": 60,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Dondurulmuş muz, yaban mersini, bitkisel süt ve protein tozunu blenderda pürüzsüz olana kadar çekin.",
+      "Karışım yoğun kıvamlı olmalı; gerekirse az süt ekleyin.",
+      "Kaseye dökün.",
+      "Üzerine granola, çilek, chia tohumu ve fıstık ezmesi ekleyin."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_003.jpg"
+  },
+  {
+    "id": "bowl_004",
+    "name": "Ton Balığı Poke Bowl",
+    "description": "Japon usulü ton balığı, pirinç, edamame ve taze sebzelerle hazırlanan lezzetli poke bowl.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 490,
+    "proteinPerServing": 38,
+    "carbPerServing": 52,
+    "fatPerServing": 12,
+    "tags": [
+      "omega-3",
+      "yüksek protein",
+      "düşük yağ"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "sushi pirinci",
+        "amount": 100,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "konserve ton balığı (yağsız)",
+        "amount": 150,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "edamame (haşlanmış)",
+        "amount": 80,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "avokado",
+        "amount": 0.5,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "salatalık",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soya sosu",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "susam yağı",
+        "amount": 1,
+        "unit": "çay kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "susamlı tuzlu salatalık turşusu",
+        "amount": 20,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "susam",
+        "amount": 5,
+        "unit": "g",
+        "category": "tohum"
+      }
+    ],
+    "steps": [
+      "Pirinci haşlayın ve soğumaya bırakın.",
+      "Ton balığını soya sosu ve susam yağıyla karıştırın.",
+      "Avokado ve salatalığı dilimleyin.",
+      "Kaseye pirinç koyun.",
+      "Üzerine ton balığı, avokado, salatalık ve edamame yerleştirin.",
+      "Susam serpin."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_004.jpg"
+  },
+  {
+    "id": "ana_001",
+    "name": "Fırın Sarımsaklı Somon",
+    "description": "Limonlu tereyağlı sos ve sarımsakla fırınlanan omega-3 zengini somon fileto.",
+    "category": "ana_yemek",
+    "servings": 2,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "imageEmoji": "🍋",
+    "kcalPerServing": 380,
+    "proteinPerServing": 36,
+    "carbPerServing": 4,
+    "fatPerServing": 24,
+    "tags": [
+      "omega-3",
+      "yüksek protein",
+      "düşük karb",
+      "gluten free"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "somon fileto",
+        "amount": 300,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "sarımsak",
+        "amount": 4,
+        "unit": "diş",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tereyağı",
+        "amount": 20,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "dereotu",
+        "amount": 10,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Fırını 200°C'ye ısıtın.",
+      "Somonu yağlı kağıt kaplı tepsiye koyun.",
+      "Sarımsak, eritilmiş tereyağı, limon suyu ve zeytinyağını karıştırın.",
+      "Sosu somona gezdirin, tuz ve karabiber serpin.",
+      "18-20 dakika pişirin.",
+      "Üzerine taze dereotu serpin."
+    ],
+    "imageAsset": "assets/recipes/images/ana_001.jpg"
+  },
+  {
+    "id": "ana_002",
+    "name": "Kırmızı Mercimek Çorbası",
+    "description": "Geleneksel Türk usulü nefis kırmızı mercimek çorbası.",
+    "category": "ana_yemek",
+    "servings": 4,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 30,
+    "imageEmoji": "🍲",
+    "kcalPerServing": 220,
+    "proteinPerServing": 13,
+    "carbPerServing": 32,
+    "fatPerServing": 5,
+    "tags": [
+      "vegan",
+      "baklagil",
+      "protein",
+      "ekonomik"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "kırmızı mercimek",
+        "amount": 250,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "soğan",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "havuç",
+        "amount": 2,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "patates",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarımsak",
+        "amount": 3,
+        "unit": "diş",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates salçası",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "et veya sebze suyu",
+        "amount": 1.5,
+        "unit": "litre",
+        "category": "diğer"
+      },
+      {
+        "name": "kimyon, pul biber, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Zeytinyağında soğan ve sarımsağı kavurun.",
+      "Havuç ve patatesi ekleyip 3 dakika daha kavurun.",
+      "Salçayı ekleyip karıştırın.",
+      "Mercimek ve suyu ekleyin, kaynayınca kısın.",
+      "30 dakika pişirin.",
+      "Blenderdan geçirin, baharat ekleyin.",
+      "Üzerine tereyağında pul biber kavurarak dökün."
+    ],
+    "imageAsset": "assets/recipes/images/ana_002.jpg"
+  },
+  {
+    "id": "ana_003",
+    "name": "Baharatlı Tavuk Sote",
+    "description": "Renkli sebzeler ve baharatlarla sote edilmiş yüksek proteinli tavuk.",
+    "category": "ana_yemek",
+    "servings": 2,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 340,
+    "proteinPerServing": 38,
+    "carbPerServing": 16,
+    "fatPerServing": 12,
+    "tags": [
+      "yüksek protein",
+      "düşük karb",
+      "hızlı"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tavuk göğsü",
+        "amount": 300,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "kırmızı biber",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarı biber",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "mantar",
+        "amount": 100,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soğan",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarımsak",
+        "amount": 3,
+        "unit": "diş",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "tuz, karabiber, kekik, pul biber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Tavuğu şeritler halinde kesin, baharatlarla marine edin.",
+      "Zeytinyağını ısıtın, tavuğu yüksek ateşte mühürleyin.",
+      "Soğan ve sarımsağı ekleyin, 3 dakika kavurun.",
+      "Biber ve mantarı ekleyin, 5 dakika daha pişirin.",
+      "Tuz ve baharatı ayarlayın."
+    ],
+    "imageAsset": "assets/recipes/images/ana_003.jpg"
+  },
+  {
+    "id": "ana_004",
+    "name": "Sebzeli Kinoa Pilav",
+    "description": "Tüm esansiyel amino asitleri içeren tam protein kaynağı kinoa pilav.",
+    "category": "ana_yemek",
+    "servings": 2,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 20,
+    "imageEmoji": "🌾",
+    "kcalPerServing": 310,
+    "proteinPerServing": 12,
+    "carbPerServing": 48,
+    "fatPerServing": 8,
+    "tags": [
+      "vegan",
+      "gluten free",
+      "tam protein"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "kinoa",
+        "amount": 150,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "brokoli",
+        "amount": 150,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "havuç",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bezelye",
+        "amount": 80,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "soğan",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "sebze suyu",
+        "amount": 300,
+        "unit": "ml",
+        "category": "diğer"
+      },
+      {
+        "name": "tuz, karabiber, köri",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Kinoayı yıkayın.",
+      "Zeytinyağında soğan ve havucu kavurun.",
+      "Kinoa ve sebze suyunu ekleyin, kaynayınca kısın.",
+      "15 dakika sonra brokoli ve bezelyeyi ekleyin.",
+      "5 dakika daha pişirin, baharatla tatlandırın."
+    ],
+    "imageAsset": "assets/recipes/images/ana_004.jpg"
+  },
+  {
+    "id": "salata_001",
+    "name": "Ton Balıklı Protein Salatası",
+    "description": "Ton balığı, yumurta ve sebzelerle hazırlanan yüksek proteinli niçoise salatası.",
+    "category": "salata",
+    "servings": 1,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 10,
+    "imageEmoji": "🥗",
+    "kcalPerServing": 420,
+    "proteinPerServing": 40,
+    "carbPerServing": 22,
+    "fatPerServing": 18,
+    "tags": [
+      "yüksek protein",
+      "omega-3",
+      "düşük karb"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "konserve ton balığı",
+        "amount": 150,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 2,
+        "unit": "adet",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "marul",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "cherry domates",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yeşil fasulye",
+        "amount": 80,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "kapari",
+        "amount": 20,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon suyu, tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yeşil fasulyeleri haşlayıp soğuk suya alın.",
+      "Yumurtaları 8 dakika haşlayıp dörde bölün.",
+      "Tüm malzemeleri bir tabağa dizin.",
+      "Zeytinyağı ve limon suyu gezdirin, tuz karabiber ekleyin."
+    ],
+    "imageAsset": "assets/recipes/images/salata_001.jpg"
+  },
+  {
+    "id": "salata_002",
+    "name": "Narlı Keçi Peynirli Roka Salatası",
+    "description": "Nar taneleri, ceviz ve keçi peyniriyle zenginleştirilmiş antioxidan dolu salata.",
+    "category": "salata",
+    "servings": 2,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥙",
+    "kcalPerServing": 290,
+    "proteinPerServing": 10,
+    "carbPerServing": 22,
+    "fatPerServing": 18,
+    "tags": [
+      "vejetaryen",
+      "antioksidan",
+      "hafif"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "roka",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "nar taneleri",
+        "amount": 80,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "keçi peyniri",
+        "amount": 80,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "ceviz",
+        "amount": 30,
+        "unit": "g",
+        "category": "kuruyemiş"
+      },
+      {
+        "name": "elma",
+        "amount": 0.5,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 2,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "balsamik sirke",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "bal, tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Rokayı yıkayıp tabağa yayın.",
+      "Elma ince dilimleyin.",
+      "Keçi peynirii ufalayın, cevizi kırın.",
+      "Tüm malzemeleri rokaya ekleyin.",
+      "Zeytinyağı, balsamik ve bal karıştırarak üstüne gezdirin."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "smoothie_001",
+    "name": "Yeşil Detoks Smoothie",
+    "description": "Ispanak, zencefil, limon ve meyve ile antioksidan dolu detoks içeceği.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥤",
+    "kcalPerServing": 210,
+    "proteinPerServing": 5,
+    "carbPerServing": 42,
+    "fatPerServing": 3,
+    "tags": [
+      "vegan",
+      "detoks",
+      "hızlı",
+      "antioksidan"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "bebek ıspanak",
+        "amount": 60,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "muz",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "elma",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon suyu",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "taze zencefil",
+        "amount": 1,
+        "unit": "cm",
+        "category": "baharat"
+      },
+      {
+        "name": "su",
+        "amount": 200,
+        "unit": "ml",
+        "category": "diğer"
+      },
+      {
+        "name": "chia tohumu",
+        "amount": 10,
+        "unit": "g",
+        "category": "tohum"
+      }
+    ],
+    "steps": [
+      "Tüm malzemeleri blendere koyun.",
+      "Pürüzsüz olana kadar çekin.",
+      "Bardağa dökün, chia tohumunu üstüne ekleyin."
+    ],
+    "imageAsset": "assets/recipes/images/smoothie_001.jpg"
+  },
+  {
+    "id": "smoothie_002",
+    "name": "Muz Protein Shake",
+    "description": "Antrenman sonrası ideal: muz, protein tozu, fıstık ezmesi ve sütle hazırlanan shake.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍌",
+    "kcalPerServing": 380,
+    "proteinPerServing": 32,
+    "carbPerServing": 46,
+    "fatPerServing": 8,
+    "tags": [
+      "yüksek protein",
+      "antrenman sonrası",
+      "hızlı"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "muz",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "protein tozu (çikolata)",
+        "amount": 30,
+        "unit": "g",
+        "category": "takviye"
+      },
+      {
+        "name": "süt veya bitkisel süt",
+        "amount": 250,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "dondurulmuş buz",
+        "amount": 4,
+        "unit": "küp",
+        "category": "diğer"
+      }
+    ],
+    "steps": [
+      "Tüm malzemeleri blendere koyun.",
+      "Yüksek hızda 60 saniye çekin.",
+      "Soğuk servis edin."
+    ],
+    "imageAsset": "assets/recipes/images/smoothie_002.jpg"
+  },
+  {
+    "id": "atistirmalik_001",
+    "name": "Protein Topları",
+    "description": "Fındık ezmesi, yulaf ve protein tozuyla yapılan pişirmesiz enerji topları.",
+    "category": "atistirmalik",
+    "servings": 12,
+    "prepTimeMinutes": 20,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "⚡",
+    "kcalPerServing": 110,
+    "proteinPerServing": 6,
+    "carbPerServing": 12,
+    "fatPerServing": 5,
+    "tags": [
+      "yüksek protein",
+      "pişirmesiz",
+      "meal prep"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf ezmesi",
+        "amount": 150,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 80,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "protein tozu (vanilyalı)",
+        "amount": 40,
+        "unit": "g",
+        "category": "takviye"
+      },
+      {
+        "name": "bal",
+        "amount": 3,
+        "unit": "yemek kaşığı",
+        "category": "diğer"
+      },
+      {
+        "name": "bitter çikolata parçaları",
+        "amount": 50,
+        "unit": "g",
+        "category": "diğer"
+      },
+      {
+        "name": "chia tohumu",
+        "amount": 10,
+        "unit": "g",
+        "category": "tohum"
+      }
+    ],
+    "steps": [
+      "Tüm malzemeleri büyük bir kasede iyice karıştırın.",
+      "Cıvık olursa az su, katı olursa az bal ekleyin.",
+      "Karışımı 30 dakika buzdolabında bekletin.",
+      "Ceviz büyüklüğünde toplar yapın.",
+      "Buzdolabında 1 hafta saklanabilir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "atistirmalik_002",
+    "name": "Avokado Tam Tahıllı Toast",
+    "description": "Tam tahıllı ekmek üzerine limonlu avokado ve haşlanmış yumurtayla protein zengini kahvaltı.",
+    "category": "atistirmalik",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 5,
+    "imageEmoji": "🥑",
+    "kcalPerServing": 350,
+    "proteinPerServing": 16,
+    "carbPerServing": 34,
+    "fatPerServing": 17,
+    "tags": [
+      "kahvaltılık",
+      "sağlıklı yağ",
+      "hızlı"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tam tahıllı ekmek",
+        "amount": 2,
+        "unit": "dilim",
+        "category": "tahıl"
+      },
+      {
+        "name": "olgun avokado",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yumurta",
+        "amount": 1,
+        "unit": "adet",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "limon suyu",
+        "amount": 0.5,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "pul biber, tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "taze nane veya kişniş",
+        "amount": 5,
+        "unit": "g",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yumurtayı tercihinize göre haşlayın veya poşeyleyin.",
+      "Avokadoyu çatalla ezin, limon suyu, tuz karabiber ekleyin.",
+      "Ekmeği kızartın.",
+      "Üzerine avokado ezgisini yayın.",
+      "Yumurtayı üstüne koyun.",
+      "Pul biber ve taze ot ile servis edin."
+    ],
+    "imageAsset": "assets/recipes/images/atistirmalik_002.jpg"
+  },
+  {
+    "id": "kahvalti_001",
+    "name": "Protein Yulaf Ezmesi",
+    "description": "Gece öncesinden hazırlanan protein zengini overnight oats, sabah hazır bekler.",
+    "category": "atistirmalik",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🌙",
+    "kcalPerServing": 420,
+    "proteinPerServing": 28,
+    "carbPerServing": 52,
+    "fatPerServing": 9,
+    "tags": [
+      "meal prep",
+      "kahvaltılık",
+      "yüksek protein"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf ezmesi",
+        "amount": 80,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "Yunan yoğurdu",
+        "amount": 100,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "süt veya bitkisel süt",
+        "amount": 150,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "protein tozu",
+        "amount": 20,
+        "unit": "g",
+        "category": "takviye"
+      },
+      {
+        "name": "muz",
+        "amount": 0.5,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1,
+        "unit": "yemek kaşığı",
+        "category": "diğer"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yulaf, yoğurt, süt ve protein tozunu karıştırın.",
+      "Kapalı bir kapta gece boyunca buzdolabında bekletin.",
+      "Sabah üzerine muz, bal ve tarçın ekleyerek servis edin."
+    ],
+    "imageAsset": "assets/recipes/images/kahvalti_001.jpg"
+  },
+  {
+    "id": "xlsx_001",
+    "name": "Yoğurtlu Marine Fırın Tavuk",
+    "description": "Yoğurtlu Marine Fırın Tavuk, cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 340.0,
+    "proteinPerServing": 65.0,
+    "carbPerServing": 6.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "tavuk göğsü",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "süzme yoğurt",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "sarımsak",
+        "amount": 1.0,
+        "unit": "diş",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kekik, pul biber, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Tavuğu yoğurt+baharatla 30dk marine et.",
+      "200°C fırında 22dk pişir.",
+      "Yanına haşlanmış sebze ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_001.jpg"
+  },
+  {
+    "id": "xlsx_002",
+    "name": "Ton Balıklı Bulgur Kasesi",
+    "description": "Ton Balıklı Bulgur Kasesi, cut hedeflerine uygun dengeli bir bowl olarak öğle için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 355.0,
+    "proteinPerServing": 42.0,
+    "carbPerServing": 32.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "öğle",
+      "yüksek protein",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "ton balığı (suda konserve)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pişmiş bulgur",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "domates-salatalık",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Bulguru haşla.",
+      "Ton balığını süz, sebzeyle karıştır.",
+      "Zeytinyağı+limon sos ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_023.jpg"
+  },
+  {
+    "id": "xlsx_003",
+    "name": "Az Yağlı Izgara Köfte + Roka Salatası",
+    "description": "Az Yağlı Izgara Köfte + Roka Salatası, cut / maintain hedeflerine uygun hafif ama doyurucu bir salata olarak öğle / akşam için hazırlandı.",
+    "category": "salata",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍖",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 42.0,
+    "carbPerServing": 4.0,
+    "fatPerServing": 14.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "yağsız dana kıyma",
+        "amount": 180.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "yumurta beyazı",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soğan, maydanoz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "roka",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Kıymayı yoğur, köfte şekillendir.",
+      "Izgara veya Teflon tavada yağsız pişir.",
+      "Roka salatası yanında servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_062.jpg"
+  },
+  {
+    "id": "xlsx_004",
+    "name": "Hindi Güveç (Sebzeli)",
+    "description": "Hindi Güveç (Sebzeli), cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 14,
+    "cookTimeMinutes": 21,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 46.0,
+    "carbPerServing": 14.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "zor",
+    "ingredients": [
+      {
+        "name": "hindi göğsü",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "karışık sebze (kabak, biber, soğan)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates (doğranmış)",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "kekik",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Hindi kuşbaşı doğra.",
+      "Sebzelerle güveç kabına diz.",
+      "180°C'de 30dk pişir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_004.jpg"
+  },
+  {
+    "id": "xlsx_005",
+    "name": "Levrek Izgara + Haşlanmış Brokoli",
+    "description": "Levrek Izgara + Haşlanmış Brokoli, cut hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 295.0,
+    "proteinPerServing": 48.0,
+    "carbPerServing": 8.0,
+    "fatPerServing": 9.0,
+    "tags": [
+      "cut",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "levrek fileto",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "brokoli",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon, sarımsak, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Levreği zeytinyağı-sarımsak-limonla marine et.",
+      "Izgarada 4+4dk pişir.",
+      "Brokoli buharda haşlanır."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_057.jpg"
+  },
+  {
+    "id": "xlsx_006",
+    "name": "Lor Peynirli Ispanaklı Omlet",
+    "description": "Lor Peynirli Ispanaklı Omlet, cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak sabah için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 4,
+    "cookTimeMinutes": 6,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 290.0,
+    "proteinPerServing": 30.0,
+    "carbPerServing": 3.0,
+    "fatPerServing": 18.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "sabah",
+      "yüksek protein",
+      "düşük karb",
+      "hızlı",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tam yumurta",
+        "amount": 3.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "lor peyniri (yağsız)",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "taze ıspanak",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Yumurtaları çırp.",
+      "Tavada ıspanak sol.",
+      "Yumurtayı dök, lor ekle, kapat."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "xlsx_007",
+    "name": "Mercimekli Fırın Köfte",
+    "description": "Mercimekli Fırın Köfte, genel / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 12,
+    "cookTimeMinutes": 18,
+    "imageEmoji": "🍖",
+    "kcalPerServing": 360.0,
+    "proteinPerServing": 34.0,
+    "carbPerServing": 28.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "genel",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "pişmiş yeşil mercimek",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "yağsız dana kıyma",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "yumurta",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soğan, kimyon, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "tam buğday unu",
+        "amount": 2.0,
+        "unit": "yemek kaşığı",
+        "category": "tahıl"
+      }
+    ],
+    "steps": [
+      "Hepsini yoğur, köfte şekillendir.",
+      "200°C fırında 20dk pişir."
+    ],
+    "imageAsset": "assets/recipes/images/ana_001.jpg"
+  },
+  {
+    "id": "xlsx_008",
+    "name": "Nohutlu Tavuk Kavurma",
+    "description": "Nohutlu Tavuk Kavurma, bulk / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 410.0,
+    "proteinPerServing": 48.0,
+    "carbPerServing": 22.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "bulk",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "tavuk göğsü (kuşbaşı)",
+        "amount": 180.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "haşlanmış nohut",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "biber+soğan",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "salça, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Tavuğu zeytinyağında mühürle.",
+      "Sebze+salça ekle, çevir.",
+      "Nohut ekle, 5dk daha pişir."
+    ],
+    "imageAsset": "assets/recipes/images/ana_003.jpg"
+  },
+  {
+    "id": "xlsx_009",
+    "name": "Ton Balığı Dolgulu Biber",
+    "description": "Ton Balığı Dolgulu Biber, cut hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 270.0,
+    "proteinPerServing": 40.0,
+    "carbPerServing": 10.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "cut",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "ton balığı (suda)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "orta boy biber",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "lor peyniri",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "maydanoz, limon, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Ton balığı+lor+maydanoz karıştır.",
+      "Biberlerin içini boşalt.",
+      "Doldurup fırında 15dk pişir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_009.jpg"
+  },
+  {
+    "id": "xlsx_010",
+    "name": "Yumurtalı Ispanak Kavurma",
+    "description": "Yumurtalı Ispanak Kavurma, cut hedeflerine uygun yüksek proteinli bir ana öğün olarak sabah / öğle için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 7,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 255.0,
+    "proteinPerServing": 22.0,
+    "carbPerServing": 6.0,
+    "fatPerServing": 16.0,
+    "tags": [
+      "cut",
+      "sabah",
+      "öğle",
+      "düşük karb",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "taze ıspanak",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yumurta",
+        "amount": 3.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarımsak",
+        "amount": 1.0,
+        "unit": "diş",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Sarımsak zeytinyağında kavur.",
+      "Ispanak ekle, sol.",
+      "Yumurtaları kır, karıştırarak pişir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "xlsx_011",
+    "name": "Hindi Köfte + Yoğurt Sos",
+    "description": "Hindi Köfte + Yoğurt Sos, cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 320.0,
+    "proteinPerServing": 46.0,
+    "carbPerServing": 6.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "hindi kıyma",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "yumurta beyazı",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soğan, maydanoz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "süzme yoğurt",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "sarımsak, dereotu",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hindi kıymadan köfte yap, ızgara.",
+      "Yoğurt+sarımsak+dereotu sos hazırla.",
+      "Sosla servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_001.jpg"
+  },
+  {
+    "id": "xlsx_012",
+    "name": "Somon Fırın + Kinoa",
+    "description": "Somon Fırın + Kinoa, bulk / genel hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 480.0,
+    "proteinPerServing": 42.0,
+    "carbPerServing": 24.0,
+    "fatPerServing": 22.0,
+    "tags": [
+      "bulk",
+      "genel",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "somon fileto",
+        "amount": 180.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pişmiş kinoa",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "roka",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon, dereotu, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Somonu limon-dereotlu marine et.",
+      "200°C fırında 18dk pişir.",
+      "Kinoa ve roka ile servis."
+    ],
+    "imageAsset": "assets/recipes/images/ana_001.jpg"
+  },
+  {
+    "id": "xlsx_013",
+    "name": "Tavuk Şiş + Bulgur Pilavı",
+    "description": "Tavuk Şiş + Bulgur Pilavı, bulk / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak öğle / akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 12,
+    "cookTimeMinutes": 18,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 430.0,
+    "proteinPerServing": 48.0,
+    "carbPerServing": 40.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "bulk",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "tavuk göğsü (kuşbaşı)",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "kuru bulgur",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "yoğurt-zeytinyağı-baharat marine",
+        "amount": 1,
+        "unit": "adet",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "biber, soğan",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Tavuğu marine et, şişe diz.",
+      "Izgarada pişir.",
+      "Bulgur pilavıyla servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_001.jpg"
+  },
+  {
+    "id": "xlsx_014",
+    "name": "Kıymalı Kabak Dolması (Düşük Yağ)",
+    "description": "Kıymalı Kabak Dolması (Düşük Yağ), cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 16,
+    "cookTimeMinutes": 24,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 340.0,
+    "proteinPerServing": 32.0,
+    "carbPerServing": 28.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "zor",
+    "ingredients": [
+      {
+        "name": "orta boy kabak",
+        "amount": 3.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yağsız dana kıyma",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pirinç",
+        "amount": 40.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "soğan, domates, maydanoz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tuz, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Kabakları oyukla.",
+      "Kıyma+pirinç+soğan iç harç yap.",
+      "Doldur, suda pişir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_004.jpg"
+  },
+  {
+    "id": "xlsx_015",
+    "name": "Fırın Somon + Buharda Sebze",
+    "description": "Fırın Somon + Buharda Sebze, cut / genel hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 380.0,
+    "proteinPerServing": 38.0,
+    "carbPerServing": 10.0,
+    "fatPerServing": 20.0,
+    "tags": [
+      "cut",
+      "genel",
+      "akşam",
+      "yüksek protein",
+      "düşük karb"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "somon fileto",
+        "amount": 160.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "brokoli",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kabak",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon, sarımsak, zeytinyağı (1 tatlı kaşığı)",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Somonu marine et, fırına koy 180°C/18dk.",
+      "Sebzeler buharda 8dk haşlanır."
+    ],
+    "imageAsset": "assets/recipes/images/ana_001.jpg"
+  },
+  {
+    "id": "xlsx_016",
+    "name": "Nohut Salatası Protein Bowl",
+    "description": "Nohut Salatası Protein Bowl, genel hedeflerine uygun hafif ama doyurucu bir salata olarak öğle için hazırlandı.",
+    "category": "salata",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥗",
+    "kcalPerServing": 380.0,
+    "proteinPerServing": 20.0,
+    "carbPerServing": 38.0,
+    "fatPerServing": 14.0,
+    "tags": [
+      "genel",
+      "öğle",
+      "hızlı"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "haşlanmış nohut",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "salatalık-domates",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "beyaz peynir",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "yemek kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon, maydanoz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Nohut ve sebzeleri karıştır.",
+      "Peynir ekle.",
+      "Zeytinyağı+limon sos."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_023.jpg"
+  },
+  {
+    "id": "xlsx_017",
+    "name": "Dana Kıyma + Fırın Patates (Porsiyon Kontrollü)",
+    "description": "Dana Kıyma + Fırın Patates (Porsiyon Kontrollü), bulk hedeflerine uygun yüksek proteinli bir ana öğün olarak akşam için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 14,
+    "cookTimeMinutes": 21,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 440.0,
+    "proteinPerServing": 36.0,
+    "carbPerServing": 44.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "bulk",
+      "akşam",
+      "yüksek protein"
+    ],
+    "difficulty": "zor",
+    "ingredients": [
+      {
+        "name": "yağsız dana kıyma",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "patates (fırın)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates sosu",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "soğan, sarımsak, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Patates dilimle, fırınla.",
+      "Kıymayı soğan+sarmısak+sosla pişir.",
+      "Birlikte servis et."
+    ],
+    "imageAsset": "assets/recipes/images/ana_001.jpg"
+  },
+  {
+    "id": "xlsx_018",
+    "name": "Lor Peynirli Tam Buğday Krep",
+    "description": "Lor Peynirli Tam Buğday Krep, maintain / genel hedeflerine uygun yüksek proteinli bir ana öğün olarak sabah için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 24.0,
+    "carbPerServing": 22.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "maintain",
+      "genel",
+      "sabah",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yumurta",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tam buğday unu",
+        "amount": 30.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "süt",
+        "amount": 80.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "lor peyniri",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "maydanoz, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yumurta+un+süt karıştır.",
+      "Tavada ince krep pişir.",
+      "Lor+maydanoz ile doldur."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "xlsx_019",
+    "name": "Süzme Yoğurt + Granola + Çilek Bowl",
+    "description": "Süzme Yoğurt + Granola + Çilek Bowl, genel hedeflerine uygun dengeli bir bowl olarak sabah / ara öğün için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 305.0,
+    "proteinPerServing": 16.0,
+    "carbPerServing": 38.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "genel",
+      "sabah",
+      "ara öğün",
+      "hızlı",
+      "kahvaltılık",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "süzme yoğurt",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "granola (şekersiz)",
+        "amount": 30.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "taze çilek",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yoğurdu kaseye al.",
+      "Granola ve çilek ekle.",
+      "Bal gezdir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_030.jpg"
+  },
+  {
+    "id": "xlsx_020",
+    "name": "Muzlu Protein Smoothie Bowl",
+    "description": "Muzlu Protein Smoothie Bowl, post-workout / bulk hedeflerine uygun pratik bir smoothie olarak sabah / post-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 2,
+    "imageEmoji": "🥤",
+    "kcalPerServing": 395.0,
+    "proteinPerServing": 32.0,
+    "carbPerServing": 46.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "post-workout",
+      "bulk",
+      "sabah",
+      "yüksek protein",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dondurulmuş muz",
+        "amount": 120.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "protein tozu (whey, vanilya)",
+        "amount": 30.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "badem sütü",
+        "amount": 80.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 15.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "yulaf",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "tahıl"
+      }
+    ],
+    "steps": [
+      "Muz+protein+badem sütü blenderla.",
+      "Kalın kıvamda kaseye al.",
+      "Fıstık ezmesi+yulaf üstüne."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_020.jpg"
+  },
+  {
+    "id": "xlsx_021",
+    "name": "Avokado + Yumurta Bowl",
+    "description": "Avokado + Yumurta Bowl, genel / maintain hedeflerine uygun dengeli bir bowl olarak sabah için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 4,
+    "cookTimeMinutes": 6,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 16.0,
+    "carbPerServing": 10.0,
+    "fatPerServing": 24.0,
+    "tags": [
+      "genel",
+      "maintain",
+      "sabah",
+      "düşük karb",
+      "hızlı",
+      "kahvaltılık",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "avokado",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kiraz domates",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon suyu",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tuz, pul biber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Avokadoyu dilimle.",
+      "Yumurtaları haşla, ikiye böl.",
+      "Domates+limon+pul biberle servis."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_027.jpg"
+  },
+  {
+    "id": "xlsx_022",
+    "name": "Tavuk + Kinoa Bowl",
+    "description": "Tavuk + Kinoa Bowl, cut / maintain hedeflerine uygun dengeli bir bowl olarak öğle / akşam için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 355.0,
+    "proteinPerServing": 38.0,
+    "carbPerServing": 26.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "bowl"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "ızgara tavuk göğsü",
+        "amount": 120.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pişmiş kinoa",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "salatalık",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Tavuğu ızgarala, dilimle.",
+      "Kinoa+sebze karıştır.",
+      "Üstüne tavuk diz, sos ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_022.jpg"
+  },
+  {
+    "id": "xlsx_023",
+    "name": "Ton Balığı Salata Bowl",
+    "description": "Ton Balığı Salata Bowl, cut hedeflerine uygun hafif ama doyurucu bir salata olarak öğle / ara öğün için hazırlandı.",
+    "category": "salata",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥗",
+    "kcalPerServing": 230.0,
+    "proteinPerServing": 34.0,
+    "carbPerServing": 8.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "cut",
+      "öğle",
+      "ara öğün",
+      "yüksek protein",
+      "düşük karb",
+      "hızlı"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "ton balığı (suda konserve)",
+        "amount": 130.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "marul",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "salatalık",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon, karabiber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Ton balığını süz.",
+      "Tüm sebzeleri doğra.",
+      "Karıştır, zeytinyağı+limon sos."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_023.jpg"
+  },
+  {
+    "id": "xlsx_024",
+    "name": "Lor Peyniri + Çilek + Bal Bowl",
+    "description": "Lor Peyniri + Çilek + Bal Bowl, cut / genel hedeflerine uygun dengeli bir bowl olarak sabah / ara öğün için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 220.0,
+    "proteinPerServing": 20.0,
+    "carbPerServing": 22.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "cut",
+      "genel",
+      "sabah",
+      "ara öğün",
+      "hızlı",
+      "kahvaltılık",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "lor peyniri (yağsız)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "çilek",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "ceviz içi",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Lor peynirini kaseye al.",
+      "Çilek diz.",
+      "Bal gezdirip ceviz ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "xlsx_025",
+    "name": "Yulaf + Fıstık Ezmesi + Muz Bowl",
+    "description": "Yulaf + Fıstık Ezmesi + Muz Bowl, pre-workout / bulk hedeflerine uygun dengeli bir bowl olarak sabah / pre-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 5,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 460.0,
+    "proteinPerServing": 16.0,
+    "carbPerServing": 62.0,
+    "fatPerServing": 14.0,
+    "tags": [
+      "pre-workout",
+      "bulk",
+      "sabah",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman öncesi",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf (ham)",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "orta muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yulafı sütle pişir (5dk).",
+      "Kaseye al.",
+      "Muz+fıstık ezmesi+tarçın ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_025.jpg"
+  },
+  {
+    "id": "xlsx_026",
+    "name": "Humus + Taze Sebze Bowl",
+    "description": "Humus + Taze Sebze Bowl, cut / genel hedeflerine uygun dengeli bir bowl olarak ara öğün için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 220.0,
+    "proteinPerServing": 8.0,
+    "carbPerServing": 24.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "cut",
+      "genel",
+      "ara öğün",
+      "hızlı",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "humus",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "havuç çubuk",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "salatalık çubuk",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kırmızı biber",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon, pul biber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Humusu kaseye al.",
+      "Sebzeleri çubuk kesilmis diz.",
+      "Limon + pul biber."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_002.jpg"
+  },
+  {
+    "id": "xlsx_027",
+    "name": "Haşlanmış Yumurta + Bulgur Bowl",
+    "description": "Haşlanmış Yumurta + Bulgur Bowl, maintain / genel hedeflerine uygun dengeli bir bowl olarak öğle / ara öğün için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 18.0,
+    "carbPerServing": 34.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "maintain",
+      "genel",
+      "öğle",
+      "ara öğün",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "pişmiş bulgur",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "maydanoz",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Bulguru haşla.",
+      "Yumurtaları haşla, kes.",
+      "Hepsini karıştır, sos ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_027.jpg"
+  },
+  {
+    "id": "xlsx_028",
+    "name": "Kefir + Yulaf + Meyve Bowl",
+    "description": "Kefir + Yulaf + Meyve Bowl, genel hedeflerine uygun dengeli bir bowl olarak sabah / ara öğün için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 340.0,
+    "proteinPerServing": 12.0,
+    "carbPerServing": 56.0,
+    "fatPerServing": 6.0,
+    "tags": [
+      "genel",
+      "sabah",
+      "ara öğün",
+      "hızlı",
+      "kahvaltılık",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "kefir",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "yulaf",
+        "amount": 40.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "muz (dilim)",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yaban mersini",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yulafı kefirle önceden ıslatabilir ya da direkt karıştır.",
+      "Muz+yaban mersini diz.",
+      "Bal gezdir."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_003.jpg"
+  },
+  {
+    "id": "xlsx_029",
+    "name": "Nohut + Zeytinyağı + Limon Bowl",
+    "description": "Nohut + Zeytinyağı + Limon Bowl, cut / maintain hedeflerine uygun dengeli bir bowl olarak ara öğün / öğle için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 275.0,
+    "proteinPerServing": 12.0,
+    "carbPerServing": 36.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "ara öğün",
+      "öğle",
+      "hızlı",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "haşlanmış nohut",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon suyu",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kimyon, pul biber, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "maydanoz",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Nohut ısıt ya da oda sıcaklığında kullan.",
+      "Zeytinyağı+limon+baharat ekle.",
+      "Maydanoz serp."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_057.jpg"
+  },
+  {
+    "id": "xlsx_030",
+    "name": "Süzme Yoğurt + Ceviz + Bal",
+    "description": "Süzme Yoğurt + Ceviz + Bal, genel hedeflerine uygun kontrollü bir ara öğün olarak ara öğün / sabah için hazırlandı.",
+    "category": "atistirmalik",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "⚡",
+    "kcalPerServing": 265.0,
+    "proteinPerServing": 14.0,
+    "carbPerServing": 20.0,
+    "fatPerServing": 14.0,
+    "tags": [
+      "genel",
+      "ara öğün",
+      "sabah",
+      "hızlı",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "süzme yoğurt",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "ceviz içi",
+        "amount": 15.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "bal (10g)",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yoğurdu kaseye al.",
+      "Ceviz ufalayarak ekle.",
+      "Bal+tarçın gezdir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_030.jpg"
+  },
+  {
+    "id": "xlsx_031",
+    "name": "Peynirli Tam Buğday Tost + Domates",
+    "description": "Peynirli Tam Buğday Tost + Domates, maintain / genel hedeflerine uygun kontrollü bir ara öğün olarak sabah / ara öğün için hazırlandı.",
+    "category": "atistirmalik",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "⚡",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 16.0,
+    "carbPerServing": 38.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "maintain",
+      "genel",
+      "sabah",
+      "ara öğün",
+      "hızlı",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dilim tam buğday ekmek",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "az yağlı beyaz peynir",
+        "amount": 50.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "domates",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "maydanoz, zeytinyağı (1/2 tatlı kaşığı)",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Ekmeği tosta koy.",
+      "Üstüne peynir erisin.",
+      "Yanında domates + maydanoz."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_033.jpg"
+  },
+  {
+    "id": "xlsx_032",
+    "name": "Muzlu Süzme Yoğurt Protein Bowl",
+    "description": "Muzlu Süzme Yoğurt Protein Bowl, post-workout / maintain hedeflerine uygun dengeli bir bowl olarak post-workout / sabah için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 430.0,
+    "proteinPerServing": 22.0,
+    "carbPerServing": 52.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "post-workout",
+      "maintain",
+      "sabah",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman sonrası",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "süzme yoğurt",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "granola",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "tahıl"
+      }
+    ],
+    "steps": [
+      "Yoğurdu kaseye al.",
+      "Muz dilimle.",
+      "Fıstık ezmesi + granola ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_032.jpg"
+  },
+  {
+    "id": "xlsx_033",
+    "name": "Avokado Toast + Haşlanmış Yumurta",
+    "description": "Avokado Toast + Haşlanmış Yumurta, genel hedeflerine uygun kontrollü bir ara öğün olarak sabah / ara öğün için hazırlandı.",
+    "category": "atistirmalik",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 370.0,
+    "proteinPerServing": 18.0,
+    "carbPerServing": 30.0,
+    "fatPerServing": 20.0,
+    "tags": [
+      "genel",
+      "sabah",
+      "ara öğün",
+      "hızlı",
+      "kahvaltılık"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dilim tam buğday ekmek",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "avokado",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "limon, pul biber, tuz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Ekmeği kızart.",
+      "Avokadoyu ez, üstüne yay.",
+      "Yumurta dilimle, diz."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_033.jpg"
+  },
+  {
+    "id": "xlsx_034",
+    "name": "Karnabahar + Tavuk Kaşığı Bowl",
+    "description": "Karnabahar + Tavuk Kaşığı Bowl, cut hedeflerine uygun dengeli bir bowl olarak öğle / akşam için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 255.0,
+    "proteinPerServing": 34.0,
+    "carbPerServing": 12.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "öğle",
+      "akşam",
+      "yüksek protein",
+      "düşük karb",
+      "bowl"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "karnabahar",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "ızgara tavuk (dilim)",
+        "amount": 120.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "sarımsak, limon, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Karnabaharı buharda pişir.",
+      "Sarımsak+zeytinyağında kavur.",
+      "Tavuk dilimleri üstüne."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_034.jpg"
+  },
+  {
+    "id": "xlsx_035",
+    "name": "Muzlu Yulaf Lapası",
+    "description": "Muzlu Yulaf Lapası, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 5,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 420.0,
+    "proteinPerServing": 14.0,
+    "carbPerServing": 72.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf (ham)",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "yarım yağlı süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yulafı sütle pişir (5dk kaynat).",
+      "Kaseye al.",
+      "Muz+bal+tarçın ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_035.jpg"
+  },
+  {
+    "id": "xlsx_036",
+    "name": "Tam Buğday Ekmek + Bal + Fıstık Ezmesi",
+    "description": "Tam Buğday Ekmek + Bal + Fıstık Ezmesi, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 355.0,
+    "proteinPerServing": 12.0,
+    "carbPerServing": 48.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dilim tam buğday ekmek (60g)",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "fıstık ezmesi (şekersiz)",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "bal (10g)",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Ekmeği hafifçe kızart.",
+      "Fıstık ezmesi sür.",
+      "Bal gezdir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_052.jpg"
+  },
+  {
+    "id": "xlsx_037",
+    "name": "Pirinç + Haşlama Tavuk (Sade)",
+    "description": "Pirinç + Haşlama Tavuk (Sade), bulk hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 380.0,
+    "proteinPerServing": 32.0,
+    "carbPerServing": 44.0,
+    "fatPerServing": 4.0,
+    "tags": [
+      "bulk",
+      "pre-workout",
+      "yüksek protein",
+      "antrenman öncesi"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "pişmiş pirinç",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "haşlama tavuk göğsü",
+        "amount": 120.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "tuz, maydanoz",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Pirinç haşla.",
+      "Tavuk haşla, dilimle.",
+      "Yanyana servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_022.jpg"
+  },
+  {
+    "id": "xlsx_038",
+    "name": "Muz + Süzme Yoğurt Smoothie",
+    "description": "Muz + Süzme Yoğurt Smoothie, genel hedeflerine uygun pratik bir smoothie olarak pre-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥤",
+    "kcalPerServing": 350.0,
+    "proteinPerServing": 18.0,
+    "carbPerServing": 54.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "büyük muz (130g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "süzme yoğurt",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "süt",
+        "amount": 150.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hepsini blenderdan geçir.",
+      "Hemen tüket."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_038.jpg"
+  },
+  {
+    "id": "xlsx_039",
+    "name": "Hurma + Fındık Karışımı",
+    "description": "Hurma + Fındık Karışımı, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 2,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 280.0,
+    "proteinPerServing": 5.0,
+    "carbPerServing": 44.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "kuru hurma (60g)",
+        "amount": 4.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fındık",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tahin",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hurmaları dişle yarıla.",
+      "Yanında fındık+tahin."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_040.jpg"
+  },
+  {
+    "id": "xlsx_040",
+    "name": "Tam Buğday Makarna + Ton Balığı (Hafif)",
+    "description": "Tam Buğday Makarna + Ton Balığı (Hafif), bulk hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 460.0,
+    "proteinPerServing": 32.0,
+    "carbPerServing": 68.0,
+    "fatPerServing": 6.0,
+    "tags": [
+      "bulk",
+      "pre-workout",
+      "yüksek protein",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tam buğday makarna (kuru ağırlık)",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "ton balığı (suda)",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "domates sosu (50g)",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarımsak, fesleğen",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Makarna haşla.",
+      "Sosu hazırla.",
+      "Ton balığı son anda ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_040.jpg"
+  },
+  {
+    "id": "xlsx_041",
+    "name": "Ev Yapımı Granola Bar",
+    "description": "Ev Yapımı Granola Bar, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / ara öğün için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 210.0,
+    "proteinPerServing": 5.0,
+    "carbPerServing": 34.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "ara öğün",
+      "antrenman öncesi"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "yulaf",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "bal",
+        "amount": 30.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "kuru üzüm",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "ay çekirdeği",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hepsini karıştır.",
+      "Fırın kağıdına bas.",
+      "160°C/15dk pişir, soğuyana kadar bekle, kes."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "xlsx_042",
+    "name": "Meyve + Yoğurt Parfait (Katmanlı)",
+    "description": "Meyve + Yoğurt Parfait (Katmanlı), genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / sabah için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 295.0,
+    "proteinPerServing": 10.0,
+    "carbPerServing": 46.0,
+    "fatPerServing": 7.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "sabah",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yoğurt (tam yağlı)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "çilek",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "muz",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "granola",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "tahıl"
+      }
+    ],
+    "steps": [
+      "Kaseye yoğurt, üstüne meyve, üstüne granola kat kat."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_058.jpg"
+  },
+  {
+    "id": "xlsx_043",
+    "name": "Yulaf + Kuru Meyve + Fındık Bowl",
+    "description": "Yulaf + Kuru Meyve + Fındık Bowl, bulk hedeflerine uygun dengeli bir bowl olarak pre-workout / sabah için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 2,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 440.0,
+    "proteinPerServing": 14.0,
+    "carbPerServing": 66.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "bulk",
+      "pre-workout",
+      "sabah",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman öncesi",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "kuru kayısı",
+        "amount": 15.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "kuru incir",
+        "amount": 15.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fındık",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yulafı sütle pişir.",
+      "Kuru meyve + fındık üstüne ekle."
+    ],
+    "imageAsset": "assets/recipes/images/bowl_003.jpg"
+  },
+  {
+    "id": "xlsx_044",
+    "name": "Pirinç Keki + Fıstık Ezmesi",
+    "description": "Pirinç Keki + Fıstık Ezmesi, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / ara öğün için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 2,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 230.0,
+    "proteinPerServing": 6.0,
+    "carbPerServing": 32.0,
+    "fatPerServing": 9.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "ara öğün",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "pirinç keki (30g)",
+        "amount": 3.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Pirinç kekinin üstüne fıstık ezmesi sür.",
+      "Bal gezdirip servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "xlsx_045",
+    "name": "Muz + Yulaf + Süt Smoothie",
+    "description": "Muz + Yulaf + Süt Smoothie, genel hedeflerine uygun pratik bir smoothie olarak pre-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥤",
+    "kcalPerServing": 340.0,
+    "proteinPerServing": 11.0,
+    "carbPerServing": 60.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yulaf",
+        "amount": 40.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "yarım yağlı süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Hepsini blenderla.",
+      "Soğuk servis."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_035.jpg"
+  },
+  {
+    "id": "xlsx_046",
+    "name": "Hurmalı Enerji Topları (3 adet)",
+    "description": "Hurmalı Enerji Topları (3 adet), genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / ara öğün için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 240.0,
+    "proteinPerServing": 6.0,
+    "carbPerServing": 38.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "ara öğün",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "hurma (çekirdeksiz)",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yulaf",
+        "amount": 40.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "kakao tozu",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hurmaları mutfak robotunda çek.",
+      "Diğerleriyle karıştır.",
+      "Top şekillendir, buzdolabında 1 saat beklet."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "xlsx_047",
+    "name": "Kepekli Ekmek + Yumurta + Domates",
+    "description": "Kepekli Ekmek + Yumurta + Domates, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / sabah için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 5,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 310.0,
+    "proteinPerServing": 18.0,
+    "carbPerServing": 34.0,
+    "fatPerServing": 9.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "sabah",
+      "hızlı",
+      "kahvaltılık",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "dilim kepekli ekmek (60g)",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tuz, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Yumurta haşla.",
+      "Ekmeğin üstüne diz.",
+      "Domates yan yana."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_033.jpg"
+  },
+  {
+    "id": "xlsx_048",
+    "name": "Nohut + Pilav Kasesi (Spor Öncesi)",
+    "description": "Nohut + Pilav Kasesi (Spor Öncesi), bulk hedeflerine uygun dengeli bir bowl olarak pre-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 330.0,
+    "proteinPerServing": 11.0,
+    "carbPerServing": 56.0,
+    "fatPerServing": 6.0,
+    "tags": [
+      "bulk",
+      "pre-workout",
+      "hızlı",
+      "antrenman öncesi",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "pişmiş pirinç",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "haşlanmış nohut",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "maydanoz",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Pirinç ve nohut karıştır.",
+      "Zeytinyağı+maydanoz."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_027.jpg"
+  },
+  {
+    "id": "xlsx_049",
+    "name": "Elma + Fıstık Ezmesi + Badem",
+    "description": "Elma + Fıstık Ezmesi + Badem, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak pre-workout / ara öğün için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 270.0,
+    "proteinPerServing": 7.0,
+    "carbPerServing": 34.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "genel",
+      "pre-workout",
+      "ara öğün",
+      "hızlı",
+      "antrenman öncesi"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "orta elma (150g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 20.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "badem (çiğ)",
+        "amount": 10.0,
+        "unit": "g",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Elmayı dilimlere kes.",
+      "Fıstık ezmesini bul.",
+      "Badem yanında."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "xlsx_050",
+    "name": "Tavuk + Pirinç (Klasik Post-Workout)",
+    "description": "Tavuk + Pirinç (Klasik Post-Workout), bulk / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 465.0,
+    "proteinPerServing": 50.0,
+    "carbPerServing": 50.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "bulk",
+      "maintain",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "ızgara tavuk göğsü",
+        "amount": 180.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pişmiş pirinç",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "buharda brokoli",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "tuz, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Tavuğu ızgara/fırında pişir.",
+      "Pirinç haşla.",
+      "Brokoli buharda. Hepsi yanyana."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_022.jpg"
+  },
+  {
+    "id": "xlsx_051",
+    "name": "Protein Shake + Muz",
+    "description": "Protein Shake + Muz, bulk hedeflerine uygun pratik bir smoothie olarak post-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": -1,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 390.0,
+    "proteinPerServing": 36.0,
+    "carbPerServing": 48.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "bulk",
+      "post-workout",
+      "yüksek protein",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "whey protein (vanilya)",
+        "amount": 30.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "yarım yağlı süt",
+        "amount": 250.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hepsini shaker'da karıştır ya da blenderla.",
+      "Hemen tüket."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_058.jpg"
+  },
+  {
+    "id": "xlsx_052",
+    "name": "Ton Balığı + Tam Buğday Ekmek + Domates",
+    "description": "Ton Balığı + Tam Buğday Ekmek + Domates, cut / maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 365.0,
+    "proteinPerServing": 40.0,
+    "carbPerServing": 36.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "cut",
+      "maintain",
+      "post-workout",
+      "yüksek protein",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "ton balığı (suda)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "dilim tam buğday ekmek",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "domates",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Ton balığını süz, zeytinyağı+limonla karıştır.",
+      "Ekmeğin üstüne yay.",
+      "Domates ekle."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_052.jpg"
+  },
+  {
+    "id": "xlsx_053",
+    "name": "Haşlanmış Yumurta + Yulaf Bowl",
+    "description": "Haşlanmış Yumurta + Yulaf Bowl, maintain hedeflerine uygun dengeli bir bowl olarak post-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 6,
+    "cookTimeMinutes": 9,
+    "imageEmoji": "🍳",
+    "kcalPerServing": 430.0,
+    "proteinPerServing": 28.0,
+    "carbPerServing": 48.0,
+    "fatPerServing": 12.0,
+    "tags": [
+      "maintain",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "yulaf",
+        "amount": 60.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "haşlanmış yumurta",
+        "amount": 3.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yulafı sütle pişir.",
+      "Yumurta haşla.",
+      "Yulafın yanında servis, bal yulafa."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_053.jpg"
+  },
+  {
+    "id": "xlsx_054",
+    "name": "Lor Peyniri + Meyve + Bal (Hızlı)",
+    "description": "Lor Peyniri + Meyve + Bal (Hızlı), cut hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 265.0,
+    "proteinPerServing": 26.0,
+    "carbPerServing": 32.0,
+    "fatPerServing": 2.0,
+    "tags": [
+      "cut",
+      "post-workout",
+      "yüksek protein",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "lor peyniri (yağsız)",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "çilek veya muz",
+        "amount": 100.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Lor peynirini kaseye al.",
+      "Meyve diz.",
+      "Bal gezdirip servis."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_006.jpg"
+  },
+  {
+    "id": "xlsx_055",
+    "name": "Hindi + Bulgur + Zeytinyağı Bowl",
+    "description": "Hindi + Bulgur + Zeytinyağı Bowl, maintain / cut hedeflerine uygun dengeli bir bowl olarak post-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 410.0,
+    "proteinPerServing": 46.0,
+    "carbPerServing": 32.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "maintain",
+      "cut",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası",
+      "bowl"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "ızgara hindi göğsü",
+        "amount": 180.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "pişmiş bulgur",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "roka",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Hindiyi ızgarala.",
+      "Bulgur haşla.",
+      "Roka+zeytinyağı+limonla servis."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_022.jpg"
+  },
+  {
+    "id": "xlsx_056",
+    "name": "Nohut + Yoğurt Bowl",
+    "description": "Nohut + Yoğurt Bowl, genel hedeflerine uygun dengeli bir bowl olarak post-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 5,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🥣",
+    "kcalPerServing": 385.0,
+    "proteinPerServing": 24.0,
+    "carbPerServing": 42.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "genel",
+      "post-workout",
+      "hızlı",
+      "antrenman sonrası",
+      "bowl"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "haşlanmış nohut",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "süzme yoğurt",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "sarımsak, pul biber",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Yoğurdu sarımsak+zeytinyağıyla karıştır.",
+      "Üstüne nohut koy.",
+      "Pul biber serp."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_001.jpg"
+  },
+  {
+    "id": "xlsx_057",
+    "name": "Somon + Haşlanmış Patates (Hafif)",
+    "description": "Somon + Haşlanmış Patates (Hafif), maintain hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🐟",
+    "kcalPerServing": 485.0,
+    "proteinPerServing": 38.0,
+    "carbPerServing": 30.0,
+    "fatPerServing": 22.0,
+    "tags": [
+      "maintain",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "somon fileto",
+        "amount": 160.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "haşlanmış patates",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "dereotu, limon",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Somonu 180°C fırında 18dk.",
+      "Patates haşla.",
+      "Zeytinyağı+dereotu+limonla servis."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_057.jpg"
+  },
+  {
+    "id": "xlsx_058",
+    "name": "Muzlu Süt Protein Shake",
+    "description": "Muzlu Süt Protein Shake, bulk hedeflerine uygun pratik bir smoothie olarak post-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 450.0,
+    "proteinPerServing": 36.0,
+    "carbPerServing": 50.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "bulk",
+      "post-workout",
+      "yüksek protein",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "tam yağlı süt",
+        "amount": 250.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "muz (118g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "whey protein",
+        "amount": 25.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "fıstık ezmesi",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Hepsini blenderdan geçir.",
+      "Hemen tüket."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_058.jpg"
+  },
+  {
+    "id": "xlsx_059",
+    "name": "Tavuk + Nohut + Salata Bowl",
+    "description": "Tavuk + Nohut + Salata Bowl, maintain / cut hedeflerine uygun hafif ama doyurucu bir salata olarak post-workout için hazırlandı.",
+    "category": "salata",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 380.0,
+    "proteinPerServing": 42.0,
+    "carbPerServing": 26.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "maintain",
+      "cut",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "ızgara tavuk",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "haşlanmış nohut",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "baklagil"
+      },
+      {
+        "name": "karışık yeşillik",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Tavuğu ızgara.",
+      "Nohut+yeşillik karıştır.",
+      "Zeytinyağı+limon, üstüne tavuk."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_022.jpg"
+  },
+  {
+    "id": "xlsx_060",
+    "name": "Yoğurt + Protein Bar Parçaları",
+    "description": "Yoğurt + Protein Bar Parçaları, bulk / genel hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 2,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 370.0,
+    "proteinPerServing": 22.0,
+    "carbPerServing": 44.0,
+    "fatPerServing": 9.0,
+    "tags": [
+      "bulk",
+      "genel",
+      "post-workout",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "süzme yoğurt",
+        "amount": 200.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "ev yapımı protein bar (~40g)",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "bal",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Yoğurdu kaseye al.",
+      "Bar ufalayarak üstüne ekle.",
+      "Bal gezdir."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_041.jpg"
+  },
+  {
+    "id": "xlsx_061",
+    "name": "Mercimek Çorbası + Tam Buğday Ekmek",
+    "description": "Mercimek Çorbası + Tam Buğday Ekmek, genel hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍲",
+    "kcalPerServing": 350.0,
+    "proteinPerServing": 18.0,
+    "carbPerServing": 52.0,
+    "fatPerServing": 8.0,
+    "tags": [
+      "genel",
+      "post-workout",
+      "antrenman sonrası"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "mercimek çorbası (ev yapımı)",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "baklagil"
+      },
+      {
+        "name": "dilim tam buğday ekmek",
+        "amount": 2.0,
+        "unit": "adet",
+        "category": "tahıl"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      }
+    ],
+    "steps": [
+      "Çorba kırmızı mercimek+soğan+salça ile yap.",
+      "Ekmekle servis et."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_052.jpg"
+  },
+  {
+    "id": "xlsx_062",
+    "name": "Kinoa + Ízgara Tavuk + Sebze Bowl",
+    "description": "Kinoa + Ízgara Tavuk + Sebze Bowl, maintain / genel hedeflerine uygun dengeli bir bowl olarak post-workout için hazırlandı.",
+    "category": "bowl",
+    "servings": 1,
+    "prepTimeMinutes": 10,
+    "cookTimeMinutes": 15,
+    "imageEmoji": "🍗",
+    "kcalPerServing": 420.0,
+    "proteinPerServing": 44.0,
+    "carbPerServing": 28.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "maintain",
+      "genel",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası",
+      "bowl"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "pişmiş kinoa",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "ızgara tavuk",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "roka+domates",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "zeytinyağı",
+        "amount": 1.0,
+        "unit": "tatlı kaşığı",
+        "category": "yağ/sos"
+      },
+      {
+        "name": "limon",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      }
+    ],
+    "steps": [
+      "Kinoa haşla.",
+      "Tavuğu ızgara.",
+      "Kasede diz, zeytinyağı+limon sos."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_062.jpg"
+  },
+  {
+    "id": "xlsx_063",
+    "name": "Lor + Yulaf + Muz Shake",
+    "description": "Lor + Yulaf + Muz Shake, post-workout / cut hedeflerine uygun pratik bir smoothie olarak post-workout için hazırlandı.",
+    "category": "smoothie",
+    "servings": 1,
+    "prepTimeMinutes": 3,
+    "cookTimeMinutes": 0,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 370.0,
+    "proteinPerServing": 28.0,
+    "carbPerServing": 50.0,
+    "fatPerServing": 5.0,
+    "tags": [
+      "post-workout",
+      "cut",
+      "yüksek protein",
+      "hızlı",
+      "antrenman sonrası"
+    ],
+    "difficulty": "kolay",
+    "ingredients": [
+      {
+        "name": "lor peyniri (yağsız)",
+        "amount": 150.0,
+        "unit": "g",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "yulaf",
+        "amount": 40.0,
+        "unit": "g",
+        "category": "tahıl"
+      },
+      {
+        "name": "muz",
+        "amount": 1.0,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "süt",
+        "amount": 200.0,
+        "unit": "ml",
+        "category": "süt ürünleri"
+      },
+      {
+        "name": "tarçın",
+        "amount": 1,
+        "unit": "adet",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Hepsini blenderdan geçir.",
+      "Soğuk ya da oda ısısında iç."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_063.jpg"
+  },
+  {
+    "id": "xlsx_064",
+    "name": "Dana Kıyma + Haşlanmış Makarna (Hafif Yağlı)",
+    "description": "Dana Kıyma + Haşlanmış Makarna (Hafif Yağlı), bulk hedeflerine uygun yüksek proteinli bir ana öğün olarak post-workout için hazırlandı.",
+    "category": "ana_yemek",
+    "servings": 1,
+    "prepTimeMinutes": 8,
+    "cookTimeMinutes": 12,
+    "imageEmoji": "🍽️",
+    "kcalPerServing": 440.0,
+    "proteinPerServing": 36.0,
+    "carbPerServing": 50.0,
+    "fatPerServing": 10.0,
+    "tags": [
+      "bulk",
+      "post-workout",
+      "yüksek protein",
+      "antrenman sonrası"
+    ],
+    "difficulty": "orta",
+    "ingredients": [
+      {
+        "name": "yağsız dana kıyma",
+        "amount": 120.0,
+        "unit": "g",
+        "category": "et"
+      },
+      {
+        "name": "kuru makarna (haşlanmış)",
+        "amount": 80.0,
+        "unit": "g",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "domates sosu (50g)",
+        "amount": 1,
+        "unit": "adet",
+        "category": "sebze/meyve"
+      },
+      {
+        "name": "sarımsak, kekik",
+        "amount": 1,
+        "unit": "tutam",
+        "category": "baharat"
+      }
+    ],
+    "steps": [
+      "Kıymayı sarımsak+sosla pişir.",
+      "Makarna haşla.",
+      "Karıştır."
+    ],
+    "imageAsset": "assets/recipes/images/xlsx_040.jpg"
+  }
+]

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+const _kSupportEmail = String.fromEnvironment(
+  'APP_SUPPORT_EMAIL',
+  defaultValue: 'support@fitmentor.app',
+);
 
 class SettingsHelpScreen extends StatelessWidget {
   const SettingsHelpScreen({super.key});
@@ -7,7 +13,7 @@ class SettingsHelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Yardim')),
+      appBar: AppBar(title: const Text('Yardım')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -22,29 +28,53 @@ class SettingsHelpScreen extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'Yas, boy, kilo, aktivite seviyesi ve hedefe gore otomatik hesaplanir.',
+                  'Yaş, boy, kilo, aktivite seviyesi ve hedefe göre otomatik hesaplanır. '
+                  'Profil → Profili Düzenle adımından güncelleyebilirsin.',
                 ),
               ),
             ],
           ),
           const ExpansionTile(
-            title: Text('Verilerim neden gorunmuyor?'),
+            title: Text('Verilerim neden görünmüyor?'),
             children: [
               Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'Internet baglantini kontrol et ve profil sayfasinda asagi cekip yenile.',
+                  'İnternet bağlantını kontrol et ve profil sayfasında aşağı çekip yenile.',
                 ),
               ),
             ],
           ),
           const ExpansionTile(
-            title: Text('Hedefimi nereden degistiririm?'),
+            title: Text('Hedefimi nereden değiştiririm?'),
             children: [
               Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'Profil > Profili Duzenle adimindan hedef ve temel bilgileri guncelleyebilirsin.',
+                  'Profil → Profili Düzenle adımından hedef ve temel bilgileri güncelleyebilirsin.',
+                ),
+              ),
+            ],
+          ),
+          const ExpansionTile(
+            title: Text('Premium aboneliği nasıl iptal ederim?'),
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'iPhone: Ayarlar → Apple ID → Abonelikler → FitMentor → İptal Et.\n'
+                  'Android: Google Play → Abonelikler → FitMentor → İptal Et.',
+                ),
+              ),
+            ],
+          ),
+          const ExpansionTile(
+            title: Text('Verilerimi nasıl silerim?'),
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'Profil → Gizlilik → Hesabı Sil adımından tüm verilerini kalıcı olarak silebilirsin.',
                 ),
               ),
             ],
@@ -53,17 +83,24 @@ class SettingsHelpScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.email_outlined),
             title: const Text('Destek E-posta'),
-            subtitle: const Text('support@fitnessapp.local'),
+            subtitle: Text(_kSupportEmail),
             trailing: const Icon(Icons.copy_rounded),
             onTap: () async {
-              await Clipboard.setData(
-                const ClipboardData(text: 'support@fitnessapp.local'),
-              );
+              await Clipboard.setData(ClipboardData(text: _kSupportEmail));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('E-posta kopyalandi')),
+                const SnackBar(content: Text('E-posta kopyalandı')),
               );
             },
+          ),
+          ListTile(
+            leading: const Icon(Icons.open_in_new_rounded),
+            title: const Text('E-posta Gönder'),
+            subtitle: Text(_kSupportEmail),
+            onTap: () => launchUrl(
+              Uri.parse('mailto:$_kSupportEmail?subject=FitMentor%20Destek'),
+              mode: LaunchMode.externalApplication,
+            ),
           ),
         ],
       ),

@@ -1,49 +1,45 @@
 import 'package:flutter/foundation.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:logger/logger.dart';
 
-/// Merkezi log yardımcısı.
-/// - Debug modda konsola yazar.
-/// - Production'da hatalar Sentry'ye gönderilir (DSN ayarlıysa).
 class AppLogger {
-  AppLogger._();
+  static final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 5,
+      lineLength: 80,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.none,
+    ),
+    // Sadece Debug modda log bassın
+    level: kReleaseMode ? Level.off : Level.trace,
+  );
 
-  /// Genel debug logu — yalnızca debug modda yazdırılır.
-  static void debug(String message) {
-    if (kDebugMode) {
-      debugPrint(message);
-    }
+  static void v(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.t(message, error: error, stackTrace: stackTrace);
   }
 
-  /// Hata logu — debug'da konsola, production'da Sentry'ye gider.
-  static void error(String message, [Object? error, StackTrace? stackTrace]) {
-    if (kDebugMode) {
-      debugPrint('❌ $message');
-      if (error != null) debugPrint('   Error: $error');
-      if (stackTrace != null) debugPrint('   $stackTrace');
-    } else {
-      Sentry.captureException(
-        error ?? Exception(message),
-        stackTrace: stackTrace,
-        hint: Hint.withMap({'message': message}),
-      );
-    }
+  static void d(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.d(message, error: error, stackTrace: stackTrace);
   }
 
-  /// Ağ / API logu — yalnızca debug modda.
-  static void network(String message) {
-    if (kDebugMode) {
-      debugPrint('🌐 $message');
-    }
+  static void i(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.i(message, error: error, stackTrace: stackTrace);
   }
 
-  /// Uyarı logu — debug'da konsola, production'da Sentry breadcrumb olarak.
-  static void warning(String message) {
-    if (kDebugMode) {
-      debugPrint('⚠️ $message');
-    } else {
-      Sentry.addBreadcrumb(
-        Breadcrumb(message: message, level: SentryLevel.warning),
-      );
-    }
+  static void w(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.w(message, error: error, stackTrace: stackTrace);
+  }
+
+  static void e(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.e(message, error: error, stackTrace: stackTrace);
+
+    // Eğer Sentry veya başka bir crashlytics kuruluysa,
+    // hataları burada merkezi olarak gönderebilirsiniz.
+    // Örn: Sentry.captureException(error, stackTrace: stackTrace);
+  }
+
+  static void wtf(dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    _logger.f(message, error: error, stackTrace: stackTrace);
   }
 }

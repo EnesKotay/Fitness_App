@@ -4,6 +4,42 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/storage_keys.dart';
 
+class FavoriteExerciseEntry {
+  final String name;
+  final String? muscleGroup;
+  final int? exerciseId;
+
+  const FavoriteExerciseEntry({
+    required this.name,
+    this.muscleGroup,
+    this.exerciseId,
+  });
+
+  factory FavoriteExerciseEntry.fromJson(Map<String, dynamic> json) {
+    final rawId = json['exerciseId'];
+    return FavoriteExerciseEntry(
+      name: json['name']?.toString().trim() ?? '',
+      muscleGroup: json['muscleGroup']?.toString().trim(),
+      exerciseId: rawId is num ? rawId.toInt() : int.tryParse('$rawId'),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'name': name,
+    if (muscleGroup != null && muscleGroup!.isNotEmpty)
+      'muscleGroup': muscleGroup,
+    if (exerciseId != null) 'exerciseId': exerciseId,
+  };
+
+  bool matches(String otherName, {String? otherMuscleGroup}) {
+    final normalizedName = name.trim().toLowerCase();
+    if (normalizedName != otherName.trim().toLowerCase()) return false;
+    if (otherMuscleGroup == null || otherMuscleGroup.trim().isEmpty) return true;
+    final group = muscleGroup?.trim().toUpperCase();
+    return group == null || group == otherMuscleGroup.trim().toUpperCase();
+  }
+}
+
 class StorageHelper {
   static SharedPreferences? _prefs;
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
@@ -463,6 +499,42 @@ class StorageHelper {
         false;
   }
 
+  static Future<bool> saveNutritionPreferences(
+    Map<String, dynamic> json,
+  ) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setString(
+      _userKey(StorageKeys.nutritionPreferences),
+      jsonEncode(json),
+    );
+  }
+
+  static Map<String, dynamic>? getNutritionPreferences() {
+    try {
+      final raw = _prefs?.getString(_userKey(StorageKeys.nutritionPreferences));
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map) {
+        return decoded.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static Future<bool> savePendingOnboardingSummary(bool value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setBool(
+      _userKey(StorageKeys.pendingOnboardingSummary),
+      value,
+    );
+  }
+
+  static bool getPendingOnboardingSummary() {
+    return _prefs?.getBool(_userKey(StorageKeys.pendingOnboardingSummary)) ??
+        false;
+  }
+
   /// Sadece oturum bilgilerini temizler (çıkış yapınca). Cache sıfırlanır; guest suffix kullanılır.
   static Future<bool> clearUserData() async {
     if (_prefs == null) return false;
@@ -610,6 +682,26 @@ class StorageHelper {
       true;
 
   // Favori egzersizler
+  static List<FavoriteExerciseEntry> getFavoriteExercises() {
+    try {
+      final raw = _prefs?.getStringList(
+            _userKey(StorageKeys.favoriteExerciseEntries),
+          ) ??
+          [];
+      if (raw.isNotEmpty) {
+        return raw
+            .map((item) => jsonDecode(item) as Map<String, dynamic>)
+            .map(FavoriteExerciseEntry.fromJson)
+            .where((entry) => entry.name.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {}
+
+    return getFavoriteExerciseNames()
+        .map((name) => FavoriteExerciseEntry(name: name))
+        .toList();
+  }
+
   static List<String> getFavoriteExerciseNames() {
     try {
       return _prefs?.getStringList(
@@ -621,20 +713,47 @@ class StorageHelper {
     }
   }
 
-  static Future<bool> toggleFavoriteExercise(String name) async {
-    final list = getFavoriteExerciseNames();
-    if (list.contains(name)) {
-      list.remove(name);
+  static Future<bool> toggleFavoriteExercise(
+    String name, {
+    String? muscleGroup,
+    int? exerciseId,
+  }) async {
+    final entries = getFavoriteExercises();
+    final existingIndex = entries.indexWhere(
+      (entry) => entry.matches(name, otherMuscleGroup: muscleGroup),
+    );
+
+    if (existingIndex != -1) {
+      entries.removeAt(existingIndex);
     } else {
-      list.add(name);
+      entries.add(
+        FavoriteExerciseEntry(
+          name: name.trim(),
+          muscleGroup: muscleGroup?.trim(),
+          exerciseId: exerciseId,
+        ),
+      );
     }
-    return await _prefs?.setStringList(
-          _userKey(StorageKeys.favoriteExerciseNames),
-          list,
+
+    final serialized = entries.map((entry) => jsonEncode(entry.toJson())).toList();
+    final names = entries.map((entry) => entry.name).toList();
+    final entriesSaved =
+        await _prefs?.setStringList(
+          _userKey(StorageKeys.favoriteExerciseEntries),
+          serialized,
         ) ??
         false;
+    final namesSaved =
+        await _prefs?.setStringList(
+          _userKey(StorageKeys.favoriteExerciseNames),
+          names,
+        ) ??
+        false;
+    return entriesSaved && namesSaved;
   }
 
-  static bool isFavoriteExercise(String name) =>
-      getFavoriteExerciseNames().contains(name);
+  static bool isFavoriteExercise(String name, {String? muscleGroup}) =>
+      getFavoriteExercises().any(
+        (entry) => entry.matches(name, otherMuscleGroup: muscleGroup),
+      );
 }

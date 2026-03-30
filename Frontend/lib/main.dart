@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'core/services/iap_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/utils/storage_helper.dart';
@@ -10,20 +11,24 @@ import 'features/nutrition/data/datasources/hive_diet_storage.dart';
 import 'features/nutrition/presentation/state/diet_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/workout/providers/workout_provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
+import 'core/config/app_secrets.dart';
 import 'core/routes/app_page_transitions.dart';
+import 'core/widgets/global_offline_banner.dart';
 import 'features/shell/app_providers.dart';
-
-// Sentry DSN — App Store/Play Store yayınından önce Sentry projesinden al:
-// https://sentry.io → New Project → Flutter → DSN
-const _kSentryDsn = String.fromEnvironment(
-  'SENTRY_DSN',
-  defaultValue: '',
-);
+import 'core/utils/app_logger.dart'; // Added AppLogger import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Genel Logger Entegrasyonu: Tüm debugPrint çağrılarını logger paketine yönlendir.
+  debugPrint = (String? message, {int? wrapWidth}) {
+    if (message != null && message.isNotEmpty) {
+      AppLogger.d(message);
+    }
+  };
 
   // Zorunlu: Token ve prefs init edilmeden getToken() kullanılmamalı; yoksa null döner ve login'e atar.
   await StorageHelper.init();
@@ -37,17 +42,14 @@ void main() async {
   // Türkçe tarih formatı - arka planda yükle (main thread bloklamasın)
   unawaited(initializeDateFormatting('tr_TR'));
 
-  if (_kSentryDsn.isNotEmpty) {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = _kSentryDsn;
-        options.tracesSampleRate = 0.2;
-        options.environment = const bool.fromEnvironment('dart.vm.product')
-            ? 'production'
-            : 'development';
-      },
-      appRunner: () => runApp(const MyApp()),
-    );
+  if (AppSecrets.sentryDsn.isNotEmpty) {
+    await SentryFlutter.init((options) {
+      options.dsn = AppSecrets.sentryDsn;
+      options.tracesSampleRate = 0.2;
+      options.environment = const bool.fromEnvironment('dart.vm.product')
+          ? 'production'
+          : 'development';
+    }, appRunner: () => runApp(const MyApp()));
   } else {
     runApp(const MyApp());
   }
@@ -75,7 +77,11 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'FitMentor',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme.copyWith(
+        builder: (context, child) =>
+            GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
+        themeMode: ThemeMode.dark,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme.copyWith(
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {
               TargetPlatform.android: AppPageTransitionsBuilder(),
@@ -107,7 +113,25 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     // Provider'lar (özellikle ProxyProvider) ilk build'den sonra hazır olur;
     // build sırasında Navigator çağrısı yapılmamalı (setState during build hatası önlenir).
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuth());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
+  }
+
+  Future<void> _init() async {
+    // iOS 14+: App Tracking Transparency izni — ilk açılışta bir kez gösterilir.
+    // Android'de bu çağrı no-op olarak döner, hata vermez.
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (status == TrackingStatus.notDetermined) {
+        // Sistem dialog'u göstermeden önce kısa bir gecikme önerilir (Apple guideline)
+        await Future.delayed(const Duration(milliseconds: 200));
+        if (mounted) {
+          await AppTrackingTransparency.requestTrackingAuthorization();
+        }
+      }
+    } catch (_) {
+      // ATT desteklenmeyen ortamlarda sessizce geç
+    }
+    if (mounted) await _checkAuth();
   }
 
   Future<void> _checkAuth() async {
@@ -117,6 +141,17 @@ class _SplashScreenState extends State<SplashScreen> {
       context,
       listen: false,
     );
+
+    final connectivityResult = await Connectivity().checkConnectivity();
+    final isOffline = connectivityResult.contains(ConnectivityResult.none);
+    final authTimeout = isOffline
+        ? const Duration(seconds: 1)
+        : const Duration(seconds: 3);
+    final dataTimeout = isOffline
+        ? const Duration(seconds: 2)
+        : const Duration(seconds: 4);
+    if (!mounted) return;
+
     DietProvider? dietProvider;
     try {
       dietProvider = Provider.of<DietProvider>(context, listen: false);
@@ -129,7 +164,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     try {
       await authProvider.checkAuthStatus().timeout(
-        const Duration(seconds: 5),
+        authTimeout,
         onTimeout: () => null,
       );
     } catch (e) {
@@ -138,13 +173,18 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
     if (!authProvider.isAuthenticated) {
+      if (isOffline) {
+        // Offline and no auth -> force to login
+        Navigator.of(context).pushReplacementNamed('/login');
+        return;
+      }
       Navigator.of(context).pushReplacementNamed('/login');
       return;
     }
 
     try {
       await dietProvider.init().timeout(
-        const Duration(seconds: 10),
+        dataTimeout,
         onTimeout: () {
           debugPrint('Splash: DietProvider.init timeout, devam ediliyor.');
           return;
@@ -153,9 +193,7 @@ class _SplashScreenState extends State<SplashScreen> {
       final userId = authProvider.user?.id;
       if (userId != null && userId > 0) {
         try {
-          await workoutProvider
-              .loadWorkouts(userId)
-              .timeout(const Duration(seconds: 8));
+          await workoutProvider.loadWorkouts(userId).timeout(dataTimeout);
         } catch (e) {
           debugPrint('Splash workout init error: $e');
         }
@@ -197,11 +235,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/app_icon.png',
-              width: 100,
-              height: 100,
-            ),
+            Image.asset('assets/images/app_icon.png', width: 100, height: 100),
             const SizedBox(height: 20),
             Text(
               'FitMentor',

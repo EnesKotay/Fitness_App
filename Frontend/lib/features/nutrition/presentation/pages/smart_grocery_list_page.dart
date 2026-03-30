@@ -45,11 +45,15 @@ class SmartGroceryListPage extends StatefulWidget {
   const SmartGroceryListPage({
     super.key,
     this.seedItems = const [],
+    this.seedGroceryItems = const [],
     this.seedReason,
     this.seedMealName,
   });
 
   final List<String> seedItems;
+  /// Structured grocery items passed directly (e.g. from a recipe).
+  /// When non-empty, takes precedence over [seedItems].
+  final List<GroceryItem> seedGroceryItems;
   final String? seedReason;
   final String? seedMealName;
 
@@ -96,6 +100,25 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
   }
 
   void _loadInitialList() {
+    if (widget.seedGroceryItems.isNotEmpty && mounted) {
+      setState(() {
+        _groceryList = List<GroceryItem>.from(widget.seedGroceryItems);
+        _reason =
+            widget.seedReason ??
+            'Sectigin tarifin malzemeleri alisveris listene aktarıldı.';
+        _lastUpdatedLabel = _formatUpdatedAt(DateTime.now());
+        _mealIdeas = [
+          if (widget.seedMealName != null &&
+              widget.seedMealName!.trim().isNotEmpty)
+            _MealIdeaCardData(
+              title: widget.seedMealName!.trim(),
+              reason: 'Bu malzemelerle once bu tarifi hazirlayabilirsin.',
+            ),
+        ];
+        _loadedFromCache = false;
+      });
+      return;
+    }
     if (widget.seedItems.isNotEmpty && mounted) {
       setState(() {
         _groceryList = widget.seedItems.map(_seedItemToGroceryItem).toList();
@@ -170,6 +193,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
       if (mounted &&
           !_isLoading &&
           widget.seedItems.isEmpty &&
+          widget.seedGroceryItems.isEmpty &&
           _hasPremiumAccess) {
         await _fetchGroceryList();
       }
@@ -367,7 +391,14 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     List<GroceryItem> groceryList,
   ) {
     if (response.meals.isNotEmpty) {
-      return response.meals.take(3).map(_mapMealIdea).toList();
+      final sanitized = response.meals
+          .map(_mapMealIdea)
+          .where((meal) => !_isTreatLikeMealIdea(meal))
+          .take(3)
+          .toList();
+      if (sanitized.isNotEmpty) {
+        return sanitized;
+      }
     }
     return _fallbackMealIdeas(groceryList);
   }
@@ -387,6 +418,25 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     final joined = groceryList.map((item) => item.name).join(' ').toLowerCase();
     final ideas = <_MealIdeaCardData>[];
 
+    if (_matchesAny(joined, [
+      'yogurt',
+      'yoğurt',
+      'lor',
+      'protein',
+      'meyve',
+      'muz',
+      'cilek',
+      'çilek',
+    ])) {
+      ideas.add(
+        const _MealIdeaCardData(
+          title: 'Proteinli Yogurt Kasesi',
+          reason:
+              'Yogurt veya loru meyveyle birlestirip hafif ama tok tutan bir ara ogun hazirlayabilirsin.',
+          prepMinutes: 5,
+        ),
+      );
+    }
     if (_matchesAny(joined, [
       'yumurta',
       'lor',
@@ -430,6 +480,25 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         ),
       );
     }
+    if (_matchesAny(joined, [
+      'ton',
+      'somon',
+      'balik',
+      'balık',
+      'yesillik',
+      'yeşillik',
+      'salatalik',
+      'salatalık',
+    ])) {
+      ideas.add(
+        const _MealIdeaCardData(
+          title: 'Proteinli Salata Kasesi',
+          reason:
+              'Balik veya ton baligini yesilliklerle birlestirip hafif ve protein agirlikli bir ogun cikartabilirsin.',
+          prepMinutes: 10,
+        ),
+      );
+    }
     if (ideas.isEmpty) {
       ideas.add(
         const _MealIdeaCardData(
@@ -441,7 +510,40 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
       );
     }
 
-    return ideas.take(3).toList();
+    return ideas.where((meal) => !_isTreatLikeMealIdea(meal)).take(3).toList();
+  }
+
+  bool _isTreatLikeMealIdea(_MealIdeaCardData meal) {
+    final blob = '${meal.title} ${meal.reason}'.toLowerCase();
+    const treatKeywords = [
+      'baklava',
+      'şöbiyet',
+      'sobiyet',
+      'kadayif',
+      'kadayıf',
+      'künefe',
+      'kunefe',
+      'revani',
+      'şekerpare',
+      'sekerpare',
+      'tulumba',
+      'lokma',
+      'helva',
+      'profiterol',
+      'cheesecake',
+      'tiramisu',
+      'waffle',
+      'donut',
+      'pasta',
+      'tatli',
+      'tatlı',
+      'şerbet',
+      'serbet',
+    ];
+    for (final keyword in treatKeywords) {
+      if (blob.contains(keyword)) return true;
+    }
+    return false;
   }
 
   List<GroceryItem> _mergeAiSuggestions(
@@ -504,7 +606,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
 
   Future<void> _shareList() async {
     try {
-      await SharePlus.instance.share(ShareParams(text: _buildShareText()));
+      await Share.share(_buildShareText());
     } catch (_) {
       await _copyList();
     }

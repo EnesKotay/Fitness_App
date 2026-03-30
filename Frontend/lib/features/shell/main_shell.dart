@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -72,10 +69,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF070809),
-      body: Column(
-        children: [
-          const _OfflineBanner(),
-          Expanded(child: IndexedStack(
+      body: IndexedStack(
         index: _selectedIndex,
         children: [
           DashboardScreen(
@@ -92,8 +86,6 @@ class _MainShellState extends State<MainShell> {
           _visitedTabs.contains(3)
               ? const DietTabContainer()
               : const _TabLoadingPlaceholder(),
-        ],
-      )),
         ],
       ),
       bottomNavigationBar: Container(
@@ -285,63 +277,6 @@ class _NavItem {
   final String label;
 }
 
-// ─── Offline Banner ───────────────────────────────────────────────────────────
-
-class _OfflineBanner extends StatefulWidget {
-  const _OfflineBanner();
-
-  @override
-  State<_OfflineBanner> createState() => _OfflineBannerState();
-}
-
-class _OfflineBannerState extends State<_OfflineBanner> {
-  bool _offline = false;
-  StreamSubscription<List<ConnectivityResult>>? _sub;
-
-  @override
-  void initState() {
-    super.initState();
-    _sub = Connectivity().onConnectivityChanged.listen((results) {
-      final offline = results.every((r) => r == ConnectivityResult.none);
-      if (mounted && offline != _offline) setState(() => _offline = offline);
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_offline) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF7F1D1D),
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: const SafeArea(
-        bottom: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.wifi_off_rounded, size: 14, color: Colors.white70),
-            SizedBox(width: 6),
-            Text(
-              'İnternet bağlantısı yok',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Tab Loading Placeholder ──────────────────────────────────────────────────
 
 class _TabLoadingPlaceholder extends StatelessWidget {
@@ -351,9 +286,7 @@ class _TabLoadingPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Color(0xFF070809),
-      body: Center(
-        child: CircularProgressIndicator(strokeWidth: 2),
-      ),
+      body: Center(child: CircularProgressIndicator(strokeWidth: 2)),
     );
   }
 }
@@ -371,10 +304,11 @@ class _ProMenuFab extends StatelessWidget {
         context.watch<AuthProvider>().user?.premiumTier == 'premium';
 
     return GestureDetector(
-      onTap: onPressed ??
-          () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PremiumHubScreen()),
-              ),
+      onTap:
+          onPressed ??
+          () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const PremiumHubScreen())),
       child: Container(
         width: 40,
         height: 40,
@@ -405,9 +339,7 @@ class _ProMenuFab extends StatelessWidget {
               : [],
         ),
         child: Icon(
-          isPremium
-              ? Icons.workspace_premium_rounded
-              : Icons.lock_rounded,
+          isPremium ? Icons.workspace_premium_rounded : Icons.lock_rounded,
           color: isPremium
               ? const Color(0xFFFBBF24)
               : Colors.white.withValues(alpha: 0.4),

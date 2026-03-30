@@ -1,30 +1,40 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fitness/features/auth/screens/login_screen.dart';
+import 'package:fitness/features/auth/screens/settings_help_screen.dart';
+import 'package:fitness/features/auth/screens/settings_theme_screen.dart';
 
-import 'package:fitness/main.dart';
-
+/// Temel ekran smoke testleri — widget ağacının hatasız render edildiğini doğrular.
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('LoginScreen smoke test', () {
+    testWidgets('renders without error', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: LoginScreen()),
+      );
+      // Login ekranında temel alanlar görünmeli
+      expect(find.text('FitMentor'), findsOneWidget);
+      expect(find.text('Giriş Yap'), findsOneWidget);
+    });
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  group('SettingsHelpScreen smoke test', () {
+    testWidgets('renders FAQ and support email', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: SettingsHelpScreen()),
+      );
+      expect(find.text('Yardım'), findsOneWidget);
+      expect(find.text('Sık Sorulan Sorular'), findsOneWidget);
+      expect(find.text('Destek E-posta'), findsOneWidget);
+    });
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  group('SettingsThemeScreen smoke test', () {
+    testWidgets('renders theme options', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: SettingsThemeScreen()),
+      );
+      expect(find.text('Tema ve Görünüm'), findsOneWidget);
+      expect(find.text('Koyu'), findsOneWidget);
+    });
   });
 }

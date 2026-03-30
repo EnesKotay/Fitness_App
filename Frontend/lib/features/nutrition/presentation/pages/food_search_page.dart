@@ -16,15 +16,43 @@ import '../../ai_scan/presentation/pages/barcode_scan_page.dart';
 
 String _foodDisplayName(FoodItem food) => _shortFoodName(food.name);
 
+const List<String> _preferredCategoryOrder = [
+  'Kahvaltılık',
+  'Çorba',
+  'Yemek',
+  'Et Yemeği',
+  'Tavuk',
+  'Balık',
+  'Pilav & Makarna',
+  'Meze & Salata',
+  'Sebze Yemeği',
+  'Hamur İşi',
+  'Tatlı',
+];
+
+class _SearchFilterOption {
+  final String key;
+  final String label;
+  final IconData icon;
+
+  const _SearchFilterOption(this.key, this.label, this.icon);
+}
+
+final Map<String, String> _shortFoodNameCache = {};
+
 String _shortFoodName(String raw) {
-  var text = raw.trim();
-  if (text.isEmpty) return raw;
+  final originalTrimmed = raw.trim();
+  if (originalTrimmed.isEmpty) return raw;
+
+  if (_shortFoodNameCache.containsKey(originalTrimmed)) {
+    return _shortFoodNameCache[originalTrimmed]!;
+  }
+
+  var text = originalTrimmed;
 
   final replacements = <RegExp, String>{
-    RegExp(
-      r'^Yumurta Omlet veya Scrambled Yumurta',
-      caseSensitive: false,
-    ): 'Omlet',
+    RegExp(r'^Yumurta Omlet veya Scrambled Yumurta', caseSensitive: false):
+        'Omlet',
     RegExp(r'\bveya Scrambled\b', caseSensitive: false): '',
     RegExp(r'\bScrambled\b', caseSensitive: false): '',
     RegExp(r'\bAs Ingredient In\b.*$', caseSensitive: false): '',
@@ -77,10 +105,9 @@ String _shortFoodName(String raw) {
       .trim();
 
   if (segments.length > 1) {
-    final extra = segments.skip(1).firstWhere(
-      (segment) => segment.length <= 16,
-      orElse: () => '',
-    );
+    final extra = segments
+        .skip(1)
+        .firstWhere((segment) => segment.length <= 16, orElse: () => '');
     if (extra.isNotEmpty && display.length + extra.length + 2 <= 34) {
       display = '$display, $extra';
     }
@@ -99,10 +126,16 @@ String _shortFoodName(String raw) {
 
   final shortened = buffer.toString().trim();
   if (shortened.isEmpty) {
-    return '${display.substring(0, 30).trimRight()}...';
+    final result = '${display.substring(0, 30).trimRight()}...';
+    _shortFoodNameCache[originalTrimmed] = result;
+    return result;
   }
 
-  return shortened.length == display.length ? shortened : '$shortened...';
+  final result = shortened.length == display.length
+      ? shortened
+      : '$shortened...';
+  _shortFoodNameCache[originalTrimmed] = result;
+  return result;
 }
 
 /// Yemek arama: Premium tasarım, Glassmorphic search bar, hızlı öneriler.
@@ -124,12 +157,15 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   List<FoodItem> _favoriteFoods = [];
   List<FoodItem> _recommendedFoods = [];
   List<FoodItem> _list = [];
+  List<String> _availableCategories = const [];
   bool _loading = false;
+  bool _isSearchPending = false;
   bool _isAISearch = false;
   bool _backendReady = false;
 
   /// Seçili kategori (null = Tümü). Popüler Besinler bu kategoriye göre filtrelenir.
   String? _selectedCategory;
+  String? _selectedSmartFilter;
 
   @override
   void initState() {
@@ -221,11 +257,35 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   Future<void> _loadRecommendations() async {
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
-      final recs = await provider.searchFoods('', category: _selectedCategory);
+      final fullPool = await provider.searchFoods('', category: null);
+      final recs = _selectedCategory == null
+          ? fullPool
+          : fullPool
+                .where((item) => item.category == _selectedCategory)
+                .toList();
+      final categories =
+          fullPool
+              .map((item) => item.category.trim())
+              .where((item) => item.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort((a, b) {
+              final ai = _preferredCategoryOrder.indexOf(a);
+              final bi = _preferredCategoryOrder.indexOf(b);
+              if (ai == -1 && bi == -1) return a.compareTo(b);
+              if (ai == -1) return 1;
+              if (bi == -1) return -1;
+              return ai.compareTo(bi);
+            });
       if (mounted) {
-        // Kategori seçiliyse tümünü göster, değilse 20 ile sınırla
-        final items = _selectedCategory != null ? recs : recs.take(20).toList();
-        setState(() => _recommendedFoods = items);
+        final filtered = _applySmartFilter(recs);
+        final items = _selectedCategory != null
+            ? filtered
+            : filtered.take(20).toList();
+        setState(() {
+          _availableCategories = categories;
+          _recommendedFoods = items;
+        });
       }
     } catch (e) {
       debugPrint('FoodSearchPage _loadRecommendations error: $e');
@@ -235,6 +295,15 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   void _onQueryChanged() {
     if (!mounted) return;
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+    final trimmedQuery = _query.value.trim();
+    if (trimmedQuery.isEmpty) {
+      setState(() {
+        _isSearchPending = false;
+        _loading = false;
+      });
+      return;
+    }
+    setState(() => _isSearchPending = true);
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (mounted) _search();
     });
@@ -247,10 +316,14 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       setState(() {
         _list = [];
         _loading = false;
+        _isSearchPending = false;
       });
       return;
     }
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _isSearchPending = false;
+    });
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
       final list = _isAISearch
@@ -261,8 +334,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             );
       if (mounted) {
         setState(() {
-          _list = list;
+          _list = _applySmartFilter(list);
           _loading = false;
+          _isSearchPending = false;
         });
       }
     } catch (e) {
@@ -271,6 +345,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         setState(() {
           _list = [];
           _loading = false;
+          _isSearchPending = false;
         });
       }
     }
@@ -382,9 +457,12 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         horizontal: AppSpacing.m,
         vertical: AppSpacing.s,
       ),
-      itemCount: _list.length,
+      itemCount: _list.length + 1,
       itemBuilder: (context, index) {
-        final food = _list[index];
+        if (index == 0) {
+          return _buildSearchResultsHeader();
+        }
+        final food = _list[index - 1];
         return _FoodListTile(
           food: food,
           selectedMealType: _effectiveMealType,
@@ -485,19 +563,18 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               child: Row(
                 children: [
                   _buildCategoryChip('Tümü', Icons.apps_rounded),
-                  _buildCategoryChip('Kahvaltılık', Icons.egg_alt_outlined),
-                  _buildCategoryChip('Yemek', Icons.restaurant_outlined),
-                  _buildCategoryChip('Et / Protein', Icons.kebab_dining_outlined),
-                  _buildCategoryChip('Tahıl', Icons.grain_outlined),
-                  _buildCategoryChip('Süt Ürünleri', Icons.water_drop_outlined),
-                  _buildCategoryChip('Sebze', Icons.eco_outlined),
-                  _buildCategoryChip('Meyve', Icons.apple_outlined),
-                  _buildCategoryChip('Tatlı', Icons.cake_outlined),
-                  _buildCategoryChip('İçecek', Icons.local_cafe_outlined),
-                  _buildCategoryChip('Fast Food', Icons.fastfood_outlined),
+                  ..._availableCategories.map(
+                    (category) =>
+                        _buildCategoryChip(category, _categoryIcon(category)),
+                  ),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildSmartFilterRow(),
           ),
           const SizedBox(height: 24),
 
@@ -507,17 +584,22 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               final remaining = diet.remainingKcal;
               final target = diet.effectiveTargetKcal;
               final consumed = target - remaining;
-              final progress = target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
+              final progress = target > 0
+                  ? (consumed / target).clamp(0.0, 1.0)
+                  : 0.0;
               final isOver = remaining < 0;
               final color = isOver
                   ? const Color(0xFFFF6B6B)
                   : remaining < target * 0.15
-                      ? const Color(0xFFFFB74D)
-                      : const Color(0xFF4CD1A3);
+                  ? const Color(0xFFFFB74D)
+                  : const Color(0xFF4CD1A3);
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(14),
@@ -529,7 +611,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       Row(
                         children: [
                           Icon(
-                            isOver ? Icons.warning_amber_rounded : Icons.local_fire_department_rounded,
+                            isOver
+                                ? Icons.warning_amber_rounded
+                                : Icons.local_fire_department_rounded,
                             color: color,
                             size: 16,
                           ),
@@ -646,8 +730,8 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     final Color accent = isFavorite
         ? const Color(0xFFFF6B6B)
         : isFrequent
-            ? const Color(0xFF43E97B)
-            : AppColors.secondary;
+        ? const Color(0xFF43E97B)
+        : AppColors.secondary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,7 +740,12 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           height: 136,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 16, right: 8, bottom: 8, top: 4),
+            padding: const EdgeInsets.only(
+              left: 16,
+              right: 8,
+              bottom: 8,
+              top: 4,
+            ),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final food = items[index];
@@ -698,12 +787,17 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                         ),
                         // Top accent bar
                         Positioned(
-                          top: 0, left: 0, right: 0,
+                          top: 0,
+                          left: 0,
+                          right: 0,
                           child: Container(
                             height: 3,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [accent, accent.withValues(alpha: 0.40)],
+                                colors: [
+                                  accent,
+                                  accent.withValues(alpha: 0.40),
+                                ],
                               ),
                             ),
                           ),
@@ -763,11 +857,16 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: accent.withValues(alpha: 0.18),
                                       borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(color: accent.withValues(alpha: 0.30)),
+                                      border: Border.all(
+                                        color: accent.withValues(alpha: 0.30),
+                                      ),
                                     ),
                                     child: Text(
                                       '${kcal.round()} kcal',
@@ -787,7 +886,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                       decoration: BoxDecoration(
                                         color: accent.withValues(alpha: 0.20),
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: accent.withValues(alpha: 0.45)),
+                                        border: Border.all(
+                                          color: accent.withValues(alpha: 0.45),
+                                        ),
                                       ),
                                       child: Icon(
                                         Icons.add_rounded,
@@ -872,6 +973,259 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildSmartFilterRow() {
+    final filters = _smartFiltersForMeal(_effectiveMealType);
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: filters.length + 1,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildSmartFilterChip(
+              label: 'Hepsi',
+              icon: Icons.tune_rounded,
+              selected: _selectedSmartFilter == null,
+              onTap: () {
+                setState(() => _selectedSmartFilter = null);
+                _refreshVisibleContent();
+              },
+            );
+          }
+          final filter = filters[index - 1];
+          return _buildSmartFilterChip(
+            label: filter.label,
+            icon: filter.icon,
+            selected: _selectedSmartFilter == filter.key,
+            onTap: () {
+              setState(() {
+                _selectedSmartFilter = _selectedSmartFilter == filter.key
+                    ? null
+                    : filter.key;
+              });
+              _refreshVisibleContent();
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSmartFilterChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.22)
+                : Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? AppColors.primaryLight : Colors.white54,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  color: selected ? AppColors.primaryLight : Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResultsHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            '${_list.length} sonuç bulundu',
+            Icons.manage_search_rounded,
+            AppColors.primaryLight,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: _buildSmartFilterRow(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _refreshVisibleContent() {
+    if (_query.value.trim().isNotEmpty) {
+      _search();
+    } else {
+      _loadRecommendations();
+    }
+  }
+
+  List<_SearchFilterOption> _smartFiltersForMeal(MealType mealType) {
+    final base = <_SearchFilterOption>[
+      const _SearchFilterOption(
+        'yuksek_protein',
+        'Yüksek Protein',
+        Icons.bolt_rounded,
+      ),
+      const _SearchFilterOption(
+        'hafif',
+        'Hafif',
+        Icons.local_fire_department_rounded,
+      ),
+      const _SearchFilterOption(
+        'bolgesel',
+        'Bölgesel',
+        Icons.travel_explore_rounded,
+      ),
+      const _SearchFilterOption(
+        'guvenli',
+        'Güvenli Veri',
+        Icons.verified_rounded,
+      ),
+    ];
+
+    switch (mealType) {
+      case MealType.breakfast:
+        return [
+          const _SearchFilterOption(
+            'kahvaltilik',
+            'Kahvaltılık',
+            Icons.egg_alt_rounded,
+          ),
+          ...base,
+        ];
+      case MealType.lunch:
+      case MealType.dinner:
+        return [
+          const _SearchFilterOption(
+            'ev_yemegi',
+            'Ev Yemeği',
+            Icons.restaurant_rounded,
+          ),
+          const _SearchFilterOption(
+            'corba',
+            'Çorba',
+            Icons.soup_kitchen_rounded,
+          ),
+          ...base,
+        ];
+      case MealType.snack:
+        return [
+          const _SearchFilterOption('tatli', 'Tatlı', Icons.cake_rounded),
+          const _SearchFilterOption('pratik', 'Pratik', Icons.flash_on_rounded),
+          ...base,
+        ];
+    }
+  }
+
+  List<FoodItem> _applySmartFilter(List<FoodItem> input) {
+    final filter = _selectedSmartFilter;
+    if (filter == null) return input;
+
+    bool hasTag(FoodItem item, String prefix) =>
+        item.tags.any((tag) => tag.startsWith(prefix));
+
+    bool matches(FoodItem item) {
+      switch (filter) {
+        case 'yuksek_protein':
+          return item.proteinPer100g >= 15;
+        case 'hafif':
+          return item.kcalPer100g <= 180;
+        case 'bolgesel':
+          return hasTag(item, 'bolge-');
+        case 'guvenli':
+          return item.tags.contains('guven-yuksek') ||
+              item.tags.contains('tr-core');
+        case 'kahvaltilik':
+          return item.category == 'Kahvaltılık';
+        case 'ev_yemegi':
+          return {
+            'Yemek',
+            'Sebze Yemeği',
+            'Et Yemeği',
+            'Tavuk',
+            'Balık',
+          }.contains(item.category);
+        case 'corba':
+          return item.category == 'Çorba';
+        case 'tatli':
+          return item.category == 'Tatlı';
+        case 'pratik':
+          return item.servings.isNotEmpty &&
+              item.servings.first.grams <= 200 &&
+              item.kcalPer100g <= 350;
+      }
+      return true;
+    }
+
+    final filtered = input.where(matches).toList();
+    filtered.sort((a, b) {
+      switch (filter) {
+        case 'yuksek_protein':
+          return b.proteinPer100g.compareTo(a.proteinPer100g);
+        case 'hafif':
+          return a.kcalPer100g.compareTo(b.kcalPer100g);
+        default:
+          return 0;
+      }
+    });
+    return filtered;
+  }
+
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case 'Kahvaltılık':
+        return Icons.egg_alt_outlined;
+      case 'Yemek':
+      case 'Et Yemeği':
+      case 'Tavuk':
+      case 'Balık':
+        return Icons.restaurant_outlined;
+      case 'Pilav & Makarna':
+        return Icons.rice_bowl_outlined;
+      case 'Meze & Salata':
+        return Icons.eco_outlined;
+      case 'Sebze Yemeği':
+        return Icons.spa_outlined;
+      case 'Tatlı':
+        return Icons.cake_outlined;
+      case 'Çorba':
+        return Icons.soup_kitchen_outlined;
+      case 'Hamur İşi':
+        return Icons.bakery_dining_outlined;
+      default:
+        return Icons.label_outline_rounded;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1175,6 +1529,21 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
 
                     // Clear button
                     if (query.isNotEmpty) ...[
+                      if (_isSearchPending || _loading) ...[
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _isAISearch
+                                  ? AppColors.primaryLight
+                                  : Colors.white.withValues(alpha: 0.75),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 2),
                       GestureDetector(
                         onTap: () {
@@ -1194,6 +1563,64 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             },
           ),
           const SizedBox(height: 10),
+          ValueListenableBuilder<String>(
+            valueListenable: _query,
+            builder: (context, query, _) {
+              if (query.trim().isEmpty || (!_isSearchPending && !_loading)) {
+                return const SizedBox.shrink();
+              }
+
+              final statusText = _loading
+                  ? 'Aranıyor...'
+                  : 'Arama hazırlanıyor...';
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _isAISearch
+                                  ? AppColors.primaryLight
+                                  : Colors.white.withValues(alpha: 0.80),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.80),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
 
           // ── Row 3: quick suggestions OR internet search switch ────────────
           ValueListenableBuilder<String>(
@@ -1459,18 +1886,27 @@ class _FoodListTileState extends State<_FoodListTile> {
   @override
   Widget build(BuildContext context) {
     final kcal = widget.food.kcalPer100g;
-    final p    = widget.food.proteinPer100g;
-    final c    = widget.food.carbPer100g;
-    final f    = widget.food.fatPer100g;
+    final p = widget.food.proteinPer100g;
+    final c = widget.food.carbPer100g;
+    final f = widget.food.fatPer100g;
     final displayName = _foodDisplayName(widget.food);
 
     // Smart badge — max 1
     String? badge;
-    Color?  badgeColor;
-    if (p >= 20)      { badge = 'Yüksek Protein'; badgeColor = const Color(0xFF5B9BFF); }
-    else if (c < 5)   { badge = 'Düşük Karb';     badgeColor = const Color(0xFF4CD1A3); }
-    else if (f < 3)   { badge = 'Düşük Yağ';      badgeColor = const Color(0xFF8BC34A); }
-    else if (kcal<50) { badge = 'Hafif';           badgeColor = Colors.white54; }
+    Color? badgeColor;
+    if (p >= 20) {
+      badge = 'Yüksek Protein';
+      badgeColor = const Color(0xFF5B9BFF);
+    } else if (c < 5) {
+      badge = 'Düşük Karb';
+      badgeColor = const Color(0xFF4CD1A3);
+    } else if (f < 3) {
+      badge = 'Düşük Yağ';
+      badgeColor = const Color(0xFF8BC34A);
+    } else if (kcal < 50) {
+      badge = 'Hafif';
+      badgeColor = Colors.white54;
+    }
 
     final accent = _categoryColor(widget.food.category);
 
@@ -1525,7 +1961,9 @@ class _FoodListTileState extends State<_FoodListTile> {
                             Text(
                               'kcal',
                               style: TextStyle(
-                                color: AppColors.secondary.withValues(alpha: 0.65),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.65,
+                                ),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1572,11 +2010,16 @@ class _FoodListTileState extends State<_FoodListTile> {
                               children: [
                                 // Kategori chip
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: accent.withValues(alpha: 0.14),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: accent.withValues(alpha: 0.28)),
+                                    border: Border.all(
+                                      color: accent.withValues(alpha: 0.28),
+                                    ),
                                   ),
                                   child: Text(
                                     widget.food.category,
@@ -1592,9 +2035,14 @@ class _FoodListTileState extends State<_FoodListTile> {
                                 if (badge != null) ...[
                                   const SizedBox(width: 6),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: badgeColor!.withValues(alpha: 0.14),
+                                      color: badgeColor!.withValues(
+                                        alpha: 0.14,
+                                      ),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -1698,10 +2146,10 @@ class _FoodListTileState extends State<_FoodListTile> {
   );
 
   Widget _vSep() => Container(
-    width: 1, height: 28,
+    width: 1,
+    height: 28,
     color: Colors.white.withValues(alpha: 0.10),
   );
-
 }
 
 // =============================================================================
@@ -1756,7 +2204,14 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     if (serving != null && (serving.grams - grams).abs() < 1) {
       return 'Hızlı Ekle — ${serving.label}';
     }
-    return 'Hızlı Ekle — ${grams.round()}g';
+    
+    final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
+    final count = grams / (_defaultQuickAddGrams > 0 ? _defaultQuickAddGrams : 100);
+    final countStr = count == 1.0 
+        ? '1' 
+        : (count == 0.5 ? 'Yarım' : count.toStringAsFixed(1).replaceAll('.0', '').replaceAll('.', ','));
+        
+    return 'Hızlı Ekle — $countStr $unit (${grams.round()}g)';
   }
 
   Widget _actionTile({
@@ -1872,9 +2327,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  displayName.isNotEmpty
-                      ? displayName[0].toUpperCase()
-                      : '?',
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                   style: TextStyle(
                     color: AppColors.primaryLight,
                     fontSize: 18,

@@ -13,6 +13,10 @@ import 'smart_grocery_list_page.dart';
 import 'nutrition_guide_page.dart';
 import '../../domain/entities/food_item.dart';
 import '../../domain/entities/meal_type.dart';
+import '../../domain/entities/grocery_item.dart';
+import '../../../recipes/presentation/pages/recipe_list_page.dart';
+import '../../../recipes/presentation/pages/recipe_detail_page.dart';
+import '../../../recipes/domain/entities/recipe.dart';
 
 /// Diyet sekmesi: kendi Navigator'ı ile Dashboard → Profil / Arama / Porsiyon / Detay.
 class DietTabContainer extends StatelessWidget {
@@ -94,14 +98,34 @@ class DietTabContainer extends StatelessWidget {
               final seedItems =
                   (args?['seedItems'] as List?)?.whereType<String>().toList() ??
                   const <String>[];
+              final seedGroceryItems =
+                  (args?['seedGroceryItems'] as List?)
+                      ?.whereType<GroceryItem>()
+                      .toList() ??
+                  const <GroceryItem>[];
               final seedReason = args?['seedReason'] as String?;
               final seedMealName = args?['seedMealName'] as String?;
               return MaterialPageRoute(
                 builder: (_) => SmartGroceryListPage(
                   seedItems: seedItems,
+                  seedGroceryItems: seedGroceryItems,
                   seedReason: seedReason,
                   seedMealName: seedMealName,
                 ),
+              );
+            case 'recipes':
+              return MaterialPageRoute(
+                builder: (_) => const RecipeListPage(),
+              );
+            case 'recipe_detail':
+              final recipe = settings.arguments as Recipe?;
+              if (recipe == null) {
+                return MaterialPageRoute(
+                  builder: (_) => const RecipeListPage(),
+                );
+              }
+              return MaterialPageRoute(
+                builder: (_) => RecipeDetailPage(recipe: recipe),
               );
             default:
               return MaterialPageRoute(

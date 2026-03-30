@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/ai_coach/models/ai_coach_models.dart';
 import '../../features/ai_coach/screens/ai_coach_screen.dart';
+import '../../features/ai_coach/screens/weekly_plan_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/profile_screen.dart';
+import '../../features/auth/screens/settings_help_screen.dart';
 import '../../features/auth/screens/settings_notifications_screen.dart';
+import '../../features/auth/screens/settings_nutrition_screen.dart';
+import '../../features/auth/screens/settings_theme_screen.dart';
+import '../../features/workout/screens/achievements_screen.dart';
 import '../../features/auth/screens/settings_password_screen.dart';
 import '../../features/auth/screens/settings_privacy_screen.dart';
 import '../../features/nutrition/presentation/pages/profile_setup_page.dart';
@@ -19,11 +24,10 @@ class AppRoutes {
   AppRoutes._();
 
   static const aiCoach = '/ai-coach';
+  static const weeklyPlan = '/weekly-plan';
   static const dailyTasks = '/daily-tasks';
   static const home = '/home';
   static const forgotPassword = '/forgot-password';
-  static const verifyPin = '/verify-pin';
-  static const resetPassword = '/reset-password';
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
@@ -58,13 +62,14 @@ class AppRoutes {
           steps: 0,
           calories: dietProvider.totals.totalKcal.round(),
           waterLiters: dietProvider.waterLiters,
-          sleepHours: 7.0,
+          sleepHours: 0,
           workouts: todayWorkoutCount,
           workoutMinutes: todayWorkoutMinutes,
           workoutHighlights: todayWorkoutHighlights,
         );
         return AiCoachScreen(initialSummary: summary);
       },
+      weeklyPlan: (context) => const WeeklyPlanScreen(),
       dailyTasks: (context) => const DailyTasksScreen(),
       '/profile': (context) => const ProfileScreen(),
       '/profile-setup': (context) => const ProfileSetupPage(),
@@ -72,6 +77,10 @@ class AppRoutes {
       '/settings-notifications': (context) =>
           const SettingsNotificationsScreen(),
       '/settings-privacy': (context) => const SettingsPrivacyScreen(),
+      '/settings-nutrition': (context) => const SettingsNutritionScreen(),
+      '/settings-theme': (context) => const SettingsThemeScreen(),
+      '/settings-help': (context) => const SettingsHelpScreen(),
+      '/achievements': (context) => const AchievementsScreen(),
       forgotPassword: (context) => const ForgotPasswordScreen(),
     };
   }

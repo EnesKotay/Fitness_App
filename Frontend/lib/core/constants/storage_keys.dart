@@ -11,6 +11,7 @@ class StorageKeys {
   static const String rememberedEmail = 'remembered_email';
   static const String favoriteFoodIds = 'favorite_food_ids';
   static const String favoriteExerciseNames = 'favorite_exercise_names';
+  static const String favoriteExerciseEntries = 'favorite_exercise_entries';
   static const String recentFoodEntries = 'recent_food_entries';
   static const String waterGoalML = 'water_goal_ml';
   static const String waterEntriesPrefix = 'water_entries_';
@@ -22,6 +23,8 @@ class StorageKeys {
   static const String smartGroceryReason = 'smart_grocery_reason';
   static const String smartGroceryUpdatedAt = 'smart_grocery_updated_at';
   static const String smartGroceryMealIdeas = 'smart_grocery_meal_ideas';
+  static const String nutritionPreferences = 'nutrition_preferences';
+  static const String pendingOnboardingSummary = 'pending_onboarding_summary';
   // Settings
   static const String settingsNotifEnabled = 'settings_notif_enabled';
   static const String settingsNotifWater = 'settings_notif_water';

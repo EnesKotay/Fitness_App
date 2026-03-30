@@ -357,26 +357,10 @@ class AiCoachController extends ChangeNotifier {
         );
       }
 
-      final StringBuffer aiContent = StringBuffer();
-      if (response.focus.isNotEmpty) {
-        aiContent.writeln('🎯 **Bugünün Odağı:**\n${response.focus}\n');
-      }
-      if (response.todoItems.isNotEmpty) {
-        aiContent.writeln('📋 **Yapılacaklar:**');
-        for (var item in response.todoItems) {
-          aiContent.writeln('• $item');
-        }
-        aiContent.writeln('');
-      }
-      if (response.nutritionNote.isNotEmpty) {
-        aiContent.writeln('🍎 **Beslenme Notu:**\n${response.nutritionNote}');
-      }
+      String fullContent = response.focus.isNotEmpty
+          ? response.focus
+          : 'Sana yardımcı olmaya hazırım!';
 
-      String fullContent = aiContent.toString().trim();
-      if (fullContent.isEmpty) {
-        fullContent =
-            'Bugünkü verilerine göre önerilerim hazır. Yukarıdaki yapılacaklar listesini uygulayabilirsin.';
-      }
 
       // Step: Achievement Check
       if (response.isAchievement) {

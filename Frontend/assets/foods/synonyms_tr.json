@@ -1,138 +1,2366 @@
 {
-    "patates kızartması": [
-        "french fries",
-        "cips"
-    ],
-    "kola": [
-        "cola",
-        "coca cola",
-        "pepsi"
-    ],
-    "su": [
-        "water",
-        "h2o"
-    ],
-    "kahve": [
-        "coffee",
-        "nescafe",
-        "espresso",
-        "latte",
-        "cappuccino",
-        "americano"
-    ],
-    "çay": [
-        "tea",
-        "ice tea",
-        "soğuk çay"
-    ],
-    "yumurta": [
-        "egg",
-        "haşlanmış yumurta",
-        "omlet"
-    ],
-    "ekmek": [
-        "bread",
-        "simit",
-        "poğaça"
-    ],
-    "peynir": [
-        "cheese",
-        "kaşar",
-        "beyaz peynir",
-        "lor"
-    ],
-    "süt": [
-        "milk",
-        "laktozsuz"
-    ],
-    "yoğurt": [
-        "yogurt",
-        "yoghurt",
-        "ayran"
-    ],
-    "tavuk": [
-        "chicken",
-        "piliç",
-        "kanat",
-        "göğüs"
-    ],
-    "et": [
-        "meat",
-        "dana",
-        "kuzu",
-        "kıyma",
-        "köfte",
-        "kebap",
-        "döner"
-    ],
-    "balık": [
-        "fish",
-        "somon",
-        "ton",
-        "levrek",
-        "çupra",
-        "hamsi"
-    ],
-    "pilav": [
-        "rice",
-        "pirinç",
-        "bulgur"
-    ],
-    "makarna": [
-        "pasta",
-        "spaghetti",
-        "noodle",
-        "salçalı makarna",
-        "domatesli makarna",
-        "fırında makarna",
-        "yoğurtlu makarna",
-        "makarna salatası",
-        "tavuklu makarna"
-    ],
-    "tatlı": [
-        "dessert",
-        "çikolata",
-        "pasta",
-        "kek",
-        "baklava",
-        "dondurma"
-    ],
-    "salata": [
-        "salad",
-        "yeşillik",
-        "marul",
-        "roka",
-        "maydanoz"
-    ],
-    "çorba": [
-        "soup",
-        "mercimek",
-        "ezogelin",
-        "domates",
-        "yayla"
-    ],
-    "fast food": [
-        "hamburger",
-        "pizza",
-        "döner",
-        "kebap",
-        "lahmacun",
-        "pide"
-    ],
-    "meyve": [
-        "fruit",
-        "elma",
-        "muz",
-        "portakal",
-        "çilek",
-        "karpuz"
-    ],
-    "sebze": [
-        "vegetable",
-        "domates",
-        "salatalık",
-        "biber",
-        "patlıcan",
-        "kabak"
-    ]
+  "acuka": [
+    "biber ezmesi"
+  ],
+  "adana kebap": [
+    "acili kiyma",
+    "kebap"
+  ],
+  "ali nazik kebap": [
+    "kebap",
+    "patlicanli yogurtlu"
+  ],
+  "anali kizli corba": [
+    "kofte & nohut"
+  ],
+  "arabasi corbasi": [
+    "corba",
+    "ic anadolu",
+    "tavuklu ic anadolu"
+  ],
+  "asure": [
+    "kuru meyveli"
+  ],
+  "baklava": [
+    "fistikli"
+  ],
+  "bal": [
+    "cicek bali"
+  ],
+  "balik ekmek": [
+    "i stanbul sokak"
+  ],
+  "bamya": [
+    "zeytinyagli"
+  ],
+  "bamya corbasi": [
+    "corba",
+    "zeytinyagli"
+  ],
+  "beyin salatasi": [
+    "beyin salata"
+  ],
+  "beyran corbasi": [
+    "gaziantep yoresi",
+    "guneydogu"
+  ],
+  "biber dolmasi": [
+    "biber dolma",
+    "pirincli zeytinyagli"
+  ],
+  "biber dolmasi etli kiymali": [
+    "dolma"
+  ],
+  "biber dolmasi zeytinyagli": [
+    "dolma"
+  ],
+  "bobrek sote": [
+    "kuzu bobregi"
+  ],
+  "borek ispanakli": [
+    "firin"
+  ],
+  "borulce salatasi": [
+    "salata",
+    "salata & meze"
+  ],
+  "boyoz": [
+    "izmir"
+  ],
+  "bulbul yuvasi": [
+    "baklava",
+    "fistikli baklava"
+  ],
+  "bulgur pilavi": [
+    "bulgur pilav"
+  ],
+  "bulgur pilavi domatesli": [
+    "pilav"
+  ],
+  "bulgur pilavi sade": [
+    "pilav"
+  ],
+  "buryan kebap": [
+    "guneydogu",
+    "kebap",
+    "siirt yoresi"
+  ],
+  "cacik": [
+    "salata",
+    "salata & meze",
+    "yogurt & salatalik",
+    "yogurt salatalik",
+    "yogurt ve salatalik"
+  ],
+  "cag kebap": [
+    "erzurum yoresi",
+    "ic anadolu",
+    "kebap"
+  ],
+  "cerkez tavugu": [
+    "cevizli",
+    "tavuk"
+  ],
+  "cevizli baklava": [
+    "baklava"
+  ],
+  "ciborek": [
+    "kirim usulu"
+  ],
+  "cig kofte etsiz": [
+    "guneydogu"
+  ],
+  "ciger kebap": [
+    "sis"
+  ],
+  "ciger sarma": [
+    "kuzu ciger"
+  ],
+  "coban salatasi": [
+    "c oban salata",
+    "coban salata",
+    "domates & salatalik",
+    "domates salatalik",
+    "domates ve salatalik",
+    "salata",
+    "salata & meze"
+  ],
+  "corek": [
+    "karadeniz",
+    "karadeniz usulu"
+  ],
+  "dilber dudagi": [
+    "serbetli"
+  ],
+  "domates & salatalik": [
+    "domates salatalik",
+    "domates ve salatalik"
+  ],
+  "domates corbasi": [
+    "corba",
+    "domates corba"
+  ],
+  "domatesli makarna": [
+    "makarna"
+  ],
+  "domatesli pilav": [
+    "pilav"
+  ],
+  "doner kebap": [
+    "kebap",
+    "tavuk et"
+  ],
+  "dugun corbasi": [
+    "corba",
+    "yumurtali et corbasi"
+  ],
+  "eksili kofte": [
+    "kofte"
+  ],
+  "enginar zeytinyagli": [
+    "ege"
+  ],
+  "etli biber dolmasi": [
+    "etli biber dolma",
+    "kiymali"
+  ],
+  "etli ekmek": [
+    "konya"
+  ],
+  "etli taze fasulye": [
+    "kuzu parca et"
+  ],
+  "etli yaprak sarma": [
+    "kiymali"
+  ],
+  "ezme": [
+    "aci domates salatasi"
+  ],
+  "ezogelin corbasi": [
+    "corba",
+    "ezogelin corba",
+    "pirinc & mercimek",
+    "pirinc mercimek",
+    "pirinc ve mercimek"
+  ],
+  "findikli pilav": [
+    "karadeniz",
+    "pilav"
+  ],
+  "firin kebap": [
+    "ic anadolu",
+    "kebap"
+  ],
+  "firin kofte": [
+    "kofte"
+  ],
+  "firin tavuk but": [
+    "tavuk"
+  ],
+  "firin tavuk gogus": [
+    "tavuk"
+  ],
+  "fistikli baklava": [
+    "baklava"
+  ],
+  "fistikli kebap": [
+    "antep fistikli"
+  ],
+  "fistikli sarma": [
+    "baklava",
+    "baklava cesidi"
+  ],
+  "gavurdagi salatasi": [
+    "cevizli domates",
+    "gavurdag i salata",
+    "gavurdagi salata",
+    "salata",
+    "salata & meze"
+  ],
+  "gozleme kiymali": [
+    "ankara"
+  ],
+  "gozleme peynirli": [
+    "peynir & maydanoz",
+    "peynir maydanoz",
+    "peynir ve maydanoz"
+  ],
+  "gullac": [
+    "ramazan tatlisi"
+  ],
+  "guvec": [
+    "kuzu etli sebze"
+  ],
+  "hamsi bugulama": [
+    "karadeniz"
+  ],
+  "hamsi pilavi": [
+    "karadeniz",
+    "pilav"
+  ],
+  "hamsi tava": [
+    "karadeniz hamsi"
+  ],
+  "haslanmis yumurta": [
+    "yumurta"
+  ],
+  "havuc dilimi": [
+    "baklava"
+  ],
+  "haydari": [
+    "salata",
+    "salata & meze",
+    "sarimsakli yogurt"
+  ],
+  "hosmerim": [
+    "ic anadolu"
+  ],
+  "humus": [
+    "salata",
+    "salata & meze"
+  ],
+  "hunkar begendi": [
+    "patlicanli kuzu"
+  ],
+  "ic pilav": [
+    "fistik & kus uzumu",
+    "fistik kus uzumu",
+    "fistik ve kus uzumu",
+    "pilav"
+  ],
+  "icli kofte": [
+    "guneydogu"
+  ],
+  "imam bayildi": [
+    "patlican",
+    "zeytinyagli patlican"
+  ],
+  "inegol kofte": [
+    "kofte"
+  ],
+  "irmik helvasi": [
+    "cam fistikli"
+  ],
+  "iskembe corbasi": [
+    "iskembe corba"
+  ],
+  "ispanak yemegi": [
+    "zeytinyagli"
+  ],
+  "ispanakli borek": [
+    "borek"
+  ],
+  "ispanakli gozleme": [
+    "gozleme"
+  ],
+  "ispanakli yumurta": [
+    "yumurta"
+  ],
+  "izgara kofte": [
+    "kofte"
+  ],
+  "izmir kofte": [
+    "domatesli firin",
+    "kofte"
+  ],
+  "kabak cicegi dolmasi": [
+    "dolma",
+    "ege"
+  ],
+  "kabak dolmasi": [
+    "kabak dolma",
+    "zeytinyagli"
+  ],
+  "kabak dolmasi etli": [
+    "dolma"
+  ],
+  "kabak dolmasi zeytinyagli": [
+    "dolma"
+  ],
+  "kaburga dolmasi": [
+    "kaburga dolma",
+    "pirincli kuzu"
+  ],
+  "kadayif": [
+    "tel kadayif"
+  ],
+  "kadinbudu kofte": [
+    "haberturk 100g 255 kcal 180g 459 kcal",
+    "kofte"
+  ],
+  "kagit kebap": [
+    "firinda kagitta"
+  ],
+  "kalamar tava": [
+    "unlu"
+  ],
+  "kalburabasti": [
+    "cevizli serbetli"
+  ],
+  "karalahana corbasi": [
+    "corba",
+    "karadeniz"
+  ],
+  "karalahana sarmasi": [
+    "dolma",
+    "karadeniz"
+  ],
+  "karniyarik": [
+    "kiymali patlican",
+    "patlican"
+  ],
+  "kasarli sucuklu gozleme": [
+    "gozleme"
+  ],
+  "katmer": [
+    "antep usulu"
+  ],
+  "kavurmali pilav": [
+    "pilav"
+  ],
+  "kavurmali yumurta": [
+    "yumurta"
+  ],
+  "kaygana": [
+    "karadeniz"
+  ],
+  "kaymak": [
+    "i nek kaymagi"
+  ],
+  "kereviz zeytinyagli": [
+    "ege"
+  ],
+  "keskek": [
+    "ic anadolu"
+  ],
+  "keskek corbasi": [
+    "bugday & et",
+    "corba"
+  ],
+  "keskul": [
+    "sutlu badem"
+  ],
+  "kirmizi mercimek corbasi": [
+    "corba"
+  ],
+  "kisir": [
+    "bulgur salatasi",
+    "salata",
+    "salata & meze"
+  ],
+  "kiymali gozleme": [
+    "gozleme"
+  ],
+  "kiymali makarna": [
+    "diyetkolik 100g 98 kcal",
+    "makarna"
+  ],
+  "kiymali pilav": [
+    "pilav"
+  ],
+  "kizartma kofte": [
+    "kofte"
+  ],
+  "kofte": [
+    "izgara kofte"
+  ],
+  "kokorec": [
+    "ekmeksiz"
+  ],
+  "kol boregi peynirli": [
+    "borek"
+  ],
+  "koy ekmegi": [
+    "firin"
+  ],
+  "kremali makarna": [
+    "makarna"
+  ],
+  "kremali tavuk": [
+    "tavuk"
+  ],
+  "kumru": [
+    "izmir"
+  ],
+  "kunefe": [
+    "hatay usulu"
+  ],
+  "kuru fasulye": [
+    "pastirmali"
+  ],
+  "kuru fasulye + pilav": [
+    "klasik set"
+  ],
+  "kuru patlican dolmasi": [
+    "patlican",
+    "pirincli"
+  ],
+  "kuzu cevirme": [
+    "butun kuzu"
+  ],
+  "lahana sarma": [
+    "zeytinyagli"
+  ],
+  "lahana sarmasi zeytinyagli": [
+    "dolma"
+  ],
+  "lahmacun": [
+    "kiymali ince"
+  ],
+  "lahmacun antep": [
+    "guneydogu"
+  ],
+  "laz boregi": [
+    "karadeniz",
+    "karadeniz tatlisi"
+  ],
+  "laz boregi tatli": [
+    "borek"
+  ],
+  "lebeniye corbasi": [
+    "corba",
+    "yogurtlu nohut"
+  ],
+  "lokma": [
+    "serbetli"
+  ],
+  "lokum": [
+    "gullu"
+  ],
+  "mantarli gozleme": [
+    "gozleme"
+  ],
+  "manti": [
+    "yogurtlu"
+  ],
+  "mas corbasi": [
+    "mas fasulyesi"
+  ],
+  "menemen": [
+    "diyetkolik 100g 104 kcal",
+    "domatesli yumurta",
+    "yumurta"
+  ],
+  "mercimek corbasi": [
+    "kirmizi mercimek",
+    "mercimek corba"
+  ],
+  "mercimek kofte": [
+    "soguk"
+  ],
+  "mercimek koftesi": [
+    "salata",
+    "salata & meze"
+  ],
+  "mercimek koftesi soguk": [
+    "kofte"
+  ],
+  "midye dolma": [
+    "pirincli midye"
+  ],
+  "midye tava": [
+    "unlu kizartma"
+  ],
+  "misir ekmegi": [
+    "karadeniz"
+  ],
+  "mucver": [
+    "kabak mucver"
+  ],
+  "muhallebi": [
+    "sutlu"
+  ],
+  "muhlama / kuymak": [
+    "karadeniz"
+  ],
+  "mumbar dolmasi": [
+    "pirincli bagirsak"
+  ],
+  "musakka": [
+    "kiymali patlican firin"
+  ],
+  "musakka kiymali": [
+    "patlican"
+  ],
+  "muska boregi tatli": [
+    "baklava"
+  ],
+  "nohutlu pilav": [
+    "pilav",
+    "tereyagli pirinc"
+  ],
+  "omlet": [
+    "peynirli"
+  ],
+  "omlet peynirli": [
+    "guncellendi",
+    "yumurta"
+  ],
+  "omlet sade": [
+    "diyetkolik gercek deger",
+    "yumurta"
+  ],
+  "orman kebap": [
+    "kebap",
+    "sulu et"
+  ],
+  "oruk": [
+    "guneydogu"
+  ],
+  "ot kavurmasi": [
+    "ege"
+  ],
+  "paca corbasi": [
+    "kuzu pacasi",
+    "paca corba"
+  ],
+  "pastirma": [
+    "dilimlenmis"
+  ],
+  "pastirmali yumurta": [
+    "yumurta"
+  ],
+  "patates oturtma": [
+    "firin"
+  ],
+  "patatesli borek": [
+    "borek"
+  ],
+  "patatesli gozleme": [
+    "gozleme"
+  ],
+  "patatesli kofte": [
+    "kofte"
+  ],
+  "patlican ezmesi": [
+    "kozlenmis",
+    "patlican",
+    "salata",
+    "salata & meze"
+  ],
+  "patlican kebap": [
+    "kiymali patlican",
+    "kozlenmis",
+    "patlican"
+  ],
+  "patlican kebap kozlenmis": [
+    "kebap"
+  ],
+  "patlican musakka": [
+    "zeytinyagli"
+  ],
+  "patlican musakka zeytinyagli": [
+    "patlican"
+  ],
+  "patlican tava": [
+    "patlican"
+  ],
+  "peynir+ispanakli gozleme": [
+    "gozleme"
+  ],
+  "peynirli firin makarna": [
+    "makarna"
+  ],
+  "peynirli gozleme": [
+    "gozleme"
+  ],
+  "pide kusbasili": [
+    "kusbasili"
+  ],
+  "pirasa yumurta": [
+    "yumurta"
+  ],
+  "pirinc pilavi": [
+    "pirinc pilav",
+    "tereyagli"
+  ],
+  "piyaz": [
+    "salata",
+    "salata & meze",
+    "soganli fasulye"
+  ],
+  "pogaca": [
+    "peynirli firin"
+  ],
+  "recel": [
+    "cilek",
+    "kayisi",
+    "kayisi / cilek"
+  ],
+  "revani": [
+    "i rmik tatlisi"
+  ],
+  "roka salatasi": [
+    "salata",
+    "salata & meze"
+  ],
+  "sac kavurma": [
+    "ic anadolu",
+    "kebap"
+  ],
+  "sade pirinc pilavi": [
+    "pilav"
+  ],
+  "sade tereyagli makarna": [
+    "makarna"
+  ],
+  "sahanda yumurta": [
+    "tereyagli",
+    "yumurta"
+  ],
+  "salcali makarna": [
+    "diyetkolik+fitekran 100g 120 kcal",
+    "makarna"
+  ],
+  "sehriye corbasi": [
+    "sehriye corba",
+    "tavuklu"
+  ],
+  "sehriyeli pilav": [
+    "pilav",
+    "pirincli"
+  ],
+  "semizotu salatasi": [
+    "salata",
+    "salata & meze"
+  ],
+  "sigara boregi": [
+    "peynirli"
+  ],
+  "sigara boregi kiymali": [
+    "borek"
+  ],
+  "sigara boregi peynirli": [
+    "borek"
+  ],
+  "simit": [
+    "susam"
+  ],
+  "simit kebap": [
+    "urfa usulu"
+  ],
+  "sis kebap": [
+    "kebap",
+    "kuzu sis"
+  ],
+  "sobiyet": [
+    "baklava"
+  ],
+  "sogan kebap": [
+    "kiymali sogan"
+  ],
+  "su boregi": [
+    "peynirli"
+  ],
+  "su boregi kiymali": [
+    "borek"
+  ],
+  "su boregi peynirli": [
+    "borek"
+  ],
+  "sucuklu yumurta": [
+    "yumurta"
+  ],
+  "sulu kofte": [
+    "kaloriver+sporvebeslenme 1 porsiyon 268 kcal",
+    "kofte"
+  ],
+  "sutlac": [
+    "firin"
+  ],
+  "sutlu nuriye": [
+    "baklava"
+  ],
+  "tabbule": [
+    "maydanozlu bulgur"
+  ],
+  "talas boregi": [
+    "borek"
+  ],
+  "tarama": [
+    "balik yumurtasi"
+  ],
+  "tarhana": [
+    "ege",
+    "ege usulu"
+  ],
+  "tarhana corbasi": [
+    "corba",
+    "ev yapimi tarhana",
+    "tarhana corba"
+  ],
+  "tas kebap": [
+    "sulu et yemegi"
+  ],
+  "tavuk gogsu": [
+    "sutlu tatli"
+  ],
+  "tavuk guvec": [
+    "tavuk"
+  ],
+  "tavuk haslama": [
+    "nefis yt 150g haslama gogus 150 kcal"
+  ],
+  "tavuk haslama gogus": [
+    "tavuk"
+  ],
+  "tavuk incik": [
+    "firin"
+  ],
+  "tavuk izgara but": [
+    "tavuk"
+  ],
+  "tavuk izgara gogus": [
+    "tavuk",
+    "tavukiyidir 150g 165 kcal 38g protein"
+  ],
+  "tavuk kanat": [
+    "firin"
+  ],
+  "tavuk kavurma": [
+    "tavuk"
+  ],
+  "tavuk sarma": [
+    "tavuk"
+  ],
+  "tavuk sis": [
+    "tavuk"
+  ],
+  "tavuk sote": [
+    "nefis yt 1 porsiyon 170g 288 kcal",
+    "tavuk"
+  ],
+  "tavuk sulu corba": [
+    "corba"
+  ],
+  "tavuklu makarna": [
+    "makarna"
+  ],
+  "tavuklu pilav": [
+    "pilav",
+    "pilavli"
+  ],
+  "tekirdag kofte": [
+    "kofte"
+  ],
+  "tepsi boregi etli": [
+    "borek",
+    "kiymali"
+  ],
+  "tepsi kofte": [
+    "firin kofte",
+    "kofte"
+  ],
+  "testi kebap": [
+    "ic anadolu",
+    "kapadokya",
+    "kebap"
+  ],
+  "tirit": [
+    "ic anadolu"
+  ],
+  "toyga corbasi": [
+    "corba",
+    "nohutlu yogurt"
+  ],
+  "tulumba tatlisi": [
+    "serbetli"
+  ],
+  "turlu": [
+    "karisik sebze"
+  ],
+  "tutmac corbasi": [
+    "corba",
+    "eriste & nohut"
+  ],
+  "un helvasi": [
+    "tereyagli"
+  ],
+  "urfa kebap": [
+    "acisiz kiyma",
+    "kebap"
+  ],
+  "uskumru dolmasi": [
+    "pirincli",
+    "uskumru dolma"
+  ],
+  "yaprak sarma": [
+    "zeytinyagli"
+  ],
+  "yaprak sarma etli": [
+    "dolma"
+  ],
+  "yaprak sarma zeytinyagli": [
+    "dolma"
+  ],
+  "yayla corbasi": [
+    "corba",
+    "yayla corba",
+    "yogurtlu pirinc"
+  ],
+  "yogurtlu semizotu": [
+    "ege"
+  ],
+  "yuksuk corbasi": [
+    "nohutlu manti"
+  ],
+  "zerde": [
+    "safran pirinc tatlisi"
+  ],
+  "zeytin": [
+    "siyah",
+    "siyah / yesil",
+    "yesil"
+  ],
+  "zeytinyagli fasulye": [
+    "taze fasulye"
+  ],
+  "zeytinyagli patlican": [
+    "kozlenmis",
+    "patlican"
+  ],
+  "zeytinyagli sarimsakli": [
+    "makarna"
+  ],
+  "kuzu pirzola izgara": [
+    "pirzola",
+    "kuzu",
+    "izgara pirzola",
+    "Kuzu pirzola"
+  ],
+  "dana bonfile": [
+    "bonfile",
+    "biftek",
+    "dana bonfile izgara"
+  ],
+  "dana antrikot": [
+    "antrikot",
+    "biftek",
+    "ribeye"
+  ],
+  "iskender kebap": [
+    "bursa kebabi",
+    "yogurtlu doner",
+    "doner kebap yogurtlu ekmek"
+  ],
+  "islim kebap": [
+    "patlicana sarili kebap",
+    "kebap",
+    "buhar kebabi"
+  ],
+  "yogurtlu kebap": [
+    "kebap yogurt",
+    "pita ustu"
+  ],
+  "kanat kebap": [
+    "kanat sis",
+    "kebap"
+  ],
+  "pilic sis kebap": [
+    "pilic sis",
+    "kebap",
+    "tavuk sis"
+  ],
+  "karisik izgara": [
+    "mix izgara",
+    "karisik kebap",
+    "izgara tabagi"
+  ],
+  "kavurma": [
+    "kuzu kavurma",
+    "et kavurma",
+    "sac kavurma"
+  ],
+  "kapama": [
+    "kuzu kapama",
+    "kuzu eti sogan"
+  ],
+  "etli kestane": [
+    "kestaneli et",
+    "kestane"
+  ],
+  "etli enginar": [
+    "enginar kuzu",
+    "etli"
+  ],
+  "etli ispanak": [
+    "ispanakli et",
+    "kiyma ispanak"
+  ],
+  "etli pirasa": [
+    "pirasali et"
+  ],
+  "etli patates": [
+    "patatesli et",
+    "et ve patates"
+  ],
+  "etli pirincli dolma": [
+    "kiymali pirinc dolma",
+    "dolma"
+  ],
+  "sac kavurma sebzeli": [
+    "sac kavurma",
+    "sebzeli kavurma",
+    "Sac kavurma"
+  ],
+  "kuzu haslama": [
+    "haslama kuzu",
+    "kuzu et"
+  ],
+  "cizbiz kofte": [
+    "kizarmis kofte",
+    "kofte"
+  ],
+  "terbiyeli kofte": [
+    "yumurtali kofte",
+    "limonlu kofte",
+    "kofte"
+  ],
+  "saray koftesi": [
+    "kofte",
+    "firinda kofte peynirli"
+  ],
+  "sultan kebap": [
+    "sutlu patlican kebap",
+    "kebap"
+  ],
+  "doner tabak": [
+    "et doner",
+    "porsiyon doner"
+  ],
+  "manisa kebap": [
+    "tereyagli kebap",
+    "kebap"
+  ],
+  "girit kebap": [
+    "ege kebabi",
+    "kebap"
+  ],
+  "beyin tava": [
+    "kuzu beyni",
+    "tava"
+  ],
+  "kokorec ekmekli": [
+    "kokorec sandvic",
+    "ekmekli kokorec",
+    "Kokoreç"
+  ],
+  "dana rosto": [
+    "firinda dana",
+    "rosto"
+  ],
+  "kofte patates": [
+    "kofte set"
+  ],
+  "beyti kebap": [
+    "yufkaya sarili kebap",
+    "kebap"
+  ],
+  "kremali ispanak corbasi": [
+    "ispanak corbasi",
+    "corba"
+  ],
+  "pirasa corbasi": [
+    "pirasa corba",
+    "corba"
+  ],
+  "patates corbasi": [
+    "patates corba",
+    "corba"
+  ],
+  "mantar corbasi": [
+    "kremali mantar",
+    "mantar corba",
+    "corba"
+  ],
+  "yesil mercimek corbasi": [
+    "yesil mercimek corba",
+    "corba"
+  ],
+  "nohut corbasi": [
+    "nohutlu corba",
+    "corba"
+  ],
+  "brokoli corbasi": [
+    "brokoli corba",
+    "corba"
+  ],
+  "havuc corbasi": [
+    "havuc corba",
+    "zencefilli havuc",
+    "corba"
+  ],
+  "kabak corbasi": [
+    "kabak corba",
+    "corba"
+  ],
+  "domatesli mercimek corbasi": [
+    "domatesli mercimek",
+    "corba"
+  ],
+  "balik corbasi": [
+    "balik corba",
+    "corba"
+  ],
+  "kereviz corbasi": [
+    "kereviz corba",
+    "corba"
+  ],
+  "kelle corbasi": [
+    "kelle corba"
+  ],
+  "sutlu tarhana corbasi": [
+    "sutlu tarhana",
+    "tarhana corba"
+  ],
+  "tavuk sebze corbasi": [
+    "sebzeli tavuk corbasi",
+    "corba"
+  ],
+  "pirinc corbasi": [
+    "pirinc corba",
+    "corba"
+  ],
+  "bezelye yemegi": [
+    "zeytinyagli bezelye",
+    "bezelye",
+    "taze bezelye"
+  ],
+  "barbunya pilaki": [
+    "pilaki",
+    "barbunya"
+  ],
+  "patates oturtma etli": [
+    "kiymali patates firin",
+    "etli patates",
+    "Patates oturtma"
+  ],
+  "mantar sote": [
+    "sote mantar",
+    "mantar"
+  ],
+  "domates sote": [
+    "sote domates",
+    "biberli domates"
+  ],
+  "patlican sote": [
+    "sote patlican",
+    "patlican"
+  ],
+  "zeytinyagli ispanak": [
+    "ispanak",
+    "soguk ispanak"
+  ],
+  "zeytinyagli taze fasulye soguk": [
+    "taze fasulye soguk",
+    "soguk fasulye",
+    "Zeytinyağlı taze fasulye"
+  ],
+  "korunga pazi yemegi": [
+    "pazi yemegi",
+    "pazi",
+    "Korunga"
+  ],
+  "fasulye pilaki": [
+    "pilaki",
+    "zeytinyagli fasulye soguk"
+  ],
+  "zeytinyagli brokoli": [
+    "brokoli",
+    "zeytinyagli"
+  ],
+  "zeytinyagli karnabahar": [
+    "karnabahar",
+    "zeytinyagli"
+  ],
+  "zeytinyagli bezelye": [
+    "bezelye",
+    "zeytinyagli"
+  ],
+  "sebze guvec": [
+    "karisik guvec",
+    "sebze"
+  ],
+  "zeytinyagli kapuska": [
+    "kapuska",
+    "zeytinyagli lahana"
+  ],
+  "etli lahana": [
+    "lahanali et",
+    "lahana"
+  ],
+  "etli bezelye": [
+    "bezelyeli et",
+    "bezelye"
+  ],
+  "etli kabak": [
+    "kabakli et",
+    "kabak"
+  ],
+  "etli domates": [
+    "domatesli et"
+  ],
+  "zeytinyagli taze sogan": [
+    "taze sogan",
+    "zeytinyagli"
+  ],
+  "kavun tatlisi": [
+    "taze kavun",
+    "meyve"
+  ],
+  "kabak tatlisi": [
+    "serbetli kabak",
+    "cevizli kabak tatlisi"
+  ],
+  "ayva tatlisi": [
+    "serbetli ayva",
+    "firinda ayva"
+  ],
+  "visne kompostosu": [
+    "komposto",
+    "visne"
+  ],
+  "elma kompostosu": [
+    "komposto",
+    "elma"
+  ],
+  "incir kompostosu": [
+    "komposto",
+    "incir"
+  ],
+  "firinda sutlac": [
+    "firin sutlac",
+    "sutlac cesidi"
+  ],
+  "sutlu irmik tatlisi": [
+    "irmik tatli",
+    "sutlu irmik"
+  ],
+  "pismaniye": [
+    "kose helvasi",
+    "iplik helva"
+  ],
+  "fistikli katmer tatli": [
+    "antep katmeri",
+    "katmer",
+    "fistikli",
+    "Fıstıklı katmer"
+  ],
+  "hosaf": [
+    "kuru meyve hosafi",
+    "komposto cesidi"
+  ],
+  "lokum gullu": [
+    "gul lokumu",
+    "lokum",
+    "Lokum"
+  ],
+  "lokum fistikli": [
+    "fistikli lokum",
+    "lokum",
+    "Lokum"
+  ],
+  "portakal tatlisi": [
+    "portakalli kek",
+    "irmik portakal"
+  ],
+  "citir kadayif": [
+    "kadayif cesidi",
+    "firin kadayif"
+  ],
+  "supangle": [
+    "cikolatali tatli",
+    "cikolata muhallebi"
+  ],
+  "limonlu pasta": [
+    "limonlu kek",
+    "ev yapimi pasta"
+  ],
+  "elma tatlisi": [
+    "serbetli elma",
+    "firinda elma"
+  ],
+  "pekmezli ceviz": [
+    "ceviz pekmez",
+    "atistirmalik"
+  ],
+  "protein bowl": [
+    "sporcu bowl",
+    "fit bowl",
+    "whey bowl"
+  ],
+  "meyveli yoğurt bowl": [
+    "yoğurt bowl",
+    "meyveli yogurt bowl",
+    "fit yoğurt kasesi"
+  ],
+  "yaban mersinli smoothie bowl": [
+    "smoothie bowl",
+    "blueberry smoothie bowl"
+  ],
+  "izgara tavuklu buğdaylı bowl": [
+    "tavuklu bowl",
+    "buğdaylı tavuk bowl",
+    "izgara tavuk bowl"
+  ],
+  "meksika fasulyeli bowl": [
+    "fasulyeli bowl",
+    "mexican bowl",
+    "bitkisel protein bowl"
+  ],
+  "maş fasulyeli bowl": [
+    "maş bowl",
+    "mung bean bowl",
+    "fit bakliyat bowl"
+  ],
+  "tavuk güç bowl": [
+    "Tavuk ızgara 200g",
+    "Pirinç pilavı 200g",
+    "Süzme yoğurt 100g",
+    "Tavuk Güç",
+    "Tavuk bowl"
+  ],
+  "tavuk sote bowl": [
+    "Tavuk sote 170g",
+    "Bulgur pilavı 200g",
+    "Mantar sote 150g",
+    "Tavuk Sote",
+    "Tavuk bowl"
+  ],
+  "tavuk bulk bowl": [
+    "Fırın tavuk göğüs 200g",
+    "Nohutlu pilav 250g",
+    "Haydari 150g",
+    "Tavuk Bulk",
+    "Tavuk bowl"
+  ],
+  "köfte klasik bowl": [
+    "Izgara köfte 180g",
+    "Bulgur pilavı 200g",
+    "Çoban salatası 150g",
+    "Köfte Klasik",
+    "Kırmızı Et bowl"
+  ],
+  "kırmızı et bulk bowl": [
+    "Dana bonfile 180g",
+    "İç pilav 200g",
+    "Zeytinyağlı brokoli 150g",
+    "Kırmızı Et Bulk",
+    "Kırmızı Et bowl"
+  ],
+  "döner protein bowl": [
+    "Döner kebap 150g",
+    "Pirinç pilavı 200g",
+    "Patlıcan ezmesi 100g",
+    "Döner Protein",
+    "Kırmızı Et bowl"
+  ],
+  "levrek akdeniz bowl": [
+    "Levrek ızgara 250g",
+    "Bulgur pilavı 200g",
+    "Semizotu salatası 150g",
+    "Levrek Akdeniz",
+    "Balık bowl"
+  ],
+  "hamsi karadeniz bowl": [
+    "Hamsi tava 200g",
+    "Mısır ekmeği 130g",
+    "Semizotu salatası 150g",
+    "Hamsi Karadeniz",
+    "Balık bowl"
+  ],
+  "çipura dolgun bowl": [
+    "Çipura ızgara 300g",
+    "Şehriyeli pilav 200g",
+    "Barbunya pilaki 170g",
+    "Çipura Dolgun",
+    "Balık bowl"
+  ],
+  "mercimek güç bowl": [
+    "Mercimek köftesi 200g",
+    "Bulgur pilavı 200g",
+    "Zeytinyağlı bezelye 100g",
+    "Mercimek Güç",
+    "Vejetaryen bowl"
+  ],
+  "nohut güç bowl": [
+    "Nohutlu pilav 250g",
+    "Patlıcan ezmesi 150g",
+    "Barbunya pilaki 170g",
+    "Nohut Güç",
+    "Vejetaryen bowl"
+  ],
+  "vejetaryen bulk bowl": [
+    "Kuru fasulye 300g",
+    "Pirinç pilavı 200g",
+    "Humus 150g",
+    "Vejetaryen Bulk",
+    "Vejetaryen bowl"
+  ],
+  "yulaf lapasi sut muz bal": [
+    "Yulaf lapası",
+    "Yulaf lapası (süt",
+    "muz",
+    "bal)",
+    "süt + muz + bal"
+  ],
+  "protein omlet 3 yumurta mantar": [
+    "Protein omlet",
+    "3 yumurta + mantar",
+    "3 yumurta",
+    "mantar"
+  ],
+  "yumurta avokado tost": [
+    "Yumurta",
+    "avokado tost"
+  ],
+  "greek yogurt granola meyve": [
+    "Greek yoğurt",
+    "granola",
+    "meyve"
+  ],
+  "protein pankek yulaf yumurta": [
+    "Protein pankek",
+    "yulaf + yumurta",
+    "yulaf",
+    "yumurta"
+  ],
+  "menemen 2 yumurta sebze": [
+    "Menemen",
+    "2 yumurta + sebze",
+    "2 yumurta",
+    "sebze"
+  ],
+  "sahanda yumurta tam ekmek": [
+    "Sahanda yumurta",
+    "tam ekmek"
+  ],
+  "smoothie bowl muz cilek yogurt": [
+    "Smoothie bowl",
+    "muz+çilek+yoğurt"
+  ],
+  "yulaf fistik ezmesi muz": [
+    "Yulaf",
+    "fıstık ezmesi",
+    "muz"
+  ],
+  "cilbir yogurtlu yumurta": [
+    "Çılbır",
+    "yoğurtlu yumurta"
+  ],
+  "sucuklu yumurta salata": [
+    "Sucuklu yumurta",
+    "salata"
+  ],
+  "tam bugday tost hindi peynir": [
+    "Tam buğday tost",
+    "hindi",
+    "peynir"
+  ],
+  "haslanmis yumurta x3 sebze": [
+    "Haşlanmış yumurta x3",
+    "sebze"
+  ],
+  "suzme yogurt ceviz bal": [
+    "Süzme yoğurt",
+    "ceviz",
+    "bal"
+  ],
+  "mercimek krebi yumurta": [
+    "Mercimek krebi",
+    "yumurta"
+  ],
+  "yogurt chia tohumu meyve": [
+    "Yoğurt",
+    "chia tohumu",
+    "meyve"
+  ],
+  "omlet muffin 4 lu firinda": [
+    "Omlet muffin",
+    "4'lü, fırında"
+  ],
+  "ton baligi tam ekmek tost": [
+    "Ton balığı",
+    "tam ekmek tost"
+  ],
+  "keci peyniri domates omlet": [
+    "Keçi peyniri",
+    "domates omlet"
+  ],
+  "kavut lapasi tarhana usulu": [
+    "Kavut lapası",
+    "tarhana usulü"
+  ],
+  "baked oats firin yulaf": [
+    "Baked oats",
+    "fırın yulaf"
+  ],
+  "hindi fume avokado sandvic": [
+    "Hindi füme",
+    "avokado sandviç"
+  ],
+  "protein shake ev yapimi": [
+    "Protein shake",
+    "ev yapımı"
+  ],
+  "haslanmis yumurta x2 ceviz": [
+    "Haşlanmış yumurta x2",
+    "ceviz"
+  ],
+  "cottage cheese meyve": [
+    "Cottage cheese",
+    "meyve"
+  ],
+  "humus havuc kereviz cubugu": [
+    "Humus",
+    "havuç/kereviz çubuğu"
+  ],
+  "findik kuru meyve karisimi": [
+    "Fındık",
+    "kuru meyve karışımı"
+  ],
+  "greek yogurt yaban mersini": [
+    "Greek yoğurt",
+    "yaban mersini"
+  ],
+  "lor peyniri salatalik": [
+    "Lor peyniri",
+    "salatalık"
+  ],
+  "protein bar ev yapimi yulaf": [
+    "Protein bar",
+    "ev yapımı yulaf"
+  ],
+  "ton baligi salatalik": [
+    "Ton balığı",
+    "salatalık"
+  ],
+  "elma fistik ezmesi": [
+    "Elma",
+    "fıstık ezmesi"
+  ],
+  "mercimek koftesi soguk 8 adet": [
+    "Mercimek köftesi",
+    "soğuk, 8 adet"
+  ],
+  "yogurt chia bal": [
+    "Yoğurt",
+    "chia",
+    "bal"
+  ],
+  "badem dark chocolate 2 kare": [
+    "Badem + dark chocolate",
+    "2 kare"
+  ],
+  "yumurta salatasi 2 yumurta": [
+    "Yumurta salatası",
+    "2 yumurta"
+  ],
+  "kinoa nar salatasi": [
+    "Kinoa",
+    "nar salatası"
+  ],
+  "sut muz smoothie": [
+    "Süt",
+    "muz smoothie"
+  ],
+  "ceviz kuru incir 5 3": [
+    "Ceviz + kuru incir",
+    "5+3"
+  ],
+  "protein pankek minyatur 2 adet": [
+    "Protein pankek minyatür",
+    "2 adet"
+  ],
+  "avokado ezmesi pirinc krakeri": [
+    "Avokado ezmesi",
+    "pirinç krakeri"
+  ],
+  "izgara tavuk gogus bulgur": [
+    "Izgara tavuk göğüs",
+    "bulgur"
+  ],
+  "tavuk sote sebze pirinc": [
+    "Tavuk sote",
+    "sebze",
+    "pirinç"
+  ],
+  "firin tavuk but tatli patates": [
+    "Fırın tavuk but",
+    "tatlı patates"
+  ],
+  "tavuk sis lavas cacik": [
+    "Tavuk şiş",
+    "lavaş",
+    "cacık"
+  ],
+  "limonlu firin tavuk brokoli": [
+    "Limonlu fırın tavuk",
+    "brokoli"
+  ],
+  "tavuk corbasi ev yapimi": [
+    "Tavuk çorbası",
+    "ev yapımı"
+  ],
+  "kremali tavuk tam makarna": [
+    "Kremalı tavuk",
+    "tam makarna"
+  ],
+  "tavuk burger tam ekmek": [
+    "Tavuk burger",
+    "tam ekmek"
+  ],
+  "cerkez tavugu cevizli": [
+    "Çerkez tavuğu",
+    "cevizli"
+  ],
+  "tavuk nohut guvec": [
+    "Tavuk",
+    "nohut güveç"
+  ],
+  "tavuk wrap yogurt soslu": [
+    "Tavuk wrap",
+    "yoğurt soslu"
+  ],
+  "kasarli tavuk gogus firin": [
+    "Kaşarlı tavuk göğüs",
+    "fırın"
+  ],
+  "pesto soslu tavuk kinoa": [
+    "Pesto soslu tavuk",
+    "kinoa"
+  ],
+  "tavuk haslama zeytinyagli sebze": [
+    "Tavuk haşlama",
+    "zeytinyağlı sebze"
+  ],
+  "tavuk sarma peynirli firin": [
+    "Tavuk sarma",
+    "peynirli, fırın"
+  ],
+  "tavuk pilav nohutlu": [
+    "Tavuk pilav",
+    "nohutlu"
+  ],
+  "baharatli tavuk uyluk firin": [
+    "Baharatlı tavuk uyluk",
+    "fırın"
+  ],
+  "tavuk mercimek corbasi": [
+    "Tavuk",
+    "mercimek çorbası"
+  ],
+  "tavuk guvec sebzeli": [
+    "Tavuk güveç",
+    "sebzeli"
+  ],
+  "tandoori tavuk firin": [
+    "Tandoori tavuk",
+    "fırın"
+  ],
+  "tavuk bezelye risotto pirinc": [
+    "Tavuk + bezelye risotto",
+    "Tavuk",
+    "bezelye risotto (pirinç)",
+    "pirinç"
+  ],
+  "tavuk doner tabak salata": [
+    "Tavuk döner tabak",
+    "salata"
+  ],
+  "firin tavuk kanat baharatli": [
+    "Fırın tavuk kanat",
+    "baharatlı"
+  ],
+  "tavuk taco yufkada": [
+    "Tavuk taco",
+    "yufkada"
+  ],
+  "tavuk brokoli stir fry": [
+    "Tavuk",
+    "brokoli stir-fry"
+  ],
+  "marine tavuk sis suyuk": [
+    "Marine tavuk şiş",
+    "suyuk"
+  ],
+  "tavuk tahini soslu bulgur": [
+    "Tavuk",
+    "tahini soslu bulgur"
+  ],
+  "manisa usulu tavuk tereyagli": [
+    "Manisa usulü tavuk",
+    "tereyağlı"
+  ],
+  "tavuk pirzola patates puresi": [
+    "Tavuk pirzola",
+    "patates püresi"
+  ],
+  "izgara kofte bulgur salata": [
+    "Izgara köfte",
+    "bulgur",
+    "salata"
+  ],
+  "dana bonfile izgara tatli pat": [
+    "Dana bonfile ızgara",
+    "tatlı pat."
+  ],
+  "adana kebap bulgur": [
+    "Adana kebap",
+    "bulgur"
+  ],
+  "kuzu pirzola izgara sebze": [
+    "Kuzu pirzola",
+    "ızgara sebze"
+  ],
+  "kuru fasulye pirinc": [
+    "Kuru fasulye",
+    "pirinç"
+  ],
+  "izgara burger tam ekmek": [
+    "Izgara burger",
+    "tam ekmek"
+  ],
+  "sis kebap pirinc": [
+    "Şiş kebap",
+    "pirinç"
+  ],
+  "tepsi kofte patates firin": [
+    "Tepsi köfte + patates",
+    "Tepsi köfte",
+    "patates (fırın)",
+    "fırın"
+  ],
+  "izmir kofte domatesli": [
+    "İzmir köfte",
+    "domatesli"
+  ],
+  "dana kiyma nohut domates": [
+    "Dana kıyma",
+    "nohut",
+    "domates"
+  ],
+  "kuzu kavurma bulgur": [
+    "Kuzu kavurma",
+    "bulgur"
+  ],
+  "terbiyeli kofte limonlu": [
+    "Terbiyeli köfte",
+    "limonlu"
+  ],
+  "hunkar begendi patlicanli kuzu": [
+    "Hünkar beğendi",
+    "patlıcanlı kuzu"
+  ],
+  "dana rosto sebze": [
+    "Dana rosto",
+    "sebze"
+  ],
+  "kaburga dolmasi pirince": [
+    "Kaburga dolması",
+    "pirince"
+  ],
+  "dana antrikot izgara salata": [
+    "Dana antrikot ızgara",
+    "salata"
+  ],
+  "cizbiz kofte domates sosu": [
+    "Cızbız köfte",
+    "domates sosu"
+  ],
+  "iskender kebap evde": [
+    "İskender kebap",
+    "evde"
+  ],
+  "izgara somon bulgur salata": [
+    "Izgara somon",
+    "bulgur",
+    "salata"
+  ],
+  "levrek izgara zeytinyagli sebze": [
+    "Levrek ızgara",
+    "zeytinyağlı sebze"
+  ],
+  "cipura firinda patates": [
+    "Çipura fırında",
+    "patates"
+  ],
+  "hamsi tava misir ekmegi": [
+    "Hamsi tava",
+    "mısır ekmeği"
+  ],
+  "ton baligi makarna ev": [
+    "Ton balığı + makarna",
+    "Ton balığı",
+    "makarna (ev)",
+    "ev"
+  ],
+  "alabalik izgara bulgur": [
+    "Alabalık ızgara",
+    "bulgur"
+  ],
+  "karides sote pirinc": [
+    "Karides sote",
+    "pirinç"
+  ],
+  "balik burger tam ekmek": [
+    "Balık burger",
+    "tam ekmek"
+  ],
+  "palamut tava salata": [
+    "Palamut tava",
+    "salata"
+  ],
+  "balik kofte domates sosu": [
+    "Balık köfte",
+    "domates sosu"
+  ],
+  "firinda balik kagitta": [
+    "Fırında balık",
+    "kağıtta"
+  ],
+  "midye dolma salata": [
+    "Midye dolma",
+    "salata"
+  ],
+  "lufer izgara nohutlu salata": [
+    "Lüfer ızgara",
+    "nohutlu salata"
+  ],
+  "sardalya izgara tam ekmek": [
+    "Sardalya ızgara",
+    "tam ekmek"
+  ],
+  "karides sebze wok": [
+    "Karides",
+    "sebze wok"
+  ],
+  "ton baligi salatasi buyuk": [
+    "Ton balığı salatası",
+    "büyük"
+  ],
+  "balik bugulama pirinc": [
+    "Balık buğulama",
+    "pirinç"
+  ],
+  "hamsi pilavi karadeniz": [
+    "Hamsi pilavı",
+    "Karadeniz"
+  ],
+  "istavrit tava bulgur": [
+    "İstavrit tava",
+    "bulgur"
+  ],
+  "mercimek koftesi bulgur": [
+    "Mercimek köftesi",
+    "bulgur"
+  ],
+  "mercimek corbasi kalin": [
+    "Mercimek çorbası",
+    "kalın"
+  ],
+  "karniyarik kiymasiz nohutlu": [
+    "Karnıyarık",
+    "kıymasız, nohutlu"
+  ],
+  "kabak mucver cacik": [
+    "Kabak mucver",
+    "cacık"
+  ],
+  "falafel nohutlu kofte lavas": [
+    "Falafel + lavaş",
+    "Falafel (nohutlu köfte)",
+    "lavaş",
+    "nohutlu köfte"
+  ],
+  "bezelye yemegi pirinc": [
+    "Bezelye yemeği",
+    "pirinç"
+  ],
+  "zeytinyagli barbunya ekmek": [
+    "Zeytinyağlı barbunya",
+    "ekmek"
+  ],
+  "imam bayildi bulgur": [
+    "İmam bayıldı",
+    "bulgur"
+  ],
+  "mantar sote yumurta ekmek": [
+    "Mantar sote",
+    "yumurta",
+    "ekmek"
+  ],
+  "sebze karisik izgara kinoa": [
+    "Sebze karışık ızgara",
+    "kinoa"
+  ],
+  "yumurtali patlican musakka": [
+    "Yumurtalı patlıcan",
+    "musakka"
+  ],
+  "ispanak yumurta yemegi": [
+    "Ispanak",
+    "yumurta yemeği"
+  ],
+  "turk salatasi genis peynirli": [
+    "Türk salatası",
+    "geniş, peynirli"
+  ],
+  "nohut salatasi limonlu": [
+    "Nohut salatası",
+    "limonlu"
+  ],
+  "kisir buyuk porsiyon": [
+    "Kısır",
+    "büyük porsiyon"
+  ],
+  "zeytinyagli enginar ekmek": [
+    "Zeytinyağlı enginar",
+    "ekmek"
+  ],
+  "mantarli risotto tam pirinc": [
+    "Mantarlı risotto",
+    "tam pirinç"
+  ],
+  "pirasa yemegi yumurta ekmek": [
+    "Pırasa yemeği",
+    "yumurta",
+    "ekmek"
+  ],
+  "kinoa avokado salatasi": [
+    "Kinoa",
+    "avokado salatası"
+  ],
+  "izgara tavuk roka salatasi": [
+    "Izgara tavuk",
+    "roka salatası"
+  ],
+  "nohut ispanak salatasi": [
+    "Nohut",
+    "ıspanak salatası"
+  ],
+  "yogurtlu patlican soguk": [
+    "Yoğurtlu patlıcan",
+    "soğuk"
+  ],
+  "gavurdagi salatasi cevizli": [
+    "Gavurdağı salatası",
+    "cevizli"
+  ],
+  "semizotu yogurt salatasi": [
+    "Semizotu",
+    "yoğurt salatası"
+  ],
+  "haydari sarimsakli yogurt": [
+    "Haydari",
+    "sarımsaklı yoğurt"
+  ],
+  "piyaz fasulye salatasi": [
+    "Piyaz",
+    "fasulye salatası"
+  ],
+  "cacik yogurtlu salatalik": [
+    "Cacık",
+    "yoğurtlu salatalık"
+  ],
+  "kisir narenciye": [
+    "Kısır",
+    "narenciye"
+  ],
+  "tabbule maydanozlu bulgur": [
+    "Tabbule",
+    "maydanozlu bulgur"
+  ],
+  "balik carpaccio ton": [
+    "Balık carpaccio",
+    "ton"
+  ],
+  "mercimek salatasi soguk": [
+    "Mercimek salatası",
+    "soğuk"
+  ],
+  "humus tam ekmek": [
+    "Humus",
+    "tam ekmek"
+  ],
+  "somon avokado tatar": [
+    "Somon",
+    "avokado tatar"
+  ],
+  "coban salatasi buyuk": [
+    "Çoban salatası",
+    "büyük"
+  ],
+  "patlican ezmesi tam ekmek": [
+    "Patlıcan ezmesi",
+    "tam ekmek"
+  ],
+  "mercimek corbasi ev kalin": [
+    "Mercimek çorbası",
+    "ev, kalın"
+  ],
+  "tavuk sebze corbasi ev": [
+    "Tavuk sebze çorbası",
+    "ev"
+  ],
+  "yayla corbasi yogurtlu": [
+    "Yayla çorbası",
+    "yoğurtlu"
+  ],
+  "patates corbasi sut bazli": [
+    "Patates çorbası",
+    "süt bazlı"
+  ],
+  "domates corbasi ev": [
+    "Domates çorbası",
+    "ev"
+  ],
+  "mantar corbasi kremali": [
+    "Mantar çorbası",
+    "kremalı"
+  ],
+  "havuc zencefil corbasi": [
+    "Havuç",
+    "zencefil çorbası"
+  ],
+  "tarhana corbasi ev": [
+    "Tarhana çorbası",
+    "ev"
+  ],
+  "somon sebze corbasi": [
+    "Somon",
+    "sebze çorbası"
+  ],
+  "balik corbasi levrekli": [
+    "Balık çorbası",
+    "levrekli"
+  ],
+  "tam bugday makarna domates": [
+    "Tam buğday makarna",
+    "domates"
+  ],
+  "bulgur pilavi nohut": [
+    "Bulgur pilavı",
+    "nohut"
+  ],
+  "kinoa sebze pilavi": [
+    "Kinoa",
+    "sebze pilavı"
+  ],
+  "makarna ton baligi soslu": [
+    "Makarna + ton balığı",
+    "Makarna",
+    "ton balığı (soslu)",
+    "soslu"
+  ],
+  "pirinc pilavi tavuk": [
+    "Pirinç pilavı",
+    "tavuk"
+  ],
+  "tam makarna kiyma sosu": [
+    "Tam makarna",
+    "kıyma sosu"
+  ],
+  "bulgur sebze pilavi": [
+    "Bulgur",
+    "sebze pilavı"
+  ],
+  "kinoa nar ceviz pilavi": [
+    "Kinoa",
+    "nar",
+    "ceviz pilavı"
+  ],
+  "makarna peynir firin": [
+    "Makarna + peynir",
+    "Makarna",
+    "peynir (fırın)",
+    "fırın"
+  ],
+  "tavuklu makarna ev": [
+    "Tavuklu makarna",
+    "ev"
+  ],
+  "ic pilav fistikli kus uzumlu": [
+    "İç pilav",
+    "fıstıklı, kuş üzümlü"
+  ],
+  "zeytinyagli makarna sarimsak": [
+    "Zeytinyağlı makarna",
+    "sarımsak"
+  ],
+  "yulaf kurabiyesi ev": [
+    "Yulaf kurabiyesi",
+    "ev"
+  ],
+  "protein muhallebi sut chia": [
+    "Protein muhallebi",
+    "süt+chia"
+  ],
+  "muz dondurma tek malzeme": [
+    "Muz dondurma",
+    "tek malzeme"
+  ],
+  "chia puding badem sutu": [
+    "Chia puding",
+    "badem sütü"
+  ],
+  "firinda elma tarcin": [
+    "Fırında elma",
+    "tarçın"
+  ],
+  "kabak tatlisi az sekerli": [
+    "Kabak tatlısı",
+    "az şekerli"
+  ],
+  "greek yogurt parfe katmanli": [
+    "Greek yoğurt parfé",
+    "katmanlı"
+  ],
+  "muzlu protein kek yumurtali": [
+    "Muzlu protein kek",
+    "yumurtalı"
+  ],
+  "dondurma ev muz cilek": [
+    "Dondurma",
+    "ev, muz-çilek"
+  ],
+  "tahin pekmez porsiyon": [
+    "Tahin pekmez",
+    "porsiyon"
+  ],
+  "sutlu irmik tatlisi az seker": [
+    "Sütlü irmik tatlısı",
+    "az şeker"
+  ],
+  "protein bar yulaf fistik": [
+    "Protein bar",
+    "yulaf+fıstık"
+  ],
+  "ayva tatlisi serbetsiz": [
+    "Ayva tatlısı",
+    "şerbetsiz"
+  ],
+  "ayva tatl s erbetsiz": [
+    "Ayva tatlısı",
+    "şerbetsiz"
+  ],
+  "baharatl tavuk uyluk f r n": [
+    "Baharatlı tavuk uyluk",
+    "fırın"
+  ],
+  "baked oats f r n yulaf": [
+    "Baked oats",
+    "fırın yulaf"
+  ],
+  "bal k burger tam ekmek": [
+    "Balık burger",
+    "tam ekmek"
+  ],
+  "bal k carpaccio ton": [
+    "Balık carpaccio",
+    "ton"
+  ],
+  "bal k orbas levrekli": [
+    "Balık çorbası",
+    "levrekli"
+  ],
+  "cac k yo urtlu salatal k": [
+    "Cacık",
+    "yoğurtlu salatalık"
+  ],
+  "chia puding badem s t": [
+    "Chia puding",
+    "badem sütü"
+  ],
+  "domates orbas ev": [
+    "Domates çorbası",
+    "ev"
+  ],
+  "dondurma ev muz ilek": [
+    "Dondurma",
+    "ev, muz-çilek"
+  ],
+  "falafel nohutlu k fte lava": [
+    "Falafel + lavaş",
+    "nohutlu köfte"
+  ],
+  "f r n tavuk kanat baharatl": [
+    "Fırın tavuk kanat",
+    "baharatlı"
+  ],
+  "f r nda bal k ka tta": [
+    "Fırında balık",
+    "kağıtta"
+  ],
+  "gavurda salatas cevizli": [
+    "Gavurdağı salatası",
+    "cevizli"
+  ],
+  "greek yo urt parf katmanl": [
+    "Greek yoğurt parfé",
+    "katmanlı"
+  ],
+  "hamsi pilav karadeniz": [
+    "Hamsi pilavı",
+    "Karadeniz"
+  ],
+  "haydari sar msakl yo urt": [
+    "Haydari",
+    "sarımsaklı yoğurt"
+  ],
+  "h nkar be endi patl canl kuzu": [
+    "Hünkar beğendi",
+    "patlıcanlı kuzu"
+  ],
+  "i skender kebap evde": [
+    "İskender kebap",
+    "evde"
+  ],
+  "i zmir k fte domatesli": [
+    "İzmir köfte",
+    "domatesli"
+  ],
+  "i pilav f st kl ku z ml": [
+    "İç pilav",
+    "fıstıklı, kuş üzümlü"
+  ],
+  "kabak tatl s az ekerli": [
+    "Kabak tatlısı",
+    "az şekerli"
+  ],
+  "kaburga dolmas pirince": [
+    "Kaburga dolması",
+    "pirince"
+  ],
+  "karn yar k k ymas z nohutlu": [
+    "Karnıyarık",
+    "kıymasız, nohutlu"
+  ],
+  "kavut lapas tarhana usul": [
+    "Kavut lapası",
+    "tarhana usulü"
+  ],
+  "ka arl tavuk g s f r n": [
+    "Kaşarlı tavuk göğüs",
+    "fırın"
+  ],
+  "k s r b y k porsiyon": [
+    "Kısır",
+    "büyük porsiyon"
+  ],
+  "makarna peynir f r n": [
+    "Makarna + peynir",
+    "fırın"
+  ],
+  "makarna ton bal soslu": [
+    "Makarna + ton balığı",
+    "soslu"
+  ],
+  "manisa usul tavuk tereya l": [
+    "Manisa usulü tavuk",
+    "tereyağlı"
+  ],
+  "mantar orbas kremal": [
+    "Mantar çorbası",
+    "kremalı"
+  ],
+  "mantarl risotto tam pirin": [
+    "Mantarlı risotto",
+    "tam pirinç"
+  ],
+  "marine tavuk i suyuk": [
+    "Marine tavuk şiş",
+    "suyuk"
+  ],
+  "mercimek k ftesi so uk 8 adet": [
+    "Mercimek köftesi",
+    "soğuk, 8 adet"
+  ],
+  "mercimek salatas so uk": [
+    "Mercimek salatası",
+    "soğuk"
+  ],
+  "mercimek orbas ev kal n": [
+    "Mercimek çorbası",
+    "ev, kalın"
+  ],
+  "mercimek orbas kal n": [
+    "Mercimek çorbası",
+    "kalın"
+  ],
+  "muzlu protein kek yumurtal": [
+    "Muzlu protein kek",
+    "yumurtalı"
+  ],
+  "nohut salatas limonlu": [
+    "Nohut salatası",
+    "limonlu"
+  ],
+  "omlet muffin 4 l f r nda": [
+    "Omlet muffin",
+    "4'lü, fırında"
+  ],
+  "patates orbas s t bazl": [
+    "Patates çorbası",
+    "süt bazlı"
+  ],
+  "piyaz fasulye salatas": [
+    "Piyaz",
+    "fasulye salatası"
+  ],
+  "protein bar ev yap m yulaf": [
+    "Protein bar",
+    "ev yapımı yulaf"
+  ],
+  "protein bar yulaf f st k": [
+    "Protein bar",
+    "yulaf+fıstık"
+  ],
+  "protein muhallebi s t chia": [
+    "Protein muhallebi",
+    "süt+chia"
+  ],
+  "protein pankek minyat r 2 adet": [
+    "Protein pankek minyatür",
+    "2 adet"
+  ],
+  "protein shake ev yap m": [
+    "Protein shake",
+    "ev yapımı"
+  ],
+  "smoothie bowl muz ilek yo urt": [
+    "Smoothie bowl",
+    "muz+çilek+yoğurt"
+  ],
+  "s tl irmik tatl s az eker": [
+    "Sütlü irmik tatlısı",
+    "az şeker"
+  ],
+  "tandoori tavuk f r n": [
+    "Tandoori tavuk",
+    "fırın"
+  ],
+  "tarhana orbas ev": [
+    "Tarhana çorbası",
+    "ev"
+  ],
+  "tavuk bezelye risotto pirin": [
+    "Tavuk + bezelye risotto",
+    "pirinç"
+  ],
+  "tavuk g ve sebzeli": [
+    "Tavuk güveç",
+    "sebzeli"
+  ],
+  "tavuk sarma peynirli f r n": [
+    "Tavuk sarma",
+    "peynirli, fırın"
+  ],
+  "tavuk sebze orbas ev": [
+    "Tavuk sebze çorbası",
+    "ev"
+  ],
+  "tavuk wrap yo urt soslu": [
+    "Tavuk wrap",
+    "yoğurt soslu"
+  ],
+  "tavuk orbas ev yap m": [
+    "Tavuk çorbası",
+    "ev yapımı"
+  ],
+  "tepsi k fte patates f r n": [
+    "Tepsi köfte + patates",
+    "fırın"
+  ],
+  "terbiyeli k fte limonlu": [
+    "Terbiyeli köfte",
+    "limonlu"
+  ],
+  "ton bal makarna ev": [
+    "Ton balığı + makarna",
+    "ev"
+  ],
+  "ton bal salatas b y k": [
+    "Ton balığı salatası",
+    "büyük"
+  ],
+  "t rk salatas geni peynirli": [
+    "Türk salatası",
+    "geniş, peynirli"
+  ],
+  "yayla orbas yo urtlu": [
+    "Yayla çorbası",
+    "yoğurtlu"
+  ],
+  "yo urtlu patl can so uk": [
+    "Yoğurtlu patlıcan",
+    "soğuk"
+  ],
+  "yulaf lapas s t muz bal": [
+    "Yulaf lapası",
+    "süt + muz + bal",
+    "süt",
+    "muz",
+    "bal"
+  ],
+  "yumurta salatas 2 yumurta": [
+    "Yumurta salatası",
+    "2 yumurta"
+  ],
+  "yumurtal patl can musakka": [
+    "Yumurtalı patlıcan",
+    "musakka"
+  ],
+  "erkez tavu u cevizli": [
+    "Çerkez tavuğu",
+    "cevizli"
+  ],
+  "oban salatas b y k": [
+    "Çoban salatası",
+    "büyük"
+  ],
+  "lb r yo urtlu yumurta": [
+    "Çılbır",
+    "yoğurtlu yumurta"
+  ]
 }

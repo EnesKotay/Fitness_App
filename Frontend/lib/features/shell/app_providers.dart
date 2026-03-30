@@ -7,7 +7,10 @@ import '../auth/providers/auth_provider.dart';
 import '../tasks/controllers/daily_tasks_controller.dart';
 import '../tracking/providers/tracking_provider.dart';
 import '../workout/providers/workout_provider.dart';
+import '../workout/providers/streak_provider.dart';
 import '../weight/presentation/providers/weight_provider.dart';
+import '../ai_coach/providers/weekly_plan_provider.dart';
+import '../recipes/presentation/state/recipe_provider.dart';
 
 class AppProviders {
   static List<SingleChildWidget> get providers => [
@@ -17,6 +20,9 @@ class AppProviders {
         ChangeNotifierProvider(create: (_) => WeightProvider()),
         ChangeNotifierProvider(create: (_) => WorkoutProvider()),
         ChangeNotifierProvider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => StreakProvider()..init()),
+        ChangeNotifierProvider(create: (_) => WeeklyPlanProvider()..init()),
+        ChangeNotifierProvider(create: (_) => RecipeProvider()),
         Provider(create: (_) => AIService()),
         ChangeNotifierProxyProvider3<
             WeightProvider,

@@ -31,7 +31,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tema ve Gorunum')),
+      appBar: AppBar(title: const Text('Tema ve Görünüm')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -55,7 +55,7 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
               ButtonSegment<String>(
                 value: 'light',
                 icon: Icon(Icons.light_mode_rounded),
-                label: Text('Acik'),
+                label: Text('Açık'),
               ),
             ],
             selected: {_mode},
@@ -69,8 +69,8 @@ class _SettingsThemeScreenState extends State<SettingsThemeScreen> {
           SwitchListTile(
             value: _highContrast,
             onChanged: (v) => setState(() => _highContrast = v),
-            title: const Text('Yuksek kontrast'),
-            subtitle: const Text('Kart ve metin okunabilirligini artir'),
+            title: const Text('Yüksek Kontrast'),
+            subtitle: const Text('Kart ve metin okunabilirliğini artır'),
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(

@@ -15,6 +15,7 @@ import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../widgets/premium_summary_card.dart';
+import '../widgets/progress_share_card.dart';
 import '../widgets/stats_grid.dart';
 import '../widgets/neon_line_chart.dart';
 import '../widgets/history_list.dart';
@@ -226,10 +227,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Consumer2<TrackingProvider, DietProvider>(
-                      builder: (context, tracking, diet, _) => BodyCompositionCard(
-                        profile: diet.profile,
-                        measurements: tracking.bodyMeasurements,
-                      ),
+                      builder: (context, tracking, diet, _) =>
+                          BodyCompositionCard(
+                            profile: diet.profile,
+                            measurements: tracking.bodyMeasurements,
+                          ),
                     ),
                   ),
                 ),
@@ -383,7 +385,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
             children: [
               // Top accent bar
               Positioned(
-                top: 0, left: 0, right: 0,
+                top: 0,
+                left: 0,
+                right: 0,
                 child: Container(
                   height: 3,
                   decoration: BoxDecoration(
@@ -413,7 +417,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                               color: headlineColor.withValues(alpha: 0.22),
                             ),
                           ),
-                          child: Icon(headlineIcon, color: headlineColor, size: 22),
+                          child: Icon(
+                            headlineIcon,
+                            color: headlineColor,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -451,7 +459,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             Icons.local_fire_department_rounded,
                             'Seri',
                             streak > 0 ? '$streak gün' : 'Yok',
-                            streak >= 3 ? const Color(0xFFFFB300) : Colors.white70,
+                            streak >= 3
+                                ? const Color(0xFFFFB300)
+                                : Colors.white70,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -471,7 +481,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             goalDate != null
                                 ? DateFormat('d MMM', 'tr_TR').format(goalDate)
                                 : 'Belirsiz',
-                            goalDate != null ? AppColors.primaryLight : Colors.white60,
+                            goalDate != null
+                                ? AppColors.primaryLight
+                                : Colors.white60,
                           ),
                         ),
                       ],
@@ -488,7 +500,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  Widget _buildCompactMetric(IconData icon, String label, String value, Color valueColor) {
+  Widget _buildCompactMetric(
+    IconData icon,
+    String label,
+    String value,
+    Color valueColor,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
@@ -559,7 +576,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
-                      _showAdvancedTracking ? Icons.keyboard_arrow_up_rounded : Icons.tune_rounded,
+                      _showAdvancedTracking
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.tune_rounded,
                       color: AppColors.primaryLight,
                       size: 17,
                     ),
@@ -579,7 +598,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   ),
                   if (!_showAdvancedTracking)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
@@ -594,7 +616,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       ),
                     )
                   else
-                    Icon(Icons.keyboard_arrow_up_rounded, color: Colors.white38, size: 20),
+                    Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
                 ],
               ),
             ),
@@ -660,10 +686,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
           : '${weeksLeft.ceil()} hafta';
     }
 
-    final shortLabel = remaining < 0.10 ? 'İdeal'
-        : ((needsLoss && weeklyChange > 0.05) || (!needsLoss && weeklyChange < -0.05)) ? 'Dikkat'
-        : actualRate < recommendedMin ? 'Yavaş'
-        : actualRate > recommendedMax ? 'Hızlı' : 'İyi';
+    final shortLabel = remaining < 0.10
+        ? 'İdeal'
+        : ((needsLoss && weeklyChange > 0.05) ||
+              (!needsLoss && weeklyChange < -0.05))
+        ? 'Dikkat'
+        : actualRate < recommendedMin
+        ? 'Yavaş'
+        : actualRate > recommendedMax
+        ? 'Hızlı'
+        : 'İyi';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -679,9 +711,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.05),
                   border: Border(
-                    top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                    right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    right: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
                   ),
                 ),
                 child: Column(
@@ -692,10 +730,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         Container(
                           padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(alpha: 0.1),
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.speed_rounded, size: 16, color: AppColors.primaryLight),
+                          child: const Icon(
+                            Icons.speed_rounded,
+                            size: 16,
+                            color: AppColors.primaryLight,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         const Expanded(
@@ -709,11 +753,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: statusColor.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             shortLabel,
@@ -729,17 +778,28 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'Önerilen: ${recommendedMin.toStringAsFixed(2)} – ${recommendedMax.toStringAsFixed(2)} kg/hafta',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Mevcut: ${actualRate.toStringAsFixed(2)} kg/hafta${showEta ? '  •  Kalan: $etaText' : ''}',
-                      style: TextStyle(color: statusColor.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: statusColor.withValues(alpha: 0.9),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       status,
-                      style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -801,9 +861,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.05),
                   border: Border(
-                    top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                    right: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+                    top: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    right: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    bottom: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
                   ),
                 ),
                 child: Column(
@@ -814,10 +880,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         Container(
                           padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(alpha: 0.1),
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.verified_rounded, size: 16, color: AppColors.primaryLight),
+                          child: const Icon(
+                            Icons.verified_rounded,
+                            size: 16,
+                            color: AppColors.primaryLight,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         const Expanded(
@@ -832,11 +904,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         ),
                         // Score badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: color.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             '$score/100',
@@ -852,7 +929,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'Son 14 gün: $count14/14 gün kayıt',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     // Progress bar
@@ -864,7 +944,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                             child: LinearProgressIndicator(
                               minHeight: 10,
                               value: weeklyProgress,
-                              backgroundColor: Colors.white.withValues(alpha: 0.08),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.08,
+                              ),
                               valueColor: AlwaysStoppedAnimation<Color>(color),
                             ),
                           ),
@@ -883,12 +965,19 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Haftalık hedef: $weeklyGoal kayıt',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       feedback,
-                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -2047,19 +2136,47 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Future<void> _shareProgress(BuildContext context) async {
     final currentContext = context;
     try {
-      final image = await _screenshotController.capture(
-        delay: const Duration(milliseconds: 100),
+      final weightProvider = Provider.of<WeightProvider>(
+        currentContext,
+        listen: false,
       );
-      if (image == null || !currentContext.mounted) return;
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/tracking_share.png');
-      await file.writeAsBytes(image);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: 'Kilo takibim 🎯 #Fitness',
+      final dietProvider = Provider.of<DietProvider>(
+        currentContext,
+        listen: false,
+      );
+
+      final current = weightProvider.latestEntry?.weightKg;
+      final entries = weightProvider.entries;
+      final first = entries.isNotEmpty ? entries.last.weightKg : null;
+      final change = (current != null && first != null)
+          ? current - first
+          : null;
+      final goal = dietProvider.profile?.targetWeight;
+
+      final shareController = ScreenshotController();
+      final image = await shareController.captureFromWidget(
+        MediaQuery(
+          data: const MediaQueryData(),
+          child: Directionality(
+            textDirection: Directionality.of(currentContext),
+            child: ProgressShareCard(
+              currentWeightKg: current,
+              goalWeightKg: goal,
+              weightChangeSinceStart: change,
+              totalCaloriesToday: dietProvider.totals.totalKcal.round(),
+            ),
+          ),
         ),
+        pixelRatio: 2.5,
       );
+
+      if (!currentContext.mounted) return;
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/fitmentor_progress.png');
+      await file.writeAsBytes(image);
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'FitMentor ile ilerleme kaydediyorum! 💪 #FitMentor #Fitness');
     } catch (e) {
       debugPrint('Share error: $e');
       if (currentContext.mounted) {

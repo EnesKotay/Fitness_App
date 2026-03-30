@@ -79,11 +79,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
       final file = File('${dir.path}/fitness_privacy_export_$now.json');
       await file.writeAsString(pretty);
       if (!mounted) return;
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(file.path)],
-          text: 'Fitness hesap verisi dışa aktarma',
-        ),
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Fitness hesap verisi dışa aktarma',
       );
     } catch (_) {
       final fallback = const JsonEncoder.withIndent(

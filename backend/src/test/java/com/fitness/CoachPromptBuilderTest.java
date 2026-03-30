@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.fitness.dto.AiCoachRequest;
+import com.fitness.entity.AiInsight;
 import com.fitness.service.CoachPromptBuilder;
 import com.fitness.service.CoachPromptContext;
 
@@ -53,5 +54,39 @@ public class CoachPromptBuilderTest {
         assertTrue(prompt.contains("BMI: 25.3"));
         assertTrue(prompt.contains("DETERMINISTIC COACHING SIGNALS:"));
         assertTrue(prompt.contains("prioritize recovery"));
+    }
+
+    @Test
+    void buildPromptIncludesMemoryInsightsAndMeals() {
+        CoachPromptBuilder builder = new CoachPromptBuilder();
+        AiCoachRequest request = new AiCoachRequest();
+        request.goal = "maintain";
+        request.question = "Kalorim neden yüksek görünüyor?";
+
+        AiCoachRequest.DailySummaryDto summary = new AiCoachRequest.DailySummaryDto();
+        summary.calories = 2780;
+        summary.targetCalories = 2400;
+        summary.proteinGrams = 155;
+        summary.carbsGrams = 290;
+        summary.fatGrams = 82;
+        summary.mealNames = List.of("Kahvaltı omleti", "Tavuk pilav", "Yoğurt");
+        request.dailySummary = summary;
+
+        AiInsight insight = new AiInsight();
+        insight.type = "WEEKLY_PROGRESS";
+        insight.summary = "Hafta sonları kalori alımın belirgin şekilde artıyor.";
+
+        String prompt = builder.buildPrompt(
+                request,
+                List.of(insight),
+                CoachPromptContext.empty());
+
+        assertTrue(prompt.contains("LONG-TERM MEMORY INSIGHTS:"));
+        assertTrue(prompt.contains("WEEKLY_PROGRESS"));
+        assertTrue(prompt.contains("Hafta sonları kalori alımın belirgin şekilde artıyor."));
+        assertTrue(prompt.contains("TODAY'S MEALS:"));
+        assertTrue(prompt.contains("Kahvaltı omleti, Tavuk pilav, Yoğurt"));
+        assertTrue(prompt.contains("QUESTION-SPECIFIC GUIDANCE:"));
+        assertTrue(prompt.contains("Use calories, macros, TDEE, and target gap to answer numerically where possible."));
     }
 }

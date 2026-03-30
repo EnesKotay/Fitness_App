@@ -18,6 +18,7 @@ import '../../nutrition/presentation/pages/diet_tab_container.dart';
 import '../../shell/main_shell.dart';
 import '../providers/auth_provider.dart';
 import 'edit_profile_screen.dart';
+import 'legal_screen.dart';
 import 'premium_screen.dart';
 
 const Color _warmAccent = Color(0xFFD89A6A);
@@ -368,6 +369,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ),
                               ),
                               _settingsTile(
+                                icon: Icons.emoji_events_rounded,
+                                accent: const Color(0xFFFFD700),
+                                title: 'Başarımlar',
+                                subtitle: 'Rozetler ve seriler',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/achievements'),
+                              ),
+                              _settingsTile(
                                 icon: Icons.lock_outline_rounded,
                                 accent: _warmAccent,
                                 title: 'Şifre Değiştir',
@@ -386,6 +396,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ).pushNamed('/settings-notifications'),
                               ),
                               _settingsTile(
+                                icon: Icons.restaurant_menu_rounded,
+                                accent: const Color(0xFF66BB6A),
+                                title: 'Beslenme Tercihleri',
+                                subtitle: 'Vejetaryen, glutensiz, helal...',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-nutrition'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.palette_outlined,
+                                accent: const Color(0xFFAB47BC),
+                                title: 'Tema ve Görünüm',
+                                subtitle: 'Koyu / açık mod, kontrast',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-theme'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.help_outline_rounded,
+                                accent: _softBlue,
+                                title: 'Yardım & SSS',
+                                subtitle: 'Sık sorulan sorular, destek',
+                                onTap: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/settings-help'),
+                              ),
+                              _settingsTile(
                                 icon: Icons.privacy_tip_outlined,
                                 accent: _softBlue,
                                 title: 'Gizlilik',
@@ -393,6 +430,39 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 onTap: () => Navigator.of(
                                   context,
                                 ).pushNamed('/settings-privacy'),
+                              ),
+                              _settingsTile(
+                                icon: Icons.description_outlined,
+                                accent: _warmAccent,
+                                title: 'Kullanım Koşulları',
+                                subtitle: 'Yasal metni görüntüle',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalScreen(
+                                      initialTab: LegalTab.terms,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              _settingsTile(
+                                icon: Icons.shield_outlined,
+                                accent: _freshGreen,
+                                title: 'Gizlilik Politikası',
+                                subtitle: 'Veri işleme detayları',
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const LegalScreen(
+                                      initialTab: LegalTab.privacy,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              _settingsTile(
+                                icon: Icons.delete_forever_outlined,
+                                accent: Colors.redAccent,
+                                title: 'Hesabı Sil',
+                                subtitle: 'Tüm verileri kalıcı olarak sil',
+                                onTap: () => _showDeleteAccountDialog(context),
                               ),
                               const SizedBox(height: 24),
                               _logoutTile(context, authProvider),
@@ -414,6 +484,48 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   static String _fmtDate(DateTime dt) =>
       '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 26),
+            SizedBox(width: 10),
+            Text(
+              'Hesabı Sil',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Tüm verileriniz (beslenme geçmişi, antrenmanlar, ölçümler) kalıcı olarak silinecek ve bu işlem geri alınamaz.\n\n'
+          'Devam etmek için Gizlilik ekranına yönlendirileceksiniz.',
+          style: TextStyle(color: Color(0xFFBDBDBD), height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pushNamed('/settings-privacy');
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text(
+              'Devam Et',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMembershipCard(AuthProvider authProvider) {
     final isPremium = _isPremium(authProvider);
@@ -512,8 +624,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         : 0;
     final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
     final planPrice = plan == 'yearly' ? '1.199₺ / yıl' : '149₺ / ay';
-    final statusColor =
-        cancelAtEnd ? Colors.orangeAccent : const Color(0xFF69F0AE);
+    final statusColor = cancelAtEnd
+        ? Colors.orangeAccent
+        : const Color(0xFF69F0AE);
     final statusLabel = cancelAtEnd ? 'İptal Planlandı' : 'Aktif';
     final progress = (daysLeft / totalDays).clamp(0.0, 1.0);
 
@@ -845,7 +958,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     child: OutlinedButton.icon(
                       onPressed: isMonthly && !_cancellingPremium
                           ? () =>
-                              _cancelPremiumFromProfile(context, authProvider)
+                                _cancelPremiumFromProfile(context, authProvider)
                           : null,
                       icon: Icon(
                         Icons.cancel_outlined,

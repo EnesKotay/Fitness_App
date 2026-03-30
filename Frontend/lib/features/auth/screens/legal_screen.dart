@@ -4,15 +4,15 @@ import '../../../core/theme/app_colors.dart';
 
 const _kPrivacyPolicyUrl = String.fromEnvironment(
   'APP_PRIVACY_URL',
-  defaultValue: '',
+  defaultValue: 'mailto:privacy@fitmentor.app?subject=Gizlilik%20Politikası',
 );
 const _kTermsOfServiceUrl = String.fromEnvironment(
   'APP_TERMS_URL',
-  defaultValue: '',
+  defaultValue: 'mailto:legal@fitmentor.app?subject=Kullanım%20Koşulları',
 );
 const _kSupportUrl = String.fromEnvironment(
   'APP_SUPPORT_URL',
-  defaultValue: '',
+  defaultValue: 'mailto:support@fitmentor.app?subject=FitMentor%20Destek',
 );
 const _kPrivacyEmail = String.fromEnvironment(
   'APP_PRIVACY_EMAIL',

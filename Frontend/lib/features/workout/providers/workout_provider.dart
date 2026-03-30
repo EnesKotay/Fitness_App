@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
@@ -8,6 +8,22 @@ import '../../../core/models/workout_models.dart';
 import '../../../core/api/api_exception.dart';
 import '../../sync/domain/entities/pending_sync.dart';
 import '../../sync/services/offline_sync_service.dart';
+import '../data/workout_catalog_data.dart';
+import '../services/recovery_engine.dart';
+
+class TodayWorkoutSuggestion {
+  final String title;
+  final String detail;
+  final IconData icon;
+  final Color color;
+
+  const TodayWorkoutSuggestion({
+    required this.title,
+    required this.detail,
+    required this.icon,
+    required this.color,
+  });
+}
 
 class WorkoutProvider with ChangeNotifier {
   final WorkoutService _workoutService = WorkoutService();
@@ -22,6 +38,7 @@ class WorkoutProvider with ChangeNotifier {
   List<Workout> _exerciseHistory = [];
   Map<String, double> _personalRecords = {};
   Map<String, dynamic> _workoutStats = {};
+  TodayWorkoutSuggestion? _workoutSuggestion;
 
   // ── Getters ───────────────────────────────────────────────────────────────
   List<Workout> get workouts => _workouts;
@@ -31,6 +48,7 @@ class WorkoutProvider with ChangeNotifier {
   List<Workout> get exerciseHistory => _exerciseHistory;
   Map<String, double> get personalRecords => _personalRecords;
   Map<String, dynamic> get workoutStats => _workoutStats;
+  TodayWorkoutSuggestion? get workoutSuggestion => _workoutSuggestion;
 
   /// Seçili tarihe ait antrenmanlar
   List<Workout> get workoutsForSelectedDate {
@@ -66,9 +84,11 @@ class WorkoutProvider with ChangeNotifier {
     try {
       _workouts = await _workoutService.getUserWorkouts(userId);
       _sortWorkouts();
+      _buildWorkoutSuggestion();
       _isLoading = false;
       notifyListeners();
       unawaited(loadPersonalRecords(userId));
+      unawaited(loadWorkoutStats(userId));
     } on ApiException catch (e) {
       _errorMessage = e.message;
       _isLoading = false;
@@ -86,8 +106,8 @@ class WorkoutProvider with ChangeNotifier {
     try {
       _exerciseHistory = await _workoutService.getExerciseHistory(userId, exerciseName);
       notifyListeners();
-    } catch (_) {
-      // Sessizce başarısız — geçmiş gösterilmeyecek
+    } catch (e) {
+      debugPrint('loadExerciseHistory error: $e');
     }
   }
 
@@ -97,7 +117,9 @@ class WorkoutProvider with ChangeNotifier {
     try {
       _personalRecords = await _workoutService.getPersonalRecords(userId);
       notifyListeners();
-    } catch (_) { /* sessiz */ }
+    } catch (e) {
+      debugPrint('loadPersonalRecords error: $e');
+    }
   }
 
   /// Genel istatistikleri yükle
@@ -106,7 +128,9 @@ class WorkoutProvider with ChangeNotifier {
     try {
       _workoutStats = await _workoutService.getWorkoutStats(userId);
       notifyListeners();
-    } catch (_) { /* sessiz */ }
+    } catch (e) {
+      debugPrint('loadWorkoutStats error: $e');
+    }
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -125,6 +149,8 @@ class WorkoutProvider with ChangeNotifier {
       _upsertWorkout(workout);
       _isLoading = false;
       notifyListeners();
+      unawaited(loadPersonalRecords(userId));
+      unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
       if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
@@ -190,6 +216,8 @@ class WorkoutProvider with ChangeNotifier {
       _upsertWorkout(updatedWorkout);
       _isLoading = false;
       notifyListeners();
+      unawaited(loadPersonalRecords(userId));
+      unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
       if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
@@ -255,8 +283,12 @@ class WorkoutProvider with ChangeNotifier {
     try {
       await _workoutService.deleteWorkout(userId, workoutId);
       _workouts.removeWhere((w) => w.id == workoutId);
+      _sortWorkouts();
+      _buildWorkoutSuggestion();
       _isLoading = false;
       notifyListeners();
+      unawaited(loadPersonalRecords(userId));
+      unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
       if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
@@ -270,6 +302,8 @@ class WorkoutProvider with ChangeNotifier {
           ),
         );
         _workouts.removeWhere((w) => w.id == workoutId);
+        _sortWorkouts();
+        _buildWorkoutSuggestion();
         _isLoading = false;
         notifyListeners();
         return true;
@@ -317,6 +351,36 @@ class WorkoutProvider with ChangeNotifier {
       _workouts[index] = workout;
     }
     _sortWorkouts();
+    _buildWorkoutSuggestion();
+  }
+
+  void _buildWorkoutSuggestion() {
+    if (_workouts.isEmpty) {
+      _workoutSuggestion = null;
+      return;
+    }
+
+    final now = DateTime.now();
+    final fatigueByGroup = RecoveryEngine.computeAll(_workouts);
+    final freshGroups = RecoveryEngine.recommendedGroupsToday(_workouts);
+    final allGroups = kMuscleGroupInfo.keys.toList();
+    final targetGroup = (freshGroups.isNotEmpty ? freshGroups : allGroups).first;
+    final info = kMuscleGroupInfo[targetGroup]!;
+    final status = fatigueByGroup[targetGroup];
+    final lastDate = status?.lastWorkoutDate;
+    final daysSince = lastDate == null ? null : now.difference(lastDate).inDays;
+    final detail = daysSince == null
+        ? '${info.label} için başlangıç seansı planla ve temel hareketlerle ritim kur.'
+        : status?.level == FatigueLevel.fresh
+            ? '${info.label} toparlanmış görünüyor. Son odaklı kaydın üzerinden $daysSince gün geçti.'
+            : '${info.label} hâlâ ${status?.levelLabel.toLowerCase() ?? 'izleniyor'}. Bugün daha hazır bir bölgeye yönelebilirsin.';
+
+    _workoutSuggestion = TodayWorkoutSuggestion(
+      title: '${info.label} odaklı antrenman',
+      detail: detail,
+      icon: info.icon,
+      color: info.color,
+    );
   }
 
   void _sortWorkouts() {

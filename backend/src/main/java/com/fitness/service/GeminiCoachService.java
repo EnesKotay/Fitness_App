@@ -202,13 +202,10 @@ public class GeminiCoachService {
             response.todayFocus = "Bugunku hedefe odaklan.";
         }
         if (response.nutritionNote == null || response.nutritionNote.isBlank()) {
-            response.nutritionNote = "Dengeli beslenmeye devam et.";
+            response.nutritionNote = "";
         }
         if (response.actionItems == null || response.actionItems.isEmpty()) {
-            response.actionItems = List.of(
-                    "Planini uygula.",
-                    "Yeterli su ic.",
-                    "Uyku duzenini koru.");
+            response.actionItems = List.of();
         }
     }
 

@@ -33,11 +33,12 @@ void main() {
       Exercise(id: 2, muscleGroup: 'CHEST', name: 'Bench Press'),
     );
 
-    expect(guide.setup, contains('kurek kemiklerini geriye al'));
-    expect(guide.tempo, '3-1-1: 3 sn inis, altta 1 sn durus, 1 sn guclu itis.');
+    expect(guide.frames, hasLength(5));
+    expect(guide.setup, contains('kürek kemiklerini geriye al'));
+    expect(guide.tempo, '3-1-1: 3 sn iniş, altta 1 sn duruş, 1 sn güçlü itiş.');
     expect(
       guide.commonMistakes.any(
-        (issue) => issue.issue == 'Bari goguste sektirmek',
+        (issue) => issue.issue == 'Barı göğüste sektirmek',
       ),
       isTrue,
     );

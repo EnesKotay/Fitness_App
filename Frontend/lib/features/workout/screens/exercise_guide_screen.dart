@@ -13,6 +13,8 @@ import '../../auth/providers/auth_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../models/exercise_guide_data.dart';
 import '../providers/workout_provider.dart';
+import '../providers/streak_provider.dart';
+import '../widgets/achievement_overlay.dart';
 
 class ExerciseGuideScreen extends StatefulWidget {
   final Exercise exercise;
@@ -30,7 +32,8 @@ class ExerciseGuideScreen extends StatefulWidget {
   State<ExerciseGuideScreen> createState() => _ExerciseGuideScreenState();
 }
 
-class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
+class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
+    with SingleTickerProviderStateMixin {
   late final ExerciseGuideData _guide;
   late String _selectedGoalKey;
   late Map<String, bool> _checkStates;
@@ -43,9 +46,18 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
     _checkStates = {for (final item in _guide.checklist) item.title: false};
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _openYouTube() async {
-    final query = Uri.encodeComponent('${widget.exercise.name} nasıl yapılır egzersiz');
-    final uri = Uri.parse('https://www.youtube.com/results?search_query=$query');
+    final query = Uri.encodeComponent(
+      '${widget.exercise.name} nasıl yapılır egzersiz',
+    );
+    final uri = Uri.parse(
+      'https://www.youtube.com/results?search_query=$query',
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -60,24 +72,38 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFFFF0000).withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFFF0000).withValues(alpha: 0.3)),
+          border: Border.all(
+            color: const Color(0xFFFF0000).withValues(alpha: 0.3),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.play_circle_rounded, color: Color(0xFFFF4444), size: 18),
+            const Icon(
+              Icons.play_circle_rounded,
+              color: Color(0xFFFF4444),
+              size: 18,
+            ),
             const SizedBox(width: 8),
-            Text(
-              'YouTube\'da İzle — ${widget.exercise.name}',
-              style: const TextStyle(
-                color: Color(0xFFFF6666),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+            Flexible(
+              child: Text(
+                'YouTube\'da İzle — ${widget.exercise.name}',
+                style: const TextStyle(
+                  color: Color(0xFFFF6666),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
             const SizedBox(width: 6),
-            Icon(Icons.open_in_new_rounded, color: const Color(0xFFFF4444).withValues(alpha: 0.7), size: 14),
+            Icon(
+              Icons.open_in_new_rounded,
+              color: const Color(0xFFFF4444).withValues(alpha: 0.7),
+              size: 14,
+            ),
           ],
         ),
       ),
@@ -104,9 +130,9 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
       case 'TRICEPS':
         return 'Triseps';
       case 'CORE':
-        return 'Karin';
+        return 'Karın';
       case 'GLUTES':
-        return 'Kalca';
+        return 'Kalça';
       default:
         return widget.exercise.muscleGroup;
     }
@@ -219,33 +245,38 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                // ── Kas grubu badge satırı ──────────────────────────────
+                _MuscleBadgeRow(
+                  primaryMuscles: _guide.targetMuscles.take(1).toList(),
+                  secondaryMuscles: _guide.targetMuscles.skip(1).toList(),
+                  accentColor: widget.accentColor,
+                  groupLabel: _muscleGroupLabel(),
+                ),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
                   children: [
                     _MetaChip(
-                      icon: Icons.grid_view_rounded,
-                      label: _muscleGroupLabel(),
-                      color: widget.accentColor,
-                    ),
-                    _MetaChip(
                       icon: Icons.speed_rounded,
                       label: _guide.tempo,
-                      color: widget.accentColor,
-                    ),
-                    _MetaChip(
-                      icon: Icons.my_location_rounded,
-                      label: _guide.targetMuscles.join(' • '),
                       color: widget.accentColor,
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
                 _buildYouTubeButton(),
-                const SizedBox(height: 18),
-                _buildVisualFlow(),
+                const SizedBox(height: 22),
                 const SizedBox(height: 28),
                 _SectionTitle(label: 'Kurulum', color: widget.accentColor),
+                const SizedBox(height: 14),
+                // ── Başlangıç pozisyonu kartı ───────────────────────────
+                _StartPositionCard(
+                  group: widget.exercise.muscleGroup.trim().toUpperCase(),
+                  setup: _guide.setup,
+                  accentColor: widget.accentColor,
+                  keyPoints: _guide.checklist.take(2).toList(),
+                ),
                 const SizedBox(height: 14),
                 _InfoCard(
                   color: widget.accentColor,
@@ -500,104 +531,6 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
     );
   }
 
-  Widget _buildVisualFlow() {
-    return _InfoCard(
-      color: widget.accentColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.animation_rounded, color: widget.accentColor),
-              const SizedBox(width: 8),
-              const Text(
-                'Poz Akışı',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            clipBehavior: Clip.none,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _guide.frames.asMap().entries.map((entry) {
-                final frame = entry.value;
-                final isLast = entry.key == _guide.frames.length - 1;
-                return Container(
-                  width: 150,
-                  margin: EdgeInsets.only(right: isLast ? 0 : 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: widget.accentColor.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: widget.accentColor.withValues(alpha: 0.2),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${entry.key + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        frame.label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        frame.cue,
-                        style: TextStyle(
-                          color: widget.accentColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        frame.detail,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.65),
-                          height: 1.35,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildGoalSelector() {
     return Wrap(
       spacing: 8,
@@ -667,11 +600,40 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
 
   void _onComplete() {
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final streakProvider = Provider.of<StreakProvider>(context, listen: false);
+
+    // Streak güncelle — async, ama UI'yi bg'da yap
+    streakProvider.onWorkoutCompleted().then((badge) {
+      if (!mounted) return;
+      if (badge != null) {
+        // Rozet kazanıldı — overlay göster
+        showDialog<void>(
+          context: context,
+          barrierDismissible: true,
+          barrierColor: Colors.transparent,
+          builder: (_) => AchievementOverlay(
+            badge: badge,
+            accentColor: widget.accentColor,
+            onDismiss: () {
+              streakProvider.clearJustUnlocked();
+              Navigator.of(context).pop();
+            },
+          ),
+        );
+      }
+    });
+
     Navigator.of(context).pop();
     messenger?.showSnackBar(
       SnackBar(
-        content: const Text(
-          'Hareket gosterimi tamamlandi. Dilersen siradaki egzersize gecebilirsin.',
+        content: Row(
+          children: [
+            Text(
+              streakProvider.currentStreak > 0
+                  ? '🔥 ${streakProvider.currentStreak} günlük seri devam ediyor!'
+                  : 'Hareket gösterimi tamamlandı.',
+            ),
+          ],
         ),
         backgroundColor: widget.accentColor,
         behavior: SnackBarBehavior.floating,
@@ -721,762 +683,746 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen> {
         : weight.toStringAsFixed(1);
 
     final result = await showModalBottomSheet<_AddWorkoutSheetResult>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (ctx) {
-          return StatefulBuilder(
-            builder: (ctx, setSheetState) {
-              final recommendation = _buildWeightRecommendation(
-                workoutProvider,
-                userWeight,
-                reps,
-              );
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final recommendation = _buildWeightRecommendation(
+              workoutProvider,
+              userWeight,
+              reps,
+            );
 
-              // +/- değişiklik yardımcısı
-              void changeVal(String field, double delta) {
-                setSheetState(() {
-                  if (field == 'sets') {
-                    sets = (sets + delta.toInt()).clamp(1, 20);
-                    setsC.text = '$sets';
-                  }
-                  if (field == 'reps') {
-                    reps = (reps + delta.toInt()).clamp(1, 50);
-                    repsC.text = '$reps';
-                  }
-                  if (field == 'weight') {
-                    weight = (weight + delta).clamp(0.0, 500.0);
-                    weightC.text = weight % 1 == 0
-                        ? weight.toStringAsFixed(0)
-                        : weight.toStringAsFixed(1);
-                  }
-                });
-              }
+            // +/- değişiklik yardımcısı
+            void changeVal(String field, double delta) {
+              setSheetState(() {
+                if (field == 'sets') {
+                  sets = (sets + delta.toInt()).clamp(1, 20);
+                  setsC.text = '$sets';
+                }
+                if (field == 'reps') {
+                  reps = (reps + delta.toInt()).clamp(1, 50);
+                  repsC.text = '$reps';
+                }
+                if (field == 'weight') {
+                  weight = (weight + delta).clamp(0.0, 500.0);
+                  weightC.text = weight % 1 == 0
+                      ? weight.toStringAsFixed(0)
+                      : weight.toStringAsFixed(1);
+                }
+              });
+            }
 
-              Widget stepper({
-                required String label,
-                required String unit,
-                required TextEditingController controller,
-                required TextInputType keyboardType,
-                required List<TextInputFormatter> inputFormatters,
-                required ValueChanged<String> onChanged,
-                required VoidCallback onMinus,
-                required VoidCallback onPlus,
-              }) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.09),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label.toUpperCase(),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: onMinus,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.remove,
-                                color: Colors.white70,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  controller: controller,
-                                  keyboardType: keyboardType,
-                                  inputFormatters: inputFormatters,
-                                  textAlign: TextAlign.center,
-                                  onChanged: onChanged,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  decoration: const InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  unit,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.4),
-                                    fontSize: 12,
-                                    height: 1.1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: onPlus,
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: accent.withValues(alpha: 0.22),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.add, color: accent, size: 18),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }
-
+            Widget stepper({
+              required String label,
+              required String unit,
+              required TextEditingController controller,
+              required TextInputType keyboardType,
+              required List<TextInputFormatter> inputFormatters,
+              required ValueChanged<String> onChanged,
+              required VoidCallback onMinus,
+              required VoidCallback onPlus,
+            }) {
               return Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFF151515),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
                 ),
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.09),
                   ),
-                  child: SingleChildScrollView(
-                    child: Form(
-                      key: formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // ── Gradient header ──────────────────────────────
-                          Container(
-                            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: onMinus,
+                          child: Container(
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  accent.withValues(alpha: 0.30),
-                                  accent.withValues(alpha: 0.06),
-                                ],
-                              ),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(28),
-                              ),
+                              color: Colors.white.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Sürükleme tutacağı
-                                Center(
-                                  child: Container(
-                                    width: 40,
-                                    height: 4,
-                                    margin: const EdgeInsets.only(bottom: 18),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.25,
-                                      ),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: accent.withValues(alpha: 0.2),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.fitness_center_rounded,
-                                        color: accent,
-                                        size: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            widget.exercise.name,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: accent.withValues(
-                                                alpha: 0.18,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Text(
-                                              widget.muscleGroupLabel ??
-                                                  widget.exercise.muscleGroup,
-                                              style: TextStyle(
-                                                color: accent,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                            child: const Icon(
+                              Icons.remove,
+                              color: Colors.white70,
+                              size: 18,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              TextField(
+                                controller: controller,
+                                keyboardType: keyboardType,
+                                inputFormatters: inputFormatters,
+                                textAlign: TextAlign.center,
+                                onChanged: onChanged,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                unit,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 12,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GestureDetector(
+                          onTap: onPlus,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.add, color: accent, size: 18),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
 
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // ── Önerilen ağırlık banner'ı ─────────────
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
-                                  ),
+            return Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF151515),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // ── Gradient header ──────────────────────────────
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                accent.withValues(alpha: 0.30),
+                                accent.withValues(alpha: 0.06),
+                              ],
+                            ),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(28),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Sürükleme tutacağı
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(bottom: 18),
                                   decoration: BoxDecoration(
-                                    color: Colors.amber.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: Colors.amber.withValues(
-                                        alpha: 0.3,
-                                      ),
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: accent.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.fitness_center_rounded,
+                                      color: accent,
+                                      size: 22,
                                     ),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.lightbulb_outline_rounded,
-                                        color: Colors.amber,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        recommendation.headline,
-                                        style: const TextStyle(
-                                          color: Colors.amber,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.exercise.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
-                                      ),
-                                      const Spacer(),
-                                      GestureDetector(
-                                        onTap: () => setSheetState(() {
-                                          weight = recommendation.suggestedKg;
-                                          weightC.text =
-                                              recommendation.suggestedKg % 1 ==
-                                                  0
-                                              ? recommendation.suggestedKg
-                                                    .toStringAsFixed(0)
-                                              : recommendation.suggestedKg
-                                                    .toStringAsFixed(1);
-                                        }),
-                                        child: Container(
+                                        const SizedBox(height: 2),
+                                        Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 8,
-                                            vertical: 4,
+                                            vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withValues(
-                                              alpha: 0.2,
+                                            color: accent.withValues(
+                                              alpha: 0.18,
                                             ),
                                             borderRadius: BorderRadius.circular(
-                                              8,
+                                              20,
                                             ),
                                           ),
-                                          child: const Text(
-                                            'Uygula',
+                                          child: Text(
+                                            widget.muscleGroupLabel ??
+                                                widget.exercise.muscleGroup,
                                             style: TextStyle(
-                                              color: Colors.amber,
+                                              color: accent,
                                               fontSize: 11,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // ── Önerilen ağırlık banner'ı ─────────────
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.amber.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.lightbulb_outline_rounded,
+                                      color: Colors.amber,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      recommendation.headline,
+                                      style: const TextStyle(
+                                        color: Colors.amber,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    GestureDetector(
+                                      onTap: () => setSheetState(() {
+                                        weight = recommendation.suggestedKg;
+                                        weightC.text =
+                                            recommendation.suggestedKg % 1 == 0
+                                            ? recommendation.suggestedKg
+                                                  .toStringAsFixed(0)
+                                            : recommendation.suggestedKg
+                                                  .toStringAsFixed(1);
+                                      }),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.amber.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Uygula',
+                                          style: TextStyle(
+                                            color: Colors.amber,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              ...recommendation.details.map(
+                                (detail) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.only(top: 4),
+                                        child: Icon(
+                                          Icons.circle,
+                                          size: 6,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          detail,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.72,
+                                            ),
+                                            fontSize: 12.5,
+                                            height: 1.3,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-                                ...recommendation.details.map(
-                                  (detail) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Padding(
-                                          padding: EdgeInsets.only(top: 4),
-                                          child: Icon(
-                                            Icons.circle,
-                                            size: 6,
-                                            color: Colors.amber,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            detail,
-                                            style: TextStyle(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.72,
-                                              ),
-                                              fontSize: 12.5,
-                                              height: 1.3,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
+                              ),
+                              const SizedBox(height: 18),
 
-                                // ── Hızlı preset chipsleri ────────────────
-                                const Text(
-                                  'Hızlı Preset',
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              // ── Hızlı preset chipsleri ────────────────
+                              const Text(
+                                'Hızlı Preset',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    for (final preset in [
-                                      {'label': '3×8', 'sets': 3, 'reps': 8},
-                                      {'label': '4×10', 'sets': 4, 'reps': 10},
-                                      {'label': '5×5', 'sets': 5, 'reps': 5},
-                                      {'label': '3×12', 'sets': 3, 'reps': 12},
-                                    ]) ...[
-                                      GestureDetector(
-                                        onTap: () => setSheetState(() {
-                                          sets = preset['sets'] as int;
-                                          reps = preset['reps'] as int;
-                                          setsC.text = '$sets';
-                                          repsC.text = '$reps';
-                                        }),
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 150,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  for (final preset in [
+                                    {'label': '3×8', 'sets': 3, 'reps': 8},
+                                    {'label': '4×10', 'sets': 4, 'reps': 10},
+                                    {'label': '5×5', 'sets': 5, 'reps': 5},
+                                    {'label': '3×12', 'sets': 3, 'reps': 12},
+                                  ]) ...[
+                                    GestureDetector(
+                                      onTap: () => setSheetState(() {
+                                        sets = preset['sets'] as int;
+                                        reps = preset['reps'] as int;
+                                        setsC.text = '$sets';
+                                        repsC.text = '$reps';
+                                      }),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 150,
+                                        ),
+                                        margin: const EdgeInsets.only(right: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              (sets == preset['sets'] &&
+                                                  reps == preset['reps'])
+                                              ? accent.withValues(alpha: 0.25)
+                                              : Colors.white.withValues(
+                                                  alpha: 0.06,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
                                           ),
-                                          margin: const EdgeInsets.only(
-                                            right: 8,
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 8,
-                                          ),
-                                          decoration: BoxDecoration(
+                                          border: Border.all(
                                             color:
                                                 (sets == preset['sets'] &&
                                                     reps == preset['reps'])
-                                                ? accent.withValues(alpha: 0.25)
+                                                ? accent
                                                 : Colors.white.withValues(
-                                                    alpha: 0.06,
+                                                    alpha: 0.12,
                                                   ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                            border: Border.all(
-                                              color:
-                                                  (sets == preset['sets'] &&
-                                                      reps == preset['reps'])
-                                                  ? accent
-                                                  : Colors.white.withValues(
-                                                      alpha: 0.12,
-                                                    ),
-                                            ),
                                           ),
-                                          child: Text(
-                                            preset['label'] as String,
-                                            style: TextStyle(
-                                              color:
-                                                  (sets == preset['sets'] &&
-                                                      reps == preset['reps'])
-                                                  ? Colors.white
-                                                  : Colors.white54,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                        ),
+                                        child: Text(
+                                          preset['label'] as String,
+                                          style: TextStyle(
+                                            color:
+                                                (sets == preset['sets'] &&
+                                                    reps == preset['reps'])
+                                                ? Colors.white
+                                                : Colors.white54,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
                                           ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // ── Set / Tekrar / Ağırlık stepperları ─────
+                              Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: stepper(
+                                          label: 'SET',
+                                          unit: 'kez',
+                                          controller: setsC,
+                                          keyboardType: TextInputType.number,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly,
+                                          ],
+                                          onChanged: (value) {
+                                            final parsed = int.tryParse(value);
+                                            if (parsed == null) return;
+                                            setSheetState(() {
+                                              sets = parsed.clamp(1, 20);
+                                            });
+                                          },
+                                          onMinus: () => changeVal('sets', -1),
+                                          onPlus: () => changeVal('sets', 1),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: stepper(
+                                          label: 'TEKRAR',
+                                          unit: 'rep',
+                                          controller: repsC,
+                                          keyboardType: TextInputType.number,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly,
+                                          ],
+                                          onChanged: (value) {
+                                            final parsed = int.tryParse(value);
+                                            if (parsed == null) return;
+                                            setSheetState(() {
+                                              reps = parsed.clamp(1, 50);
+                                            });
+                                          },
+                                          onMinus: () => changeVal('reps', -1),
+                                          onPlus: () => changeVal('reps', 1),
                                         ),
                                       ),
                                     ],
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-
-                                // ── Set / Tekrar / Ağırlık stepperları ─────
-                                Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: stepper(
-                                            label: 'SET',
-                                            unit: 'kez',
-                                            controller: setsC,
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter
-                                                  .digitsOnly,
-                                            ],
-                                            onChanged: (value) {
-                                              final parsed = int.tryParse(
-                                                value,
-                                              );
-                                              if (parsed == null) return;
-                                              setSheetState(() {
-                                                sets = parsed.clamp(1, 20);
-                                              });
-                                            },
-                                            onMinus: () =>
-                                                changeVal('sets', -1),
-                                            onPlus: () => changeVal('sets', 1),
-                                          ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  stepper(
+                                    label: 'AĞIRLIK',
+                                    unit: 'kg',
+                                    controller: weightC,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: stepper(
-                                            label: 'TEKRAR',
-                                            unit: 'rep',
-                                            controller: repsC,
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter
-                                                  .digitsOnly,
-                                            ],
-                                            onChanged: (value) {
-                                              final parsed = int.tryParse(
-                                                value,
-                                              );
-                                              if (parsed == null) return;
-                                              setSheetState(() {
-                                                reps = parsed.clamp(1, 50);
-                                              });
-                                            },
-                                            onMinus: () =>
-                                                changeVal('reps', -1),
-                                            onPlus: () => changeVal('reps', 1),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    stepper(
-                                      label: 'AĞIRLIK',
-                                      unit: 'kg',
-                                      controller: weightC,
-                                      keyboardType:
-                                          const TextInputType.numberWithOptions(
-                                            decimal: true,
-                                          ),
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.allow(
-                                          RegExp(r'^\d*([.,]\d{0,2})?$'),
-                                        ),
-                                      ],
-                                      onChanged: (value) {
-                                        final parsed = double.tryParse(
-                                          value.replaceAll(',', '.'),
-                                        );
-                                        if (parsed == null) return;
-                                        setSheetState(() {
-                                          weight = parsed.clamp(0.0, 500.0);
-                                        });
-                                      },
-                                      onMinus: () => changeVal('weight', -2.5),
-                                      onPlus: () => changeVal('weight', 2.5),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-
-                                // ── Tarih seçici ──────────────────────────
-                                GestureDetector(
-                                  onTap: () async {
-                                    final picked = await showDatePicker(
-                                      context: ctx,
-                                      initialDate: pickedDate,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime.now().add(
-                                        const Duration(days: 365),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                        RegExp(r'^\d*([.,]\d{0,2})?$'),
                                       ),
-                                      builder: (dCtx, child) => Theme(
-                                        data: Theme.of(dCtx).copyWith(
-                                          colorScheme: ColorScheme.dark(
-                                            primary: accent,
-                                            onPrimary: Colors.white,
-                                            surface: const Color(0xFF1F1F1F),
-                                            onSurface: Colors.white,
-                                          ),
-                                        ),
-                                        child: child!,
-                                      ),
-                                    );
-                                    if (picked != null) {
-                                      setSheetState(() => pickedDate = picked);
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
+                                    ],
+                                    onChanged: (value) {
+                                      final parsed = double.tryParse(
+                                        value.replaceAll(',', '.'),
+                                      );
+                                      if (parsed == null) return;
+                                      setSheetState(() {
+                                        weight = parsed.clamp(0.0, 500.0);
+                                      });
+                                    },
+                                    onMinus: () => changeVal('weight', -2.5),
+                                    onPlus: () => changeVal('weight', 2.5),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // ── Tarih seçici ──────────────────────────
+                              GestureDetector(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: ctx,
+                                    initialDate: pickedDate,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now().add(
+                                      const Duration(days: 365),
                                     ),
-                                    decoration: BoxDecoration(
+                                    builder: (dCtx, child) => Theme(
+                                      data: Theme.of(dCtx).copyWith(
+                                        colorScheme: ColorScheme.dark(
+                                          primary: accent,
+                                          onPrimary: Colors.white,
+                                          surface: const Color(0xFF1F1F1F),
+                                          onSurface: Colors.white,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    setSheetState(() => pickedDate = picked);
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.05),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(
                                       color: Colors.white.withValues(
-                                        alpha: 0.05,
+                                        alpha: 0.09,
                                       ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.09,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.calendar_month_rounded,
-                                          color: accent,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          DateFormat(
-                                            'd MMMM yyyy',
-                                            'tr_TR',
-                                          ).format(pickedDate),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Icon(
-                                          Icons.chevron_right_rounded,
-                                          color: Colors.white38,
-                                          size: 20,
-                                        ),
-                                      ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 14),
-
-                                // ── Not alanı (opsiyonel, hint ile) ───────
-                                TextField(
-                                  controller: notesC,
-                                  maxLines: 2,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Not ekle (isteğe bağlı)...',
-                                    hintStyle: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      fontSize: 13,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white.withValues(
-                                      alpha: 0.04,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.09,
-                                        ),
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.09,
-                                        ),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_month_rounded,
                                         color: accent,
-                                        width: 1.4,
+                                        size: 20,
                                       ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        DateFormat(
+                                          'd MMMM yyyy',
+                                          'tr_TR',
+                                        ).format(pickedDate),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Colors.white38,
+                                        size: 20,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 22),
+                              ),
+                              const SizedBox(height: 14),
 
-                                // ── Kaydet butonu ─────────────────────────
-                                SizedBox(
-                                  height: 56,
-                                  child: ElevatedButton(
-                                    onPressed: saving
-                                        ? null
-                                        : () async {
-                                            if (!formKey.currentState!
-                                                .validate())
-                                              return;
-                                            setSheetState(() => saving = true);
-
-                                            final calories = _estimateCalories(
-                                              sets,
-                                              reps,
-                                              weight,
-                                              userWeight,
-                                            );
-
-                                            final request = WorkoutRequest(
-                                              name: widget.exercise.name,
-                                              workoutType:
-                                                  typeC.text.trim().isEmpty
-                                                  ? null
-                                                  : typeC.text.trim(),
-                                              caloriesBurned: calories,
-                                              sets: sets,
-                                              reps: reps,
-                                              weight: weight > 0
-                                                  ? weight
-                                                  : null,
-                                              workoutDate: pickedDate,
-                                              notes: notesC.text.trim().isEmpty
-                                                  ? null
-                                                  : notesC.text.trim(),
-                                              muscleGroup:
-                                                  widget.exercise.muscleGroup,
-                                            );
-
-                                            final ok = await workoutProvider
-                                                .createWorkout(userId, request);
-
-                                            if (!ctx.mounted) return;
-                                            Navigator.pop(
-                                              ctx,
-                                              _AddWorkoutSheetResult(
-                                                ok
-                                                    ? 'Antrenmana eklendi!'
-                                                    : (workoutProvider
-                                                              .errorMessage ??
-                                                          'Kaydedilemedi'),
-                                                ok
-                                                    ? const Color(0xFF2E7D32)
-                                                    : Colors.redAccent,
-                                              ),
-                                            );
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: accent,
-                                      disabledBackgroundColor: accent
-                                          .withValues(alpha: 0.5),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(18),
+                              // ── Not alanı (opsiyonel, hint ile) ───────
+                              TextField(
+                                controller: notesC,
+                                maxLines: 2,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Not ekle (isteğe bağlı)...',
+                                  hintStyle: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    fontSize: 13,
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.white.withValues(
+                                    alpha: 0.04,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.09,
                                       ),
-                                      elevation: 0,
                                     ),
-                                    child: saving
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2.5,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.09,
+                                      ),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: accent,
+                                      width: 1.4,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+
+                              // ── Kaydet butonu ─────────────────────────
+                              SizedBox(
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: saving
+                                      ? null
+                                      : () async {
+                                          if (!formKey.currentState!
+                                              .validate()) {
+                                            return;
+                                          }
+                                          setSheetState(() => saving = true);
+
+                                          final calories = _estimateCalories(
+                                            sets,
+                                            reps,
+                                            weight,
+                                            userWeight,
+                                          );
+
+                                          final request = WorkoutRequest(
+                                            name: widget.exercise.name,
+                                            workoutType:
+                                                typeC.text.trim().isEmpty
+                                                ? null
+                                                : typeC.text.trim(),
+                                            caloriesBurned: calories,
+                                            sets: sets,
+                                            reps: reps,
+                                            weight: weight > 0 ? weight : null,
+                                            workoutDate: pickedDate,
+                                            notes: notesC.text.trim().isEmpty
+                                                ? null
+                                                : notesC.text.trim(),
+                                            muscleGroup:
+                                                widget.exercise.muscleGroup,
+                                          );
+
+                                          final ok = await workoutProvider
+                                              .createWorkout(userId, request);
+
+                                          if (!ctx.mounted) return;
+                                          Navigator.pop(
+                                            ctx,
+                                            _AddWorkoutSheetResult(
+                                              ok
+                                                  ? 'Antrenmana eklendi!'
+                                                  : (workoutProvider
+                                                            .errorMessage ??
+                                                        'Kaydedilemedi'),
+                                              ok
+                                                  ? const Color(0xFF2E7D32)
+                                                  : Colors.redAccent,
                                             ),
-                                          )
-                                        : Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(
-                                                Icons.add_circle_rounded,
-                                                color: Colors.white,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 10),
-                                              Text(
-                                                'Antrenmana Ekle • '
-                                                '$sets×$reps'
-                                                '${weight > 0 ? " @ ${weight % 1 == 0 ? weight.toInt() : weight} kg" : ""}',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          );
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: accent,
+                                    disabledBackgroundColor: accent.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    elevation: 0,
                                   ),
+                                  child: saving
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2.5,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.add_circle_rounded,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              'Antrenmana Ekle • '
+                                              '$sets×$reps'
+                                              '${weight > 0 ? " @ ${weight % 1 == 0 ? weight.toInt() : weight} kg" : ""}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              );
-            },
-          );
-        },
-      );
+              ),
+            );
+          },
+        );
+      },
+    );
 
     if (!mounted || result == null) return;
 
@@ -2126,28 +2072,129 @@ class _IssueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sorun: ${issue.issue}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+          // ── ❌ Hata bölümü ───────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: const Color(0xFFFF3B30).withValues(alpha: 0.12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Text(
+                    '✕',
+                    style: TextStyle(
+                      color: Color(0xFFFF6B6B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'YANLIŞ',
+                        style: TextStyle(
+                          color: Color(0xFFFF6B6B),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        issue.issue,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Düzeltme: ${issue.fix}',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.82),
-              height: 1.45,
+          // ── Ok geçiş ────────────────────────────────────────────
+          Container(
+            color: Colors.white.withValues(alpha: 0.04),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Center(
+              child: Icon(
+                Icons.arrow_downward_rounded,
+                color: Colors.white.withValues(alpha: 0.3),
+                size: 16,
+              ),
+            ),
+          ),
+          // ── ✅ Düzeltme bölümü ───────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: const Color(0xFF34C759).withValues(alpha: 0.1),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF34C759).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Text(
+                    '✓',
+                    style: TextStyle(
+                      color: Color(0xFF4CD964),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'DÜZELTME',
+                        style: TextStyle(
+                          color: Color(0xFF4CD964),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        issue.fix,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.88),
+                          height: 1.45,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -2267,6 +2314,301 @@ class _VariantCard extends StatelessWidget {
               height: 1.4,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Kas Grubu Badge Satırı
+// ─────────────────────────────────────────────────────────────────────────────
+class _MuscleBadgeRow extends StatelessWidget {
+  final List<String> primaryMuscles;
+  final List<String> secondaryMuscles;
+  final Color accentColor;
+  final String groupLabel;
+
+  const _MuscleBadgeRow({
+    required this.primaryMuscles,
+    required this.secondaryMuscles,
+    required this.accentColor,
+    required this.groupLabel,
+  });
+
+  static IconData _iconFor(String label) {
+    final upper = label.toUpperCase();
+    return switch (upper) {
+      'GOGUS' || 'GÖĞÜs' => Icons.open_with_rounded,
+      'SIRT' => Icons.flip_rounded,
+      'BACAK' => Icons.directions_run_rounded,
+      'OMUZ' => Icons.accessibility_new_rounded,
+      'BISEPS' || 'TRISEPS' => Icons.sports_handball_rounded,
+      'KARIN' => Icons.shield_rounded,
+      'KALCA' => Icons.airline_seat_recline_normal_rounded,
+      _ => Icons.fitness_center_rounded,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accentColor.withValues(alpha: 0.18),
+            accentColor.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accentColor.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_iconFor(groupLabel), color: accentColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  groupLabel.toUpperCase(),
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.9,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ...primaryMuscles.map(
+                      (m) => _MuscleTag(
+                        label: m,
+                        color: accentColor,
+                        isPrimary: true,
+                      ),
+                    ),
+                    ...secondaryMuscles.map(
+                      (m) => _MuscleTag(
+                        label: m,
+                        color: accentColor.withValues(alpha: 0.7),
+                        isPrimary: false,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MuscleTag extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool isPrimary;
+
+  const _MuscleTag({
+    required this.label,
+    required this.color,
+    required this.isPrimary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isPrimary
+            ? color.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isPrimary
+              ? color.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isPrimary
+              ? Colors.white
+              : Colors.white.withValues(alpha: 0.65),
+          fontSize: 11.5,
+          fontWeight: isPrimary ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Başlangıç Pozisyonu Kartı
+// ─────────────────────────────────────────────────────────────────────────────
+class _StartPositionCard extends StatelessWidget {
+  final String group;
+  final String setup;
+  final Color accentColor;
+  final List<ExerciseGuideChecklistItem> keyPoints;
+
+  const _StartPositionCard({
+    required this.group,
+    required this.setup,
+    required this.accentColor,
+    required this.keyPoints,
+  });
+
+  static IconData _groupIcon(String group) {
+    return switch (group) {
+      'CHEST' => Icons.open_with_rounded,
+      'BACK' => Icons.flip_rounded,
+      'LEGS' => Icons.directions_run_rounded,
+      'SHOULDERS' => Icons.accessibility_new_rounded,
+      'BICEPS' || 'TRICEPS' => Icons.sports_handball_rounded,
+      'CORE' => Icons.shield_rounded,
+      'GLUTES' => Icons.airline_seat_recline_normal_rounded,
+      _ => Icons.flag_rounded,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      accentColor.withValues(alpha: 0.35),
+                      accentColor.withValues(alpha: 0.12),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                ),
+                child: Icon(_groupIcon(group), color: accentColor, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'BAŞLANGIÇ POZİSYONU',
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      setup,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        height: 1.5,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (keyPoints.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.checklist_rounded,
+                  color: accentColor.withValues(alpha: 0.7),
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Anahtar Kontrol Noktaları',
+                  style: TextStyle(
+                    color: accentColor.withValues(alpha: 0.85),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...keyPoints.map(
+              (kp) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: accentColor.withValues(alpha: 0.6),
+                      size: 15,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${kp.title} — ${kp.detail}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                          fontSize: 12.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

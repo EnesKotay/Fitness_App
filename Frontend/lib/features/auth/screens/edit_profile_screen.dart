@@ -20,6 +20,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _heightController;
   late TextEditingController _weightController;
   late TextEditingController _targetWeightController;
+  late String _initialName;
+  late String _initialAge;
+  late String _initialHeight;
+  late String _initialWeight;
+  late String _initialTargetWeight;
+  late Gender _initialGender;
+  late ActivityLevel _initialActivityLevel;
+  late Goal _initialGoal;
 
   Gender _gender = Gender.male;
   ActivityLevel _activityLevel = ActivityLevel.sedentary;
@@ -49,6 +57,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _activityLevel = profile.activityLevel;
       _goal = profile.goal;
     }
+
+    _initialName = _nameController.text.trim();
+    _initialAge = _ageController.text.trim();
+    _initialHeight = _heightController.text.trim();
+    _initialWeight = _weightController.text.trim();
+    _initialTargetWeight = _targetWeightController.text.trim();
+    _initialGender = _gender;
+    _initialActivityLevel = _activityLevel;
+    _initialGoal = _goal;
   }
 
   @override
@@ -63,6 +80,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
 
     setState(() => _isLoading = true);
     final dietProvider = context.read<DietProvider>();
@@ -78,12 +96,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final weightRaw = double.parse(
         _weightController.text.trim().replaceAll(',', '.'),
       );
-      final targetWeightText = _targetWeightController.text.trim().replaceAll(',', '.');
-      final targetWeightRaw = targetWeightText.isEmpty ? null : double.parse(targetWeightText);
+      final targetWeightText = _targetWeightController.text.trim().replaceAll(
+        ',',
+        '.',
+      );
+      final targetWeightRaw = targetWeightText.isEmpty
+          ? null
+          : double.parse(targetWeightText);
 
       final height = _roundTo(heightRaw, 1);
       final weight = _roundTo(weightRaw, 1);
-      final targetWeight = targetWeightRaw != null ? _roundTo(targetWeightRaw, 1) : null;
+      final targetWeight = targetWeightRaw != null
+          ? _roundTo(targetWeightRaw, 1)
+          : null;
 
       final newProfile = UserProfile(
         name: name,
@@ -140,132 +165,214 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return (value * mod).round() / mod;
   }
 
+  bool get _hasUnsavedChanges {
+    return _nameController.text.trim() != _initialName ||
+        _ageController.text.trim() != _initialAge ||
+        _heightController.text.trim() != _initialHeight ||
+        _weightController.text.trim() != _initialWeight ||
+        _targetWeightController.text.trim() != _initialTargetWeight ||
+        _gender != _initialGender ||
+        _activityLevel != _initialActivityLevel ||
+        _goal != _initialGoal;
+  }
+
+  Future<bool> _confirmDiscardChanges() async {
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF171717),
+          title: const Text(
+            'Değişiklikler kaydedilmedi',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: const Text(
+            'Bu ekrandan çıkarsan yaptığın değişiklikler kaybolacak. Çıkmak istiyor musun?',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Kal'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFCC7A4A),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Çık'),
+            ),
+          ],
+        );
+      },
+    );
+    return shouldDiscard ?? false;
+  }
+
+  Future<void> _handleClosePressed() async {
+    if (_isLoading) return;
+    FocusScope.of(context).unfocus();
+    if (!_hasUnsavedChanges) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldDiscard = await _confirmDiscardChanges();
+    if (!mounted || !shouldDiscard) return;
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      appBar: AppBar(
+    return PopScope(
+      canPop: !_hasUnsavedChanges && !_isLoading,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || _isLoading || !_hasUnsavedChanges) return;
+        final shouldDiscard = await _confirmDiscardChanges();
+        if (!mounted || !shouldDiscard) return;
+        Navigator.of(this.context).pop();
+      },
+      child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Profili Düzenle',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _saveProfile,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    'Kaydet',
-                    style: TextStyle(color: Color(0xFFCC7A4A), fontSize: 16),
-                  ),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0A0A0A),
+          elevation: 0,
+          leading: IconButton(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            padding: const EdgeInsets.all(12),
+            icon: const Icon(Icons.close_rounded, color: Colors.white),
+            tooltip: 'Kapat',
+            onPressed: _handleClosePressed,
           ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        physics: const BouncingScrollPhysics(),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('KİŞİSEL BİLGİLER'),
-              _buildTextField(label: 'Ad Soyad', controller: _nameController),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Yaş',
-                      controller: _ageController,
-                      isNumber: true,
+          title: const Text(
+            'Profili Düzenle',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+          centerTitle: true,
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                minimumSize: const Size(72, 48),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onPressed: _isLoading ? null : _saveProfile,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Kaydet',
+                      style: TextStyle(color: Color(0xFFCC7A4A), fontSize: 16),
                     ),
+            ),
+          ],
+        ),
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('KİŞİSEL BİLGİLER'),
+                  _buildTextField(
+                    label: 'Ad Soyad',
+                    controller: _nameController,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildGenderSelector()),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Yaş',
+                          controller: _ageController,
+                          isNumber: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildGenderSelector()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  _buildSectionTitle('VÜCUT ÖLÇÜLERİ'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Boy (cm)',
+                          controller: _heightController,
+                          isNumber: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildTextField(
+                          label: 'Kilo (kg)',
+                          controller: _weightController,
+                          isNumber: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    label: 'Hedef Kilo (kg)',
+                    controller: _targetWeightController,
+                    isNumber: true,
+                    isRequired: false,
+                  ),
+                  const SizedBox(height: 24),
+
+                  _buildSectionTitle('AKTİVİTE & HEDEF'),
+                  _buildDropdown<ActivityLevel>(
+                    value: _activityLevel,
+                    items: ActivityLevel.values,
+                    label: (val) {
+                      switch (val) {
+                        case ActivityLevel.sedentary:
+                          return 'Hareketsiz (Masa başı)';
+                        case ActivityLevel.lightlyActive:
+                          return 'Az Hareketli (Haftada 1-3 spor)';
+                        case ActivityLevel.moderatelyActive:
+                          return 'Orta Hareketli (Haftada 3-5 spor)';
+                        case ActivityLevel.veryActive:
+                          return 'Çok Hareketli (Haftada 6-7 spor)';
+                        case ActivityLevel.extraActive:
+                          return 'Ekstra Hareketli (Fiziksel iş/spor)';
+                      }
+                    },
+                    onChanged: (val) => setState(() => _activityLevel = val!),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDropdown<Goal>(
+                    value: _goal,
+                    items: Goal.values,
+                    label: (val) {
+                      switch (val) {
+                        case Goal.cut:
+                          return 'Kilo Ver (Definasyon)';
+                        case Goal.maintain:
+                          return 'Kilomu Koru';
+                        case Goal.bulk:
+                          return 'Kilo Al (Hacim)';
+                        case Goal.strength:
+                          return 'Güç Artışı (Kuvvet)';
+                      }
+                    },
+                    onChanged: (val) => setState(() => _goal = val!),
+                  ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              _buildSectionTitle('VÜCUT ÖLÇÜLERİ'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Boy (cm)',
-                      controller: _heightController,
-                      isNumber: true,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Kilo (kg)',
-                      controller: _weightController,
-                      isNumber: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                label: 'Hedef Kilo (kg)',
-                controller: _targetWeightController,
-                isNumber: true,
-                isRequired: false,
-              ),
-              const SizedBox(height: 24),
-
-              _buildSectionTitle('AKTİVİTE & HEDEF'),
-              _buildDropdown<ActivityLevel>(
-                value: _activityLevel,
-                items: ActivityLevel.values,
-                label: (val) {
-                  switch (val) {
-                    case ActivityLevel.sedentary:
-                      return 'Hareketsiz (Masa başı)';
-                    case ActivityLevel.lightlyActive:
-                      return 'Az Hareketli (Haftada 1-3 spor)';
-                    case ActivityLevel.moderatelyActive:
-                      return 'Orta Hareketli (Haftada 3-5 spor)';
-                    case ActivityLevel.veryActive:
-                      return 'Çok Hareketli (Haftada 6-7 spor)';
-                    case ActivityLevel.extraActive:
-                      return 'Ekstra Hareketli (Fiziksel iş/spor)';
-                  }
-                },
-                onChanged: (val) => setState(() => _activityLevel = val!),
-              ),
-              const SizedBox(height: 16),
-              _buildDropdown<Goal>(
-                value: _goal,
-                items: Goal.values,
-                label: (val) {
-                  switch (val) {
-                    case Goal.cut:
-                      return 'Kilo Ver (Definasyon)';
-                    case Goal.maintain:
-                      return 'Kilomu Koru';
-                    case Goal.bulk:
-                      return 'Kilo Al (Hacim)';
-                    case Goal.strength:
-                      return 'Güç Artışı (Kuvvet)';
-                  }
-                },
-                onChanged: (val) => setState(() => _goal = val!),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -298,6 +405,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       keyboardType: isNumber
           ? const TextInputType.numberWithOptions(decimal: true)
           : TextInputType.text,
+      textInputAction: TextInputAction.next,
+      onTapOutside: (_) => FocusScope.of(context).unfocus(),
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
@@ -315,7 +424,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       validator: (value) {
         if (isRequired && (value == null || value.isEmpty)) return 'Gerekli';
-        if (value != null && value.isNotEmpty && isNumber && double.tryParse(value.replaceAll(',', '.')) == null) {
+        if (value != null &&
+            value.isNotEmpty &&
+            isNumber &&
+            double.tryParse(value.replaceAll(',', '.')) == null) {
           return 'Geçersiz sayı';
         }
         return null;

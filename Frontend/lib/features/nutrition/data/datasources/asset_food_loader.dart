@@ -8,7 +8,8 @@ class AssetFoodLoader {
   static const String _path = 'assets/foods/foods_tr.json';
   static const String _synonymsPath = 'assets/foods/synonyms_tr.json';
   static const String _coreFoodsPath = 'assets/foods/core_foods_tr.json';
-  static const String _verifiedExtrasPath = 'assets/foods/verified_tr_extras.json';
+  static const String _verifiedExtrasPath =
+      'assets/foods/verified_tr_extras.json';
 
   /// JSON asset'ini okuyup [FoodItem] listesine dönüştürür.
   /// Schema v1 (List) ve Schema v2 (Map -> foods) destekler.
@@ -16,7 +17,7 @@ class AssetFoodLoader {
     try {
       final String raw = await rootBundle.loadString(_path);
       final dynamic decoded = jsonDecode(raw);
-      
+
       List<dynamic> list;
       if (decoded is List) {
         // v1: Direkt liste
@@ -60,7 +61,7 @@ class AssetFoodLoader {
       if (decoded is! Map) return {};
       final Map<String, dynamic> map = Map<String, dynamic>.from(decoded);
       final result = <String, List<String>>{};
-      
+
       map.forEach((key, value) {
         if (value is List) {
           result[key] = value.map((e) => e.toString()).toList();
@@ -88,7 +89,32 @@ class AssetFoodLoader {
     }
   }
 
-  static Future<Map<String, Map<String, dynamic>>> _loadCoreFoodMetadata() async {
+  static Future<List<FoodItem>> loadVerifiedExtrasFoods() async {
+    try {
+      final verifiedExtras = await _loadVerifiedExtras();
+      if (verifiedExtras.isEmpty) return const [];
+
+      final coreFoodMap = await _loadCoreFoodMetadata();
+      final items = <FoodItem>[];
+      for (final e in verifiedExtras) {
+        try {
+          if (e is Map) {
+            final item = FoodItem.fromJson(Map<String, dynamic>.from(e));
+            items.add(_mergeCoreFoodMetadata(item, coreFoodMap[item.name]));
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+      return items;
+    } catch (e) {
+      debugPrint('AssetFoodLoader.loadVerifiedExtrasFoods hatası: $e');
+      return const [];
+    }
+  }
+
+  static Future<Map<String, Map<String, dynamic>>>
+  _loadCoreFoodMetadata() async {
     try {
       final String raw = await rootBundle.loadString(_coreFoodsPath);
       final dynamic decoded = jsonDecode(raw);
@@ -117,12 +143,12 @@ class AssetFoodLoader {
 
     final displayName =
         (metadata['displayName'] as String?)?.trim().isNotEmpty == true
-            ? metadata['displayName'] as String
-            : item.name;
+        ? metadata['displayName'] as String
+        : item.name;
     final category =
         (metadata['category'] as String?)?.trim().isNotEmpty == true
-            ? metadata['category'] as String
-            : item.category;
+        ? metadata['category'] as String
+        : item.category;
 
     final aliases = <String>{
       ...item.aliases,
@@ -130,8 +156,7 @@ class AssetFoodLoader {
       ...((metadata['aliases'] as List?) ?? [])
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty),
-    }.toList()
-      ..sort();
+    }.toList()..sort();
 
     final tags = <String>{
       ...item.tags,
@@ -139,8 +164,7 @@ class AssetFoodLoader {
       ...((metadata['tags'] as List?) ?? [])
           .map((e) => e.toString().trim())
           .where((e) => e.isNotEmpty),
-    }.toList()
-      ..sort();
+    }.toList()..sort();
 
     return FoodItem(
       id: item.id,

@@ -5,8 +5,10 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../weight/domain/entities/weight_entry.dart';
 import '../../../weight/presentation/providers/weight_provider.dart';
 import '../../domain/entities/user_profile.dart';
+import '../../domain/entities/nutrition_preferences.dart';
 import '../state/diet_provider.dart';
-import '../../../../core/utils/validators.dart';
+import '../../../../core/utils/storage_helper.dart';
+import '../../../../core/services/local_notification_service.dart';
 
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({
@@ -35,6 +37,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   Gender _gender = Gender.male;
   ActivityLevel _activityLevel = ActivityLevel.moderatelyActive;
   Goal _goal = Goal.cut;
+  NutritionPreferences _nutritionPreferences = const NutritionPreferences();
 
   @override
   void initState() {
@@ -56,6 +59,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         _name = user.name;
       }
     }
+    _nutritionPreferences = NutritionPreferences.fromJson(
+      StorageHelper.getNutritionPreferences(),
+    );
   }
 
   void _nextStep() {
@@ -84,10 +90,21 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
 
     final currentContext = context;
+    final dietProvider = currentContext.read<DietProvider>();
 
     try {
       // DietProvider üzerinden kaydet - await ile bekle
-      await currentContext.read<DietProvider>().saveUserProfile(profile);
+      await dietProvider.saveUserProfile(profile);
+      await dietProvider.saveNutritionPreferences(_nutritionPreferences);
+      if (widget.navigateToHomeOnSave) {
+        await StorageHelper.saveOnboardingDone(true);
+        await StorageHelper.savePendingOnboardingSummary(true);
+        try {
+          await LocalNotificationService.instance.requestPermission();
+        } catch (e) {
+          debugPrint('Bildirim izni istenirken hata: $e');
+        }
+      }
 
       if (currentContext.mounted) {
         // Eğer bu yeni bir profilse (ilk kurulum) veya hiç kayıt yoksa, başlangıç kilosunu takip sayfasına da ekle
@@ -270,7 +287,8 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       icon: Icons.waving_hand_rounded,
       accent: const Color(0xFF00D9F5),
       title: 'Seni tanıyalım',
-      subtitle: 'Planini kisilestirmek icin once sana nasil hitap edecegimizi belirleyelim.',
+      subtitle:
+          'Planini kisilestirmek icin once sana nasil hitap edecegimizi belirleyelim.',
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
@@ -345,9 +363,13 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   ),
                   errorStyle: const TextStyle(color: Colors.redAccent),
                 ),
+                maxLength: 50,
                 onChanged: (value) => setState(() => _name = value),
-                validator: (val) =>
-                    AppValidators.required(val, message: 'Isim gerekli'),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) return 'İsim gerekli';
+                  if (val.trim().length < 2) return 'İsim en az 2 karakter olmalı';
+                  return null;
+                },
               ),
             ],
           ),
@@ -552,12 +574,16 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: isSelected ? 0.08 : 0.04),
+                        color: Colors.white.withValues(
+                          alpha: isSelected ? 0.08 : 0.04,
+                        ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
                         _getActivityIcon(level),
-                        color: isSelected ? const Color(0xFF00F5A0) : Colors.grey,
+                        color: isSelected
+                            ? const Color(0xFF00F5A0)
+                            : Colors.grey,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -568,7 +594,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                           Text(
                             _getActivityLabel(level),
                             style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.grey[300],
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.grey[300],
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -608,83 +636,235 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       title: 'Hedefin Ne?',
       subtitle: 'Senin için en uygun planı oluşturalım.',
       child: Column(
-        children: Goal.values.map((goal) {
-          final isSelected = _goal == goal;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: InkWell(
-              onTap: () => setState(() => _goal = goal),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFF00D9F5).withValues(alpha: 0.18),
-                            const Color(0xFF00F5A0).withValues(alpha: 0.08),
-                          ],
-                        )
-                      : null,
-                  color: isSelected ? null : const Color(0xFF111318),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF00D9F5).withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.06),
+        children: [
+          ...Goal.values.map((goal) {
+            final isSelected = _goal == goal;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: InkWell(
+                onTap: () => setState(() => _goal = goal),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? LinearGradient(
+                            colors: [
+                              const Color(0xFF00D9F5).withValues(alpha: 0.18),
+                              const Color(0xFF00F5A0).withValues(alpha: 0.08),
+                            ],
+                          )
+                        : null,
+                    color: isSelected ? null : const Color(0xFF111318),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF00D9F5).withValues(alpha: 0.4)
+                          : Colors.white.withValues(alpha: 0.06),
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: isSelected ? 0.08 : 0.04),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        _getGoalIcon(goal),
-                        color: isSelected ? const Color(0xFF00D9F5) : Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getGoalLabel(goal),
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.grey[300],
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(
+                            alpha: isSelected ? 0.08 : 0.04,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _getGoalHint(goal),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.52),
-                              fontSize: 12,
-                              height: 1.35,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          _getGoalIcon(goal),
+                          color: isSelected
+                              ? const Color(0xFF00D9F5)
+                              : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getGoalLabel(goal),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.grey[300],
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              _getGoalHint(goal),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.52),
+                                fontSize: 12,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (isSelected)
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: Color(0xFF00D9F5),
-                        size: 20,
-                      ),
-                  ],
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: Color(0xFF00D9F5),
+                          size: 20,
+                        ),
+                    ],
+                  ),
                 ),
               ),
+            );
+          }),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111318),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
-          );
-        }).toList(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Beslenme Tercihlerin',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Önerilerde görmek istemediğin veya sana özel filtreleri seç.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.52),
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _buildPreferenceChip(
+                      label: 'Domuz yok',
+                      selected: _nutritionPreferences.excludePork,
+                      onTap: () => setState(() {
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          excludePork: !_nutritionPreferences.excludePork,
+                        );
+                      }),
+                    ),
+                    _buildPreferenceChip(
+                      label: 'Helal uyumlu',
+                      selected: _nutritionPreferences.halalFriendly,
+                      onTap: () => setState(() {
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          halalFriendly: !_nutritionPreferences.halalFriendly,
+                        );
+                      }),
+                    ),
+                    _buildPreferenceChip(
+                      label: 'Vejetaryen',
+                      selected: _nutritionPreferences.vegetarian,
+                      onTap: () => setState(() {
+                        final next = !_nutritionPreferences.vegetarian;
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          vegetarian: next,
+                          vegan: next ? false : _nutritionPreferences.vegan,
+                        );
+                      }),
+                    ),
+                    _buildPreferenceChip(
+                      label: 'Vegan',
+                      selected: _nutritionPreferences.vegan,
+                      onTap: () => setState(() {
+                        final next = !_nutritionPreferences.vegan;
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          vegan: next,
+                          vegetarian: next
+                              ? true
+                              : _nutritionPreferences.vegetarian,
+                        );
+                      }),
+                    ),
+                    _buildPreferenceChip(
+                      label: 'Laktozsuz',
+                      selected: _nutritionPreferences.lactoseFree,
+                      onTap: () => setState(() {
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          lactoseFree: !_nutritionPreferences.lactoseFree,
+                        );
+                      }),
+                    ),
+                    _buildPreferenceChip(
+                      label: 'Glutensiz',
+                      selected: _nutritionPreferences.glutenFree,
+                      onTap: () => setState(() {
+                        _nutritionPreferences = _nutritionPreferences.copyWith(
+                          glutenFree: !_nutritionPreferences.glutenFree,
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreferenceChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF00D9F5).withValues(alpha: 0.16)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF00D9F5).withValues(alpha: 0.45)
+                : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 16,
+              color: selected ? const Color(0xFF00D9F5) : Colors.white54,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : Colors.white70,
+                fontWeight: FontWeight.w700,
+                fontSize: 12.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -888,14 +1068,9 @@ class _StepContainer extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.18),
-                      ),
+                      border: Border.all(color: accent.withValues(alpha: 0.18)),
                     ),
-                    child: Icon(
-                      icon,
-                      color: accent,
-                    ),
+                    child: Icon(icon, color: accent),
                   ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
                   const SizedBox(height: 26),
                   Text(
@@ -958,10 +1133,7 @@ class _NumberSelector extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF12161F),
-            Color(0xFF0E1117),
-          ],
+          colors: [Color(0xFF12161F), Color(0xFF0E1117)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1006,7 +1178,10 @@ class _NumberSelector extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   gradient: LinearGradient(
@@ -1230,11 +1405,7 @@ class _SetupBackground extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF081018),
-                Color(0xFF06070A),
-                Color(0xFF0A0F12),
-              ],
+              colors: [Color(0xFF081018), Color(0xFF06070A), Color(0xFF0A0F12)],
             ),
           ),
         ),
@@ -1280,12 +1451,7 @@ class _BackgroundGlow extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            color,
-            Colors.transparent,
-          ],
-        ),
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
       ),
     );
   }

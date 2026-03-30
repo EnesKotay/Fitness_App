@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
 class SettingsPasswordScreen extends StatefulWidget {
@@ -92,9 +93,9 @@ class _SettingsPasswordScreenState extends State<SettingsPasswordScreen> {
                   ),
                 ),
                 validator: (v) {
-                  final s = v?.trim() ?? '';
-                  if (s.length < 6) return 'Şifre en az 6 karakter olmalı';
-                  if (s == _currentCtrl.text.trim()) {
+                  final passwordError = AppValidators.password(v);
+                  if (passwordError != null) return passwordError;
+                  if ((v ?? '').trim() == _currentCtrl.text.trim()) {
                     return 'Yeni sifre mevcut sifre ile ayni olamaz';
                   }
                   return null;
@@ -114,12 +115,8 @@ class _SettingsPasswordScreenState extends State<SettingsPasswordScreen> {
                     ),
                   ),
                 ),
-                validator: (v) {
-                  if ((v ?? '').trim() != _newCtrl.text.trim()) {
-                    return 'Şifreler eşleşmiyor';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                    AppValidators.confirmPassword(v, _newCtrl.text.trim()),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(

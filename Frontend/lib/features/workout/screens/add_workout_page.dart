@@ -9,8 +9,10 @@ import '../../../core/models/exercise.dart';
 import '../../../core/models/workout.dart';
 import '../../../core/models/workout_set.dart';
 import '../../../core/models/workout_models.dart';
+import '../../../core/utils/storage_helper.dart';
 import '../data/workout_catalog_data.dart';
 import '../providers/workout_provider.dart';
+import '../services/progression_engine.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 
@@ -26,18 +28,21 @@ class _SetEntry {
   final TextEditingController repsC;
   String setType;
   bool isDone; // set tamamlandı mı?
+  int rpe; // RPE 1-10, varsayılan 7
 
   _SetEntry()
     : weightC = TextEditingController(),
       repsC = TextEditingController(),
       setType = 'Normal',
-      isDone = false;
+      isDone = false,
+      rpe = 7;
 
   _SetEntry.fromValues(String weight, String reps, {String type = 'Normal'})
     : weightC = TextEditingController(text: weight),
       repsC = TextEditingController(text: reps),
       setType = type,
-      isDone = false;
+      isDone = false,
+      rpe = 7;
 
   void dispose() {
     weightC.dispose();
@@ -118,10 +123,20 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   bool _isClosing = false;
   double _userWeight = 70.0;
 
-  // ── colour helpers ───────────────────────────────────────────────────────
-  static const _green = Color(0xFF2E7D32);
-  static const _bg = Color(0xFF0A0A0A);
-  static const _card = Color(0xFF1A1A1A);
+  // ── plateau uyarısı ───────────────────────────────────────────────────────
+  bool _hasPlateau = false;
+
+  // ── zorluk seçici ─────────────────────────────────────────────────────────
+  String? _difficulty;
+
+  // ── ısınma sayfası gösterildi mi ──────────────────────────────────────────
+  String? _warmupShownFor;
+
+  // ── colour helpers ────────────────────────────────────────────────────────
+  static const _green = Color(0xFF00E676);
+  static const _bg    = Color(0xFF080B0F);
+  static const _card  = Color(0xFF0E1318);
+  static const _cardBorder = Color(0xFF1C2530);
 
   Color get _accentColor {
     if (_selectedMuscleGroup != null) {
@@ -129,6 +144,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     }
     return _green;
   }
+
 
   // ── lifecycle ────────────────────────────────────────────────────────────
 
@@ -152,14 +168,45 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         _notesC.text = w.notes ?? '';
         _pickedDate = w.workoutDate;
         _selectedExerciseName = w.name;
-        final entry = _SetEntry.fromValues(
-          w.weight?.toString() ?? '',
-          w.reps?.toString() ?? '',
+        _exerciseSearchQuery = w.name;
+        _exerciseSearchC.text = w.name;
+        _selectedMuscleGroup = _normalizeMuscleGroupCode(
+          w.muscleGroup ?? w.workoutType,
         );
-        setState(() => _sets.add(entry));
+        _isSuperset = w.isSuperset ?? false;
+        _supersetExerciseName = w.supersetPartner;
+        _supersetSearchC.text = w.supersetPartner ?? '';
+
+        final loadedSets = <_SetEntry>[];
+        if (w.setDetails != null && w.setDetails!.isNotEmpty) {
+          for (final detail in w.setDetails!) {
+            loadedSets.add(
+              _SetEntry.fromValues(
+                detail.weight?.toString() ?? '',
+                detail.reps?.toString() ?? '',
+                type: _apiSetTypeToLabel(detail.setType),
+              ),
+            );
+          }
+        } else {
+          final repeatedCount = math.max(1, w.sets ?? 1);
+          for (int i = 0; i < repeatedCount; i++) {
+            loadedSets.add(
+              _SetEntry.fromValues(
+                w.weight?.toString() ?? '',
+                w.reps?.toString() ?? '',
+              ),
+            );
+          }
+        }
+
+        setState(() => _sets.addAll(loadedSets));
+        unawaited(_primeExerciseInsights(w.name));
       } else if (tmpl != null) {
         _selectedExerciseName = tmpl.exerciseName;
         _selectedMuscleGroup = tmpl.muscleGroup;
+        _exerciseSearchQuery = tmpl.exerciseName;
+        _exerciseSearchC.text = tmpl.exerciseName;
         _nameC.text = tmpl.workoutName;
         _durationC.text = tmpl.duration.toString();
         if (tmpl.muscleGroup != null) {
@@ -182,6 +229,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _pageC.jumpToPage(1);
         });
+        unawaited(_primeExerciseInsights(tmpl.exerciseName));
       } else {
         _sets.add(_SetEntry());
       }
@@ -263,9 +311,24 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   }
 
   void _markSetDone(int idx) {
-    setState(() => _sets[idx].isDone = !_sets[idx].isDone);
-    if (_sets[idx].isDone) _startRestTimer();
-    HapticFeedback.selectionClick();
+    final isNowDone = !_sets[idx].isDone;
+    setState(() => _sets[idx].isDone = isNowDone);
+    if (isNowDone) {
+      _startRestTimer();
+      HapticFeedback.mediumImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 1400),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF12281A),
+          content: Text(
+            'Set ${idx + 1} tamamlandı. $_restSeconds sn dinlenme başladı.',
+          ),
+        ),
+      );
+    } else {
+      HapticFeedback.selectionClick();
+    }
   }
 
   void _resetStopwatch() {
@@ -285,6 +348,196 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  String _normalizeMuscleGroupCode(String? raw) {
+    final value = raw?.trim() ?? '';
+    if (value.isEmpty) return '';
+    final upper = value.toUpperCase();
+    if (kMuscleGroupInfo.containsKey(upper)) return upper;
+
+    const aliases = <String, String>{
+      'GÖĞÜS': 'CHEST',
+      'GOGUS': 'CHEST',
+      'CHEST': 'CHEST',
+      'SIRT': 'BACK',
+      'BACK': 'BACK',
+      'BACAK': 'LEGS',
+      'QUADS': 'LEGS',
+      'HAMSTRING': 'LEGS',
+      'CALF': 'LEGS',
+      'LEGS': 'LEGS',
+      'OMUZ': 'SHOULDERS',
+      'DELT': 'SHOULDERS',
+      'TRAP': 'SHOULDERS',
+      'SHOULDERS': 'SHOULDERS',
+      'BİSEPS': 'BICEPS',
+      'BISEPS': 'BICEPS',
+      'BICEPS': 'BICEPS',
+      'TRİCEPS': 'TRICEPS',
+      'TRICEPS': 'TRICEPS',
+      'KARIN': 'CORE',
+      'CORE': 'CORE',
+      'KALÇA': 'GLUTES',
+      'KALCA': 'GLUTES',
+      'GLUTES': 'GLUTES',
+    };
+
+    if (upper.contains('QUAD') ||
+        upper.contains('HAMSTRING') ||
+        upper.contains('CALF') ||
+        upper.contains('BALDIR')) {
+      return 'LEGS';
+    }
+    if (upper.contains('DELT') || upper.contains('TRAP')) {
+      return 'SHOULDERS';
+    }
+
+    return aliases[upper] ?? upper;
+  }
+
+  String _apiSetTypeToLabel(String? apiType) {
+    switch ((apiType ?? '').trim().toUpperCase()) {
+      case 'WARMUP':
+        return 'Isınma';
+      case 'DROP':
+        return 'Drop-Set';
+      case 'FAILURE':
+        return 'Failure';
+      default:
+        return 'Normal';
+    }
+  }
+
+  Future<void> _primeExerciseInsights([String? exerciseName]) async {
+    final selected = (exerciseName ?? _selectedExerciseName ?? '').trim();
+    if (selected.isEmpty || !mounted) return;
+    final authProv = Provider.of<AuthProvider>(context, listen: false);
+    final workoutProv = Provider.of<WorkoutProvider>(context, listen: false);
+    final userId = authProv.user?.id;
+    if (userId == null) return;
+    await workoutProv.loadExerciseHistory(userId, selected);
+    await workoutProv.loadPersonalRecords(userId);
+  }
+
+  List<Workout> _historyForSelectedExercise(WorkoutProvider provider) {
+    final selected = (_selectedExerciseName ?? _nameC.text).trim().toLowerCase();
+    if (selected.isEmpty) return provider.workouts;
+    final remoteHistory = provider.exerciseHistory.where(
+      (workout) => workout.name.trim().toLowerCase() == selected,
+    );
+    final source = remoteHistory.isNotEmpty ? remoteHistory : provider.workouts;
+    return source
+        .where((workout) => workout.name.trim().toLowerCase() == selected)
+        .toList();
+  }
+
+  int _currentTargetReps() {
+    for (final set in _sets) {
+      final reps = int.tryParse(set.repsC.text.trim());
+      if (reps != null && reps > 0) return reps;
+    }
+    return 10;
+  }
+
+  int _completedSetCount() => _sets.where((set) => set.isDone).length;
+
+  double _totalVolume() {
+    double total = 0;
+    for (final set in _sets) {
+      final weight = double.tryParse(set.weightC.text.trim().replaceAll(',', '.')) ?? 0;
+      final reps = int.tryParse(set.repsC.text.trim()) ?? 0;
+      total += weight * reps;
+    }
+    return total;
+  }
+
+  double _averageRpe() {
+    if (_sets.isEmpty) return 0;
+    final sum = _sets.fold<int>(0, (total, set) => total + set.rpe);
+    return sum / _sets.length;
+  }
+
+  int _emptySetCount() {
+    return _sets.where((set) {
+      final hasWeight = set.weightC.text.trim().isNotEmpty;
+      final hasReps = set.repsC.text.trim().isNotEmpty;
+      return !hasWeight && !hasReps;
+    }).length;
+  }
+
+  Workout? _latestWorkoutForExercise(WorkoutProvider provider, String exerciseName) {
+    if (exerciseName.trim().isEmpty) return null;
+    final matches = provider.workouts
+        .where((workout) => workout.name.toLowerCase() == exerciseName.toLowerCase())
+        .toList()
+      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  String _workoutCompactSummary(Workout workout) {
+    final setCount = workout.setDetails?.isNotEmpty == true
+        ? workout.setDetails!.length
+        : (workout.sets ?? 1);
+    final maxWeight = workout.setDetails?.isNotEmpty == true
+        ? workout.setDetails!
+            .map((set) => set.weight ?? 0)
+            .fold<double>(0.0, (a, b) => a > b ? a : b)
+        : (workout.weight ?? 0);
+    final reps = workout.reps ??
+        ((workout.setDetails?.isNotEmpty ?? false)
+            ? workout.setDetails!.first.reps ?? 0
+            : 0);
+    final maxWeightLabel = maxWeight > 0
+        ? '${maxWeight.toStringAsFixed(maxWeight % 1 == 0 ? 0 : 1)} kg'
+        : 'BW';
+    return '$maxWeightLabel x $reps tekrar, $setCount set';
+  }
+
+  void _applySetTemplate(int setCount, int reps) {
+    final previous = List<_SetEntry>.from(_sets);
+    final lastWeight = _sets.isNotEmpty ? _sets.last.weightC.text : '';
+    setState(() {
+      _sets
+        ..clear()
+        ..addAll(
+          List.generate(
+            setCount,
+            (_) => _SetEntry.fromValues(lastWeight, reps.toString()),
+          ),
+        );
+    });
+    _retiredSetEntries.addAll(previous);
+    HapticFeedback.mediumImpact();
+  }
+
+  Future<bool> _confirmEmptySets(int emptySetCount) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text(
+          'Boş setler var',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '$emptySetCount set boş bırakıldı. Yine de kaydetmek istiyor musun?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Geri Dön'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: _accentColor),
+            child: const Text('Yine de Kaydet'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   // ── 1RM (Epley) ──────────────────────────────────────────────────────────
@@ -331,7 +584,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   // ── load previous workout ────────────────────────────────────────────────
 
-  void _loadPreviousWorkout() {
+  void _loadPreviousWorkout({bool silent = false}) {
     final prov = Provider.of<WorkoutProvider>(context, listen: false);
     final name = _selectedExerciseName ?? _nameC.text.trim();
     if (name.isEmpty) return;
@@ -341,12 +594,14 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
             .toList()
           ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
     if (matches.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bu egzersiz için önceki kayıt bulunamadı.'),
-          backgroundColor: Color(0xFF333333),
-        ),
-      );
+      if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bu egzersiz için önceki kayıt bulunamadı.'),
+            backgroundColor: Color(0xFF333333),
+          ),
+        );
+      }
       return;
     }
     final prev = matches.first;
@@ -359,7 +614,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
           _SetEntry.fromValues(
             sd.weight?.toString() ?? '',
             sd.reps?.toString() ?? '',
-            type: sd.setType,
+            type: _apiSetTypeToLabel(sd.setType),
           ),
         );
       }
@@ -385,17 +640,206 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       _sets.clear();
       _sets.addAll(nextEntries);
       _durationC.text = prev.durationMinutes?.toString() ?? '';
-      _notesC.text = prev.notes ?? '';
+      if (!silent) _notesC.text = prev.notes ?? '';
     });
     _retiredSetEntries.addAll(previousEntries);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${DateFormat("d MMM", "tr_TR").format(prev.workoutDate)} tarihli kayıt yüklendi.',
+    if (!silent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${DateFormat("d MMM", "tr_TR").format(prev.workoutDate)} tarihli kayıt yüklendi.',
+          ),
+          backgroundColor: _green,
         ),
-        backgroundColor: _green,
+      );
+    }
+  }
+
+  // ── Plateau tespiti ─────────────────────────────────────────────────────
+
+  bool _checkPlateau(WorkoutProvider prov, String exerciseName) {
+    if (exerciseName.isEmpty) return false;
+    final matches = prov.workouts
+        .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
+        .toList()
+      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    if (matches.length < 3) return false;
+    final maxWeights = matches.take(3).map((w) {
+      if (w.setDetails != null && w.setDetails!.isNotEmpty) {
+        return w.setDetails!
+            .map((s) => s.weight ?? 0.0)
+            .fold<double>(0.0, (a, b) => a > b ? a : b);
+      }
+      return w.weight ?? 0.0;
+    }).toList();
+    if (maxWeights.any((w) => w <= 0)) return false;
+    return maxWeights[0] == maxWeights[1] && maxWeights[1] == maxWeights[2];
+  }
+
+  // ── Isınma önerisi bottom sheet ─────────────────────────────────────────
+
+  void _showWarmupSheet() {
+    final mg = _selectedMuscleGroup ?? '';
+    final warmups = _warmupForMuscleGroup(mg);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.whatshot_rounded, color: _accentColor, size: 22),
+                const SizedBox(width: 10),
+                const Text(
+                  'Isınma Önerisi',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Antrenmanından önce şu hareketleri dene:',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...warmups.map(
+              (w) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        w,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Anladım, Başla!',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  List<String> _warmupForMuscleGroup(String mg) {
+    switch (mg) {
+      case 'CHEST':
+        return [
+          'Kol çevirmesi — 2×15 her yön',
+          'Hafif dambıl göğüs press — 2×15',
+          'Pec stretch — 30 sn her taraf',
+          'Band pull-apart — 2×20',
+        ];
+      case 'BACK':
+        return [
+          'Cat-cow mobilizasyon — 2×10',
+          'Band yatay çekiş — 2×15',
+          'Thoracic rotasyon — 2×10 her taraf',
+          'Dead hang — 2×20 sn',
+        ];
+      case 'LEGS':
+        return [
+          'Leg swing — 2×15 öne/arkaya her bacak',
+          'Bodyweight squat — 2×15',
+          'Hip circle — 2×10 her yön',
+          'Lunge rotasyonu — 2×8 her bacak',
+        ];
+      case 'SHOULDERS':
+        return [
+          'Kol çevirmesi — 2×15 her yön',
+          'Band ön kaldırma — 2×15',
+          'Wall slide — 2×10',
+          'Yaw-pull (omuz dış rotasyon) — 2×15',
+        ];
+      case 'BICEPS':
+        return [
+          'Bilek çevirmesi — 30 sn',
+          'Hafif curl — 2×15',
+          'Kol ekstansiyonu — 2×15',
+        ];
+      case 'TRICEPS':
+        return [
+          'Tricep stretch — 30 sn her taraf',
+          'Overhead tricep mobilizasyon — 2×10',
+          'Hafif pushdown — 2×15',
+        ];
+      case 'CORE':
+        return [
+          'Dead bug — 2×10 her taraf',
+          'Bird-dog — 2×10 her taraf',
+          'Plank — 2×20 sn',
+        ];
+      case 'GLUTES':
+        return [
+          'Glute bridge — 2×15',
+          'Clamshell — 2×15 her taraf',
+          'Hip circle — 2×10 her yön',
+        ];
+      default:
+        return [
+          '5 dk hafif koşu / bisiklet',
+          'Dinamik germe — tüm vücut',
+          'Eklem mobilizasyonu — 5 dk',
+        ];
+    }
   }
 
   // ── exercise list for selected group ────────────────────────────────────
@@ -431,6 +875,13 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         _typeC.text =
             kMuscleGroupInfo[_selectedMuscleGroup]?.label ??
             _selectedMuscleGroup!;
+      }
+      // Isınma önerisini yalnızca ilk geçişte göster
+      if (_warmupShownFor != name) {
+        _warmupShownFor = name;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showWarmupSheet();
+        });
       }
     }
     if (_step < 2) {
@@ -475,19 +926,26 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       return;
     }
 
+    final emptySetCount = _emptySetCount();
+    if (emptySetCount > 0) {
+      final shouldContinue = await _confirmEmptySets(emptySetCount);
+      if (!mounted) return;
+      if (!shouldContinue) {
+        setState(() => _saving = false);
+        return;
+      }
+    }
+
     // Özet istatistikler
     final validSets = _sets
         .where((s) => s.repsC.text.trim().isNotEmpty)
         .toList();
     final totalSets = validSets.isEmpty ? 1 : validSets.length;
+    final totalReps = validSets.fold(
+      0, (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0));
     final avgReps = validSets.isEmpty
         ? int.tryParse(_sets.first.repsC.text.trim())
-        : (validSets.fold(
-                    0,
-                    (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0),
-                  ) /
-                  validSets.length)
-              .round();
+        : (totalReps / validSets.length).round();
     final maxWeight = validSets.isEmpty
         ? double.tryParse(_sets.first.weightC.text.trim().replaceAll(',', '.'))
         : validSets
@@ -499,6 +957,14 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                     0.0,
               )
               .fold<double>(0.0, (a, b) => a > b ? a : b);
+
+    // Toplam hacim (kg × tekrar)
+    double totalVolume = 0;
+    for (final s in _sets) {
+      final w = double.tryParse(s.weightC.text.trim().replaceAll(',', '.')) ?? 0;
+      final r = int.tryParse(s.repsC.text.trim()) ?? 0;
+      totalVolume += w * r;
+    }
 
     // Set detayları listesi
     final setDetails = _sets.asMap().entries.map((e) {
@@ -522,9 +988,14 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     }
 
     // PR kontrolü
-    _previousPR = prov.personalRecords[workoutName];
+    final prLookupName = (_selectedExerciseName ?? _nameC.text).trim();
+    _previousPR = prov.personalRecords[prLookupName];
     final isNewPR =
         oneRM != null && (_previousPR == null || oneRM > _previousPR!);
+
+    final durationMinutes = int.tryParse(_durationC.text.trim()) ??
+        (_swElapsed.inSeconds > 0 ? (_swElapsed.inSeconds / 60).ceil() : null);
+    final caloriesBurned = int.tryParse(_caloriesC.text.trim());
 
     final request = WorkoutRequest(
       name: workoutName.isEmpty ? 'Antrenman' : workoutName,
@@ -532,8 +1003,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       sets: totalSets,
       reps: avgReps,
       weight: maxWeight,
-      durationMinutes: int.tryParse(_durationC.text.trim()),
-      caloriesBurned: int.tryParse(_caloriesC.text.trim()),
+      durationMinutes: durationMinutes,
+      caloriesBurned: caloriesBurned,
       workoutDate: _pickedDate,
       notes: _notesC.text.trim().isEmpty ? null : _notesC.text.trim(),
       setDetails: setDetails,
@@ -541,6 +1012,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       isSuperset: _isSuperset,
       supersetPartner: _isSuperset ? _supersetExerciseName : null,
       oneRepMax: oneRM,
+      difficulty: _difficulty,
     );
 
     bool ok;
@@ -560,11 +1032,24 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       FocusManager.instance.primaryFocus?.unfocus();
       _swTimer?.cancel();
       _restTimer?.cancel();
-      Navigator.of(context).pop(
-        isNewPR
-            ? '🏆 Kişisel Rekor! Başarıyla kaydedildi!'
-            : 'Başarıyla kaydedildi',
+
+      // Kaydet sonrası özet sheet göster
+      await _showSaveSummarySheet(
+        context: context,
+        workoutName: workoutName.isEmpty ? 'Antrenman' : workoutName,
+        totalSets: totalSets,
+        totalReps: totalReps,
+        totalVolume: totalVolume,
+        maxWeight: maxWeight ?? 0,
+        durationMinutes: durationMinutes,
+        caloriesBurned: caloriesBurned,
+        oneRM: oneRM,
+        isNewPR: isNewPR,
+        previousPR: _previousPR,
       );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(isNewPR ? '🏆 Kişisel Rekor!' : 'ok');
       return;
     }
 
@@ -572,6 +1057,42 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
       SnackBar(
         content: Text(prov.errorMessage ?? 'Kaydedilemedi'),
         backgroundColor: Colors.redAccent,
+      ),
+    );
+  }
+
+  // ── Kaydet sonrası özet sheet ─────────────────────────────────────────────
+
+  Future<void> _showSaveSummarySheet({
+    required BuildContext context,
+    required String workoutName,
+    required int totalSets,
+    required int totalReps,
+    required double totalVolume,
+    required double maxWeight,
+    int? durationMinutes,
+    int? caloriesBurned,
+    double? oneRM,
+    required bool isNewPR,
+    double? previousPR,
+  }) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      isDismissible: true,
+      builder: (ctx) => _SaveSummarySheet(
+        workoutName: workoutName,
+        totalSets: totalSets,
+        totalReps: totalReps,
+        totalVolume: totalVolume,
+        maxWeight: maxWeight,
+        durationMinutes: durationMinutes,
+        caloriesBurned: caloriesBurned,
+        oneRM: oneRM,
+        isNewPR: isNewPR,
+        previousPR: previousPR,
+        accentColor: _accentColor,
       ),
     );
   }
@@ -594,160 +1115,190 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          backgroundColor: _bg,
-          appBar: _buildAppBar(),
-          body: Column(
-            children: [
-              _buildStepIndicator(),
-              Expanded(
-                child: PageView(
-                  controller: _pageC,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [_buildStep1(), _buildStep2(), _buildStep3()],
-                ),
-              ),
-              _buildBottomBar(),
-            ],
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: _buildAppBar(),
+      body: Column(
+        children: [
+          _buildStepIndicator(),
+          Expanded(
+            child: PageView(
+              controller: _pageC,
+              physics: const NeverScrollableScrollPhysics(),
+              children: [_buildStep1(), _buildStep2(), _buildStep3()],
+            ),
           ),
-        ),
-      ],
+          _buildBottomBar(),
+        ],
+      ),
     );
   }
 
   // ── AppBar ───────────────────────────────────────────────────────────────
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: _bg,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new,
-          color: Colors.white,
-          size: 20,
+  PreferredSizeWidget _buildAppBar() {
+    final title = widget.workout == null ? 'Antrenman Kaydet' : 'Antrenmanı Düzenle';
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(56),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _bg,
+          border: Border(
+            bottom: BorderSide(color: _cardBorder, width: 0.5),
+          ),
         ),
-        onPressed: _prevStep,
-      ),
-      title: Text(
-        widget.workout == null ? 'Antrenman Kaydet' : 'Antrenmanı Düzenle',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: _prevStep,
+            child: Container(
+              margin: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _cardBorder),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white70,
+                size: 16,
+              ),
+            ),
+          ),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _accentColor,
+                  boxShadow: [
+                    BoxShadow(color: _accentColor.withValues(alpha: 0.6), blurRadius: 8),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+          centerTitle: true,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
       ),
-      centerTitle: true,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
     );
   }
 
-  // ── Step Indicator ───────────────────────────────────────────────────────
+  // ── Step Indicator ───────────────────────────────────────────────────────────
 
   Widget _buildStepIndicator() {
     const labels = ['Egzersiz', 'Setler', 'Kaydet'];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    const icons  = [Icons.sports_gymnastics_rounded, Icons.repeat_rounded, Icons.save_rounded];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+      decoration: BoxDecoration(
+        color: _card,
+        border: Border(
+          bottom: BorderSide(color: _cardBorder, width: 0.5),
+        ),
+      ),
       child: Row(
         children: List.generate(3, (i) {
           final active = i == _step;
-          final done = i < _step;
+          final done   = i < _step;
+          final accent = _accentColor;
           return Expanded(
             child: Row(
               children: [
                 Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Node circle
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        height: 3,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                        width:  active ? 44 : 36,
+                        height: active ? 44 : 36,
                         decoration: BoxDecoration(
-                          color: done || active
-                              ? _accentColor
-                              : Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(2),
+                          shape: BoxShape.circle,
+                          color: done
+                              ? accent
+                              : active
+                                  ? accent.withValues(alpha: 0.18)
+                                  : Colors.white.withValues(alpha: 0.05),
+                          border: Border.all(
+                            color: done || active ? accent : _cardBorder,
+                            width: active ? 2 : 1.5,
+                          ),
+                          boxShadow: (done || active)
+                              ? [
+                                  BoxShadow(
+                                    color: accent.withValues(alpha: active ? 0.3 : 0.15),
+                                    blurRadius: active ? 14 : 6,
+                                    spreadRadius: active ? 1 : 0,
+                                  ),
+                                ]
+                              : null,
                         ),
+                        child: done
+                            ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                            : Icon(
+                                icons[i],
+                                size: active ? 20 : 16,
+                                color: active ? accent : Colors.white30,
+                              ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: done
-                                  ? _accentColor
-                                  : active
-                                  ? _accentColor.withValues(alpha: 0.2)
-                                  : Colors.white.withValues(alpha: 0.08),
-                              border: Border.all(
-                                color: active || done
-                                    ? _accentColor
-                                    : Colors.white.withValues(alpha: 0.15),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: done
-                                ? const Icon(
-                                    Icons.check,
-                                    size: 12,
-                                    color: Colors.white,
-                                  )
-                                : active
-                                ? Center(
-                                    child: Text(
-                                      '${i + 1}',
-                                      style: TextStyle(
-                                        color: _accentColor,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  )
-                                : Center(
-                                    child: Text(
-                                      '${i + 1}',
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            labels[i],
-                            style: TextStyle(
-                              color: active
-                                  ? Colors.white
-                                  : done
-                                  ? _accentColor
-                                  : Colors.white.withValues(alpha: 0.35),
-                              fontSize: 11,
-                              fontWeight: active
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
-                            ),
-                          ),
-                        ],
+                      // Label
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 300),
+                        style: TextStyle(
+                          color: active
+                              ? Colors.white
+                              : done
+                                  ? accent
+                                  : Colors.white30,
+                          fontSize: active ? 11 : 10,
+                          fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                          letterSpacing: 0.2,
+                        ),
+                        child: Text(labels[i]),
                       ),
                     ],
                   ),
                 ),
+                // Connector line between steps
                 if (i < 2)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 22),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: Colors.white.withValues(alpha: 0.2),
-                      size: 16,
+                  Expanded(
+                    flex: 0,
+                    child: SizedBox(
+                      width: 32,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            height: 1.5,
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            height: 1.5,
+                            width: (i < _step) ? 32 : 0,
+                            color: _accentColor,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -758,31 +1309,49 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     );
   }
 
-  // ── STEP 1 — Exercise Picker ─────────────────────────────────────────────
+  // ── STEP 1 — Exercise Picker ────────────────────────────────────────────────
 
   Widget _buildStep1() {
+    final favoriteEntries = StorageHelper.getFavoriteExercises().where((favorite) {
+      if (_selectedMuscleGroup == null) return true;
+      final group = _normalizeMuscleGroupCode(favorite.muscleGroup);
+      return group.isEmpty || group == _selectedMuscleGroup;
+    }).take(4).toList();
+
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
-        // ── Muscle group chips ─────────────────────────────────────────────
-        Text(
-          'Kas Grubu Seç',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
+        // ── Muscle group grid ───────────────────────────────────────────
+        Row(
+          children: [
+            Text(
+              'KAS GRUBU',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1)),
+          ],
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        const SizedBox(height: 12),
+        // 4-column grid of muscle group cards
+        GridView.count(
+          crossAxisCount: 4,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 0.85,
           children: kMuscleGroupInfo.entries.map((entry) {
             final selected = _selectedMuscleGroup == entry.key;
             final info = entry.value;
             return GestureDetector(
               onTap: () {
+                HapticFeedback.selectionClick();
                 setState(() {
                   _selectedMuscleGroup = selected ? null : entry.key;
                   _exerciseSearchQuery = '';
@@ -791,42 +1360,56 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 });
               },
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 decoration: BoxDecoration(
                   color: selected
-                      ? info.color.withValues(alpha: 0.2)
-                      : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(14),
+                      ? info.color.withValues(alpha: 0.18)
+                      : _card,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: selected
-                        ? info.color
-                        : Colors.white.withValues(alpha: 0.1),
+                    color: selected ? info.color : _cardBorder,
                     width: selected ? 1.5 : 1,
                   ),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: info.color.withValues(alpha: 0.25),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       info.icon,
-                      color: selected ? info.color : Colors.white54,
-                      size: 16,
+                      color: selected ? info.color : Colors.white38,
+                      size: 22,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 6),
                     Text(
                       info.label,
                       style: TextStyle(
-                        color: selected ? Colors.white : Colors.white60,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        fontSize: 13,
+                        color: selected ? Colors.white : Colors.white38,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                        fontSize: 10,
                       ),
+                      textAlign: TextAlign.center,
                     ),
+                    if (selected) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: info.color,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -887,6 +1470,75 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               ),
         ),
 
+        if (favoriteEntries.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Icon(Icons.star_rounded, color: Colors.amber.shade300, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                'Favoriler',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: favoriteEntries.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final favorite = favoriteEntries[index];
+                return GestureDetector(
+                  onTap: () {
+                    final favoriteGroup = _normalizeMuscleGroupCode(
+                      favorite.muscleGroup,
+                    );
+                    setState(() {
+                      if (favoriteGroup.isNotEmpty) {
+                        _selectedMuscleGroup = favoriteGroup;
+                      }
+                      _selectedExerciseName = favorite.name;
+                      _exerciseSearchQuery = favorite.name;
+                      _exerciseSearchC.text = favorite.name;
+                    });
+                    unawaited(_primeExerciseInsights(favorite.name));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.28)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded, color: Colors.amber, size: 12),
+                        const SizedBox(width: 5),
+                        Text(
+                          favorite.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+
         // Selected exercise badge
         if (_selectedExerciseName != null) ...[
           const SizedBox(height: 10),
@@ -911,7 +1563,13 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => setState(() => _selectedExerciseName = null),
+                  onTap: () {
+                    _exerciseSearchC.clear();
+                    setState(() {
+                      _exerciseSearchQuery = '';
+                      _selectedExerciseName = null;
+                    });
+                  },
                   child: const Icon(
                     Icons.close,
                     color: Colors.white38,
@@ -939,6 +1597,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                     ex.name,
                     limit: 4,
                   );
+                  final latestWorkout = _latestWorkoutForExercise(workoutProv, ex.name);
 
                   return GestureDetector(
                     onTap: () {
@@ -949,87 +1608,139 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                         _exerciseSearchQuery = newSelected ?? '';
                       });
                       if (newSelected != null && authProv.user?.id != null) {
-                        workoutProv.loadExerciseHistory(
-                          authProv.user!.id,
-                          newSelected,
+                        unawaited(_primeExerciseInsights(newSelected));
+                        // Tüm setler boşsa önceki antrenmanı otomatik doldur
+                        final allEmpty = _sets.every(
+                          (s) =>
+                              s.weightC.text.isEmpty && s.repsC.text.isEmpty,
                         );
-                        workoutProv.loadPersonalRecords(authProv.user!.id);
+                        if (allEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) _loadPreviousWorkout(silent: true);
+                          });
+                        }
                       }
                     },
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.only(bottom: 6),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
-                        vertical: 11,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? _accentColor.withValues(alpha: 0.15)
-                            : Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(12),
+                            ? _accentColor.withValues(alpha: 0.12)
+                            : _card,
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color: selected
                               ? _accentColor.withValues(alpha: 0.5)
-                              : Colors.white.withValues(alpha: 0.06),
+                              : _cardBorder,
+                          width: selected ? 1.5 : 1,
                         ),
+                        boxShadow: selected
+                            ? [BoxShadow(color: _accentColor.withValues(alpha: 0.12), blurRadius: 8)]
+                            : null,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                selected
-                                    ? Icons.check_circle_rounded
-                                    : Icons.fitness_center_rounded,
-                                color: selected ? _accentColor : Colors.white24,
-                                size: 16,
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? _accentColor.withValues(alpha: 0.2)
+                                      : Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  selected
+                                      ? Icons.check_rounded
+                                      : Icons.fitness_center_rounded,
+                                  color: selected ? _accentColor : Colors.white24,
+                                  size: 15,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   ex.name,
                                   style: TextStyle(
-                                    color: selected
-                                        ? Colors.white
-                                        : Colors.white70,
-                                    fontWeight: selected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
+                                    color: selected ? Colors.white : Colors.white60,
+                                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                                     fontSize: 13.5,
                                   ),
                                 ),
                               ),
+                              if (recentWeights.isNotEmpty)
+                                Text(
+                                  '${recentWeights.last.toStringAsFixed(1)} kg',
+                                  style: TextStyle(
+                                    color: _accentColor.withValues(alpha: 0.7),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                             ],
                           ),
-                          // Geçmiş ağırlık trendi
-                          if (recentWeights.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 4,
-                              children: recentWeights
-                                  .map(
-                                    (w) => Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _accentColor.withValues(
-                                          alpha: 0.12,
+                          // Geçmiş ağırlık trendi — mini dots
+                          if (latestWorkout != null) ...[
+                            const SizedBox(height: 7),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 44),
+                              child: Text(
+                                'Son seans: ${_workoutCompactSummary(latestWorkout)}',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.42),
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (recentWeights.length > 1) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const SizedBox(width: 44),
+                                ...recentWeights.asMap().entries.map((e) {
+                                  final isLast = e.key == recentWeights.length - 1;
+                                  return Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isLast
+                                              ? _accentColor.withValues(alpha: 0.18)
+                                              : Colors.white.withValues(alpha: 0.04),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: isLast ? _accentColor.withValues(alpha: 0.4) : Colors.transparent,
+                                          ),
                                         ),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        '${w.toStringAsFixed(1)} kg',
-                                        style: TextStyle(
-                                          color: _accentColor,
-                                          fontSize: 10,
+                                        child: Text(
+                                          '${e.value.toStringAsFixed(1)} kg',
+                                          style: TextStyle(
+                                            color: isLast ? _accentColor : Colors.white30,
+                                            fontSize: 10,
+                                            fontWeight: isLast ? FontWeight.w700 : FontWeight.w400,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                  .toList(),
+                                      if (!isLast)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                                          child: Icon(Icons.arrow_forward_ios_rounded, size: 8, color: Colors.white.withValues(alpha: 0.06)),
+                                        ),
+                                    ],
+                                  );
+                                }),
+                              ],
                             ),
                           ],
                         ],
@@ -1140,6 +1851,18 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   Widget _buildStep2() {
     final oneRM = _calc1RM();
+    final workoutProvider = context.watch<WorkoutProvider>();
+    final selectedExercise = (_selectedExerciseName ?? _nameC.text).trim();
+    final totalVolume = _totalVolume();
+    final avgRpe = _averageRpe();
+    final progressionHint = selectedExercise.isEmpty
+        ? null
+        : ProgressionEngine.compute(
+            history: _historyForSelectedExercise(workoutProvider),
+            exerciseName: selectedExercise,
+            targetReps: _currentTargetReps(),
+            userWeight: _userWeight,
+          );
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       children: [
@@ -1268,6 +1991,24 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
         const SizedBox(height: 20),
 
+        if (progressionHint != null) ...[
+          _buildProgressionCard(progressionHint),
+          const SizedBox(height: 16),
+        ],
+
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildSetTemplateChip('3×10', 3, 10),
+            _buildSetTemplateChip('5×5', 5, 5),
+            _buildSetTemplateChip('4×8', 4, 8),
+            _buildSetTemplateChip('3×12', 3, 12),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
         // ── 1RM badge ──────────────────────────────────────────────────────
         if (oneRM != null)
           Container(
@@ -1314,28 +2055,149 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         // ── Dinlenme zamanlayıcısı paneli ──────────────────────────────────
         if (_restActive) _buildRestTimerPanel(),
 
-        // ── Set rows ───────────────────────────────────────────────────────
-        Row(
-          children: [
-            const Text(
-              'Setler',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+        // ── Plateau uyarısı ────────────────────────────────────────────────
+        Builder(
+          builder: (ctx) {
+            final wp = Provider.of<WorkoutProvider>(ctx, listen: false);
+            final ex = (_selectedExerciseName ?? '').trim();
+            _hasPlateau = _checkPlateau(wp, ex);
+            if (!_hasPlateau) return const SizedBox.shrink();
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
               ),
-            ),
-            const Spacer(),
-            Text(
-              '${_sets.length} set',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 12,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Plateau Uyarısı',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          'Son 3 seansta aynı ağırlıkla çalıştın. Ağırlığı 2,5 kg artırmayı dene!',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            );
+          },
         ),
-        const SizedBox(height: 8),
+
+        // ── Set başlığı kartı
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _cardBorder),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.repeat_rounded, color: _accentColor, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      'SETLER',
+                      style: TextStyle(
+                        color: _accentColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Row(
+                children: List.generate(_sets.length, (i) {
+                  final done = i < _sets.where((s) => s.isDone).length;
+                  return Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(left: 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: done
+                          ? _accentColor
+                          : Colors.white.withValues(alpha: 0.12),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${_sets.where((s) => s.isDone).length}/${_sets.length}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                totalVolume > 0 ? '≈ ${totalVolume.toStringAsFixed(0)} kg' : 'Hacim —',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.38),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'RPE ${avgRpe.toStringAsFixed(1)}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.32),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: _sets.isEmpty
+                ? 0
+                : _sets.where((s) => s.isDone).length / _sets.length,
+            minHeight: 2,
+            backgroundColor: Colors.white.withValues(alpha: 0.05),
+            valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+          ),
+        ),
+        const SizedBox(height: 10),
 
         ..._sets.asMap().entries.map((entry) {
           final idx = entry.key;
@@ -1369,10 +2231,10 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
           );
         }),
 
-        const SizedBox(height: 8),
         // Set ekle butonu
         GestureDetector(
           onTap: () {
+            HapticFeedback.lightImpact();
             final last = _sets.last;
             setState(() {
               _sets.add(
@@ -1381,23 +2243,34 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
             });
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _accentColor.withValues(alpha: 0.25)),
+              color: _card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _accentColor.withValues(alpha: 0.3),
+                style: BorderStyle.solid,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add_rounded, color: _accentColor, size: 18),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.add_rounded, color: _accentColor, size: 14),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Set Ekle',
                   style: TextStyle(
                     color: _accentColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
@@ -1412,19 +2285,30 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   Widget _buildSetRow(int idx, _SetEntry s) {
     final accent = _accentColor;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         color: s.isDone
-            ? accent.withValues(alpha: 0.08)
-            : Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(14),
+            ? accent.withValues(alpha: 0.09)
+            : _card,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: s.isDone
-              ? accent.withValues(alpha: 0.35)
-              : Colors.white.withValues(alpha: 0.06),
+              ? accent.withValues(alpha: 0.4)
+              : _cardBorder,
+          width: s.isDone ? 1.5 : 1,
         ),
+        boxShadow: s.isDone
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1432,27 +2316,37 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
           // Set no + Set tipi chips + ✓ butonu
           Row(
             children: [
-              Container(
-                width: 26,
-                height: 26,
+              // Set number badge
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
-                  color: s.isDone ? accent : accent.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                  color: s.isDone ? accent : accent.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: s.isDone
+                      ? [
+                          BoxShadow(
+                            color: accent.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Center(
                   child: s.isDone
-                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
                       : Text(
                           '${idx + 1}',
                           style: TextStyle(
                             color: accent,
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               // Set tipi chips
               Expanded(
                 child: SingleChildScrollView(
@@ -1531,17 +2425,17 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 child: Column(
                   children: [
                     _buildStepper(
-                      label: 'kg',
-                      controller: s.weightC,
-                      step: 2.5,
-                      isDecimal: true,
-                    ),
-                    const SizedBox(height: 10),
-                    _buildStepper(
                       label: 'tekrar',
                       controller: s.repsC,
                       step: 1,
                       isDecimal: false,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildStepper(
+                      label: 'kg',
+                      controller: s.weightC,
+                      step: 2.5,
+                      isDecimal: true,
                     ),
                   ],
                 ),
@@ -1581,10 +2475,89 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 ),
             ],
           ),
+          // ── Zorluk hissi seçici ───────────────────────────────────────────
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bu seti nasıl hissettin?',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.45),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _rpeChip(s, 6, '😊', 'Rahat',     const Color(0xFF26A69A)),
+                    const SizedBox(width: 5),
+                    _rpeChip(s, 7, '💪', 'Normal',    const Color(0xFF42A5F5)),
+                    const SizedBox(width: 5),
+                    _rpeChip(s, 8, '🔥','Zorlu',     const Color(0xFFFF9800)),
+                    const SizedBox(width: 5),
+                    _rpeChip(s, 9, '😓', 'Çok Zor',  const Color(0xFFEF5350)),
+                    const SizedBox(width: 5),
+                    _rpeChip(s, 10, '⚡', 'Limit',     const Color(0xFFAB47BC)),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+
+
+  Widget _rpeChip(_SetEntry s, int val, String emoji, String label, Color color) {
+    final sel = s.rpe == val;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() => s.rpe = val);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: sel ? color.withValues(alpha: 0.18) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: sel ? color : Colors.white.withValues(alpha: 0.08),
+              width: sel ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: sel ? color : Colors.white.withValues(alpha: 0.38),
+                  fontSize: 9,
+                  fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   // ── +/- Stepper widget'ı ─────────────────────────────────────────────────
 
@@ -1833,6 +2806,122 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     );
   }
 
+  Widget _buildProgressionCard(ProgressionHint hint) {
+    final canApplyWeight = hint.suggestedWeight > 0;
+    final lastSummary = switch ((hint.lastWeight, hint.lastReps)) {
+      (final double weight?, final int reps?) =>
+        '${weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1)} kg x $reps',
+      (final double weight?, null) =>
+        '${weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1)} kg',
+      (null, final int reps?) => '$reps tekrar',
+      _ => 'İlk kayıt için hafif başla',
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _accentColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.insights_rounded, color: _accentColor, size: 18),
+              const SizedBox(width: 8),
+              const Text(
+                'İlerleme Önerisi',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                hint.trendEmoji,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Son kayıt: $lastSummary',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Bugün öneri: ${hint.weightLabel} • ${hint.suggestedReps} tekrar',
+            style: TextStyle(
+              color: _accentColor,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            hint.reason,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+          if (canApplyWeight) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  for (final set in _sets) {
+                    set.weightC.text = hint.suggestedWeight % 1 == 0
+                        ? hint.suggestedWeight.toStringAsFixed(1)
+                        : hint.suggestedWeight.toString();
+                    if (set.repsC.text.trim().isEmpty) {
+                      set.repsC.text = hint.suggestedReps.toString();
+                    }
+                  }
+                });
+              },
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: _accentColor.withValues(alpha: 0.4)),
+                foregroundColor: _accentColor,
+              ),
+              icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
+              label: const Text('Setlere uygula'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetTemplateChip(String label, int sets, int reps) {
+    return GestureDetector(
+      onTap: () => _applySetTemplate(sets, reps),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: _accentColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: _accentColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _swBtn({
     required IconData icon,
     required String label,
@@ -1870,153 +2959,373 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   // ── STEP 3 — Details ─────────────────────────────────────────────────────
 
   Widget _buildStep3() {
+    // Canlı hesaplamalar
+    final validSets = _sets.where((s) => s.repsC.text.trim().isNotEmpty).toList();
+    final totalReps = validSets.fold(0, (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0));
+    final totalVolume = _totalVolume();
+    final maxW = validSets.isEmpty ? 0.0 : validSets
+        .map((s) => double.tryParse(s.weightC.text.trim().replaceAll(',', '.')) ?? 0.0)
+        .fold<double>(0.0, (a, b) => a > b ? a : b);
+    final oneRM = _calc1RM();
+    final avgRpe = _averageRpe();
+    final completedCount = _completedSetCount();
+    final durationSecs = _swElapsed.inSeconds;
+    final durationDisplay = _durationC.text.trim().isNotEmpty
+        ? '${_durationC.text.trim()} dk'
+        : durationSecs > 0
+            ? _formatDuration(_swElapsed)
+            : '—';
+
+    // Önceki antrenman karşılaştırma
+    final prov = Provider.of<WorkoutProvider>(context, listen: false);
+    final exerciseName = (_selectedExerciseName ?? _nameC.text).trim();
+    final prevMatches = prov.workouts
+        .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
+        .toList()
+      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    final prevWorkout = prevMatches.isNotEmpty ? prevMatches.first : null;
+    double prevMaxW = 0;
+    int prevTotalReps = 0;
+    if (prevWorkout != null) {
+      if (prevWorkout.setDetails != null && prevWorkout.setDetails!.isNotEmpty) {
+        prevMaxW = prevWorkout.setDetails!.map((s) => s.weight ?? 0.0).fold<double>(0.0, (a, b) => a > b ? a : b);
+        prevTotalReps = prevWorkout.setDetails!.fold(0, (sum, s) => sum + (s.reps ?? 0));
+      } else {
+        prevMaxW = prevWorkout.weight ?? 0;
+        prevTotalReps = (prevWorkout.reps ?? 0) * (prevWorkout.sets ?? 1);
+      }
+    }
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Summary card
+
+            // ══════════════════════════════════════════════════════════════
+            // ÖZET KARTI
+            // ══════════════════════════════════════════════════════════════
             Container(
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    _accentColor.withValues(alpha: 0.22),
+                    _accentColor.withValues(alpha: 0.04),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _accentColor.withValues(alpha: 0.30),
+                  width: 1.5,
+                ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Özet',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1,
+                  // Başlık bandı
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _accentColor.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.bar_chart_rounded,
+                            color: _accentColor,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _nameC.text.isEmpty
+                                ? (exerciseName.isEmpty ? 'Egzersiz' : exerciseName)
+                                : _nameC.text,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_isSuperset &&
+                            (_supersetExerciseName?.isNotEmpty ?? false)) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.link_rounded,
+                                    color: Colors.orange, size: 11),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'SS',
+                                  style: const TextStyle(
+                                      color: Colors.orange,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _nameC.text.isEmpty
-                        ? (_selectedExerciseName ?? 'Egzersiz')
-                        : _nameC.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 16),
+
+                  // Metrik 4'lü ızgara
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        _metricTile('SET', _sets.length.toString(),
+                            Icons.repeat_rounded),
+                        _verticalDivider(),
+                        _metricTile(
+                          'TEKRAR',
+                          totalReps > 0 ? totalReps.toString() : '—',
+                          Icons.sports_gymnastics_rounded,
+                        ),
+                        _verticalDivider(),
+                        _metricTile(
+                          'MAX KG',
+                          maxW > 0
+                              ? maxW.toStringAsFixed(maxW % 1 == 0 ? 0 : 1)
+                              : '—',
+                          Icons.fitness_center_rounded,
+                        ),
+                        _verticalDivider(),
+                        _metricTile(
+                          'HACİM',
+                          totalVolume > 0
+                              ? totalVolume >= 1000
+                                  ? '${(totalVolume / 1000).toStringAsFixed(1)}t'
+                                  : '${totalVolume.toStringAsFixed(0)}kg'
+                              : '—',
+                          Icons.stacked_bar_chart_rounded,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _summaryChip(Icons.repeat_rounded, '${_sets.length} set'),
-                      const SizedBox(width: 8),
-                      _summaryChip(Icons.fitness_center_rounded, () {
-                        final weights = _sets
-                            .map(
-                              (s) =>
-                                  double.tryParse(
-                                    s.weightC.text.trim().replaceAll(',', '.'),
-                                  ) ??
-                                  0.0,
-                            )
-                            .where((w) => w > 0);
-                        if (weights.isEmpty) return 'Ağırlık yok';
-                        return '${weights.reduce((a, b) => a > b ? a : b).toStringAsFixed(1)} kg max';
-                      }()),
-                    ],
+
+                  const SizedBox(height: 12),
+
+                  // 1RM + süre şeridi
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (oneRM != null)
+                          _summaryInfoPill(
+                            icon: Icons.emoji_events_rounded,
+                            iconColor: Colors.amber,
+                            text: '1RM ~ ${oneRM.toStringAsFixed(1)} kg',
+                            textColor: Colors.amber,
+                          ),
+                        _summaryInfoPill(
+                          icon: Icons.timer_rounded,
+                          iconColor: Colors.white38,
+                          text: durationDisplay,
+                          textColor: Colors.white.withValues(alpha: 0.5),
+                        ),
+                        if (_durationC.text.trim().isNotEmpty || durationSecs > 0)
+                          _summaryTagPill(
+                            label: durationSecs > 0
+                                ? 'Kronometre senkron'
+                                : 'Manuel süre',
+                          ),
+                        _summaryTagPill(
+                          label: 'Ort. RPE ${avgRpe.toStringAsFixed(1)}',
+                        ),
+                        _summaryTagPill(
+                          label: '$completedCount/${_sets.length} tamamlandı',
+                          color: _accentColor.withValues(alpha: 0.15),
+                          textColor: _accentColor,
+                        ),
+                      ],
+                    ),
                   ),
+
+                  // Önceki antrenmanla karşılaştırma
+                  if (prevWorkout != null && widget.workout == null) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.035),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.07)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.compare_arrows_rounded,
+                              color: Colors.white30, size: 15),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Önceki  ${DateFormat("d MMM", "tr_TR").format(prevWorkout.workoutDate)}',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.38),
+                              fontSize: 11,
+                            ),
+                          ),
+                          const Spacer(),
+                          _comparisonBadge(
+                            prevMaxW > 0 ? '${prevMaxW.toStringAsFixed(prevMaxW % 1 == 0 ? 0 : 1)} kg' : '—',
+                            maxW > prevMaxW
+                                ? Colors.greenAccent
+                                : maxW < prevMaxW
+                                    ? Colors.redAccent
+                                    : Colors.white38,
+                            maxW > prevMaxW
+                                ? '↑'
+                                : maxW < prevMaxW
+                                    ? '↓'
+                                    : '=',
+                          ),
+                          const SizedBox(width: 12),
+                          _comparisonBadge(
+                            '$prevTotalReps tekrar',
+                            totalReps > prevTotalReps
+                                ? Colors.greenAccent
+                                : totalReps < prevTotalReps
+                                    ? Colors.redAccent
+                                    : Colors.white38,
+                            totalReps > prevTotalReps
+                                ? '↑'
+                                : totalReps < prevTotalReps
+                                    ? '↓'
+                                    : '=',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            Text(
-              'Antrenman Adı',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
+            // ══════════════════════════════════════════════════════════════
+            // ZORLUK SEÇİCİ
+            // ══════════════════════════════════════════════════════════════
+            _sectionLabel('Antrenman Zorluğu', Icons.speed_rounded),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _difficultyChip('Kolay', '😊', const Color(0xFF4CAF50)),
+                const SizedBox(width: 8),
+                _difficultyChip('Orta', '💪', const Color(0xFF2196F3)),
+                const SizedBox(width: 8),
+                _difficultyChip('Zorlu', '🔥', const Color(0xFFFF9800)),
+                const SizedBox(width: 8),
+                _difficultyChip('Max', '⚡', const Color(0xFFE53935)),
+              ],
             ),
-            const SizedBox(height: 6),
+
+            const SizedBox(height: 24),
+            _sectionDivider('EGZERSİZ BİLGİLERİ'),
+            const SizedBox(height: 14),
+
+            // ── Antrenman Adı ──────────────────────────────────────────────
             TextFormField(
               controller: _nameC,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDeco('Antrenman adı'),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: _iconInputDeco(
+                hint: 'Antrenman adı',
+                icon: Icons.edit_rounded,
+                label: 'Antrenman Adı',
+              ),
               validator: (v) => (v == null || v.trim().isEmpty)
                   ? 'Antrenman adı zorunlu'
                   : null,
             ),
 
-            const SizedBox(height: 14),
-            Text(
-              'Tür / Kas Grubu',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
+
+            // ── Tür / Kas Grubu ────────────────────────────────────────────
             TextField(
               controller: _typeC,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDeco('örn. Göğüs, Bacak...'),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: _iconInputDeco(
+                hint: 'örn. Göğüs, Bacak...',
+                icon: Icons.category_rounded,
+                label: 'Tür / Kas Grubu',
+              ),
             ),
 
+            const SizedBox(height: 24),
+            _sectionDivider('ZAMAN & KALORİ'),
             const SizedBox(height: 14),
+
+            // ── Süre + Kalori yan yana ─────────────────────────────────────
             Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Süre (dk)',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _durationC,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDeco('0'),
-                      ),
-                    ],
+                  child: TextField(
+                    controller: _durationC,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: _iconInputDeco(
+                      hint: durationDisplay,
+                      icon: Icons.timer_rounded,
+                      label: 'Süre (dk)',
+                      iconColor: Colors.blueAccent,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kalori (kcal)',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      TextField(
-                        controller: _caloriesC,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDeco('0'),
-                      ),
-                    ],
+                  child: TextField(
+                    controller: _caloriesC,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: _iconInputDeco(
+                      hint: '0',
+                      icon: Icons.local_fire_department_rounded,
+                      label: 'Kalori (kcal)',
+                      iconColor: Colors.deepOrangeAccent,
+                    ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 14),
-            // Date
+            const SizedBox(height: 12),
+
+            // ── Tarih seçici ───────────────────────────────────────────────
             GestureDetector(
               onTap: () async {
                 final d = await showDatePicker(
@@ -2040,52 +3349,148 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
+                    horizontal: 16, vertical: 15),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.10),
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.calendar_today_rounded,
-                      color: _accentColor,
-                      size: 18,
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: _accentColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.calendar_today_rounded,
+                          color: _accentColor, size: 16),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      DateFormat('d MMMM yyyy', 'tr_TR').format(_pickedDate),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Antrenman Tarihi',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('d MMMM yyyy, EEEE', 'tr_TR')
+                              .format(_pickedDate),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                     const Spacer(),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
+                    Icon(Icons.chevron_right_rounded,
+                        color: Colors.white.withValues(alpha: 0.25),
+                        size: 20),
                   ],
                 ),
               ),
             ),
 
+            const SizedBox(height: 24),
+            _sectionDivider('NOT'),
             const SizedBox(height: 14),
-            Text(
-              'Not',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 6),
+
+            // ── Not alanı ─────────────────────────────────────────────────
             TextField(
               controller: _notesC,
-              maxLines: 3,
-              style: const TextStyle(color: Colors.white),
-              decoration: _inputDeco('Antrenman notu...'),
+              maxLines: 4,
+              maxLength: 300,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 14, height: 1.5),
+              decoration: InputDecoration(
+                hintText:
+                    'Bu antrenmanda neler hissettin? Özel notlar...',
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  fontSize: 13,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(
+                      left: 14, right: 10, top: 14),
+                  child: Icon(Icons.sticky_note_2_rounded,
+                      color: Colors.white.withValues(alpha: 0.25),
+                      size: 18),
+                ),
+                prefixIconConstraints: const BoxConstraints(),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.04),
+                counterStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  fontSize: 10,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.09)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: _accentColor, width: 1.5),
+                ),
+                contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Yardımcı widget'lar ────────────────────────────────────────────────────
+
+  Widget _metricTile(String label, String value, IconData icon) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: _accentColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icon, color: _accentColor, size: 15),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.6,
+              ),
             ),
           ],
         ),
@@ -2093,46 +3498,223 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     );
   }
 
-  Widget _summaryChip(IconData icon, String text) {
+  Widget _comparisonBadge(String text, Color color, String arrow) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(arrow, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        const SizedBox(width: 3),
+        Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+      ],
+    );
+  }
+
+  Widget _summaryInfoPill({
+    required IconData icon,
+    required Color iconColor,
+    required String text,
+    required Color textColor,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 15),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _summaryTagPill({
+    required String label,
+    Color? color,
+    Color? textColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: _accentColor.withValues(alpha: 0.15),
+        color: color ?? Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: _accentColor, size: 13),
-          const SizedBox(width: 5),
-          Text(
-            text,
-            style: TextStyle(
-              color: _accentColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor ?? Colors.white.withValues(alpha: 0.72),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
 
-  // ── Bottom Bar ───────────────────────────────────────────────────────────
+  Widget _difficultyChip(String label, String emoji, Color color) {
+    final sel = _difficulty == label;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _difficulty = sel ? null : label),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: sel ? color.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: sel ? color : Colors.white.withValues(alpha: 0.1),
+              width: sel ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: sel ? color : Colors.white.withValues(alpha: 0.45),
+                  fontSize: 10,
+                  fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Yeni yardımcı widget'lar ─────────────────────────────────────────────────
+
+  Widget _verticalDivider() {
+    return Container(
+      width: 1,
+      height: 36,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      color: Colors.white.withValues(alpha: 0.07),
+    );
+  }
+
+  Widget _sectionLabel(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: _accentColor, size: 15),
+        const SizedBox(width: 7),
+        Text(
+          title,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionDivider(String label) {
+    return Row(
+      children: [
+        Container(
+          width: 3,
+          height: 12,
+          decoration: BoxDecoration(
+            color: _accentColor,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.38),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _iconInputDeco({
+    required String hint,
+    required IconData icon,
+    required String label,
+    Color? iconColor,
+  }) {
+    final ic = iconColor ?? _accentColor;
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.45),
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      hintText: hint,
+      hintStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.22),
+        fontSize: 13,
+      ),
+      prefixIcon: Container(
+        margin: const EdgeInsets.only(left: 12, right: 10),
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: ic.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: ic, size: 16),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.04),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.09)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: ic, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    );
+  }
+
+  // ── Bottom Bar ──────────────────────────────────────────────────────────────
 
   Widget _buildBottomBar() {
     final isLast = _step == 2;
     return Container(
       padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
+        16, 12, 16,
         12 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: _bg,
+        color: _card,
         border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+          top: BorderSide(color: _cardBorder, width: 0.5),
         ),
       ),
       child: Row(
@@ -2141,27 +3723,17 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
             GestureDetector(
               onTap: _prevStep,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 14,
-                ),
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _cardBorder),
                 ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white54,
-                      size: 16,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Geri',
-                      style: TextStyle(color: Colors.white54, fontSize: 14),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white54,
+                  size: 18,
                 ),
               ),
             ),
@@ -2171,32 +3743,39 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
             child: GestureDetector(
               onTap: _saving ? null : (isLast ? _save : _nextStep),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                height: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      _accentColor,
-                      _accentColor.withValues(alpha: 0.75),
-                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _saving
+                        ? [Colors.white12, Colors.white12]
+                        : [
+                            _accentColor,
+                            Color.lerp(_accentColor, Colors.black, 0.25)!,
+                          ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _accentColor.withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: _saving
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: _accentColor.withValues(alpha: 0.38),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                 ),
                 child: Center(
                   child: _saving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.5,
+                            color: _accentColor,
+                            strokeWidth: 2,
                           ),
                         )
                       : Row(
@@ -2206,17 +3785,23 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                               isLast ? 'Kaydet' : 'Devam Et',
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                letterSpacing: 0.3,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Icon(
-                              isLast
-                                  ? Icons.save_rounded
-                                  : Icons.arrow_forward_rounded,
-                              color: Colors.white,
-                              size: 20,
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                isLast ? Icons.save_rounded : Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 14,
+                              ),
                             ),
                           ],
                         ),
@@ -2235,25 +3820,26 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(
-        color: Colors.white.withValues(alpha: 0.3),
+        color: Colors.white.withValues(alpha: 0.25),
         fontSize: 13,
       ),
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.04),
+      fillColor: _card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: _cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: _accentColor, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
     );
@@ -2302,4 +3888,288 @@ class _RestTimerPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RestTimerPainter old) =>
       old.progress != progress || old.color != color;
+}
+
+// ── Save Summary Sheet ────────────────────────────────────────────────────────
+
+class _SaveSummarySheet extends StatefulWidget {
+  final String workoutName;
+  final int totalSets;
+  final int totalReps;
+  final double totalVolume;
+  final double maxWeight;
+  final int? durationMinutes;
+  final int? caloriesBurned;
+  final double? oneRM;
+  final bool isNewPR;
+  final double? previousPR;
+  final Color accentColor;
+
+  const _SaveSummarySheet({
+    required this.workoutName,
+    required this.totalSets,
+    required this.totalReps,
+    required this.totalVolume,
+    required this.maxWeight,
+    this.durationMinutes,
+    this.caloriesBurned,
+    this.oneRM,
+    required this.isNewPR,
+    this.previousPR,
+    required this.accentColor,
+  });
+
+  @override
+  State<_SaveSummarySheet> createState() => _SaveSummarySheetState();
+}
+
+class _SaveSummarySheetState extends State<_SaveSummarySheet>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fadeIn;
+  late final Animation<Offset> _slideUp;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fadeIn = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slideUp = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = widget.accentColor;
+    final volumeStr = widget.totalVolume >= 1000
+        ? '${(widget.totalVolume / 1000).toStringAsFixed(1)} t'
+        : '${widget.totalVolume.toStringAsFixed(0)} kg';
+
+    return FadeTransition(
+      opacity: _fadeIn,
+      child: SlideTransition(
+        position: _slideUp,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            24, 20, 24,
+            24 + MediaQuery.of(context).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // PR banner
+              if (widget.isNewPR) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🏆', style: TextStyle(fontSize: 28)),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'KİŞİSEL REKOR!',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          if (widget.oneRM != null)
+                            Text(
+                              'Yeni 1RM: ${widget.oneRM!.toStringAsFixed(1)} kg${widget.previousPR != null ? " (önceki: ${widget.previousPR!.toStringAsFixed(1)} kg)" : ""}',
+                              style: const TextStyle(
+                                color: Colors.black87,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Başlık
+              Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: accent, size: 22),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Antrenman Tamamlandı!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.workoutName,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 13,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 20),
+
+              // Metrik ızgarası
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _statTile('⚡ Hacim', volumeStr, accent),
+                        _divider(),
+                        _statTile('🔁 Set', '${widget.totalSets}', accent),
+                        _divider(),
+                        _statTile('💪 Tekrar', '${widget.totalReps}', accent),
+                      ],
+                    ),
+                    if ((widget.maxWeight > 0) || widget.durationMinutes != null || widget.caloriesBurned != null) ...[
+                      const SizedBox(height: 14),
+                      const Divider(color: Colors.white10, height: 1),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          if (widget.maxWeight > 0)
+                            _statTile('🏋️ Max', '${widget.maxWeight.toStringAsFixed(widget.maxWeight % 1 == 0 ? 0 : 1)} kg', Colors.white70),
+                          if (widget.maxWeight > 0 && widget.durationMinutes != null)
+                            _divider(),
+                          if (widget.durationMinutes != null)
+                            _statTile('⏱ Süre', '${widget.durationMinutes} dk', Colors.white70),
+                          if (widget.durationMinutes != null && widget.caloriesBurned != null)
+                            _divider(),
+                          if (widget.caloriesBurned != null)
+                            _statTile('🔥 Kalori', '${widget.caloriesBurned} kcal', Colors.white70),
+                        ],
+                      ),
+                    ],
+                    if (widget.oneRM != null && !widget.isNewPR) ...[
+                      const SizedBox(height: 14),
+                      const Divider(color: Colors.white10, height: 1),
+                      const SizedBox(height: 14),
+                      _statTile('🥇 1RM (Epley)', '${widget.oneRM!.toStringAsFixed(1)} kg', accent),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Kapat butonu
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Harika, Devam Et! 💪',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statTile(String label, String value, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() {
+    return Container(width: 1, height: 36, color: Colors.white10);
+  }
 }

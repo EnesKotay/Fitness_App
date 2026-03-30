@@ -1,0 +1,2980 @@
+{
+  "meta": {
+    "name": "Fitness Tarifleri Aday Listesi",
+    "version": 1,
+    "createdAt": "2026-03-20",
+    "recipeCount": 48,
+    "status": "aday-liste-henuz-veritabanina-eklenmedi",
+    "description": "Fitness uygulamasi kullanicilari icin hazirlanmis yuksek proteinli, dengeli ve pratik tarif adaylari. Degerler standart malzeme referanslarindan hesaplanmistir.",
+    "calculationNote": "Makrolar tarifteki malzemelerin gramaj bazli toplami ile hesaplandi. Ev tipi uygulama ve malzeme markasina gore sapma olabilir.",
+    "sourceRefs": [
+      {
+        "label": "USDA FoodData Central",
+        "url": "https://fdc.nal.usda.gov/"
+      },
+      {
+        "label": "USDA Download Datasets",
+        "url": "https://fdc.nal.usda.gov/download-datasets/"
+      },
+      {
+        "label": "FatSecret TR - Lor Peyniri",
+        "url": "https://www.fatsecret.com.tr/kaloriler-beslenme/genel/lor-peyniri"
+      },
+      {
+        "label": "Diyetkolik - Protein Bowl",
+        "url": "https://www.diyetkolik.com/yemek-tarifi/protein-bowl"
+      },
+      {
+        "label": "Diyetkolik - Diyet Makarna",
+        "url": "https://www.diyetkolik.com/yemek-tarifi/diyet-makarna"
+      },
+      {
+        "label": "Diyetkolik - Yuksek Protein Shake",
+        "url": "https://www.diyetkolik.com/yemek-tarifi/yuksek-protein-shake"
+      }
+    ]
+  },
+  "ingredientReferences": {
+    "oats": {
+      "label": "Yulaf",
+      "unit": "g",
+      "kcal": 389,
+      "protein": 16.9,
+      "carb": 66.3,
+      "fat": 6.9,
+      "source": "USDA FoodData Central"
+    },
+    "lor": {
+      "label": "Lor peyniri (yağsız)",
+      "unit": "g",
+      "kcal": 85,
+      "protein": 17.27,
+      "carb": 1.85,
+      "fat": 0.42,
+      "source": "FatSecret TR / Lor Peyniri 100 g"
+    },
+    "greek_yogurt": {
+      "label": "Süzme yoğurt / Greek yoğurt",
+      "unit": "g",
+      "kcal": 59,
+      "protein": 10.3,
+      "carb": 3.6,
+      "fat": 0.4,
+      "source": "USDA FoodData Central"
+    },
+    "yogurt": {
+      "label": "Yoğurt",
+      "unit": "g",
+      "kcal": 61,
+      "protein": 3.5,
+      "carb": 4.7,
+      "fat": 3.3,
+      "source": "USDA FoodData Central"
+    },
+    "kefir": {
+      "label": "Kefir",
+      "unit": "g",
+      "kcal": 52,
+      "protein": 3.6,
+      "carb": 4.8,
+      "fat": 2.0,
+      "source": "USDA FoodData Central"
+    },
+    "milk": {
+      "label": "Yarım yağlı süt",
+      "unit": "g",
+      "kcal": 46,
+      "protein": 3.4,
+      "carb": 4.8,
+      "fat": 1.6,
+      "source": "USDA FoodData Central"
+    },
+    "banana": {
+      "label": "Muz",
+      "unit": "g",
+      "kcal": 89,
+      "protein": 1.1,
+      "carb": 22.8,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "strawberry": {
+      "label": "Çilek",
+      "unit": "g",
+      "kcal": 32,
+      "protein": 0.7,
+      "carb": 7.7,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "blueberry": {
+      "label": "Yaban mersini",
+      "unit": "g",
+      "kcal": 57,
+      "protein": 0.7,
+      "carb": 14.5,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "apple": {
+      "label": "Elma",
+      "unit": "g",
+      "kcal": 52,
+      "protein": 0.3,
+      "carb": 13.8,
+      "fat": 0.2,
+      "source": "USDA FoodData Central"
+    },
+    "honey": {
+      "label": "Bal",
+      "unit": "g",
+      "kcal": 304,
+      "protein": 0.3,
+      "carb": 82.4,
+      "fat": 0.0,
+      "source": "USDA FoodData Central"
+    },
+    "chia": {
+      "label": "Chia tohumu",
+      "unit": "g",
+      "kcal": 486,
+      "protein": 16.5,
+      "carb": 42.1,
+      "fat": 30.7,
+      "source": "USDA FoodData Central"
+    },
+    "peanut_butter": {
+      "label": "Fıstık ezmesi",
+      "unit": "g",
+      "kcal": 588,
+      "protein": 25.0,
+      "carb": 20.0,
+      "fat": 50.0,
+      "source": "USDA FoodData Central"
+    },
+    "almond": {
+      "label": "Badem",
+      "unit": "g",
+      "kcal": 579,
+      "protein": 21.2,
+      "carb": 21.6,
+      "fat": 49.9,
+      "source": "USDA FoodData Central"
+    },
+    "walnut": {
+      "label": "Ceviz",
+      "unit": "g",
+      "kcal": 654,
+      "protein": 15.2,
+      "carb": 13.7,
+      "fat": 65.2,
+      "source": "USDA FoodData Central"
+    },
+    "date": {
+      "label": "Hurma",
+      "unit": "g",
+      "kcal": 282,
+      "protein": 2.5,
+      "carb": 75.0,
+      "fat": 0.4,
+      "source": "USDA FoodData Central"
+    },
+    "egg": {
+      "label": "Yumurta",
+      "unit": "g",
+      "kcal": 143,
+      "protein": 12.6,
+      "carb": 0.7,
+      "fat": 9.5,
+      "source": "USDA FoodData Central"
+    },
+    "egg_white": {
+      "label": "Yumurta beyazı",
+      "unit": "g",
+      "kcal": 52,
+      "protein": 10.9,
+      "carb": 0.7,
+      "fat": 0.2,
+      "source": "USDA FoodData Central"
+    },
+    "whole_wheat_bread": {
+      "label": "Tam buğday ekmeği",
+      "unit": "g",
+      "kcal": 247,
+      "protein": 13.0,
+      "carb": 41.0,
+      "fat": 4.2,
+      "source": "USDA FoodData Central"
+    },
+    "chicken": {
+      "label": "Tavuk göğüs (pişmiş)",
+      "unit": "g",
+      "kcal": 165,
+      "protein": 31.0,
+      "carb": 0.0,
+      "fat": 3.6,
+      "source": "USDA FoodData Central"
+    },
+    "beef": {
+      "label": "Yağsız dana eti (pişmiş)",
+      "unit": "g",
+      "kcal": 217,
+      "protein": 26.1,
+      "carb": 0.0,
+      "fat": 11.8,
+      "source": "USDA FoodData Central"
+    },
+    "tuna": {
+      "label": "Ton balığı (suda)",
+      "unit": "g",
+      "kcal": 116,
+      "protein": 25.5,
+      "carb": 0.0,
+      "fat": 0.8,
+      "source": "USDA FoodData Central"
+    },
+    "rice": {
+      "label": "Pişmiş pirinç",
+      "unit": "g",
+      "kcal": 130,
+      "protein": 2.7,
+      "carb": 28.2,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "bulgur": {
+      "label": "Pişmiş bulgur",
+      "unit": "g",
+      "kcal": 83,
+      "protein": 3.1,
+      "carb": 18.6,
+      "fat": 0.2,
+      "source": "USDA FoodData Central"
+    },
+    "pasta": {
+      "label": "Tam buğday makarna (pişmiş)",
+      "unit": "g",
+      "kcal": 149,
+      "protein": 5.8,
+      "carb": 29.9,
+      "fat": 0.9,
+      "source": "USDA FoodData Central"
+    },
+    "potato": {
+      "label": "Fırın patates",
+      "unit": "g",
+      "kcal": 93,
+      "protein": 2.5,
+      "carb": 21.2,
+      "fat": 0.1,
+      "source": "USDA FoodData Central"
+    },
+    "chickpeas": {
+      "label": "Haşlanmış nohut",
+      "unit": "g",
+      "kcal": 164,
+      "protein": 8.9,
+      "carb": 27.4,
+      "fat": 2.6,
+      "source": "USDA FoodData Central"
+    },
+    "lentils": {
+      "label": "Haşlanmış mercimek",
+      "unit": "g",
+      "kcal": 116,
+      "protein": 9.0,
+      "carb": 20.1,
+      "fat": 0.4,
+      "source": "USDA FoodData Central"
+    },
+    "kidney_beans": {
+      "label": "Haşlanmış barbunya / fasulye",
+      "unit": "g",
+      "kcal": 127,
+      "protein": 8.7,
+      "carb": 22.8,
+      "fat": 0.5,
+      "source": "USDA FoodData Central"
+    },
+    "hummus": {
+      "label": "Humus",
+      "unit": "g",
+      "kcal": 166,
+      "protein": 7.9,
+      "carb": 14.3,
+      "fat": 9.6,
+      "source": "USDA FoodData Central"
+    },
+    "avocado": {
+      "label": "Avokado",
+      "unit": "g",
+      "kcal": 160,
+      "protein": 2.0,
+      "carb": 8.5,
+      "fat": 14.7,
+      "source": "USDA FoodData Central"
+    },
+    "olive_oil": {
+      "label": "Zeytinyağı",
+      "unit": "g",
+      "kcal": 884,
+      "protein": 0.0,
+      "carb": 0.0,
+      "fat": 100.0,
+      "source": "USDA FoodData Central"
+    },
+    "spinach": {
+      "label": "Ispanak",
+      "unit": "g",
+      "kcal": 23,
+      "protein": 2.9,
+      "carb": 3.6,
+      "fat": 0.4,
+      "source": "USDA FoodData Central"
+    },
+    "mushroom": {
+      "label": "Mantar",
+      "unit": "g",
+      "kcal": 22,
+      "protein": 3.1,
+      "carb": 3.3,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "tomato": {
+      "label": "Domates",
+      "unit": "g",
+      "kcal": 18,
+      "protein": 0.9,
+      "carb": 3.9,
+      "fat": 0.2,
+      "source": "USDA FoodData Central"
+    },
+    "cucumber": {
+      "label": "Salatalık",
+      "unit": "g",
+      "kcal": 15,
+      "protein": 0.7,
+      "carb": 3.6,
+      "fat": 0.1,
+      "source": "USDA FoodData Central"
+    },
+    "pepper": {
+      "label": "Biber",
+      "unit": "g",
+      "kcal": 31,
+      "protein": 1.0,
+      "carb": 6.0,
+      "fat": 0.3,
+      "source": "USDA FoodData Central"
+    },
+    "broccoli": {
+      "label": "Brokoli",
+      "unit": "g",
+      "kcal": 35,
+      "protein": 2.4,
+      "carb": 7.2,
+      "fat": 0.4,
+      "source": "USDA FoodData Central"
+    },
+    "cocoa": {
+      "label": "Kakao",
+      "unit": "g",
+      "kcal": 228,
+      "protein": 19.6,
+      "carb": 57.9,
+      "fat": 13.7,
+      "source": "USDA FoodData Central"
+    }
+  },
+  "recipes": [
+    {
+      "id": "fitness_recipe_001",
+      "name": "Lorlu Yulaf Kasesi",
+      "category": "Kahvaltı",
+      "portionGrams": 420.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "high-protein",
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 544.5,
+        "protein": 45.6,
+        "carb": 74.0,
+        "fat": 8.5
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 100,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chia",
+          "name": "Chia tohumu",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Antrenman öncesi veya kahvaltıda güçlü başlangıç.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_002",
+      "name": "Muzlu Yoğurtlu Yulaf",
+      "category": "Kahvaltı",
+      "portionGrams": 365.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 489.7,
+        "protein": 33.9,
+        "carb": 66.2,
+        "fat": 12.1
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Pratik, tok tutan kahvaltı.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_003",
+      "name": "Çilekli Chia Yoğurt Kup",
+      "category": "Kahvaltı",
+      "portionGrams": 375.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "light"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 269.3,
+        "protein": 24.2,
+        "carb": 33.3,
+        "fat": 5.9
+      },
+      "ingredients": [
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chia",
+          "name": "Chia tohumu",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Hafif ve lif odaklı tarif.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_004",
+      "name": "Sebzeli Yumurta Beyazı Omlet",
+      "category": "Kahvaltı",
+      "portionGrams": 435.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "high-protein",
+        "cut"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 293.1,
+        "protein": 30.3,
+        "carb": 9.1,
+        "fat": 15.3
+      },
+      "ingredients": [
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg_white",
+          "name": "Yumurta beyazı",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "spinach",
+          "name": "Ispanak",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "mushroom",
+          "name": "Mantar",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Kesim döneminde ideal protein ağırlıklı omlet.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_005",
+      "name": "Lorlu Menemen",
+      "category": "Kahvaltı",
+      "portionGrams": 425.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 443.6,
+        "protein": 35.9,
+        "carb": 35.1,
+        "fat": 17.8
+      },
+      "ingredients": [
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pepper",
+          "name": "Biber",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 80,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Klasik menemenin daha proteinli versiyonu.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_006",
+      "name": "Fırın Yulaf",
+      "category": "Kahvaltı",
+      "portionGrams": 430.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 567.5,
+        "protein": 28.8,
+        "carb": 80.3,
+        "fat": 18.8
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cocoa",
+          "name": "Kakao",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Tatlı isteğini kontrollü karşılayan kahvaltı.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_007",
+      "name": "Fıstık Ezmeli Gece Yulafı",
+      "category": "Kahvaltı",
+      "portionGrams": 470.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 621.8,
+        "protein": 34.8,
+        "carb": 79.4,
+        "fat": 21.1
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 20,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chia",
+          "name": "Chia tohumu",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Akşamdan hazırlanıp sabah tüketilir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_008",
+      "name": "Avokadolu Yumurta Tost",
+      "category": "Kahvaltı",
+      "portionGrams": 320.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 442.3,
+        "protein": 23.8,
+        "carb": 38.5,
+        "fat": 22.9
+      },
+      "ingredients": [
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "avocado",
+          "name": "Avokado",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Sağlıklı yağ ve protein dengesi iyi.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_009",
+      "name": "Ton Balıklı Kahvaltı Tabağı",
+      "category": "Kahvaltı",
+      "portionGrams": 415.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 412.9,
+        "protein": 41.2,
+        "carb": 32.5,
+        "fat": 13.4
+      },
+      "ingredients": [
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Sabah açlığını uzun süre bastırır.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_010",
+      "name": "Kefirli Meyve Kasesi",
+      "category": "Kahvaltı",
+      "portionGrams": 485.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 475.6,
+        "protein": 20.5,
+        "carb": 67.7,
+        "fat": 15.8
+      },
+      "ingredients": [
+        {
+          "key": "kefir",
+          "name": "Kefir",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "almond",
+          "name": "Badem",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Bağırsak dostu, pratik kase.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_011",
+      "name": "Tavuklu Pirinç Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 585.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "post-workout",
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 677.2,
+        "protein": 65.4,
+        "carb": 64.7,
+        "fat": 15.5
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "rice",
+          "name": "Pişmiş pirinç",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Antrenman sonrası toparlanma için klasik kombin.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_012",
+      "name": "Tavuklu Bulgur Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 575.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "high-protein",
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 591.1,
+        "protein": 64.7,
+        "carb": 51.9,
+        "fat": 14.6
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 170,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "bulgur",
+          "name": "Pişmiş bulgur",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "broccoli",
+          "name": "Brokoli",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Daha kontrollü karbonhidrat için bulgur bazlı tabak.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_013",
+      "name": "Tavuklu Patates Tabağı",
+      "category": "Ana Öğün",
+      "portionGrams": 635.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "post-workout"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 652.7,
+        "protein": 66.5,
+        "carb": 61.6,
+        "fat": 15.2
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "potato",
+          "name": "Fırın patates",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Kas glikojeni doldurmak için iyi seçim.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_014",
+      "name": "Et Sote Bulgur Tabağı",
+      "category": "Ana Öğün",
+      "portionGrams": 568.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "strength"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 647.3,
+        "protein": 52.5,
+        "carb": 49.0,
+        "fat": 27.9
+      },
+      "ingredients": [
+        {
+          "key": "beef",
+          "name": "Yağsız dana eti (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "bulgur",
+          "name": "Pişmiş bulgur",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "mushroom",
+          "name": "Mantar",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pepper",
+          "name": "Biber",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 8,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Demir ve çinko açısından güçlü ana öğün.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_015",
+      "name": "Ton Balıklı Makarna Salatası",
+      "category": "Ana Öğün",
+      "portionGrams": 605.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 563.2,
+        "protein": 46.6,
+        "carb": 71.1,
+        "fat": 10.7
+      },
+      "ingredients": [
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pasta",
+          "name": "Tam buğday makarna (pişmiş)",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Ofise taşımaya uygun soğuk öğün.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_016",
+      "name": "Tavuklu Avokadolu Salata",
+      "category": "Ana Öğün",
+      "portionGrams": 580.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "cut",
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 584.3,
+        "protein": 62.0,
+        "carb": 38.4,
+        "fat": 21.1
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "avocado",
+          "name": "Avokado",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Düşük hacimde yüksek tokluk sağlar.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_017",
+      "name": "Nohutlu Tavuklu Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 585.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 619.4,
+        "protein": 62.0,
+        "carb": 55.1,
+        "fat": 17.1
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 140,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chickpeas",
+          "name": "Haşlanmış nohut",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Protein + lif kombinasyonu ile tok tutar.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_018",
+      "name": "Ton Balıklı Pirinç Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 560.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 536.4,
+        "protein": 45.6,
+        "carb": 62.5,
+        "fat": 10.9
+      },
+      "ingredients": [
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 140,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "rice",
+          "name": "Pişmiş pirinç",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "avocado",
+          "name": "Avokado",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Hazırlaması kolay yüksek proteinli tabak.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_019",
+      "name": "Humuslu Tavuklu Tabak",
+      "category": "Ana Öğün",
+      "portionGrams": 510.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 602.7,
+        "protein": 66.6,
+        "carb": 47.6,
+        "fat": 16.7
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "hummus",
+          "name": "Humus",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Yoğun öğün isteyen kullanıcılar için.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_020",
+      "name": "Lorlu Bulgur Salatası",
+      "category": "Ana Öğün",
+      "portionGrams": 525.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "vegetarian",
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 344.8,
+        "protein": 25.7,
+        "carb": 50.3,
+        "fat": 6.2
+      },
+      "ingredients": [
+        {
+          "key": "bulgur",
+          "name": "Pişmiş bulgur",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 100,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Vejetaryen tarafta pratik proteinli seçenek.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_021",
+      "name": "Mercimekli Yoğurtlu Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 575.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "vegetarian",
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 420.9,
+        "protein": 36.9,
+        "carb": 57.1,
+        "fat": 6.8
+      },
+      "ingredients": [
+        {
+          "key": "lentils",
+          "name": "Haşlanmış mercimek",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Baklagil + yoğurt ile tam öğün hissi verir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_022",
+      "name": "Kuru Fasulyeli Pirinç Fit Tabak",
+      "category": "Ana Öğün",
+      "portionGrams": 480.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "vegetarian",
+        "bulk"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 548.4,
+        "protein": 27.0,
+        "carb": 100.0,
+        "fat": 4.9
+      },
+      "ingredients": [
+        {
+          "key": "kidney_beans",
+          "name": "Haşlanmış barbunya / fasulye",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "rice",
+          "name": "Pişmiş pirinç",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Türk mutfağının sporcu dostu klasiklerinden.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_023",
+      "name": "Barbunyalı Bulgur Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 605.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "vegetarian"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 497.2,
+        "protein": 25.2,
+        "carb": 90.3,
+        "fat": 6.7
+      },
+      "ingredients": [
+        {
+          "key": "kidney_beans",
+          "name": "Haşlanmış barbunya / fasulye",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "bulgur",
+          "name": "Pişmiş bulgur",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Bitkisel protein ve lif açısından güçlü.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_024",
+      "name": "Nohutlu Akdeniz Salatası",
+      "category": "Ana Öğün",
+      "portionGrams": 505.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 471.8,
+        "protein": 38.3,
+        "carb": 58.3,
+        "fat": 10.7
+      },
+      "ingredients": [
+        {
+          "key": "chickpeas",
+          "name": "Haşlanmış nohut",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Sıcak yemek istemeyen günler için.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_025",
+      "name": "Tavuklu Tam Buğday Makarna",
+      "category": "Ana Öğün",
+      "portionGrams": 605.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "post-workout"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 679.6,
+        "protein": 66.5,
+        "carb": 73.8,
+        "fat": 13.3
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pasta",
+          "name": "Tam buğday makarna (pişmiş)",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "mushroom",
+          "name": "Mantar",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Yoğun antrenman günlerinde karbonhidrat desteği sağlar.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_026",
+      "name": "Etli Patates Brokoli Tabağı",
+      "category": "Ana Öğün",
+      "portionGrams": 535.0,
+      "prepMinutes": 30,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "strength"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 648.5,
+        "protein": 50.9,
+        "carb": 57.4,
+        "fat": 24.7
+      },
+      "ingredients": [
+        {
+          "key": "beef",
+          "name": "Yağsız dana eti (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "potato",
+          "name": "Fırın patates",
+          "grams": 220,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "broccoli",
+          "name": "Brokoli",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Klasik fitness tabak düzenine uygun.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_027",
+      "name": "Tavuklu Sebzeli Pirinç",
+      "category": "Ana Öğün",
+      "portionGrams": 525.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 602.0,
+        "protein": 57.7,
+        "carb": 62.8,
+        "fat": 11.9
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "rice",
+          "name": "Pişmiş pirinç",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "broccoli",
+          "name": "Brokoli",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pepper",
+          "name": "Biber",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Kolay hazırlanan günlük ana öğün.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_028",
+      "name": "Lorlu Kakao Kreması",
+      "category": "Atıştırma",
+      "portionGrams": 350.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 310.9,
+        "protein": 39.1,
+        "carb": 38.6,
+        "fat": 2.6
+      },
+      "ingredients": [
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 150,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cocoa",
+          "name": "Kakao",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Tatlı krizine karşı proteinli ara öğün.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_029",
+      "name": "Yoğurtlu Meyve Parfe",
+      "category": "Atıştırma",
+      "portionGrams": 420.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "goalTags": [
+        "light"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 342.7,
+        "protein": 27.0,
+        "carb": 54.6,
+        "fat": 3.4
+      },
+      "ingredients": [
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "blueberry",
+          "name": "Yaban mersini",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 30,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Serin ve hafif atıştırmalık.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_030",
+      "name": "Hurmalı Enerji Topu",
+      "category": "Atıştırma",
+      "portionGrams": 143.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "snack",
+        "pre-workout"
+      ],
+      "goalTags": [
+        "energy"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 558.7,
+        "protein": 17.1,
+        "carb": 82.2,
+        "fat": 23.9
+      },
+      "ingredients": [
+        {
+          "key": "date",
+          "name": "Hurma",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 20,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "walnut",
+          "name": "Ceviz",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cocoa",
+          "name": "Kakao",
+          "grams": 8,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Antrenman öncesi hızlı enerji verir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_031",
+      "name": "Fırın Nohut Atıştırmalık",
+      "category": "Atıştırma",
+      "portionGrams": 165.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "snack"
+      ],
+      "goalTags": [
+        "high-fiber"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 306.6,
+        "protein": 14.2,
+        "carb": 43.8,
+        "fat": 9.2
+      },
+      "ingredients": [
+        {
+          "key": "chickpeas",
+          "name": "Haşlanmış nohut",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Çıtır, tuzlu atıştırmalık alternatifi.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_032",
+      "name": "Muzlu Kefir Smoothie",
+      "category": "İçecek",
+      "portionGrams": 410.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 412.3,
+        "protein": 17.9,
+        "carb": 61.2,
+        "fat": 12.4
+      },
+      "ingredients": [
+        {
+          "key": "kefir",
+          "name": "Kefir",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 30,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Hem içecek hem ara öğün gibi kullanılabilir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_033",
+      "name": "Çilekli Yoğurt Smoothie",
+      "category": "İçecek",
+      "portionGrams": 560.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "goalTags": [
+        "light"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 281.4,
+        "protein": 27.1,
+        "carb": 38.0,
+        "fat": 3.8
+      },
+      "ingredients": [
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Hafif ama hacimli smoothie.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_034",
+      "name": "Lorlu Muzlu Shake",
+      "category": "İçecek",
+      "portionGrams": 478.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack",
+        "post-workout"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 344.5,
+        "protein": 35.6,
+        "carb": 44.4,
+        "fat": 5.3
+      },
+      "ingredients": [
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 150,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cocoa",
+          "name": "Kakao",
+          "grams": 8,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Toz kullanmadan protein artırmak için.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_035",
+      "name": "Kakao Yulaf Smoothie",
+      "category": "İçecek",
+      "portionGrams": 365.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 447.6,
+        "protein": 20.4,
+        "carb": 67.7,
+        "fat": 15.1
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 200,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cocoa",
+          "name": "Kakao",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Kahvaltı yerine de kullanılabilir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_036",
+      "name": "Bademli Chia Pudingi",
+      "category": "Atıştırma",
+      "portionGrams": 500.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "snack",
+        "breakfast"
+      ],
+      "goalTags": [
+        "light"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 444.8,
+        "protein": 26.8,
+        "carb": 45.3,
+        "fat": 19.9
+      },
+      "ingredients": [
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chia",
+          "name": "Chia tohumu",
+          "grams": 25,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "almond",
+          "name": "Badem",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Akşamdan hazırlanabilen tarif.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_037",
+      "name": "Elmalı Tarçınlı Yulaf Kup",
+      "category": "Atıştırma",
+      "portionGrams": 375.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 489.5,
+        "protein": 26.7,
+        "carb": 69.5,
+        "fat": 14.1
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "apple",
+          "name": "Elma",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "walnut",
+          "name": "Ceviz",
+          "grams": 15,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "honey",
+          "name": "Bal",
+          "grams": 10,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Ofise taşımaya uygun.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_038",
+      "name": "Ton Balıklı Mini Salata",
+      "category": "Atıştırma",
+      "portionGrams": 415.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "snack",
+        "lunch"
+      ],
+      "goalTags": [
+        "high-protein",
+        "cut"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 303.0,
+        "protein": 33.5,
+        "carb": 13.2,
+        "fat": 13.7
+      },
+      "ingredients": [
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "avocado",
+          "name": "Avokado",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Düşük karbonhidratlı ara öğün.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_039",
+      "name": "Yumurta Beyazlı Muffin",
+      "category": "Atıştırma",
+      "portionGrams": 475.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 319.8,
+        "protein": 34.4,
+        "carb": 10.9,
+        "fat": 15.5
+      },
+      "ingredients": [
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg_white",
+          "name": "Yumurta beyazı",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "spinach",
+          "name": "Ispanak",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pepper",
+          "name": "Biber",
+          "grams": 60,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "mushroom",
+          "name": "Mantar",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Önden hazırlanıp gün içinde tüketilebilir.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_040",
+      "name": "Fıstık Ezmeli Muzlu Tost",
+      "category": "Atıştırma",
+      "portionGrams": 275.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "snack",
+        "pre-workout"
+      ],
+      "goalTags": [
+        "energy"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 456.1,
+        "protein": 24.7,
+        "carb": 59.4,
+        "fat": 16.1
+      },
+      "ingredients": [
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "peanut_butter",
+          "name": "Fıstık ezmesi",
+          "grams": 25,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "banana",
+          "name": "Muz",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Antrenman öncesi pratik enerji sağlar.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_041",
+      "name": "Mercimekli Protein Çorbası",
+      "category": "Ana Öğün",
+      "portionGrams": 385.0,
+      "prepMinutes": 25,
+      "mealTypes": [
+        "lunch",
+        "dinner"
+      ],
+      "goalTags": [
+        "vegetarian",
+        "high-fiber"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 504.9,
+        "protein": 37.2,
+        "carb": 73.6,
+        "fat": 8.4
+      },
+      "ingredients": [
+        {
+          "key": "lentils",
+          "name": "Haşlanmış mercimek",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Çorba formunda doyurucu bir seçenek.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_042",
+      "name": "Tavuklu Mercimek Salatası",
+      "category": "Ana Öğün",
+      "portionGrams": 505.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 484.0,
+        "protein": 55.0,
+        "carb": 43.7,
+        "fat": 10.3
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "lentils",
+          "name": "Haşlanmış mercimek",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "olive_oil",
+          "name": "Zeytinyağı",
+          "grams": 5,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Soğuk servis için uygun protein salatası.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_043",
+      "name": "Yoğurtlu Tavuklu Soğuk Bowl",
+      "category": "Ana Öğün",
+      "portionGrams": 570.0,
+      "prepMinutes": 15,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 485.7,
+        "protein": 65.3,
+        "carb": 42.1,
+        "fat": 6.4
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "greek_yogurt",
+          "name": "Süzme yoğurt / Greek yoğurt",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "bulgur",
+          "name": "Pişmiş bulgur",
+          "grams": 180,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Yaz aylarında serin tüketim için iyi gider.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_044",
+      "name": "Lorlu Çilekli Pancake",
+      "category": "Kahvaltı",
+      "portionGrams": 410.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "breakfast"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 474.3,
+        "protein": 38.3,
+        "carb": 46.9,
+        "fat": 14.9
+      },
+      "ingredients": [
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 50,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "egg",
+          "name": "Yumurta",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "lor",
+          "name": "Lor peyniri (yağsız)",
+          "grams": 80,
+          "source": "FatSecret TR / Lor Peyniri 100 g"
+        },
+        {
+          "key": "strawberry",
+          "name": "Çilek",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "milk",
+          "name": "Yarım yağlı süt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Kahvaltıda tatlı isteyenler için.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_045",
+      "name": "Humuslu Ton Balıklı Tost",
+      "category": "Ana Öğün",
+      "portionGrams": 290.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 369.7,
+        "protein": 38.5,
+        "carb": 37.5,
+        "fat": 7.7
+      },
+      "ingredients": [
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 70,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tuna",
+          "name": "Ton balığı (suda)",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "hummus",
+          "name": "Humus",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Pratik ofis öğünü.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_046",
+      "name": "Yulaflı Elma Smoothie",
+      "category": "İçecek",
+      "portionGrams": 440.0,
+      "prepMinutes": 5,
+      "mealTypes": [
+        "breakfast",
+        "snack"
+      ],
+      "goalTags": [
+        "balanced"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 363.6,
+        "protein": 16.2,
+        "carb": 59.2,
+        "fat": 8.1
+      },
+      "ingredients": [
+        {
+          "key": "kefir",
+          "name": "Kefir",
+          "grams": 250,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "apple",
+          "name": "Elma",
+          "grams": 150,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "oats",
+          "name": "Yulaf",
+          "grams": 40,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Düşük yağlı ve kolay içimli smoothie.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_047",
+      "name": "Proteinli Sebzeli Sandviç",
+      "category": "Ana Öğün",
+      "portionGrams": 410.0,
+      "prepMinutes": 10,
+      "mealTypes": [
+        "breakfast",
+        "lunch"
+      ],
+      "goalTags": [
+        "high-protein"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 489.7,
+        "protein": 52.5,
+        "carb": 48.4,
+        "fat": 9.8
+      },
+      "ingredients": [
+        {
+          "key": "whole_wheat_bread",
+          "name": "Tam buğday ekmeği",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 30,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "tomato",
+          "name": "Domates",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Taşınabilir yüksek proteinli seçenek.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    },
+    {
+      "id": "fitness_recipe_048",
+      "name": "Tavuklu Nohutlu Makarna Salatası",
+      "category": "Ana Öğün",
+      "portionGrams": 580.0,
+      "prepMinutes": 20,
+      "mealTypes": [
+        "lunch"
+      ],
+      "goalTags": [
+        "balanced",
+        "post-workout"
+      ],
+      "nutritionPerPortion": {
+        "kcal": 697.0,
+        "protein": 60.7,
+        "carb": 88.1,
+        "fat": 11.6
+      },
+      "ingredients": [
+        {
+          "key": "chicken",
+          "name": "Tavuk göğüs (pişmiş)",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "chickpeas",
+          "name": "Haşlanmış nohut",
+          "grams": 120,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "pasta",
+          "name": "Tam buğday makarna (pişmiş)",
+          "grams": 160,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "yogurt",
+          "name": "Yoğurt",
+          "grams": 80,
+          "source": "USDA FoodData Central"
+        },
+        {
+          "key": "cucumber",
+          "name": "Salatalık",
+          "grams": 100,
+          "source": "USDA FoodData Central"
+        }
+      ],
+      "note": "Hem protein hem karbonhidratı güçlü tamamlar.",
+      "calculationMethod": "ingredient_sum",
+      "confidence": "medium-high"
+    }
+  ]
+}

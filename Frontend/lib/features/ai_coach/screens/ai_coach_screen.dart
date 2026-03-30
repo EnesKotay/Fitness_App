@@ -28,15 +28,8 @@ class AiCoachScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AiCoachController>(
-          create: (_) => AiCoachController(initialSummary: initialSummary),
-        ),
-        ChangeNotifierProvider<DailyTasksController>(
-          create: (_) => DailyTasksController()..loadToday(),
-        ),
-      ],
+    return ChangeNotifierProvider<AiCoachController>(
+      create: (_) => AiCoachController(initialSummary: initialSummary),
       child: const AiCoachScreenBody(),
     );
   }
@@ -282,7 +275,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
 
   void _applyPrompt(AiCoachController controller, String prompt) {
     _textController.text = prompt;
-    _handleSend(controller);
+    _textController.selection = TextSelection.fromPosition(
+      TextPosition(offset: prompt.length),
+    );
   }
 
   @override
@@ -1334,6 +1329,39 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       ],
                     ),
                   ),
+                if (controller.messages.length > 1 && !controller.isLoading) ...[
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 32,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: controller.actionChips.map((chip) {
+                        return GestureDetector(
+                          onTap: () => _applyPrompt(controller, chip),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Text(
+                              chip,
+                              style: GoogleFonts.dmSans(
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(6),
@@ -1678,8 +1706,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                 (g) => ListTile(
                   leading: Radio<Goal>(
                     value: g,
+                    // ignore: deprecated_member_use
                     groupValue: controller.goal,
                     activeColor: const Color(0xFFEBC374),
+                    // ignore: deprecated_member_use
                     onChanged: (val) {
                       if (val != null) {
                         controller.setGoal(val);
@@ -1757,8 +1787,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                 (p) => ListTile(
                   leading: Radio<CoachPersonality>(
                     value: p,
+                    // ignore: deprecated_member_use
                     groupValue: controller.personality,
                     activeColor: const Color(0xFFEBC374),
+                    // ignore: deprecated_member_use
                     onChanged: (val) {
                       if (val != null) {
                         controller.setPersonality(val);

@@ -10,6 +10,13 @@ public class AiCoachRequest {
     public String personality;
     /** Optional: instruction for the chosen personality (e.g. "Sen sert, disiplinli bir fitness antrenörüsün...") */
     public String personalityInstruction;
+    /** Optional: last N turns of the conversation for context */
+    public List<ConversationTurn> conversationHistory;
+
+    public static class ConversationTurn {
+        public String role;    // "user" | "assistant"
+        public String content;
+    }
 
     public static class DailySummaryDto {
         public Integer steps;

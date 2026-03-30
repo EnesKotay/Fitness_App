@@ -940,7 +940,7 @@ class _PremiumScreenState extends State<PremiumScreen>
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    plan.priceLabel,
+                    IapService.instance.priceFor(plan.id) ?? plan.priceLabel,
                     style: TextStyle(
                       color: selected
                           ? _premiumLightGold.withValues(alpha: 0.9)
@@ -993,7 +993,8 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   Widget _buildPaymentButton() {
-    final priceLabel = '${_selectedPlan.price}₺';
+    final priceLabel =
+        IapService.instance.priceFor(_selectedPlan.id) ?? _selectedPlan.priceLabel;
     return Column(
       children: [
         Container(

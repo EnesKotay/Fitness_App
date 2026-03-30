@@ -40,7 +40,9 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _waterGoalGlasses = (StorageHelper.getWaterGoalML() / 250).round().clamp(6, 20);
+    final rawWaterGoal = StorageHelper.getWaterGoalML();
+    final waterGoalML = (rawWaterGoal > 0) ? rawWaterGoal : 2000;
+    _waterGoalGlasses = (waterGoalML / 250).round().clamp(6, 20);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
@@ -1143,6 +1145,19 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               color: const Color(0xFFFFB347),
               onTap: () => navigate('smart_grocery_list'),
               delay: 240,
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            smallCard(
+              label: 'Tarifler',
+              sublabel: 'Bowl, yemek & daha fazlası',
+              icon: Icons.menu_book_rounded,
+              color: const Color(0xFFB467FF),
+              onTap: () => navigate('recipes'),
+              delay: 260,
             ),
           ],
         ),

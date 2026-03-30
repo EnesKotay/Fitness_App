@@ -2,6 +2,9 @@ name: fitness
 description: "Fitness tracking mobile application"
 publish_to: 'none'
 
+# version: MAJOR.MINOR.PATCH+BUILD_NUMBER
+# MAJOR.MINOR.PATCH → App Store'da görünen versiyon (CFBundleShortVersionString)
+# BUILD_NUMBER      → App Store Connect'e her yüklemede artırılmalı (CFBundleVersion)
 version: 1.0.0+1
 
 environment:
@@ -13,6 +16,8 @@ dependencies:
 
   # UI
   cupertino_icons: ^1.0.8
+  logger: ^2.4.0
+  flutter_native_splash: ^2.4.01
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
   flutter_markdown: ^0.7.7
@@ -47,7 +52,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   uuid: ^4.5.1
-  share_plus: ^12.0.1
+  share_plus: ^10.1.3
   path_provider: ^2.1.5
   screenshot: ^3.0.0
   mobile_scanner: ^7.2.0
@@ -69,8 +74,14 @@ dependencies:
   # In-App Purchase (App Store & Google Play abonelik)
   in_app_purchase: ^3.2.0
 
+  # App Review
+  in_app_review: ^2.0.9
+
   # URL Launch (video rehberi, dış linkler)
   url_launcher: ^6.3.1
+
+  # iOS 14+ App Tracking Transparency (IDFA izni — App Store zorunluluğu)
+  app_tracking_transparency: ^2.0.6+1
 
   # Crash Reporting (production hata takibi)
   sentry_flutter: ^8.14.0
@@ -108,3 +119,5 @@ flutter:
   assets:
     - assets/images/
     - assets/foods/
+    - assets/exercise_guides/
+    - assets/recipes/

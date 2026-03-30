@@ -579,65 +579,91 @@ class _PortionAddPageState extends State<PortionAddPage>
           _header(Icons.straighten_rounded, 'Standart Ölçüler'),
           const SizedBox(height: 12),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 10,
+            runSpacing: 10,
             children: widget.food.servings.map((s) {
               final current =
                   double.tryParse(_gramController.text.replaceAll(',', '.')) ??
                   0;
               final isSelected = (current - s.grams).abs() < 1;
+              final label = _displayServingLabel(s.label);
+              final subtitle = _displayServingSubtitle(s.label, s.grams);
+              final icon = _servingIcon(label);
               return GestureDetector(
                 onTap: () => _setGrams(s.grams.toDouble()),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
+                  width: (MediaQuery.of(context).size.width - 82) / 2,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    horizontal: 12,
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? LinearGradient(
-                            colors: [
-                              AppColors.secondary.withValues(alpha: 0.28),
-                              AppColors.secondary.withValues(alpha: 0.10),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
                     color: isSelected
-                        ? null
-                        : Colors.white.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(14),
+                        ? AppColors.secondary.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
                           ? AppColors.secondary
-                          : Colors.white.withValues(alpha: 0.09),
+                          : Colors.white.withValues(alpha: 0.06),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      Text(
-                        s.label,
-                        style: GoogleFonts.inter(
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.secondary.withValues(alpha: 0.20)
+                              : Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          icon,
+                          size: 17,
                           color: isSelected
                               ? AppColors.secondary
-                              : Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                              : Colors.white60,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${s.grams.round()}g',
-                        style: GoogleFonts.inter(
-                          color: isSelected
-                              ? AppColors.secondary.withValues(alpha: 0.65)
-                              : Colors.white.withValues(alpha: 0.38),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isSelected
+                                    ? AppColors.secondary
+                                    : Colors.white,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isSelected
+                                    ? AppColors.secondary.withValues(
+                                        alpha: 0.72,
+                                      )
+                                    : Colors.white.withValues(alpha: 0.46),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -661,111 +687,113 @@ class _PortionAddPageState extends State<PortionAddPage>
         children: [
           _header(Icons.restaurant_rounded, 'Hızlı Porsiyonlar'),
           const SizedBox(height: 12),
-          GridView.builder(
-            itemCount: presets.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 2.8,
-            ),
-            itemBuilder: (context, index) {
-              final (label, icon, grams) = presets[index];
-              final g = grams.roundToDouble();
-              final current =
-                  double.tryParse(_gramController.text.replaceAll(',', '.')) ??
-                  0;
-              final isSelected = (current - g).abs() < 1;
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: presets.map((preset) {
+                final (label, icon, grams) = preset;
+                final g = grams.roundToDouble();
+                final current =
+                    double.tryParse(
+                      _gramController.text.replaceAll(',', '.'),
+                    ) ??
+                    0;
+                final isSelected = (current - g).abs() < 1;
+                final title = _displayPresetTitle(label);
+                final subtitle = _displayPresetSubtitle(label, g);
 
-              return GestureDetector(
-                onTap: () => _setGrams(g),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.30),
-                              AppColors.primary.withValues(alpha: 0.12),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : LinearGradient(
-                            colors: [
-                              Colors.white.withValues(alpha: 0.05),
-                              Colors.white.withValues(alpha: 0.03),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSelected
-                          ? AppColors.primary.withValues(alpha: 0.65)
-                          : Colors.white.withValues(alpha: 0.08),
-                      width: isSelected ? 1.5 : 1,
+                return GestureDetector(
+                  onTap: () => _setGrams(g),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: (MediaQuery.of(context).size.width - 82) / 2,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
+                      decoration: BoxDecoration(
+                        gradient: isSelected
+                            ? LinearGradient(
+                                colors: [
+                                  AppColors.primary.withValues(alpha: 0.30),
+                                  AppColors.primary.withValues(alpha: 0.12),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              )
+                            : LinearGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.05),
+                                  Colors.white.withValues(alpha: 0.03),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
                           color: isSelected
-                              ? AppColors.primary.withValues(alpha: 0.22)
-                              : Colors.white.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          icon,
-                          size: 16,
-                          color: isSelected
-                              ? AppColors.primaryLight
-                              : Colors.white54,
+                              ? AppColors.primary.withValues(alpha: 0.65)
+                              : Colors.white.withValues(alpha: 0.08),
+                          width: isSelected ? 1.5 : 1,
                         ),
                       ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              label,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.22)
+                                  : Colors.white.withValues(alpha: 0.07),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            Text(
-                              '${g.toInt()} g',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? AppColors.primaryLight
-                                    : Colors.white.withValues(alpha: 0.45),
-                              ),
+                            child: Icon(
+                              icon,
+                              size: 18,
+                              color: isSelected
+                                  ? AppColors.primaryLight
+                                  : Colors.white54,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.15,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected
+                                        ? AppColors.primaryLight
+                                        : Colors.white.withValues(alpha: 0.50),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                    ),
+                  );
+              }).toList(),
           ),
         ],
       ),
@@ -1254,30 +1282,39 @@ class _PortionAddPageState extends State<PortionAddPage>
         .toList();
 
     for (final s in normalizedServings) {
-      final label = s.label;
+      String label = s.label;
+      final rawLower = label.toLowerCase();
+      if (rawLower == '1 porsiyon' || rawLower == 'porsiyon') {
+        final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
+        label = '1 $unit';
+      }
+      
       final grams = s.grams;
       final icon = _servingIcon(label);
       addPreset(label, icon, grams);
+      
       final lower = label.toLowerCase();
+      // Use the smart unit extraction to create fractions
+      
       if (lower.contains('tabak') ||
           lower.contains('kase') ||
-          lower.contains('porsiyon')) {
-        addPreset('Yarım ${_unit(label)}', icon, grams * 0.5);
-        addPreset('1.5 ${_unit(label)}', icon, grams * 1.5);
-        addPreset('2 ${_unit(label)}', icon, grams * 2);
+          lower.contains('porsiyon') ||
+          lower.contains('adet') ||
+          lower.contains('dilim')) {
+        final effectiveUnit = _unit(label);
+        addPreset('Yarım $effectiveUnit', icon, grams * 0.5);
+        addPreset('1.5 $effectiveUnit', icon, grams * 1.5);
+        addPreset('2 $effectiveUnit', icon, grams * 2);
       } else if (lower.contains('çay bardağı') ||
           lower.contains('su bardağı')) {
-        addPreset('2 ${_unit(label)}', icon, grams * 2);
-        addPreset('3 ${_unit(label)}', icon, grams * 3);
-        addPreset('Yarım ${_unit(label)}', icon, grams * 0.5);
-      } else if (lower.contains('çorba kaşığı')) {
-        addPreset('2 ${_unit(label)}', icon, grams * 2);
-        addPreset('3 ${_unit(label)}', icon, grams * 3);
-      } else if (lower.contains('adet') ||
-          lower.contains('dilim') ||
-          lower.contains('bardak')) {
-        addPreset('2 ${_unit(label)}', icon, grams * 2);
-        addPreset('3 ${_unit(label)}', icon, grams * 3);
+        final effectiveUnit = _unit(label);
+        addPreset('2 $effectiveUnit', icon, grams * 2);
+        addPreset('3 $effectiveUnit', icon, grams * 3);
+        addPreset('Yarım $effectiveUnit', icon, grams * 0.5);
+      } else if (lower.contains('çorba kaşığı') || lower.contains('bardak')) {
+        final effectiveUnit = _unit(label);
+        addPreset('2 $effectiveUnit', icon, grams * 2);
+        addPreset('3 $effectiveUnit', icon, grams * 3);
       } else if (lower.contains('avuç')) {
         addPreset('2 ${_unit(label)}', icon, grams * 2);
       }
@@ -1290,12 +1327,19 @@ class _PortionAddPageState extends State<PortionAddPage>
     }
 
     final base = _defaultPortionGrams;
+    final unit = _fallbackUnit();
+    final icon = _servingIcon(unit);
+
     return [
-      ('Yarım Porsiyon', Icons.pie_chart_outline_rounded, base * 0.5),
-      ('1 Porsiyon', Icons.restaurant_rounded, base),
-      ('1.5 Porsiyon', Icons.restaurant_menu_rounded, base * 1.5),
-      ('2 Porsiyon', Icons.lunch_dining_rounded, base * 2),
+      ('Yarım $unit', Icons.pie_chart_outline_rounded, base * 0.5),
+      ('1 $unit', icon, base),
+      ('1.5 $unit', Icons.restaurant_menu_rounded, base * 1.5),
+      ('2 $unit', Icons.lunch_dining_rounded, base * 2),
     ];
+  }
+
+  String _fallbackUnit() {
+    return DietProvider.getSmartUnit(widget.food.name, widget.food.category);
   }
 
   String? _normalizeLabel(String raw) {
@@ -1303,6 +1347,90 @@ class _PortionAddPageState extends State<PortionAddPage>
     final lower = label.toLowerCase();
     if (lower == '100 g' || lower == '100g') return null;
     return label;
+  }
+
+  String _cleanServingLabel(String raw) {
+    var label = raw.trim();
+    label = label.replaceAll(RegExp(r'\s+'), ' ');
+    label = label.replaceAllMapped(
+      RegExp(r'(\d+)\.(\d+)'),
+      (match) => '${match.group(1)},${match.group(2)}',
+    );
+    label = label.replaceAll(
+      RegExp(
+        r'\s*\((?:yaklaşık|yaklasik)?\s*\d+(?:[.,]\d+)?\s*g\)\s*',
+        caseSensitive: false,
+      ),
+      '',
+    );
+    label = label.replaceAll(
+      RegExp(
+        r'\s*\((?:yaklaşık|yaklasik)?\s*\d+(?:[.,]\d+)?\s*gram\)\s*',
+        caseSensitive: false,
+      ),
+      '',
+    );
+    return label.trim();
+  }
+
+  String _capitalizeServing(String value) {
+    if (value.isEmpty) return value;
+    return value[0].toUpperCase() + value.substring(1);
+  }
+
+  String _formatGrams(double grams) {
+    final rounded = grams.roundToDouble();
+    if ((grams - rounded).abs() < 0.05) {
+      return '${rounded.toInt()} g';
+    }
+    return '${grams.toStringAsFixed(1).replaceAll('.', ',')} g';
+  }
+
+  String _displayServingLabel(String raw) {
+    final cleaned = _cleanServingLabel(raw);
+    final lower = cleaned.toLowerCase();
+    if (lower == '1 porsiyon' || lower == 'porsiyon') {
+      return 'Standart porsiyon';
+    }
+    return _capitalizeServing(cleaned);
+  }
+
+  String _displayServingSubtitle(String raw, double grams) {
+    final cleaned = _cleanServingLabel(raw).toLowerCase();
+    if (cleaned == '1 porsiyon' || cleaned == 'porsiyon') {
+      final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
+      return '1 $unit • ${_formatGrams(grams)}';
+    }
+    return _formatGrams(grams);
+  }
+
+  String _displayPresetTitle(String raw) {
+    final cleaned = _cleanServingLabel(raw);
+    final lower = cleaned.toLowerCase();
+    if (lower == '1 porsiyon' || lower == 'porsiyon') {
+      final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
+      return '1 $unit';
+    }
+    return _capitalizeServing(cleaned);
+  }
+
+  String _displayPresetSubtitle(String raw, double grams) {
+    final cleaned = _cleanServingLabel(raw).toLowerCase();
+    final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
+    
+    if (cleaned == '1 porsiyon' || cleaned == 'porsiyon') {
+      return '1 $unit • ${_formatGrams(grams)}';
+    }
+    if (cleaned.startsWith('yarım ')) {
+      return 'Yarım ölçü • ${_formatGrams(grams)}';
+    }
+    if (cleaned.startsWith('1,5 ')) {
+      return '1,5 ölçü • ${_formatGrams(grams)}';
+    }
+    if (cleaned.startsWith('2 ')) {
+      return '2 ölçü • ${_formatGrams(grams)}';
+    }
+    return _formatGrams(grams);
   }
 
   String _unit(String label) {
@@ -1327,7 +1455,9 @@ class _PortionAddPageState extends State<PortionAddPage>
     if (lower.contains('çay bardağı')) return Icons.local_cafe_rounded;
     if (lower.contains('su bardağı')) return Icons.local_drink_rounded;
     if (lower.contains('çorba kaşığı')) return Icons.soup_kitchen_rounded;
-    if (lower.contains('tatlı kaşığı') || lower.contains('çay kaşığı')) return Icons.restaurant_rounded;
+    if (lower.contains('tatlı kaşığı') || lower.contains('çay kaşığı')) {
+      return Icons.restaurant_rounded;
+    }
     if (lower.contains('adet')) return Icons.egg_alt_rounded;
     if (lower.contains('tabak')) return Icons.dinner_dining_rounded;
     if (lower.contains('kase')) return Icons.ramen_dining_rounded;

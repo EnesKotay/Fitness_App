@@ -10,7 +10,7 @@ public class RegisterRequest {
     public String email;
     
     @NotBlank(message = "Şifre boş olamaz")
-    @Size(min = 6, message = "Şifre en az 6 karakter olmalıdır")
+    @Size(min = 8, message = "Şifre en az 8 karakter olmalıdır")
     public String password;
     
     @NotBlank(message = "Ad boş olamaz")

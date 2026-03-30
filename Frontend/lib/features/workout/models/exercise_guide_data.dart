@@ -1,7 +1,9 @@
 import '../../../core/models/exercise.dart';
+import 'exercise_media_catalog.dart';
 
 class ExerciseGuideData {
   final List<ExerciseGuideFrame> frames;
+  final String? mediaAttribution;
   final String setup;
   final List<String> executionSteps;
   final String breathing;
@@ -18,6 +20,7 @@ class ExerciseGuideData {
 
   const ExerciseGuideData({
     required this.frames,
+    this.mediaAttribution,
     required this.setup,
     required this.executionSteps,
     required this.breathing,
@@ -38,13 +41,19 @@ class ExerciseGuideFrame {
   final String label;
   final String cue;
   final String detail;
+  final ExerciseGuideVisualStage stage;
+  final String? imageAsset;
 
   const ExerciseGuideFrame({
     required this.label,
     required this.cue,
     required this.detail,
+    required this.stage,
+    this.imageAsset,
   });
 }
+
+enum ExerciseGuideVisualStage { setup, brace, drive, peak, returnControl }
 
 class ExerciseGuideIssue {
   final String issue;
@@ -119,6 +128,7 @@ ExerciseGuideData buildExerciseGuideData(Exercise exercise) {
       ? 'Bu hareket'
       : exercise.name.trim();
   final override = _exerciseGuideOverrides[_normalizeExerciseName(name)];
+  final media = getExerciseGuideMedia(_normalizeExerciseName(name));
   final rawInstructions = _instructionLines(exercise.instructions);
   final baseDescription = exercise.description?.trim();
   final targetMuscles =
@@ -129,10 +139,11 @@ ExerciseGuideData buildExerciseGuideData(Exercise exercise) {
   final execution = rawInstructions.length > 1
       ? rawInstructions
       : override?.executionSteps ?? _defaultExecutionFor(name, group);
-  final frames = override?.frames ?? _framesFor(name, group, override);
+  final frames = override?.frames ?? _framesFor(name, group, override, media);
 
   return ExerciseGuideData(
     frames: frames,
+    mediaAttribution: media?.attribution,
     setup: setup,
     executionSteps: execution,
     breathing: override?.breathing ?? _breathingForGroup(group),
@@ -161,6 +172,7 @@ List<ExerciseGuideFrame> _framesFor(
   String name,
   String group, [
   ExerciseGuideOverride? override,
+  ExerciseGuideMedia? media,
 ]) {
   if (override?.frames != null) {
     return override!.frames!;
@@ -172,15 +184,51 @@ List<ExerciseGuideFrame> _framesFor(
   final finish = execution.length > 2
       ? execution.last
       : switch (group) {
-          'CORE' => 'Bel pozisyonunu kaybetmeden baslangica don.',
-          'BACK' => 'Negatif fazi yavaslat, agirligi birakma.',
-          _ => 'Zirvede 1 saniye kontrol sagla ve baslangica don.',
+          'CORE' => 'Bel pozisyonunu kaybetmeden başlangıca dön.',
+          'BACK' => 'Negatif fazı yavaşlat, ağırlığı bırakma.',
+          _ => 'Zirvede 1 saniye kontrol sağla ve başlangıca dön.',
         };
+  final firstMove = execution.isNotEmpty ? execution.first : setup;
+  final lateMove = execution.length > 1
+      ? execution[execution.length - 1]
+      : finish;
 
   return [
-    ExerciseGuideFrame(label: 'Baslangic', cue: 'Pozisyon al', detail: setup),
-    ExerciseGuideFrame(label: 'Uygulama', cue: name, detail: mid),
-    ExerciseGuideFrame(label: 'Bitis', cue: 'Kontrollu donus', detail: finish),
+    ExerciseGuideFrame(
+      label: 'Kurulum',
+      cue: 'Pozisyon al',
+      detail: setup,
+      stage: ExerciseGuideVisualStage.setup,
+      imageAsset: media?.stageAssets[0],
+    ),
+    ExerciseGuideFrame(
+      label: 'Hazırlık',
+      cue: 'Core sıkı',
+      detail: firstMove,
+      stage: ExerciseGuideVisualStage.brace,
+      imageAsset: media?.stageAssets[1],
+    ),
+    ExerciseGuideFrame(
+      label: 'İtiş / Çekiş',
+      cue: name,
+      detail: mid,
+      stage: ExerciseGuideVisualStage.drive,
+      imageAsset: media?.stageAssets[2],
+    ),
+    ExerciseGuideFrame(
+      label: 'Zirve',
+      cue: 'Sık ve bekle',
+      detail: lateMove,
+      stage: ExerciseGuideVisualStage.peak,
+      imageAsset: media?.stageAssets[3],
+    ),
+    ExerciseGuideFrame(
+      label: 'Dönüş',
+      cue: 'Kontrollü bırak',
+      detail: finish,
+      stage: ExerciseGuideVisualStage.returnControl,
+      imageAsset: media?.stageAssets[4],
+    ),
   ];
 }
 
@@ -202,13 +250,13 @@ List<String> _instructionLines(String? text) {
 
 List<String> _targetMusclesForGroup(String group) {
   return switch (group) {
-    'CHEST' => const ['Gogus', 'On omuz', 'Triceps'],
-    'BACK' => const ['Lat', 'Orta sirt', 'Arka omuz'],
+    'CHEST' => const ['Göğüs', 'Ön omuz', 'Triceps'],
+    'BACK' => const ['Lat', 'Orta sırt', 'Arka omuz'],
     'LEGS' => const ['Quadriceps', 'Hamstring', 'Glute'],
-    'SHOULDERS' => const ['On omuz', 'Yan omuz', 'Arka omuz'],
-    'BICEPS' => const ['Biceps', 'Brachialis', 'On kol'],
-    'TRICEPS' => const ['Triceps uzun bas', 'Lateral bas', 'Medial bas'],
-    'CORE' => const ['Ust karin', 'Alt karin', 'Core stabilite'],
+    'SHOULDERS' => const ['Ön omuz', 'Yan omuz', 'Arka omuz'],
+    'BICEPS' => const ['Biceps', 'Brachialis', 'Ön kol'],
+    'TRICEPS' => const ['Triceps uzun baş', 'Lateral baş', 'Medial baş'],
+    'CORE' => const ['Üst karın', 'Alt karın', 'Core stabilite'],
     'GLUTES' => const ['Glute max', 'Glute med', 'Hamstring'],
     _ => const ['Hedef kas grubu'],
   };
@@ -217,43 +265,43 @@ List<String> _targetMusclesForGroup(String group) {
 String _defaultSetupForGroup(String group) {
   return switch (group) {
     'CHEST' =>
-      'Ayaklarini yere sabitle, gogus acik ve kurek kemikleri geride olsun.',
+      'Ayaklarını yere sabitle, göğüs açık ve kürek kemikleri geride olsun.',
     'BACK' =>
-      'Gobdeyi sabitle, gogsu ac ve cekise baslamadan once omuzlari ayarla.',
-    'LEGS' => 'Ayak tabanini zemine kokle, karin sıkı ve bel notr olsun.',
+      'Gövdeyi sabitle, göğsü aç ve çekişe başlamadan önce omuzları ayarla.',
+    'LEGS' => 'Ayak tabanını zemine kökle, karın sıkı ve bel nötr olsun.',
     'SHOULDERS' =>
-      'Kaburgalari asagi indir, boynu uzat ve omuzlari merkezde tut.',
-    'BICEPS' => 'Dirsekleri govdeye yakin sabitle, avuclari tam kavra.',
+      'Kaburgaları aşağı indir, boynu uzat ve omuzları merkezde tut.',
+    'BICEPS' => 'Dirsekleri gövdeye yakın sabitle, avuçları tam kavra.',
     'TRICEPS' =>
-      'Dirsekleri bir eksende sabitle ve govdeyi hile icin kullanma.',
-    'CORE' => 'Kaburgalari kapat, bel boslugunu kontrol et ve nefesi merkezle.',
+      'Dirsekleri bir eksende sabitle ve gövdeyi hile için kullanma.',
+    'CORE' => 'Kaburgaları kapat, bel boşluğunu kontrol et ve nefesi merkezle.',
     'GLUTES' =>
-      'Kalca hattini duz tut, topuklardan yere bas ve core’u aktif tut.',
+      'Kalça hattını düz tut, topuklardan yere bas ve core’u aktif tut.',
     _ =>
-      'Baslangic pozisyonunda eklemlerini hizala ve hareket acikligini kontrol et.',
+      'Başlangıç pozisyonunda eklemlerini hizala ve hareket açıklığını kontrol et.',
   };
 }
 
 List<String> _defaultExecutionFor(String name, String group) {
   final groupStep = switch (group) {
     'CHEST' =>
-      'Agirligi indirirken gogus acikligini koru, iterken dirsekleri kontrollu ac.',
+      'Ağırlığı indirirken göğüs açıklığını koru, iterken dirsekleri kontrollü aç.',
     'BACK' =>
-      'Cekisi dirseklerle baslat, son noktada kurek kemiklerini hafifce yaklastir.',
-    'LEGS' => 'Asagi inerken dengeyi kaybetme, kalkista topuktan guc al.',
+      'Çekişi dirseklerle başlat, son noktada kürek kemiklerini hafifçe yaklaştır.',
+    'LEGS' => 'Aşağı inerken dengeyi kaybetme, kalkışta topuktan güç al.',
     'SHOULDERS' =>
-      'Omuz hizasini bozmadan hareket acikliginin tepesine kadar cik.',
+      'Omuz hizasını bozmadan hareket açıklığının tepesine kadar çık.',
     'BICEPS' =>
-      'Dirsek sabitken agirligi yukari kivir, inerken negatif fazi yavaslat.',
+      'Dirsek sabitken ağırlığı yukarı kıvır, inerken negatif fazı yavaşlat.',
     'TRICEPS' =>
-      'Itisi tamamlarken dirsek acisini sabit tut, geri donuste omuzlari oynatma.',
-    'CORE' => 'Her tekrarda karin duvarini aktif tut ve boynu gevsek birak.',
-    'GLUTES' => 'Kalcadan guc uret, ust noktada 1 saniye siki kal.',
-    _ => 'Kontrollu yuklen, kontrollu don.',
+      'İtişi tamamlarken dirsek açısını sabit tut, geri dönüşte omuzları oynatma.',
+    'CORE' => 'Her tekrarda karın duvarını aktif tut ve boynu gevşek bırak.',
+    'GLUTES' => 'Kalçadan güç üret, üst noktada 1 saniye sıkı kal.',
+    _ => 'Kontrollü yüklen, kontrollü dön.',
   };
 
   return [
-    '$name icin once kurulumunu tamamla.',
+    '$name için önce kurulumunu tamamla.',
     groupStep,
     'Son tekrarlarda formun bozuluyorsa seti bitir ve hareket kalitesini koru.',
   ];
@@ -262,24 +310,24 @@ List<String> _defaultExecutionFor(String name, String group) {
 String _breathingForGroup(String group) {
   return switch (group) {
     'CORE' =>
-      'Hazirlikta burundan nefes al, zor kisimda nefesi ver ve karin duvarini kapali tut.',
+      'Hazırlıkta burundan nefes al, zor kısmında nefesi ver ve karın duvarını kapalı tut.',
     'LEGS' =>
-      'Asagi inerken nefes al, kalkarken disari ver ve karin basincini koru.',
-    _ => 'Eksen pozisyonunda nefes al, efor fazinda nefesi kontrollu ver.',
+      'Aşağı inerken nefes al, kalkarken dışarı ver ve karın basıncını koru.',
+    _ => 'Eksen pozisyonunda nefes al, efor fazında nefesi kontrollü ver.',
   };
 }
 
 String _tempoForGroup(String group) {
   return switch (group) {
-    'CHEST' => '3-1-1: 3 sn inis, altta 1 sn kontrol, 1 sn itis.',
-    'BACK' => '2-1-2: 2 sn cekis, 1 sn sikisma, 2 sn donus.',
-    'LEGS' => '3-1-1: 3 sn inis, dipte 1 sn durus, 1 sn kalkis.',
-    'SHOULDERS' => '2-1-2: 2 sn yukaris, 1 sn zirve, 2 sn inis.',
-    'BICEPS' => '2-1-3: 2 sn yukaris, 1 sn zirve, 3 sn negatif.',
-    'TRICEPS' => '2-1-2: 2 sn itis, 1 sn kilitlenmeden kontrol, 2 sn donus.',
-    'CORE' => 'Yavas ve kontrollu: her tekrar boyunca gerginligi koru.',
-    'GLUTES' => '2-2-2: 2 sn cikis, ustte 2 sn sıkma, 2 sn donus.',
-    _ => 'Kontrollu tempo kullan: hiz yerine formu koru.',
+    'CHEST' => '3-1-1: 3 sn iniş, altta 1 sn kontrol, 1 sn itiş.',
+    'BACK' => '2-1-2: 2 sn çekiş, 1 sn sıkışma, 2 sn dönüş.',
+    'LEGS' => '3-1-1: 3 sn iniş, dipte 1 sn duruş, 1 sn kalkış.',
+    'SHOULDERS' => '2-1-2: 2 sn yukarı, 1 sn zirve, 2 sn iniş.',
+    'BICEPS' => '2-1-3: 2 sn yukarı, 1 sn zirve, 3 sn negatif.',
+    'TRICEPS' => '2-1-2: 2 sn itiş, 1 sn kilitlenmeden kontrol, 2 sn dönüş.',
+    'CORE' => 'Yavaş ve kontrollü: her tekrar boyunca gerginliği koru.',
+    'GLUTES' => '2-2-2: 2 sn çıkış, üstte 2 sn sıkma, 2 sn dönüş.',
+    _ => 'Kontrollü tempo kullan: hız yerine formu koru.',
   };
 }
 
@@ -288,49 +336,49 @@ List<ExerciseGuideIssue> _mistakesFor(String name, String group) {
   if (lower.contains('squat')) {
     return const [
       ExerciseGuideIssue(
-        issue: 'Dizlerin ice kacmasi',
+        issue: 'Dizlerin içe kaçması',
         fix:
-            'Ayak tabanini yere yay ve dizleri ayak parmaklari yonune takip ettir.',
+            'Ayak tabanını yere yay ve dizleri ayak parmakları yönüne takip ettir.',
       ),
       ExerciseGuideIssue(
-        issue: 'Belin yuvarlanmasi',
+        issue: 'Belin yuvarlanması',
         fix:
-            'Kaburgalari kapat, karin basinicini koru ve hareket derinligini azalt.',
+            'Kaburgaları kapat, karın basıncını koru ve hareket derinliğini azalt.',
       ),
       ExerciseGuideIssue(
-        issue: 'Topuklarin kalkmasi',
-        fix: 'Agirlik merkezini orta ayaga al, gerekirse stance acini ayarla.',
+        issue: 'Topukların kalkması',
+        fix: 'Ağırlık merkezini orta ayağa al, gerekirse stance açını ayarla.',
       ),
     ];
   }
   if (lower.contains('row') || group == 'BACK') {
     return const [
       ExerciseGuideIssue(
-        issue: 'Omuzla cekmek',
-        fix: 'Cekisi dirseklerden baslat ve boynu gevsek tut.',
+        issue: 'Omuzla çekmek',
+        fix: 'Çekişi dirseklerden başlat ve boynu gevşek tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Govdeyi savurmak',
-        fix: 'Agirligi azalt ve negatif fazi 2-3 saniye kontrol et.',
+        issue: 'Gövdeyi savurmak',
+        fix: 'Ağırlığı azalt ve negatif fazı 2-3 saniye kontrol et.',
       ),
       ExerciseGuideIssue(
-        issue: 'Bel notrunu kaybetmek',
-        fix: 'Core’u aktif tut ve hareket acikligini biraz kisalt.',
+        issue: 'Bel nötrünü kaybetmek',
+        fix: 'Core’u aktif tut ve hareket açıklığını biraz kısalt.',
       ),
     ];
   }
   if (group == 'CHEST') {
     return const [
       ExerciseGuideIssue(
-        issue: 'Omuzlarin one dusmesi',
-        fix: 'Kurek kemiklerini hafif geriye al ve gogsu acik tut.',
+        issue: 'Omuzların öne düşmesi',
+        fix: 'Kürek kemiklerini hafif geriye al ve göğsü açık tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Dirsekleri fazla acmak',
-        fix: 'Dirsek acisini yaklaşık 45-70 derece bandinda tut.',
+        issue: 'Dirsekleri fazla açmak',
+        fix: 'Dirsek açısını yaklaşık 45-70 derece bandında tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Agirligi ziplatmak',
+        issue: 'Ağırlığı zıplatmak',
         fix: 'Alt noktada 1 saniye kontrol kur, momentumla itme.',
       ),
     ];
@@ -338,118 +386,121 @@ List<ExerciseGuideIssue> _mistakesFor(String name, String group) {
   if (group == 'SHOULDERS') {
     return const [
       ExerciseGuideIssue(
-        issue: 'Omuzlari kulaga cekmek',
-        fix: 'Boynu uzat ve trapezi degil deltoidi hedefle.',
+        issue: 'Omuzları kulağa çekmek',
+        fix: 'Boynu uzat ve trapezi değil deltoidi hedefle.',
       ),
       ExerciseGuideIssue(
-        issue: 'Govdeyle sallamak',
-        fix: 'Agirligi azalt, tekrar kalitesini koru.',
+        issue: 'Gövdeyle sallamak',
+        fix: 'Ağırlığı azalt, tekrar kalitesini koru.',
       ),
       ExerciseGuideIssue(
-        issue: 'Yarim tekrar yapmak',
-        fix: 'Agri yoksa kontrollu tam hareket acikligi kullan.',
+        issue: 'Yarım tekrar yapmak',
+        fix: 'Ağrı yoksa kontrollü tam hareket açıklığı kullan.',
       ),
     ];
   }
   if (group == 'CORE') {
     return const [
       ExerciseGuideIssue(
-        issue: 'Belin bosalmasi',
-        fix: 'Kaburgalari asagi indir, hareket acikligini gerekirse azalt.',
+        issue: 'Belin boşalması',
+        fix: 'Kaburgaları aşağı indir, hareket açıklığını gerekirse azalt.',
       ),
       ExerciseGuideIssue(
-        issue: 'Boyunla yuklenmek',
-        fix: 'Bakisi sabitle ve cene-gogus mesafesini koru.',
+        issue: 'Boyunla yüklenmek',
+        fix: 'Bakışı sabitle ve çene-göğüs mesafesini koru.',
       ),
       ExerciseGuideIssue(
         issue: 'Nefesi tutmak',
-        fix: 'Her tekrar boyunca kontrollu nefes veris ekle.',
+        fix: 'Her tekrar boyunca kontrollü nefes veriş ekle.',
       ),
     ];
   }
 
   return const [
     ExerciseGuideIssue(
-      issue: 'Hizi formin onune koymak',
-      fix: 'Temponu yavaslat ve tekrar kalitesini oncele.',
+      issue: 'Hızı formun önüne koymak',
+      fix: 'Temponu yavaşlat ve tekrar kalitesini öncele.',
     ),
     ExerciseGuideIssue(
-      issue: 'Eksen bozulmasi',
-      fix: 'Ayak, kalca ve omuz hizzasini her tekrar kontrol et.',
+      issue: 'Eksen bozulması',
+      fix: 'Ayak, kalça ve omuz hizasını her tekrar kontrol et.',
     ),
     ExerciseGuideIssue(
-      issue: 'Agrisina ragmen devam etmek',
-      fix: 'Batıcı agrida dur, varyasyona gec veya hareketi kes.',
+      issue: 'Ağrısına rağmen devam etmek',
+      fix: 'Batıcı ağrıda dur, varyasyona geç veya hareketi kes.',
     ),
   ];
 }
 
 List<String> _normalFeelFor(String group, String? description) {
   final intro = description != null && description.isNotEmpty
-      ? 'Hareketin dogruysa ${description.toLowerCase()}.'
+      ? 'Hareketin doğruysa ${description.toLowerCase()}.'
       : null;
   final base = switch (group) {
     'CHEST' => const [
-      'Goguste sıkisma',
-      'On omuz ve triceps destegi',
-      'Negatif fazda kontrollu gerilim',
+      'Göğüste sıkışma',
+      'Ön omuz ve triceps desteği',
+      'Negatif fazda kontrollü gerilim',
     ],
     'BACK' => const [
-      'Lat ve orta sirtta cekis hissi',
-      'Kurek kemiklerinde kontrollu kapanis',
-      'On kolda hafif destek',
+      'Lat ve orta sırtta çekiş hissi',
+      'Kürek kemiklerinde kontrollü kapanış',
+      'Ön kolda hafif destek',
     ],
     'LEGS' => const [
-      'Uyluk ve kalcada yuklenme',
+      'Uyluk ve kalçada yüklenme',
       'Topukta denge',
       'Core’da stabilite',
     ],
     'SHOULDERS' => const [
       'Omuz baslarinda yanma',
       'Core’da denge',
-      'Boyunda gereksiz gerilim olmamasi',
+      'Boyunda gereksiz gerilim olmaması',
     ],
     'BICEPS' => const [
       'Pazuda doluluk',
       'Negatif fazda kuvvetli gerilim',
-      'On kolda hafif destek',
+      'Ön kolda hafif destek',
     ],
     'TRICEPS' => const [
       'Arka kolda doluluk',
-      'Itis sonunda kontrollu kasilma',
-      'Omuzda degil triceps’te yuk',
+      'İtiş sonunda kontrollü kasılma',
+      'Omuzda değil triceps’te yük',
     ],
     'CORE' => const [
-      'Karin duvarinda surekli gerginlik',
-      'Belde degil merkez bolgede calisma',
+      'Karın duvarında sürekli gerginlik',
+      'Belde değil merkez bölgede çalışma',
       'Nefesle birlikte stabilite',
     ],
     'GLUTES' => const [
-      'Kalcada sıkisma',
-      'Topuklardan guc aktarimi',
+      'Kalçada sıkışma',
+      'Topuklardan güç aktarımı',
       'Hamstringde ikincil destek',
     ],
-    _ => const ['Hedef kastta net gerilim', 'Eklemde degil kasta yük hissi'],
+    _ => const ['Hedef kastta net gerilim', 'Eklemde değil kasta yük hissi'],
   };
-  return [if (intro != null) intro, ...base];
+  return [
+    ...?intro == null ? null : [intro],
+    ...base,
+  ];
 }
 
 List<String> _stopSignalsFor(String group) {
   return switch (group) {
     'SHOULDERS' => const [
-      'Omuz onunde batıcı agrı',
-      'Klik ile birlikte guc kaybi',
-      'Kola vuran uyusma veya yanma',
+      'Omuz önünde batıcı ağrı',
+      'Klik ile birlikte güç kaybı',
+      'Kola vuran uyuşma veya yanma',
     ],
     'LEGS' => const [
-      'Dizde keskin agrı',
-      'Belde anlik batma',
-      'Ayaga vuran sinirsel agrı',
+      'Dizde keskin ağrı',
+      'Belde anlık batma',
+      'Ayağa vuran sinirsel ağrı',
     ],
     _ => const [
-      'Eklemde batıcı agrı',
-      'Ani guc kaybi veya dengesizlik',
-      'Uyusma, karincalanma veya yayilan agrı',
+      'Eklemde batıcı ağrı',
+      'Ani güç kaybı veya dengesizlik',
+      'Uyuşma, karıncalanma veya yayılan ağrı',
     ],
   };
 }
@@ -459,27 +510,27 @@ ExerciseGuideVariant _regressionFor(String name, String group) {
     'CHEST' => const ExerciseGuideVariant(
       title: 'Kolay versiyon',
       description:
-          'Makine veya incline versiyona gec. Sabit yol seni forma odaklar.',
+          'Makine veya incline versiyona geç. Sabit yol seni forma odaklar.',
     ),
     'BACK' => const ExerciseGuideVariant(
       title: 'Kolay versiyon',
       description:
-          'Chest-supported veya kablo varyasyonu kullan. Bel yukunu azalt.',
+          'Chest-supported veya kablo varyasyonu kullan. Bel yükünü azalt.',
     ),
     'LEGS' => const ExerciseGuideVariant(
       title: 'Kolay versiyon',
       description:
-          'Goblet veya box varyasyonuna gec. Derinligi kontrol ederek ilerle.',
+          'Goblet veya box varyasyonuna geç. Derinliği kontrol ederek ilerle.',
     ),
     'CORE' => const ExerciseGuideVariant(
       title: 'Kolay versiyon',
       description:
-          'Dizler bükülü veya kisa aralikli versiyonla basla, bel kontrolunu koru.',
+          'Dizler bükülü veya kısa aralıklı versiyonla başla, bel kontrolünü koru.',
     ),
     _ => ExerciseGuideVariant(
       title: 'Kolay versiyon',
       description:
-          '$name hareketini daha hafif agirlikla veya makine destekli uygula.',
+          '$name hareketini daha hafif ağırlıkla veya makine destekli uygula.',
     ),
   };
 }
@@ -489,26 +540,26 @@ ExerciseGuideVariant _progressionFor(String name, String group) {
     'CHEST' => const ExerciseGuideVariant(
       title: 'Zor versiyon',
       description:
-          'Duraklamali tekrar, tek tarafli varyasyon veya daha uzun negatif faz ekle.',
+          'Duraklmalı tekrar, tek taraflı varyasyon veya daha uzun negatif faz ekle.',
     ),
     'BACK' => const ExerciseGuideVariant(
       title: 'Zor versiyon',
-      description: 'Zirvede 2 saniye sıkisma veya tek kol varyasyonu kullan.',
+      description: 'Zirvede 2 saniye sıkışma veya tek kol varyasyonu kullan.',
     ),
     'LEGS' => const ExerciseGuideVariant(
       title: 'Zor versiyon',
       description:
-          'Tempo squat, split squat veya pause tekrar ile yuklenmeyi artir.',
+          'Tempo squat, split squat veya pause tekrar ile yüklenmeyi artır.',
     ),
     'CORE' => const ExerciseGuideVariant(
       title: 'Zor versiyon',
       description:
-          'Kollari daha uzun tut, lever’i buyut veya ekstra duraklama ekle.',
+          'Kolları daha uzun tut, lever’i büyüt veya ekstra duraklama ekle.',
     ),
     _ => ExerciseGuideVariant(
       title: 'Zor versiyon',
       description:
-          '$name icin tempo, tek tarafli kontrol veya ekstra duraklama ekle.',
+          '$name için tempo, tek taraflı kontrol veya ekstra duraklama ekle.',
     ),
   };
 }
@@ -517,33 +568,33 @@ List<ExerciseGuideChecklistItem> _checklistFor(String group) {
   final common = const [
     ExerciseGuideChecklistItem(
       title: 'Core aktif',
-      detail: 'Kaburgalar kapali, merkez bolge gergin.',
+      detail: 'Kaburgalar kapalı, merkez bölge gergin.',
     ),
     ExerciseGuideChecklistItem(
       title: 'Kontrollu tempo',
-      detail: 'Momentum yerine kas kontrolu kullaniyorum.',
+      detail: 'Momentum yerine kas kontrolü kullanıyorum.',
     ),
   ];
 
   final specific = switch (group) {
     'CHEST' => const [
       ExerciseGuideChecklistItem(
-        title: 'Gogus acik',
-        detail: 'Kurek kemikleri hafif geride.',
+        title: 'Göğüs açık',
+        detail: 'Kürek kemikleri hafif geride.',
       ),
       ExerciseGuideChecklistItem(
         title: 'Dirsek hatti temiz',
-        detail: 'Dirsekler ne fazla acik ne fazla kapali.',
+        detail: 'Dirsekler ne fazla açık ne fazla kapalı.',
       ),
     ],
     'BACK' => const [
       ExerciseGuideChecklistItem(
-        title: 'Cekis dirsekten basliyor',
-        detail: 'Omuzu degil sirti kullaniyorum.',
+        title: 'Çekiş dirsekten başlıyor',
+        detail: 'Omuzu değil sırtı kullanıyorum.',
       ),
       ExerciseGuideChecklistItem(
         title: 'Boyun serbest',
-        detail: 'Trap kasar gibi yuklenmiyorum.',
+        detail: 'Trap kasar gibi yüklenmiyorum.',
       ),
     ],
     'LEGS' => const [
@@ -553,16 +604,16 @@ List<ExerciseGuideChecklistItem> _checklistFor(String group) {
       ),
       ExerciseGuideChecklistItem(
         title: 'Diz-ayak hatti korunuyor',
-        detail: 'Dizler ice kacmiyor.',
+        detail: 'Dizler içe kaçmıyor.',
       ),
     ],
     'CORE' => const [
       ExerciseGuideChecklistItem(
         title: 'Bel kontrol altinda',
-        detail: 'Hareket boyunca notr pozisyona yakınım.',
+        detail: 'Hareket boyunca nötr pozisyona yakınım.',
       ),
       ExerciseGuideChecklistItem(
-        title: 'Nefes akiyor',
+        title: 'Nefes akıyor',
         detail: 'Her tekrar nefesle senkron ilerliyor.',
       ),
     ],
@@ -573,7 +624,7 @@ List<ExerciseGuideChecklistItem> _checklistFor(String group) {
       ),
       ExerciseGuideChecklistItem(
         title: 'Hedef kası hissediyorum',
-        detail: 'Yuk ekleme degil kasta.',
+        detail: 'Yük ekleme değil kasta.',
       ),
     ],
   };
@@ -583,13 +634,13 @@ List<ExerciseGuideChecklistItem> _checklistFor(String group) {
 
 List<String> _coachPromptsFor(String name, String group) {
   return [
-    'Hazir ol. Pozisyonunu kur.',
+    'Hazır ol. Pozisyonunu kur.',
     _defaultSetupForGroup(group),
-    'Nefes al. Merkez bolgeyi sabitle.',
+    'Nefes al. Merkez bölgeyi sabitle.',
     _defaultExecutionFor(name, group).first,
     _defaultExecutionFor(name, group)[1],
-    'Zirvede kontrol sagla.',
-    'Nefes ver ve kontrollu don.',
+    'Zirvede kontrol sağla.',
+    'Nefes ver ve kontrollü dön.',
     'Form bozuluyorsa seti burada bitir.',
   ];
 }
@@ -597,30 +648,30 @@ List<String> _coachPromptsFor(String name, String group) {
 Map<String, ExerciseGuideGoalPlan> _goalPlansFor(String name, String group) {
   return {
     'beginner': ExerciseGuideGoalPlan(
-      title: 'Yeni baslayan',
+      title: 'Yeni başlayan',
       prescription: '2-3 set x 8-12 tekrar, RPE 6-7',
-      focus: 'Formu oturt, tam hareket acikligini acele etmeden ogren.',
+      focus: 'Formu oturt, tam hareket açıklığını acele etmeden öğren.',
     ),
     'muscle': ExerciseGuideGoalPlan(
       title: 'Kas kazanimi',
       prescription: _groupPrescription(group, muscle: true),
-      focus: 'Kontrollu negatif, zirvede kısa sıkisma ve sete yakin bitis.',
+      focus: 'Kontrollü negatif, zirvede kısa sıkışma ve sete yakın bitiş.',
     ),
     'fat_loss': ExerciseGuideGoalPlan(
-      title: 'Yag yakimi',
+      title: 'Yağ yakımı',
       prescription: '3-4 set x 12-20 tekrar, dinlenme 30-60 sn',
-      focus: 'Formu koruyarak yogunlugu ritim ve toplam hacimle artir.',
+      focus: 'Formu koruyarak yoğunluğu ritim ve toplam hacimle artır.',
     ),
     'home': ExerciseGuideGoalPlan(
-      title: 'Evde ekipmansiz',
+      title: 'Evde ekipmansız',
       prescription: '3 set x 10-20 tekrar veya 30-45 sn',
-      focus: '$name hareketinin vucut agirligi veya bantli versiyonunu kullan.',
+      focus: '$name hareketinin vücut ağırlığı veya bantlı versiyonunu kullan.',
     ),
     'sensitive': ExerciseGuideGoalPlan(
-      title: 'Hassasiyet odakli',
+      title: 'Hassasiyet odaklı',
       prescription: '2-3 set x 8-10 kaliteli tekrar',
       focus:
-          'Agri araligi disina cikma, makine/bant destekli varyasyon tercih et.',
+          'Ağrı aralığı dışına çıkma, makine/bant destekli varyasyon tercih et.',
     ),
   };
 }
@@ -628,133 +679,133 @@ Map<String, ExerciseGuideGoalPlan> _goalPlansFor(String name, String group) {
 const Map<String, ExerciseGuideOverride> _exerciseGuideOverrides = {
   'bench press': ExerciseGuideOverride(
     setup:
-        'Ayaklarini yere kilitle, kurek kemiklerini geriye al ve barı goz hizasinda konumlandir.',
+        'Ayaklarını yere kilitle, kürek kemiklerini geriye al ve barı göz hizasında konumlandır.',
     executionSteps: [
-      'Bari bilek-dirsek hattini koruyarak alt gogse kontrollu indir.',
-      'Alt noktada omuzlarini one dusurmeden 1 saniye kontrol kur.',
-      'Ayak itisini kullanip bari hafif yay cizerek yukari gonder.',
+      'Barı bilek-dirsek hattını koruyarak alt göğse kontrollü indir.',
+      'Alt noktada omuzlarını öne düşürmeden 1 saniye kontrol kur.',
+      'Ayak itişini kullanıp barı hafif yay çizerek yukarı gönder.',
     ],
-    tempo: '3-1-1: 3 sn inis, altta 1 sn durus, 1 sn guclu itis.',
-    targetMuscles: ['Gogus', 'On omuz', 'Triceps'],
+    tempo: '3-1-1: 3 sn iniş, altta 1 sn duruş, 1 sn güçlü itiş.',
+    targetMuscles: ['Göğüs', 'Ön omuz', 'Triceps'],
     commonMistakes: [
       ExerciseGuideIssue(
-        issue: 'Dirsekleri fazla acmak',
+        issue: 'Dirsekleri fazla açmak',
         fix:
-            'Dirsekleri omuz hattindan hafif asagida, 45-70 derece bandinda tut.',
+            'Dirsekleri omuz hattından hafif aşağıda, 45-70 derece bandında tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Kalca ve sirt set-upini kaybetmek',
-        fix: 'Set boyunca ayak basincini koru ve kurek kemiklerini bankta tut.',
+        issue: 'Kalça ve sırt set-up’ını kaybetmek',
+        fix: 'Set boyunca ayak basıncını koru ve kürek kemiklerini bankta tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Bari goguste sektirmek',
-        fix: 'Alt noktada kisa kontrol kur, momentumla degil kasla it.',
+        issue: 'Barı göğüste sektirmek',
+        fix: 'Alt noktada kısa kontrol kur, momentumla değil kasla it.',
       ),
     ],
   ),
   'barbell row': ExerciseGuideOverride(
     setup:
-        'Ayaklarini kalca genisliginde ac, kalcadan mentese yap ve govdeyi yere yakin sabitle.',
+        'Ayaklarını kalça genişliğinde aç, kalçadan menteşe yap ve gövdeyi yere yakın sabitle.',
     executionSteps: [
-      'Bari karin altina dogru cekmeye dirseklerden basla.',
-      'Zirvede kurek kemiklerini kisa bir an yaklastir, boynu gevsek tut.',
-      'Agirligi bel pozisyonunu bozmadan kontrollu sekilde asagi birak.',
+      'Barı karın altına doğru çekmeye dirseklerden başla.',
+      'Zirvede kürek kemiklerini kısa bir an yaklaştır, boynu gevşek tut.',
+      'Ağırlığı bel pozisyonunu bozmadan kontrollü şekilde aşağı bırak.',
     ],
-    tempo: '2-1-2: 2 sn cekis, 1 sn sıkisma, 2 sn kontrollu donus.',
+    tempo: '2-1-2: 2 sn çekiş, 1 sn sıkışma, 2 sn kontrollü dönüş.',
     commonMistakes: [
       ExerciseGuideIssue(
-        issue: 'Govdeyi savurmak',
-        fix: 'Agirligi azalt ve torso acini set boyunca sabit tut.',
+        issue: 'Gövdeyi savurmak',
+        fix: 'Ağırlığı azalt ve torso açını set boyunca sabit tut.',
       ),
       ExerciseGuideIssue(
-        issue: 'Bari gogse cekmek',
-        fix: 'Dirsekleri kalcaya sur, cekisi karin altina hedefle.',
+        issue: 'Barı göğse çekmek',
+        fix: 'Dirsekleri kalçaya sür, çekişi karın altına hedefle.',
       ),
       ExerciseGuideIssue(
-        issue: 'Bel notrunu kaybetmek',
+        issue: 'Bel nötrünü kaybetmek',
         fix:
-            'Karni kilitle ve hareket acikligini belin izin verdigi aralikta tut.',
+            'Karnı kilitle ve hareket açıklığını belin izin verdiği aralıkta tut.',
       ),
     ],
   ),
   'lat pulldown': ExerciseGuideOverride(
     setup:
-        'Dizlerini ped altina sabitle, gogsu ac ve bara omuz genisliginden biraz genis tutun.',
+        'Dizlerini ped altına sabitle, göğsü aç ve bara omuz genişliğinden biraz geniş tutun.',
     executionSteps: [
-      'Cekise omuzlari asagi indirerek basla, sonra dirsekleri yanlara ve asagi sur.',
-      'Bari ust gogse getirirken belden geriye yasma miktarini kucuk tut.',
-      'Kollar tam uzarken omuzlari kulaga cekmeden kontrollu yukari don.',
+      'Çekişe omuzları aşağı indirerek başla, sonra dirsekleri yanlara ve aşağı sür.',
+      'Barı üst göğse getirirken belden geriye yaslanma miktarını küçük tut.',
+      'Kollar tam uzarken omuzları kulağa çekmeden kontrollü yukarı dön.',
     ],
     targetMuscles: ['Lat', 'Teres major', 'Biceps'],
   ),
   'squat': ExerciseGuideOverride(
     setup:
-        'Ayaklarini omuz genisliginde ac, karin basinicini kur ve bari orta ayak uzerinde dengele.',
+        'Ayaklarını omuz genişliğinde aç, karın basıncını kur ve barı orta ayak üzerinde dengele.',
     executionSteps: [
-      'Kalca ve dizleri birlikte kirarak kontrollu sekilde asagi in.',
-      'Dizleri ayak parmaklari yonunde takip ettir ve gogus kafesini acik tut.',
-      'Dipten orta ayaga basip kalca ile omuzlari birlikte yukari cikar.',
+      'Kalça ve dizleri birlikte kırarak kontrollü şekilde aşağı in.',
+      'Dizleri ayak parmakları yönünde takip ettir ve göğüs kafesini açık tut.',
+      'Dipten orta ayağa basıp kalça ile omuzları birlikte yukarı çıkar.',
     ],
     targetMuscles: ['Quadriceps', 'Glute', 'Adduktor'],
     commonMistakes: [
       ExerciseGuideIssue(
-        issue: 'Dizlerin ice kacmasi',
-        fix: 'Ayak tabanini yay ve dizleri ayak parmaklari yonune it.',
+        issue: 'Dizlerin içe kaçması',
+        fix: 'Ayak tabanını yay ve dizleri ayak parmakları yönüne it.',
       ),
       ExerciseGuideIssue(
-        issue: 'Dipte belin kapanmasi',
+        issue: 'Dipte belin kapanması',
         fix:
-            'Derinligi mobilitenin izin verdigi yerde kes ve core basincini koru.',
+            'Derinliği mobilitenin izin verdiği yerde kes ve core basıncını koru.',
       ),
       ExerciseGuideIssue(
-        issue: 'Topuklarin kalkmasi',
+        issue: 'Topukların kalkması',
         fix:
-            'Agirlik merkezini orta ayakta tut, gerekiyorsa stance acini ayarla.',
+            'Ağırlık merkezini orta ayakta tut, gerekiyorsa stance açını ayarla.',
       ),
     ],
   ),
   'overhead press': ExerciseGuideOverride(
     setup:
-        'Kalcalari sIk, kaburgalari kapat ve bari koprucuk kemiği hizasinda baslat.',
+        'Kalçaları sık, kaburgaları kapat ve barı köprücük kemiği hizasında başlat.',
     executionSteps: [
-      'Bari cene hattindan gecirirken basi hafif geri cek.',
-      'Bar bas ustune geldiginde basi tekrar alta al ve bicepsi kulaga yaklastir.',
-      'Donuste kaburgalari acmadan bari ayni hatta kontrollu indir.',
+      'Barı çene hattından geçirirken başı hafif geri çek.',
+      'Bar baş üstüne geldiğinde başı tekrar alta al ve bicepsi kulağa yaklaştır.',
+      'Dönüşte kaburgaları açmadan barı aynı hatta kontrollü indir.',
     ],
     stopSignals: [
-      'Omuz onunde keskin batma',
-      'Belde asiri yaylanma',
-      'Kola vuran uyusma veya yanma',
+      'Omuz önünde keskin batma',
+      'Belde aşırı yaylanma',
+      'Kola vuran uyuşma veya yanma',
     ],
   ),
   'hip thrust': ExerciseGuideOverride(
     setup:
-        'Sirtinin alt kismi bench kenarina dayanirken ayaklarini dizler 90 dereceye yakin olacak sekilde yerlestir.',
+        'Sırtının alt kısmı bench kenarına dayanırken ayaklarını dizler 90 dereceye yakın olacak şekilde yerleştir.',
     executionSteps: [
-      'Topuklardan basip kalcayi yukari sur.',
-      'Ust noktada kaburgalari acmadan kalcayi 1-2 saniye sık.',
-      'Belden degil kalcadan kontrolle asagi in ve gerginligi kaybetme.',
+      'Topuklardan basıp kalçayı yukarı sür.',
+      'Üst noktada kaburgaları açmadan kalçayı 1-2 saniye sık.',
+      'Belden değil kalçadan kontrolle aşağı in ve gerginliği kaybetme.',
     ],
     targetMuscles: ['Glute max', 'Hamstring', 'Core stabilite'],
   ),
   'barbell curl': ExerciseGuideOverride(
     setup:
-        'Dirseklerini govde yaninda sabitle, bilekleri kirma ve omuzlari geride tut.',
+        'Dirseklerini gövde yanında sabitle, bilekleri kırma ve omuzları geride tut.',
     executionSteps: [
-      'Bari omuzu devreye sokmadan pazuya cek.',
-      'Zirvede kisa bir an kasilmayi hisset.',
-      'Negatif fazi 2-3 saniyede indirerek gerilimi koru.',
+      'Barı omuzu devreye sokmadan pazuya çek.',
+      'Zirvede kısa bir an kasılmayı hisset.',
+      'Negatif fazı 2-3 saniyede indirerek gerilimi koru.',
     ],
   ),
   'triceps pushdown': ExerciseGuideOverride(
     setup:
-        'Dirseklerini yanlara acmadan govde yaninda sabitle ve omuzlarini asagi indir.',
+        'Dirseklerini yanlara açmadan gövde yanında sabitle ve omuzlarını aşağı indir.',
     executionSteps: [
-      'Bari ya da halati dirsek acisini sabit tutarak asagi it.',
-      'Alt noktada dirsegi kilitlemeden tricepsi 1 saniye sık.',
-      'Donuste omuzlari oynatmadan kontrollu yukari cik.',
+      'Barı ya da halatı dirsek açısını sabit tutarak aşağı it.',
+      'Alt noktada dirseği kilitlemeden tricepsi 1 saniye sık.',
+      'Dönüşte omuzları oynatmadan kontrollü yukarı çık.',
     ],
-    targetMuscles: ['Triceps uzun bas', 'Lateral bas', 'Medial bas'],
+    targetMuscles: ['Triceps uzun baş', 'Lateral baş', 'Medial baş'],
   ),
 };
 
