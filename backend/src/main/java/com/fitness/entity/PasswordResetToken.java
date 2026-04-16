@@ -21,7 +21,7 @@ public class PasswordResetToken extends PanacheEntityBase {
     @JoinColumn(name = "user_id", nullable = false)
     public User user;
 
-    @Column(nullable = false)
+    @Column(name = "expiry_date", nullable = false)
     public LocalDateTime expiryDate;
 
     public PasswordResetToken() {
