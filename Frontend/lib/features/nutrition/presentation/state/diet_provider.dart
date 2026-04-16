@@ -86,7 +86,7 @@ class DietProvider with ChangeNotifier {
   List<String> _frequentFoodIds = []; // En sık yenen yemek ID'leri
   bool _loading = false;
   String? _error;
-  bool _useRemoteSearch = false;
+  bool _useRemoteSearch = true;
   SuggestionMode _suggestionMode = SuggestionMode.balanced;
   int _currentStreak = 0;
   String? _activeUserSuffix;

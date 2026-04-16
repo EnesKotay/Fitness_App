@@ -25,6 +25,7 @@ class StorageKeys {
   static const String smartGroceryMealIdeas = 'smart_grocery_meal_ideas';
   static const String nutritionPreferences = 'nutrition_preferences';
   static const String pendingOnboardingSummary = 'pending_onboarding_summary';
+  static const String quickAccessHintSeen = 'quick_access_hint_seen';
   // Settings
   static const String settingsNotifEnabled = 'settings_notif_enabled';
   static const String settingsNotifWater = 'settings_notif_water';

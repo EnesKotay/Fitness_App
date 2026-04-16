@@ -32,11 +32,12 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
         applicationId = "com.fitnessapp.tracker"
-        minSdk = 23              // Android 6.0+ (güvenli alt sınır)
+        minSdk = flutter.minSdkVersion              // Android 6.0+ (güvenli alt sınır)
         targetSdk = 35           // Google Play 2025 zorunluluğu
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -75,4 +76,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

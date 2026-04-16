@@ -8,6 +8,8 @@ import '../../../../core/constants/premium_features.dart';
 import '../../../../core/services/iap_service.dart';
 import '../../../core/widgets/premium_state_badge.dart';
 import '../providers/auth_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'legal_screen.dart';
 
 const Color _premiumGold = Color(0xFFD97706);
 const Color _premiumLightGold = Color(0xFFFBBF24);
@@ -38,7 +40,7 @@ class _Plan {
 
 const _plans = [
   _Plan(
-    id: 'monthly',
+    id: IapProductIds.monthly,
     title: 'Aylık',
     subtitle: '149₺ / ay',
     price: '149',
@@ -46,7 +48,7 @@ const _plans = [
     months: 1,
   ),
   _Plan(
-    id: 'yearly',
+    id: IapProductIds.yearly,
     title: 'Yıllık',
     subtitle: '1199₺ / yıl',
     price: '1199',
@@ -74,7 +76,6 @@ class _PremiumScreenState extends State<PremiumScreen>
   DateTime? _premiumExpiresAt;
   _Plan _selectedPlan = _plans[1];
   bool _purchasing = false;
-  bool _cancelling = false;
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
@@ -151,6 +152,24 @@ class _PremiumScreenState extends State<PremiumScreen>
           setState(() => _purchasing = false);
           return;
         }
+        // Ebeveyn / aile paylaşımı onayı bekleniyor
+        if (result.errorMessage == 'pending') {
+          setState(() => _purchasing = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Ödeme onay bekliyor (ebeveyn / aile paylaşımı). '
+                  'Onaylandıktan sonra premium otomatik aktif olacak.',
+                ),
+                backgroundColor: Color(0xFF1A3A5C),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 6),
+              ),
+            );
+          }
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.errorMessage ?? 'Satın alma başarısız oldu.'),
@@ -169,7 +188,7 @@ class _PremiumScreenState extends State<PremiumScreen>
           data: {
             'planId': result.planId,
             'purchaseToken': result.purchaseToken, // Android
-            'receiptData': result.receiptData,     // iOS
+            'receiptData': result.receiptData, // iOS
             'transactionId': result.transactionId,
             'platform': Platform.isAndroid ? 'android' : 'ios',
           },
@@ -251,76 +270,57 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
   }
 
-  Future<void> _cancelPremium() async {
-    if (_cancelling) return;
+  /// App Store / Play Store abonelik yönetim sayfasını açar.
+  /// Apple IAP abonelikleri yalnızca mağaza üzerinden iptal edilebilir —
+  /// uygulama içi backend çağrısıyla iptal etmek mümkün değildir.
+  Future<void> _openManageSubscriptions() async {
+    if (!mounted) return;
+    final isIos = Platform.isIOS;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF111827),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
-          'Üyeliği İptal Et',
+          'Aboneliği Yönet',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'Premium üyeliğini iptal etmek istediğine emin misin? '
-          'Otomatik yenileme kapanacak. Premium erişimin mevcut dönemin sonuna kadar devam edecek.',
+          isIos
+              ? 'Aboneliğini iptal etmek veya değiştirmek için iOS Ayarlar → Apple ID → Abonelikler sayfasını kullan. Abonelik iptal edilene kadar dönem sonunda otomatik yenilenir.'
+              : 'Aboneliğini iptal etmek veya değiştirmek için Google Play → Abonelikler sayfasını kullan. Abonelik iptal edilene kadar dönem sonunda otomatik yenilenir.',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            height: 1.45,
+            color: Colors.white.withValues(alpha: 0.72),
+            height: 1.5,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Vazgeç',
-              style: TextStyle(color: Colors.white54),
-            ),
+            child: const Text('Kapat', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'İptal Et',
-              style: TextStyle(
-                color: Colors.redAccent,
-                fontWeight: FontWeight.w700,
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _premiumGold,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(isIos ? 'App Store\'u Aç' : 'Play Store\'u Aç'),
           ),
         ],
       ),
     );
 
-    if (confirm != true || !mounted) return;
-
-    setState(() => _cancelling = true);
-    try {
-      await ApiClient().post(ApiConstants.downgradePremium);
-      if (mounted) {
-        await _checkStatus();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'İptal planlandı. Premium dönem sonuna kadar aktif kalacak.',
-            ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('İptal işlemi başarısız oldu. Lütfen tekrar dene.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _cancelling = false);
+    if (confirm != true) return;
+    final url = isIos
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions';
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -630,8 +630,14 @@ class _PremiumScreenState extends State<PremiumScreen>
             children: const [
               _ValuePill(icon: Icons.smart_toy_rounded, label: 'AI Koç'),
               _ValuePill(icon: Icons.insights_rounded, label: 'Derin Analiz'),
-              _ValuePill(icon: Icons.restaurant_menu_rounded, label: 'Öğün Planı'),
-              _ValuePill(icon: Icons.fitness_center_rounded, label: 'Programlar'),
+              _ValuePill(
+                icon: Icons.restaurant_menu_rounded,
+                label: 'Öğün Planı',
+              ),
+              _ValuePill(
+                icon: Icons.fitness_center_rounded,
+                label: 'Programlar',
+              ),
             ],
           ),
         ],
@@ -817,7 +823,7 @@ class _PremiumScreenState extends State<PremiumScreen>
 
   Widget _buildPlanCard(_Plan plan) {
     final selected = _selectedPlan.id == plan.id;
-    final isYearly = plan.id == 'yearly';
+    final isYearly = plan.months == 12;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = plan),
@@ -993,38 +999,42 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   Widget _buildPaymentButton() {
-    final priceLabel =
-        IapService.instance.priceFor(_selectedPlan.id) ?? _selectedPlan.priceLabel;
+    final storePrice = IapService.instance.priceFor(_selectedPlan.id);
+    final priceLabel = storePrice ?? _selectedPlan.priceLabel;
+    final priceReady = storePrice != null;
+    final canBuy = !_purchasing && priceReady;
+
     return Column(
       children: [
+        // ── Satın Alma Butonu ──────────────────────────────────────────────────
         Container(
           width: double.infinity,
           height: 58,
           decoration: BoxDecoration(
-            gradient: _purchasing
-                ? null
-                : const LinearGradient(
+            gradient: canBuy
+                ? const LinearGradient(
                     colors: [_premiumLightGold, _premiumGold, _premiumAmber],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                  ),
-            color: _purchasing ? Colors.white24 : null,
+                  )
+                : null,
+            color: canBuy ? null : Colors.white24,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: _purchasing
-                ? null
-                : [
+            boxShadow: canBuy
+                ? [
                     BoxShadow(
                       color: _premiumGold.withValues(alpha: 0.4),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                       spreadRadius: -4,
                     ),
-                  ],
+                  ]
+                : null,
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: _purchasing ? null : _startIapPurchase,
+              onTap: canBuy ? _startIapPurchase : null,
               borderRadius: BorderRadius.circular(18),
               child: Center(
                 child: _purchasing
@@ -1035,6 +1045,29 @@ class _PremiumScreenState extends State<PremiumScreen>
                           color: Colors.white,
                           strokeWidth: 2.5,
                         ),
+                      )
+                    : !priceReady
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              color: Colors.white54,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Fiyat yükleniyor...',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
                       )
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1061,6 +1094,7 @@ class _PremiumScreenState extends State<PremiumScreen>
           ),
         ),
         const SizedBox(height: 10),
+        // ── Satın Alımları Geri Yükle ─────────────────────────────────────────
         TextButton(
           onPressed: _purchasing ? null : _restorePurchases,
           child: Text(
@@ -1070,6 +1104,53 @@ class _PremiumScreenState extends State<PremiumScreen>
               fontSize: 12,
             ),
           ),
+        ),
+        const SizedBox(height: 14),
+        // ── Ödeme ve Otomatik Yenileme Açıklaması (App Store zorunluluğu) ──────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'Ödeme, satın alma onayında Apple ID / Google hesabınıza yapılır. '
+            'Abonelik, mevcut dönem bitmeden en az 24 saat önce iptal edilmediği takdirde '
+            'otomatik olarak yenilenir ve aynı ücret tekrar tahsil edilir. '
+            'Aboneliğinizi istediğiniz zaman ${Platform.isIOS ? 'iOS Ayarlar → Apple ID → Abonelikler' : 'Google Play → Abonelikler'} '
+            'üzerinden yönetebilirsiniz.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 10.5,
+              height: 1.55,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // ── Kullanım Şartları & Gizlilik Politikası ───────────────────────────
+        _buildLegalRow(),
+      ],
+    );
+  }
+
+  Widget _buildLegalRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _LegalLink(
+          label: 'Kullanım Şartları',
+          isPrivacy: false,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            '•',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.2),
+              fontSize: 11,
+            ),
+          ),
+        ),
+        const _LegalLink(
+          label: 'Gizlilik Politikası',
+          isPrivacy: true,
         ),
       ],
     );
@@ -1181,38 +1262,28 @@ class _PremiumScreenState extends State<PremiumScreen>
           SizedBox(
             width: double.infinity,
             height: 46,
-            child: OutlinedButton(
-              onPressed: _canCancel
-                  ? (_cancelling ? null : _cancelPremium)
-                  : null,
+            child: OutlinedButton.icon(
+              onPressed: _openManageSubscriptions,
+              icon: const Icon(Icons.open_in_new_rounded, size: 16),
+              label: Text(
+                _cancelAtPeriodEnd
+                    ? 'İptal Planlandı — Aboneliği Yönet'
+                    : 'Aboneliği Yönet',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _canCancel ? Colors.redAccent : Colors.white38,
+                foregroundColor: _cancelAtPeriodEnd
+                    ? Colors.white38
+                    : _premiumLightGold,
                 side: BorderSide(
-                  color: _canCancel
-                      ? Colors.redAccent.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.1),
+                  color: _cancelAtPeriodEnd
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : _premiumGold.withValues(alpha: 0.4),
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: _cancelling
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        color: Colors.redAccent,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      _cancelAtPeriodEnd
-                          ? 'İptal Planlandı'
-                          : (_canCancel
-                              ? 'Üyeliği İptal Et'
-                              : 'Yıllık Plan Kilitli'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
             ),
           ),
         ],
@@ -1240,7 +1311,7 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
 
     if (_activePlanId == 'yearly') {
-      return '$planLabel Bu plan satın alındıktan sonra iptal edilemez.$expiryText';
+      return '$planLabel Aboneliğini ${Platform.isIOS ? 'iOS Ayarlar → Apple ID → Abonelikler' : 'Google Play → Abonelikler'} üzerinden yönetebilirsin.$expiryText';
     }
 
     return '$planLabel$expiryText';
@@ -1296,9 +1367,7 @@ class _ValuePill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(
-          color: _premiumGold.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: _premiumGold.withValues(alpha: 0.15)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1376,6 +1445,38 @@ class _TrustItem extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.label, required this.isPrivacy});
+  final String label;
+  final bool isPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LegalScreen(
+              initialTab: isPrivacy ? LegalTab.privacy : LegalTab.terms,
+            ),
+          ),
+        );
+      },
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.38),
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          decoration: TextDecoration.underline,
+          decorationColor: Colors.white.withValues(alpha: 0.2),
+        ),
+      ),
     );
   }
 }

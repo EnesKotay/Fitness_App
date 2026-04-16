@@ -39,9 +39,9 @@ class WorkoutRequest {
   });
 
   factory WorkoutRequest.fromJson(Map<String, dynamic> json) {
-    List<WorkoutSet>? _setDetails;
+    List<WorkoutSet>? setDetails;
     if (json['setDetails'] is List) {
-      _setDetails = (json['setDetails'] as List)
+      setDetails = (json['setDetails'] as List)
           .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
           .toList();
     }
@@ -53,9 +53,11 @@ class WorkoutRequest {
       sets: json['sets'] as int?,
       reps: json['reps'] as int?,
       weight: (json['weight'] as num?)?.toDouble(),
-      workoutDate: json['workoutDate'] != null ? DateTime.parse(json['workoutDate']) : null,
+      workoutDate: json['workoutDate'] != null
+          ? DateTime.parse(json['workoutDate'])
+          : null,
       notes: json['notes']?.toString(),
-      setDetails: _setDetails,
+      setDetails: setDetails,
       muscleGroup: json['muscleGroup']?.toString(),
       isSuperset: json['isSuperset'] as bool?,
       supersetPartner: json['supersetPartner']?.toString(),
@@ -78,10 +80,10 @@ class WorkoutRequest {
       if (setDetails != null && setDetails!.isNotEmpty)
         'setDetails': setDetails!.map((s) => s.toJson()).toList(),
       if (muscleGroup != null) 'muscleGroup': muscleGroup,
-      if (isSuperset  != null) 'isSuperset':  isSuperset,
+      if (isSuperset != null) 'isSuperset': isSuperset,
       if (supersetPartner != null) 'supersetPartner': supersetPartner,
-      if (difficulty  != null) 'difficulty':  difficulty,
-      if (oneRepMax   != null) 'oneRepMax':   oneRepMax,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (oneRepMax != null) 'oneRepMax': oneRepMax,
     };
   }
 }

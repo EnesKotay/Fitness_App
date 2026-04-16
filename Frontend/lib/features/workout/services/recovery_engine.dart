@@ -1,4 +1,6 @@
 import '../../../core/models/workout.dart';
+import '../../../core/utils/muscle_group_utils.dart';
+
 
 /// Kas grubu bazlı dinlenme ve yorgunluk skoru hesaplar.
 class RecoveryEngine {
@@ -22,11 +24,11 @@ class RecoveryEngine {
       final group = entry.key;
       final requiredHours = entry.value;
 
-      // Bu kas grubunu hedefleyen en son antrenmanı bul
+      // Bu kas grubunu hedefleyen en son antrenmanı bul (normalize edilmiş eşleşme)
       final lastWorkout = workouts
           .where((w) =>
-              (w.muscleGroup ?? '').trim().toUpperCase() == group ||
-              (w.workoutType ?? '').trim().toUpperCase() == group)
+              normalizeMuscleGroupCode(w.muscleGroup) == group ||
+              normalizeMuscleGroupCode(w.workoutType) == group)
           .toList()
         ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
 

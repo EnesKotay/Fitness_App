@@ -15,6 +15,26 @@ class AuthProvider with ChangeNotifier {
   String? _errorMessage;
   bool _isAuthenticated = false;
 
+  /// Logout / hesap silme sırasında diğer provider'ların state'ini temizlemek
+  /// için kayıt edilen callback'ler. Genellikle app_providers.dart'ta set edilir.
+  final List<VoidCallback> _logoutCallbacks = [];
+
+  void addLogoutCallback(VoidCallback cb) {
+    if (!_logoutCallbacks.contains(cb)) _logoutCallbacks.add(cb);
+  }
+
+  void removeLogoutCallback(VoidCallback cb) => _logoutCallbacks.remove(cb);
+
+  void _runLogoutCallbacks() {
+    for (final cb in _logoutCallbacks) {
+      try {
+        cb();
+      } catch (e) {
+        debugPrint('AuthProvider logoutCallback hatası: $e');
+      }
+    }
+  }
+
   // Getters
   User? get user => _user;
   bool get isLoading => _isLoading;
@@ -95,6 +115,7 @@ class AuthProvider with ChangeNotifier {
 
   /// Çıkış yap
   Future<void> logout() async {
+    _runLogoutCallbacks();
     await _authService.logout();
     _user = null;
     _isAuthenticated = false;
@@ -109,6 +130,7 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.deleteMyAccount();
+      _runLogoutCallbacks();
       await StorageHelper.clearDeletedAccountData();
       _user = null;
       _isAuthenticated = false;

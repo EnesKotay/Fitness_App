@@ -758,7 +758,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     
                     final text = 'FitMentor\'da bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
                         'Toplamda $totalCount antrenmana ulaştım.\n\n'
-                        'Hemen bana katıl: fitmentor://workout';
+                        '📲 FitMentor — Akıllı Antrenman Takibi';
                     Share.share(text);
                   },
                 ),
@@ -925,6 +925,19 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     exercise,
                     info?.color ?? const Color(0xFF2E7D32),
                     info?.label,
+                  );
+                } else {
+                  // Katalogda bulunarsa kullanıcıyı bilgilendir
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${favorite.name} için rehber bulunamadı.',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: const Color(0xFF2C2C2C),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
                 }
               },
@@ -1881,10 +1894,46 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     if (confirmed == true && mounted) {
       final ok = await workoutProvider.deleteWorkout(userId, workout.id);
       if (ok && mounted) {
-        ScaffoldMessenger.of(this.context).showSnackBar(
-          const SnackBar(
-            content: Text('Silindi'),
-            backgroundColor: Color(0xFF2E7D32),
+        final messenger = ScaffoldMessenger.of(this.context);
+        messenger.showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 5),
+            backgroundColor: const Color(0xFF1F2C1F),
+            content: Text('${workout.name} silindi.'),
+            action: SnackBarAction(
+              label: 'Geri Al',
+              textColor: const Color(0xFF66BB6A),
+              onPressed: () async {
+                // Silinen antrenmanı geri yükle
+                final request = WorkoutRequest(
+                  name: workout.name,
+                  workoutType: workout.workoutType,
+                  sets: workout.sets,
+                  reps: workout.reps,
+                  weight: workout.weight,
+                  durationMinutes: workout.durationMinutes,
+                  caloriesBurned: workout.caloriesBurned,
+                  workoutDate: workout.workoutDate,
+                  notes: workout.notes,
+                  setDetails: workout.setDetails,
+                  muscleGroup: workout.muscleGroup,
+                  isSuperset: workout.isSuperset,
+                  supersetPartner: workout.supersetPartner,
+                  oneRepMax: workout.oneRepMax,
+                  difficulty: workout.difficulty,
+                );
+                final restored = await workoutProvider.createWorkout(userId, request);
+                if (restored && mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Antrenman geri yüklendi ✅'),
+                      backgroundColor: Color(0xFF2E7D32),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
           ),
         );
       }
@@ -2599,7 +2648,9 @@ class _HistoryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   if (workout.workoutType != null)
                     _InfoTag(
@@ -2607,31 +2658,25 @@ class _HistoryCard extends StatelessWidget {
                       icon: Icons.category,
                       color: const Color(0xFF2E7D32),
                     ),
-                  if (workout.sets != null) ...[
-                    const SizedBox(width: 8),
+                  if (workout.sets != null)
                     _InfoTag(
                       label: '${workout.sets} Set',
                       icon: Icons.layers_rounded,
                       color: Colors.orange,
                     ),
-                  ],
-                  if (workout.reps != null) ...[
-                    const SizedBox(width: 8),
+                  if (workout.reps != null)
                     _InfoTag(
                       label: '${workout.reps} Tekrar',
                       icon: Icons.repeat_rounded,
                       color: Colors.purple,
                     ),
-                  ],
                   if (workout.durationMinutes != null &&
-                      workout.durationMinutes! > 0) ...[
-                    const SizedBox(width: 8),
+                      workout.durationMinutes! > 0)
                     _InfoTag(
                       label: '${workout.durationMinutes} dk',
                       icon: Icons.timer_rounded,
                       color: Colors.blue,
                     ),
-                  ],
                 ],
               ),
               if (workout.notes != null && workout.notes!.isNotEmpty) ...[

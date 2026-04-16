@@ -60,18 +60,15 @@ class WorkoutProvider with ChangeNotifier {
   }
 
   /// Bir egzersizin son N kaydındaki max ağırlıklarını döndürür (trend için)
+  /// Bir egzersizin son [limit] kaydındaki max ağırlıklarını kronolojik sırayla döndürür.
   List<double> maxWeightsFor(String exerciseName, {int limit = 6}) {
     final matching = _workouts
         .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
         .toList()
       ..sort((a, b) => a.workoutDate.compareTo(b.workoutDate));
-    return matching
-        .reversed
-        .take(limit)
-        .toList()
-        .reversed
-        .map((w) => w.weight ?? 0.0)
-        .toList();
+    // Son 'limit' antrenmanı kronolojik sırayla al (eski→yeni)
+    final start = (matching.length - limit).clamp(0, matching.length);
+    return matching.sublist(start).map((w) => w.weight ?? 0.0).toList();
   }
 
   // ── Load ──────────────────────────────────────────────────────────────────

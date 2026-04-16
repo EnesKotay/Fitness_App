@@ -1,10 +1,14 @@
+// ignore_for_file: avoid_print, unused_local_variable
+
 import 'dart:convert';
 import 'dart:io';
 
 void main() async {
   print("Testing Open Food Facts Search API...");
-  final searchUrl = Uri.parse('https://world.openfoodfacts.org/cgi/search.pl?search_terms=yulaf&page_size=3&page=1&json=1');
-  
+  final searchUrl = Uri.parse(
+    'https://world.openfoodfacts.org/cgi/search.pl?search_terms=yulaf&page_size=3&page=1&json=1',
+  );
+
   try {
     final httpClient = HttpClient();
     final request = await httpClient.getUrl(searchUrl);
@@ -27,8 +31,10 @@ void main() async {
   }
 
   print("\nTesting Open Food Facts Barcode API...");
-  final barcodeUrl = Uri.parse('https://world.openfoodfacts.net/api/v2/product/8690504015692'); // Eti Yulaf Ezmesi
-  
+  final barcodeUrl = Uri.parse(
+    'https://world.openfoodfacts.net/api/v2/product/8690504015692',
+  ); // Eti Yulaf Ezmesi
+
   try {
     final httpClient = HttpClient();
     final request = await httpClient.getUrl(barcodeUrl);
@@ -38,12 +44,16 @@ void main() async {
       final responseBody = await response.transform(utf8.decoder).join();
       final data2 = jsonDecode(responseBody);
       final product = data2['product'];
-      if(product != null) {
-          print("Found Product: \${product['product_name']} (Barcode: \${product['code']})");
-          final nut = product['nutriments'] ?? {};
-          print("Kcal per 100g: \${nut['energy-kcal_100g'] ?? nut['energy_100g']}");
+      if (product != null) {
+        print(
+          "Found Product: \${product['product_name']} (Barcode: \${product['code']})",
+        );
+        final nut = product['nutriments'] ?? {};
+        print(
+          "Kcal per 100g: \${nut['energy-kcal_100g'] ?? nut['energy_100g']}",
+        );
       } else {
-          print("Product not found in JSON response");
+        print("Product not found in JSON response");
       }
     } else {
       print("Failed to fetch barcode result.");

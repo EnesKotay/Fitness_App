@@ -7,6 +7,7 @@ import 'package:fitness/features/nutrition/domain/entities/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import '../../../test_helpers/app_test_wrappers.dart';
 
 class _RateLimitService extends AiCoachService {
   @override
@@ -29,20 +30,15 @@ class _RateLimitService extends AiCoachService {
 
 void main() {
   testWidgets('AiCoachScreen renders core sections', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: AiCoachScreen()));
+    await tester.pumpWidget(buildTestApp(const AiCoachScreen()));
+    await tester.pump();
 
-    expect(find.text('AI Koc'), findsOneWidget);
-    expect(find.text('Hedefin'), findsOneWidget);
-    expect(find.text('Gunluk Ozet'), findsOneWidget);
-    expect(find.text('Koca Sor'), findsOneWidget);
+    expect(find.text('AI Koç'), findsOneWidget);
+    expect(find.text('Koç karakterini seç'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
 
-    final verticalList = find.byWidgetPredicate(
-      (widget) => widget is ListView && widget.scrollDirection == Axis.vertical,
-    );
-    await tester.drag(verticalList.first, const Offset(0, -500));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Oneriler'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('429 starts cooldown and re-enables prompt after countdown', (
@@ -52,29 +48,33 @@ void main() {
     addTearDown(controller.dispose);
 
     await tester.pumpWidget(
-      ChangeNotifierProvider<AiCoachController>.value(
-        value: controller,
-        child: const MaterialApp(home: AiCoachScreenBody()),
+      buildTestApp(
+        const AiCoachScreenBody(),
+        extraProviders: [
+          ChangeNotifierProvider<AiCoachController>.value(value: controller),
+        ],
       ),
     );
-
-    await tester.enterText(find.byType(TextField), 'Plan hazirla');
     await tester.pump();
-    await tester.tap(find.text('Gonder'));
+
+    await controller.submitPrompt('Plan hazirla');
     await tester.pump();
 
     expect(controller.isCooldownActive, isTrue);
     expect(controller.cooldownSecondsRemaining, 3);
-    expect(find.textContaining('3s bekle'), findsOneWidget);
-
-    final sendButton = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
-    expect(sendButton.onPressed, isNull);
+    expect(
+      find.textContaining('3s sonra tekrar deneyebilirsin'),
+      findsWidgets,
+    );
 
     await tester.pump(const Duration(seconds: 1));
     expect(controller.cooldownSecondsRemaining, 2);
 
     await tester.pump(const Duration(seconds: 2));
     expect(controller.isCooldownActive, isFalse);
-    expect(find.text('Gonder'), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
   });
 }

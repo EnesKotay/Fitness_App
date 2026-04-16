@@ -62,9 +62,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     await StorageHelper.saveOnboardingDone(true);
     if (!mounted) return;
     final isLoggedIn = context.read<AuthProvider>().isAuthenticated;
-    Navigator.of(context).pushReplacementNamed(
-      isLoggedIn ? '/home' : '/profile-setup',
-    );
+    Navigator.of(context).pushReplacementNamed(isLoggedIn ? '/home' : '/login');
   }
 
   @override

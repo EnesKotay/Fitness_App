@@ -12,6 +12,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: CoachPromptBox(
+            isPremium: true,
             onSend: (text) async {
               sent = text;
             },
@@ -25,7 +26,7 @@ void main() {
       '  Build me a quick workout  ',
     );
     await tester.pump();
-    await tester.tap(find.text('Gonder'));
+    await tester.tap(find.text('Gönder'));
     await tester.pump();
 
     expect(sent, 'Build me a quick workout');
@@ -40,6 +41,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: CoachPromptBox(
+            isPremium: true,
             quickPrompts: const ['Ornek soru'],
             onSend: (_) async {},
           ),

@@ -80,9 +80,6 @@ dependencies:
   # URL Launch (video rehberi, dış linkler)
   url_launcher: ^6.3.1
 
-  # iOS 14+ App Tracking Transparency (IDFA izni — App Store zorunluluğu)
-  app_tracking_transparency: ^2.0.6+1
-
   # Crash Reporting (production hata takibi)
   sentry_flutter: ^8.14.0
 
@@ -93,7 +90,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  
+
+  # Integration Testing
+  integration_test:
+    sdk: flutter
+
   # JSON Code Generation
   build_runner: ^2.4.7
   json_serializable: ^6.7.1

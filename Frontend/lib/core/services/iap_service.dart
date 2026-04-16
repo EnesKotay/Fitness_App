@@ -56,6 +56,9 @@ class IapPurchaseResult {
 
   factory IapPurchaseResult.canceled() =>
       const IapPurchaseResult._(success: false, errorMessage: 'canceled');
+
+  factory IapPurchaseResult.pending() =>
+      const IapPurchaseResult._(success: false, errorMessage: 'pending');
 }
 
 // ─── Servis ───────────────────────────────────────────────────────────────────
@@ -238,8 +241,9 @@ class IapService {
           onPurchaseComplete?.call(IapPurchaseResult.canceled());
           _safeComplete(purchase);
         case PurchaseStatus.pending:
-          // Banka onayı beklenebilir (örn. aile paylaşımı onayı)
+          // Banka onayı beklenebilir (örn. aile paylaşımı / ebeveyn onayı)
           debugPrint('IapService: ödeme bekleniyor — ${purchase.productID}');
+          onPurchaseComplete?.call(IapPurchaseResult.pending());
       }
     }
   }

@@ -27,9 +27,9 @@ void main() {
     );
 
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.text('Bugunun Odagi'), findsOneWidget);
-    expect(find.text('Yapilacaklar'), findsOneWidget);
-    expect(find.text('Beslenme Notu'), findsOneWidget);
+    expect(find.text('Bugünün odağı'), findsOneWidget);
+    expect(find.text('Yapılacaklar'), findsOneWidget);
+    expect(find.text('Beslenme notu'), findsOneWidget);
     expect(find.text('Aksam yemeginden sonra 20 dakika yuru.'), findsOneWidget);
     expect(find.text('3 set plank uygula.'), findsOneWidget);
   });
@@ -43,15 +43,17 @@ void main() {
           body: SingleChildScrollView(
             child: SuggestionList(
               advice: CoachAdviceView(),
-              errorMessage: 'Istek basarisiz.',
+              errorMessage: 'İstek başarısız.',
             ),
           ),
         ),
       ),
     );
 
-    expect(find.text('Istek basarisiz.'), findsOneWidget);
-    expect(find.text('Henuz yok'), findsNWidgets(3));
+    expect(find.text('İstek başarısız.'), findsOneWidget);
+    expect(find.text('Henüz oluşturulmadı.'), findsOneWidget);
+    expect(find.text('Henüz öneri yok.'), findsOneWidget);
+    expect(find.text('Henüz not yok.'), findsOneWidget);
   });
 
   testWidgets('SuggestionList prioritizes cooldown bar over error bar', (
@@ -63,7 +65,7 @@ void main() {
           body: SingleChildScrollView(
             child: SuggestionList(
               advice: CoachAdviceView(),
-              errorMessage: 'Istek basarisiz.',
+              errorMessage: 'İstek başarısız.',
               cooldownSecondsRemaining: 5,
             ),
           ),
@@ -71,10 +73,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.text('Rate limit. 5s sonra tekrar deneyebilirsin.'),
-      findsOneWidget,
-    );
-    expect(find.text('Istek basarisiz.'), findsNothing);
+    expect(find.text('Tekrar denemek için 5s bekle.'), findsOneWidget);
+    expect(find.text('İstek başarısız.'), findsNothing);
   });
 }

@@ -17,7 +17,23 @@ class LocalFoodRepository implements FoodRepository {
   List<FoodItem>? _visiblePoolCache;
   final Map<String, List<FoodItem>> _emptyQueryCache = {};
   final Map<String, List<FoodItem>> _searchCache = {};
-  final HiveDietStorage _hive = HiveDietStorage();
+  final HiveDietStorage _hive;
+  final bool _shouldLoadVerifiedExtras;
+
+  LocalFoodRepository({
+    List<FoodItem>? assetCache,
+    List<FoodItem>? customCache,
+    List<FoodItem>? recipeCache,
+    Map<String, List<String>>? synonyms,
+    HiveDietStorage? hive,
+    bool? shouldLoadVerifiedExtras,
+  }) : _assetCache = assetCache,
+       _customCache = customCache,
+       _recipeCache = recipeCache,
+       _synonyms = synonyms,
+       _hive = hive ?? HiveDietStorage(),
+       _shouldLoadVerifiedExtras =
+           shouldLoadVerifiedExtras ?? assetCache == null;
 
   static const Set<String> _turkishPriorityTokens = {
     'yumurta',
@@ -123,7 +139,8 @@ class LocalFoodRepository implements FoodRepository {
     _recipeCache ??= await _loadRecipeFoods();
     _synonyms ??= await AssetFoodLoader.loadSynonyms();
 
-    if (_assetCache != null &&
+    if (_shouldLoadVerifiedExtras &&
+        _assetCache != null &&
         !_assetCache!.any((food) => food.id.startsWith('trverified_'))) {
       final verifiedExtras = await AssetFoodLoader.loadVerifiedExtrasFoods();
       if (verifiedExtras.isNotEmpty) {
@@ -167,6 +184,28 @@ class LocalFoodRepository implements FoodRepository {
     if (idx < 0) return false;
     if (idx == 0) return true;
     return text[idx - 1] == ' ' || text[idx - 1] == '\t';
+  }
+
+  /// Sorgu, metinde tam kelime olarak geçiyor mu? (kelime sınırları boşluk veya string ucu)
+  static bool _isWholeWord(String text, String query) {
+    if (query.isEmpty) return false;
+    final idx = text.indexOf(query);
+    if (idx < 0) return false;
+    final afterIdx = idx + query.length;
+    final startOk = idx == 0 || text[idx - 1] == ' ' || text[idx - 1] == '\t';
+    final endOk =
+        afterIdx == text.length ||
+        text[afterIdx] == ' ' ||
+        text[afterIdx] == '\t';
+    return startOk && endOk;
+  }
+
+  static bool _startsWithWholeWord(String text, String query) {
+    if (!text.startsWith(query) || query.isEmpty) return false;
+    final afterIdx = query.length;
+    return afterIdx == text.length ||
+        text[afterIdx] == ' ' ||
+        text[afterIdx] == '\t';
   }
 
   /// Levenshtein mesafesi 1 veya 2 (kısa kelimelerde 1, uzunlarda 2)
@@ -822,8 +861,8 @@ class LocalFoodRepository implements FoodRepository {
       );
       final strongNameMatch =
           nName == normalizedQuery ||
-          nName.startsWith(normalizedQuery) ||
-          _wordStartsWith(nName, normalizedQuery);
+          _startsWithWholeWord(nName, normalizedQuery) ||
+          _isWholeWord(nName, normalizedQuery);
 
       if (queryTokens.length >= 2 &&
           !exactPhraseMatch &&
@@ -831,13 +870,24 @@ class LocalFoodRepository implements FoodRepository {
         continue;
       }
 
-      // 1) İsim: tam > başlangıç > kelime başı > içerik
+      // 1) İsim: tam > başlangıç > tam kelime > kelime başı > içerik
       if (nName == normalizedQuery) {
         score += 100;
+      } else if (_startsWithWholeWord(nName, normalizedQuery)) {
+        score += 72;
+      } else if (_isWholeWord(nName, normalizedQuery)) {
+        // "nohutlu pilav" — sorgu isimde tam kelime olarak geçiyor
+        score += 58;
+        // Son kelimeyse (ana yemek ismi genellikle sonda) ekstra bonus
+        if (nName.endsWith(normalizedQuery)) score += 12;
+      } else if (_wordStartsWith(nName, normalizedQuery) &&
+          !nName.startsWith(normalizedQuery)) {
+        // "pilavlı patlıcan" — sorgu bir kelimenin başı, tam kelime değil
+        score += 35;
       } else if (nName.startsWith(normalizedQuery)) {
-        score += 60;
-      } else if (_wordStartsWith(nName, normalizedQuery)) {
-        score += 50;
+        // "yumurtali" gibi birleşik ilk kelime eşleşmeleri,
+        // tam kelime eşleşmesinin önüne geçmemeli.
+        score += 24;
       } else if (nName.contains(normalizedQuery)) {
         score += 20;
       }
@@ -845,7 +895,10 @@ class LocalFoodRepository implements FoodRepository {
       // 2) Token bazlı (çok kelimeli sorgu): her token isimde geçiyorsa
       for (final token in queryTokens) {
         if (nName.contains(token)) score += 5;
-        if (_wordStartsWith(nName, token)) score += 8;
+        if (_startsWithWholeWord(nName, token) ||
+            (_wordStartsWith(nName, token) && !nName.startsWith(token))) {
+          score += 8;
+        }
       }
 
       // 3) Aliases: tam > başlangıç > içerik (sadece en yüksek puanı al)
@@ -854,12 +907,17 @@ class LocalFoodRepository implements FoodRepository {
         int currentAliasScore = 0;
         if (nAlias == normalizedQuery) {
           currentAliasScore = 40;
-        } else if (nAlias.startsWith(normalizedQuery)) {
+        } else if (_startsWithWholeWord(nAlias, normalizedQuery)) {
           currentAliasScore = 35;
+        } else if (_isWholeWord(nAlias, normalizedQuery)) {
+          currentAliasScore = 30;
+        } else if (_wordStartsWith(nAlias, normalizedQuery) &&
+            !nAlias.startsWith(normalizedQuery)) {
+          currentAliasScore = 25;
+        } else if (nAlias.startsWith(normalizedQuery)) {
+          currentAliasScore = 18;
         } else if (nAlias.contains(normalizedQuery)) {
           currentAliasScore = 15;
-        } else if (_wordStartsWith(nAlias, normalizedQuery)) {
-          currentAliasScore = 25;
         }
         if (currentAliasScore > maxAliasScore) {
           maxAliasScore = currentAliasScore;
@@ -956,14 +1014,15 @@ class LocalFoodRepository implements FoodRepository {
         if (score < minimumScore) {
           continue;
         }
-        score += indexed.priorityScore;
-        scoredItems.add(_ScoredFood(food, score));
+        scoredItems.add(_ScoredFood(food, score, indexed.priorityScore));
       }
     }
 
     scoredItems.sort((a, b) {
-      final byScore = b.score.compareTo(a.score);
+      final byScore = b.relevanceScore.compareTo(a.relevanceScore);
       if (byScore != 0) return byScore;
+      final byPriority = b.priorityScore.compareTo(a.priorityScore);
+      if (byPriority != 0) return byPriority;
       final aBrandless = a.item.brand == null || a.item.brand!.trim().isEmpty;
       final bBrandless = b.item.brand == null || b.item.brand!.trim().isEmpty;
       if (aBrandless != bBrandless) {
@@ -1021,8 +1080,9 @@ class LocalFoodRepository implements FoodRepository {
 
 class _ScoredFood {
   final FoodItem item;
-  final int score;
-  _ScoredFood(this.item, this.score);
+  final int relevanceScore;
+  final int priorityScore;
+  _ScoredFood(this.item, this.relevanceScore, this.priorityScore);
 }
 
 class _IndexedFood {

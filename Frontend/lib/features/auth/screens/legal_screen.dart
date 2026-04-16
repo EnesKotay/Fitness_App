@@ -2,14 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 
-const _kPrivacyPolicyUrl = String.fromEnvironment(
-  'APP_PRIVACY_URL',
-  defaultValue: 'mailto:privacy@fitmentor.app?subject=Gizlilik%20Politikası',
-);
-const _kTermsOfServiceUrl = String.fromEnvironment(
-  'APP_TERMS_URL',
-  defaultValue: 'mailto:legal@fitmentor.app?subject=Kullanım%20Koşulları',
-);
 const _kSupportUrl = String.fromEnvironment(
   'APP_SUPPORT_URL',
   defaultValue: 'mailto:support@fitmentor.app?subject=FitMentor%20Destek',
@@ -151,11 +143,6 @@ E-posta: $_kPrivacyEmail
 Bu politika zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim gönderilir.'''),
           const SizedBox(height: 8),
           _ExternalLinkButton(
-            label: 'Tam Politikayı Tarayıcıda Aç',
-            url: _kPrivacyPolicyUrl,
-          ),
-          const SizedBox(height: 8),
-          _ExternalLinkButton(
             label: 'Destek',
             url: _kSupportUrl,
           ),
@@ -226,11 +213,6 @@ Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklarda İsta
           const _LegalSection('10. İletişim', '''
 Sorularınız için:
 E-posta: $_kLegalEmail'''),
-          const SizedBox(height: 8),
-          _ExternalLinkButton(
-            label: 'Tam Koşulları Tarayıcıda Aç',
-            url: _kTermsOfServiceUrl,
-          ),
           const SizedBox(height: 24),
         ],
       ),

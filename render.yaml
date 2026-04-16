@@ -1,0 +1,60 @@
+############################################################
+# Render Infrastructure-as-Code
+# Docs: https://render.com/docs/infrastructure-as-code
+############################################################
+
+services:
+  - type: web
+    name: fitness-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /q/health
+    envVars:
+      # ── DATABASE (Supabase PostgreSQL) ─────────────────────
+      # Supabase: Project Settings > Database > Connection string (URI)
+      # Format: jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres?sslmode=require
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+
+      # ── JWT ────────────────────────────────────────────────
+      # openssl rand -base64 64
+      - key: JWT_SECRET_KEY
+        sync: false
+
+      # ── AI KEYS ────────────────────────────────────────────
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLAUDE_API_KEY
+        sync: false
+
+      # ── IN-APP PURCHASE ────────────────────────────────────
+      - key: IAP_VERIFY_MODE
+        sync: false
+      - key: IAP_APPLE_SHARED_SECRET
+        sync: false
+      - key: IAP_APPLE_BUNDLE_ID
+        sync: false
+      - key: IAP_APPLE_SANDBOX
+        sync: false
+      - key: IAP_GOOGLE_PACKAGE_NAME
+        sync: false
+      - key: IAP_GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
+
+      # ── EMAIL ──────────────────────────────────────────────
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+
+      # ── QUARKUS ────────────────────────────────────────────
+      - key: QUARKUS_PROFILE
+        value: prod

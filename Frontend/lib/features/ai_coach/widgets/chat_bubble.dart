@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
+import '../../shell/main_shell.dart';
 import '../controllers/ai_coach_controller.dart';
 import '../models/ai_coach_models.dart';
 import 'package:provider/provider.dart';
@@ -36,8 +37,9 @@ class _ChatBubbleState extends State<ChatBubble> {
   }
 
   Widget _buildAssistantRow(BuildContext context, bool isError) {
-    final accentColor =
-        isError ? const Color(0xFFFF6B6B) : const Color(0xFFEBC374);
+    final accentColor = isError
+        ? const Color(0xFFFF6B6B)
+        : const Color(0xFFEBC374);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -48,27 +50,27 @@ class _ChatBubbleState extends State<ChatBubble> {
             // Outer glow ring (animated)
             if (!isError)
               Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: 0.25),
-                      blurRadius: 16,
-                      spreadRadius: 2,
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.transparent,
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.25),
+                          blurRadius: 16,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scaleXY(
-                begin: 0.9,
-                end: 1.1,
-                duration: 2400.ms,
-                curve: Curves.easeInOut,
-              ),
+                  )
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .scaleXY(
+                    begin: 0.9,
+                    end: 1.1,
+                    duration: 2400.ms,
+                    curve: Curves.easeInOut,
+                  ),
             Container(
               width: 32,
               height: 32,
@@ -136,7 +138,9 @@ class _ChatBubbleState extends State<ChatBubble> {
                         ? []
                         : [
                             BoxShadow(
-                              color: const Color(0xFFEBC374).withValues(alpha: 0.07),
+                              color: const Color(
+                                0xFFEBC374,
+                              ).withValues(alpha: 0.07),
                               blurRadius: 24,
                               spreadRadius: -4,
                               offset: const Offset(0, 4),
@@ -167,20 +171,31 @@ class _ChatBubbleState extends State<ChatBubble> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (widget.message.imagePath != null) _buildSentImage(context),
+                              if (widget.message.imagePath != null)
+                                _buildSentImage(context),
                               !isError
                                   ? _buildMarkdownContent()
                                   : _buildPlainContent(isError),
                               if (!isError &&
-                                  widget.message.structuredResponse?.actions != null &&
-                                  widget.message.structuredResponse!.actions!.isNotEmpty)
+                                  widget.message.structuredResponse?.actions !=
+                                      null &&
+                                  widget
+                                      .message
+                                      .structuredResponse!
+                                      .actions!
+                                      .isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 12),
                                   child: Wrap(
                                     spacing: 8,
                                     runSpacing: 8,
-                                    children: widget.message.structuredResponse!.actions!
-                                        .map((a) => _buildActionButton(context, a))
+                                    children: widget
+                                        .message
+                                        .structuredResponse!
+                                        .actions!
+                                        .map(
+                                          (a) => _buildActionButton(context, a),
+                                        )
                                         .toList(),
                                   ),
                                 ),
@@ -230,7 +245,8 @@ class _ChatBubbleState extends State<ChatBubble> {
                         icon: Icons.copy_rounded,
                         isActive: false,
                         activeColor: const Color(0xFF73D4FF),
-                        onTap: () => _copyToClipboard(context, widget.message.content),
+                        onTap: () =>
+                            _copyToClipboard(context, widget.message.content),
                       ),
                     ],
                   ],
@@ -240,26 +256,41 @@ class _ChatBubbleState extends State<ChatBubble> {
               if (_reaction != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 2),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: (_reaction! ? const Color(0xFF34D399) : const Color(0xFFFF6B6B))
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: (_reaction! ? const Color(0xFF34D399) : const Color(0xFFFF6B6B))
-                            .withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: Text(
-                      _reaction! ? 'Geri bildirim için teşekkürler!' : 'Daha iyi olacağız.',
-                      style: GoogleFonts.dmSans(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.3, end: 0),
+                  child:
+                      Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  (_reaction!
+                                          ? const Color(0xFF34D399)
+                                          : const Color(0xFFFF6B6B))
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color:
+                                    (_reaction!
+                                            ? const Color(0xFF34D399)
+                                            : const Color(0xFFFF6B6B))
+                                        .withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Text(
+                              _reaction!
+                                  ? 'Geri bildirim için teşekkürler!'
+                                  : 'Daha iyi olacağız.',
+                              style: GoogleFonts.dmSans(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          )
+                          .animate()
+                          .fadeIn(duration: 200.ms)
+                          .slideY(begin: 0.3, end: 0),
                 ),
             ],
           ),
@@ -281,7 +312,9 @@ class _ChatBubbleState extends State<ChatBubble> {
         width: 22,
         height: 22,
         decoration: BoxDecoration(
-          color: isActive ? activeColor.withValues(alpha: 0.15) : Colors.transparent,
+          color: isActive
+              ? activeColor.withValues(alpha: 0.15)
+              : Colors.transparent,
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -330,7 +363,8 @@ class _ChatBubbleState extends State<ChatBubble> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (widget.message.imagePath != null) _buildSentImage(context),
+                    if (widget.message.imagePath != null)
+                      _buildSentImage(context),
                     Text(
                       widget.message.content,
                       style: GoogleFonts.dmSans(
@@ -452,8 +486,6 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
-
-
   Widget _buildActionButton(BuildContext context, CoachAction action) {
     final (color, bgColor) = _getActionColors(action.type);
     return InkWell(
@@ -469,9 +501,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             ],
           ),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: color.withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -527,12 +557,7 @@ class _ChatBubbleState extends State<ChatBubble> {
   void _handleAction(BuildContext context, CoachAction action) {
     switch (action.type) {
       case 'START_WORKOUT':
-        Navigator.popUntil(context, (route) => route.isFirst);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Antrenman ekranına yönlendiriliyorsunuz...'),
-          ),
-        );
+        _switchToMainTab(context, 1);
         break;
       case 'ADD_WATER':
         context.read<DietProvider>().addWater(0.25);
@@ -541,13 +566,13 @@ class _ChatBubbleState extends State<ChatBubble> {
         ).showSnackBar(const SnackBar(content: Text('250ml su eklendi! 💧')));
         break;
       case 'TRACK_WEIGHT':
-        Navigator.pushNamed(context, '/tracking');
+        _switchToMainTab(context, 2);
         break;
       case 'OPEN_NUTRITION':
-        Navigator.pushNamed(context, '/home');
+        _switchToMainTab(context, 3);
         break;
       case 'OPEN_TRACKING':
-        Navigator.pushNamed(context, '/tracking');
+        _switchToMainTab(context, 2);
         break;
       case 'UPDATE_NUTRITION':
         _handleNutritionUpdate(context, action.data);
@@ -555,7 +580,15 @@ class _ChatBubbleState extends State<ChatBubble> {
     }
   }
 
-  Future<void> _handleNutritionUpdate(BuildContext context, String? data) async {
+  void _switchToMainTab(BuildContext context, int index) {
+    Navigator.popUntil(context, (route) => route.isFirst);
+    MainShell.tabSwitchRequest.value = index;
+  }
+
+  Future<void> _handleNutritionUpdate(
+    BuildContext context,
+    String? data,
+  ) async {
     if (data == null || data.isEmpty) return;
 
     final diet = context.read<DietProvider>();
@@ -588,7 +621,9 @@ class _ChatBubbleState extends State<ChatBubble> {
         gender: profile.gender,
         activityLevel: profile.activityLevel,
         goal: newGoal ?? profile.goal,
-        customKcalTarget: updates.containsKey('customKcalTarget') ? newKcal : profile.customKcalTarget,
+        customKcalTarget: updates.containsKey('customKcalTarget')
+            ? newKcal
+            : profile.customKcalTarget,
         targetWeight: profile.targetWeight,
       );
 
@@ -603,7 +638,9 @@ class _ChatBubbleState extends State<ChatBubble> {
             ),
             backgroundColor: const Color(0xFF1A2035),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -764,21 +801,26 @@ class TypingBubble extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEBC374).withValues(alpha: 0.3),
-                      blurRadius: 18,
-                      spreadRadius: 3,
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEBC374).withValues(alpha: 0.3),
+                          blurRadius: 18,
+                          spreadRadius: 3,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scaleXY(begin: 0.85, end: 1.15, duration: 1800.ms, curve: Curves.easeInOut),
+                  )
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .scaleXY(
+                    begin: 0.85,
+                    end: 1.15,
+                    duration: 1800.ms,
+                    curve: Curves.easeInOut,
+                  ),
               Container(
                 width: 32,
                 height: 32,
@@ -825,23 +867,24 @@ class TypingBubble extends StatelessWidget {
               children: [
                 ...List.generate(
                   3,
-                  (i) => Container(
-                        width: 6,
-                        height: 6,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFEBC374),
-                          shape: BoxShape.circle,
-                        ),
-                      )
-                      .animate(onPlay: (c) => c.repeat())
-                      .scaleXY(
-                        begin: 0.4,
-                        end: 1.0,
-                        duration: 600.ms,
-                        delay: (i * 200).ms,
-                        curve: Curves.easeInOut,
-                      ),
+                  (i) =>
+                      Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEBC374),
+                              shape: BoxShape.circle,
+                            ),
+                          )
+                          .animate(onPlay: (c) => c.repeat())
+                          .scaleXY(
+                            begin: 0.4,
+                            end: 1.0,
+                            duration: 600.ms,
+                            delay: (i * 200).ms,
+                            curve: Curves.easeInOut,
+                          ),
                 ),
                 const SizedBox(width: 10),
                 Text(

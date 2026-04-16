@@ -16,6 +16,23 @@ import '../../ai_scan/presentation/pages/barcode_scan_page.dart';
 
 String _foodDisplayName(FoodItem food) => _shortFoodName(food.name);
 
+bool _isVerifiedFoodData(FoodItem food) {
+  final id = food.id.toLowerCase();
+  return id.startsWith('off_') ||
+      id.startsWith('trverified_') ||
+      food.tags.contains('verified-source') ||
+      food.tags.contains('open-food-facts') ||
+      food.tags.contains('guven-yuksek');
+}
+
+String _foodSourceLabel(FoodItem food) {
+  final id = food.id.toLowerCase();
+  if (id.startsWith('off_') || food.tags.contains('open-food-facts')) {
+    return 'Etiket Verisi';
+  }
+  return 'Doğrulanmış';
+}
+
 const List<String> _preferredCategoryOrder = [
   'Kahvaltılık',
   'Çorba',
@@ -1164,8 +1181,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         case 'bolgesel':
           return hasTag(item, 'bolge-');
         case 'guvenli':
-          return item.tags.contains('guven-yuksek') ||
-              item.tags.contains('tr-core');
+          return _isVerifiedFoodData(item);
         case 'kahvaltilik':
           return item.category == 'Kahvaltılık';
         case 'ev_yemegi':
@@ -1637,7 +1653,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         Text(
-                          'İnternette ara',
+                          'Etiket verisi',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.60),
                             fontSize: 12,
@@ -1870,6 +1886,7 @@ class _FoodListTileState extends State<_FoodListTile> {
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _OptionsSheet(
         food: widget.food,
@@ -1894,12 +1911,11 @@ class _FoodListTileState extends State<_FoodListTile> {
     // Smart badge — max 1
     String? badge;
     Color? badgeColor;
+    final hasVerifiedData = _isVerifiedFoodData(widget.food);
+
     if (p >= 20) {
       badge = 'Yüksek Protein';
       badgeColor = const Color(0xFF5B9BFF);
-    } else if (c < 5) {
-      badge = 'Düşük Karb';
-      badgeColor = const Color(0xFF4CD1A3);
     } else if (f < 3) {
       badge = 'Düşük Yağ';
       badgeColor = const Color(0xFF8BC34A);
@@ -2006,9 +2022,10 @@ class _FoodListTileState extends State<_FoodListTile> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            Row(
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
                               children: [
-                                // Kategori chip
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 7,
@@ -2028,12 +2045,35 @@ class _FoodListTileState extends State<_FoodListTile> {
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                if (badge != null) ...[
-                                  const SizedBox(width: 6),
+                                if (hasVerifiedData)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF4CD1A3,
+                                      ).withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: const Color(
+                                          0xFF4CD1A3,
+                                        ).withValues(alpha: 0.24),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      _foodSourceLabel(widget.food),
+                                      style: const TextStyle(
+                                        color: Color(0xFF4CD1A3),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                if (badge != null)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 7,
@@ -2054,7 +2094,6 @@ class _FoodListTileState extends State<_FoodListTile> {
                                       ),
                                     ),
                                   ),
-                                ],
                               ],
                             ),
                           ],
@@ -2204,13 +2243,22 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     if (serving != null && (serving.grams - grams).abs() < 1) {
       return 'Hızlı Ekle — ${serving.label}';
     }
-    
-    final unit = DietProvider.getSmartUnit(widget.food.name, widget.food.category);
-    final count = grams / (_defaultQuickAddGrams > 0 ? _defaultQuickAddGrams : 100);
-    final countStr = count == 1.0 
-        ? '1' 
-        : (count == 0.5 ? 'Yarım' : count.toStringAsFixed(1).replaceAll('.0', '').replaceAll('.', ','));
-        
+
+    final unit = DietProvider.getSmartUnit(
+      widget.food.name,
+      widget.food.category,
+    );
+    final count =
+        grams / (_defaultQuickAddGrams > 0 ? _defaultQuickAddGrams : 100);
+    final countStr = count == 1.0
+        ? '1'
+        : (count == 0.5
+              ? 'Yarım'
+              : count
+                    .toStringAsFixed(1)
+                    .replaceAll('.0', '')
+                    .replaceAll('.', ','));
+
     return 'Hızlı Ekle — $countStr $unit (${grams.round()}g)';
   }
 
@@ -2221,58 +2269,122 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     String? subtitle,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.11),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withValues(alpha: 0.30)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
                   ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.50),
-                        fontSize: 12,
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                        ),
                       ),
-                    ),
-                ],
-              ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.58),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.white.withValues(alpha: 0.38),
+                  ),
+                ),
+              ],
             ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              size: 14,
-              color: Colors.white.withValues(alpha: 0.30),
-            ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _infoChip({
+    required String text,
+    required Color color,
+    IconData? icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.26)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            text,
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.92),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2286,131 +2398,153 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     final displayName = _foodDisplayName(widget.food);
     final quickAddGrams = _defaultQuickAddGrams;
     final secondQuickAddGrams = _secondaryQuickAddGrams;
+    final media = MediaQuery.of(context);
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        16,
-        20,
-        MediaQuery.of(context).padding.bottom + 20,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF111827),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.20),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
-          // Food info header
-          Row(
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(maxHeight: media.size.height * 0.78),
+        padding: EdgeInsets.fromLTRB(20, 16, 20, media.padding.bottom + 16),
+        decoration: const BoxDecoration(
+          color: Color(0xFF111827),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.20),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    color: AppColors.primaryLight,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 18),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        color: AppColors.primaryLight,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${kcal.round()} kcal · P:${p.round()}g K:${c.round()}g Y:${f.round()}g  (100g)',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
-                        fontSize: 12,
-                      ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName,
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            height: 1.15,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _infoChip(
+                              text: '${kcal.round()} kcal',
+                              color: const Color(0xFFFFB067),
+                              icon: Icons.local_fire_department_rounded,
+                            ),
+                            _infoChip(
+                              text: 'P:${p.round()}g',
+                              color: AppColors.secondary,
+                            ),
+                            _infoChip(
+                              text: 'K:${c.round()}g',
+                              color: AppColors.chartGreen,
+                            ),
+                            _infoChip(
+                              text: 'Y:${f.round()}g',
+                              color: const Color(0xFFFFC857),
+                            ),
+                            _infoChip(text: '100g baz', color: Colors.white70),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _actionTile(
+                icon: Icons.restaurant_rounded,
+                color: AppColors.secondary,
+                label: 'Porsiyon Seç & Ekle',
+                subtitle: 'Gram veya porsiyon miktarı gir',
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onOpenDetail();
+                },
+              ),
+              _actionTile(
+                icon: Icons.flash_on_rounded,
+                color: AppColors.chartGreen,
+                label: _quickAddLabel(quickAddGrams),
+                subtitle:
+                    '${(kcal * (quickAddGrams / 100)).round()} kcal · P:${(p * (quickAddGrams / 100)).round()}g',
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onQuickAdd(quickAddGrams);
+                },
+              ),
+              _actionTile(
+                icon: Icons.flash_on_rounded,
+                color: const Color(0xFF43E97B),
+                label: _quickAddLabel(secondQuickAddGrams),
+                subtitle:
+                    '${(kcal * (secondQuickAddGrams / 100)).round()} kcal · P:${(p * (secondQuickAddGrams / 100)).round()}g',
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onQuickAdd(secondQuickAddGrams);
+                },
+              ),
+              _actionTile(
+                icon: _isFav
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: const Color(0xFFFF6B6B),
+                label: _isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle',
+                subtitle: _isFav
+                    ? 'Tek dokunuşla favorilerden kaldır'
+                    : 'Bu besini daha sonra hızlıca bul',
+                onTap: () async {
+                  await StorageHelper.toggleFavorite(widget.food.id);
+                  setState(() => _isFav = !_isFav);
+                  widget.onFavToggled();
+                },
               ),
             ],
           ),
-          const SizedBox(height: 20),
-
-          // Actions
-          _actionTile(
-            icon: Icons.restaurant_rounded,
-            color: AppColors.secondary,
-            label: 'Porsiyon Seç & Ekle',
-            subtitle: 'Gram veya porsiyon miktarı gir',
-            onTap: () {
-              Navigator.pop(context);
-              widget.onOpenDetail();
-            },
-          ),
-          _actionTile(
-            icon: Icons.flash_on_rounded,
-            color: AppColors.chartGreen,
-            label: _quickAddLabel(quickAddGrams),
-            subtitle:
-                '${(kcal * (quickAddGrams / 100)).round()} kcal · P:${(p * (quickAddGrams / 100)).round()}g',
-            onTap: () {
-              Navigator.pop(context);
-              widget.onQuickAdd(quickAddGrams);
-            },
-          ),
-          _actionTile(
-            icon: Icons.flash_on_rounded,
-            color: const Color(0xFF43E97B),
-            label: _quickAddLabel(secondQuickAddGrams),
-            subtitle:
-                '${(kcal * (secondQuickAddGrams / 100)).round()} kcal · P:${(p * (secondQuickAddGrams / 100)).round()}g',
-            onTap: () {
-              Navigator.pop(context);
-              widget.onQuickAdd(secondQuickAddGrams);
-            },
-          ),
-          _actionTile(
-            icon: _isFav
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            color: const Color(0xFFFF6B6B),
-            label: _isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle',
-            onTap: () async {
-              await StorageHelper.toggleFavorite(widget.food.id);
-              setState(() => _isFav = !_isFav);
-              widget.onFavToggled();
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

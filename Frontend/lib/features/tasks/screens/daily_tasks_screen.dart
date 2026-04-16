@@ -82,6 +82,14 @@ class DailyTasksScreen extends StatefulWidget {
 
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DailyTasksController>().loadToday();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<DailyTasksController>(
       builder: (context, controller, _) {
@@ -144,7 +152,33 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                                       ),
                                       child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                                     ),
-                                    onDismissed: (_) => controller.deleteTask(task.id),
+                                    onDismissed: (_) {
+                                      final deleted = task;
+                                      controller.deleteTask(deleted.id);
+                                      ScaffoldMessenger.of(context)
+                                        ..hideCurrentSnackBar()
+                                        ..showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '"${deleted.title}" silindi',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.dmSans(color: Colors.white),
+                                            ),
+                                            backgroundColor: const Color(0xFF1A1F35),
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            action: SnackBarAction(
+                                              label: 'Geri Al',
+                                              textColor: const Color(0xFFEBC374),
+                                              onPressed: () => controller.restoreTask(deleted),
+                                            ),
+                                            duration: const Duration(seconds: 4),
+                                          ),
+                                        );
+                                    },
                                     child: _TaskTile(
                                       task: task,
                                       onToggle: () => controller.toggleTaskDone(task.id),

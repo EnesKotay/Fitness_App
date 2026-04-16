@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'core/services/iap_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/utils/storage_helper.dart';
@@ -13,6 +12,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/workout/providers/workout_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/theme/app_theme.dart';
+import 'core/api/api_client.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/app_secrets.dart';
 import 'core/routes/app_page_transitions.dart';
@@ -32,6 +32,9 @@ void main() async {
 
   // Zorunlu: Token ve prefs init edilmeden getToken() kullanılmamalı; yoksa null döner ve login'e atar.
   await StorageHelper.init();
+
+  // 401 interceptor'ının global navigate için kullandığı key'i set et.
+  ApiClient.navigatorKey = appNavigatorKey;
 
   try {
     await HiveDietStorage.init();
@@ -67,8 +70,36 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+/// 401 / global navigate için kullanılan key. ApiClient'tan erişilebilir.
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    IapService.instance.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      IapService.instance.dispose();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +108,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'FitMentor',
         debugShowCheckedModeBanner: false,
+        navigatorKey: appNavigatorKey,
         builder: (context, child) =>
             GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
         themeMode: ThemeMode.dark,
@@ -117,20 +149,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _init() async {
-    // iOS 14+: App Tracking Transparency izni — ilk açılışta bir kez gösterilir.
-    // Android'de bu çağrı no-op olarak döner, hata vermez.
-    try {
-      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
-      if (status == TrackingStatus.notDetermined) {
-        // Sistem dialog'u göstermeden önce kısa bir gecikme önerilir (Apple guideline)
-        await Future.delayed(const Duration(milliseconds: 200));
-        if (mounted) {
-          await AppTrackingTransparency.requestTrackingAuthorization();
-        }
-      }
-    } catch (_) {
-      // ATT desteklenmeyen ortamlarda sessizce geç
-    }
     if (mounted) await _checkAuth();
   }
 

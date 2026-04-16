@@ -44,7 +44,8 @@ class OpenFoodFactsClient {
               fat: fat,
               kcal: energyKcal,
             ),
-            category: 'Paketli Ürün (OFF)',
+            category: 'Paketli Ürün (Etiket)',
+            tags: const ['verified-source', 'etiket-verisi', 'open-food-facts'],
           );
         }
       }

@@ -70,16 +70,16 @@ public class StartupValidator {
             errors.add("DB_URL production ortamında localhost içeriyor veya tanımlı değil. Gerçek veritabanı URL'si gerekli.");
         }
 
-        // Production'da IAP strict önerilir ama dev moda da izin verilir
+        // Production'da IAP strict zorunlu
         if (isProd && !"strict".equalsIgnoreCase(iapMode)) {
-            warnings.add("IAP_VERIFY_MODE=dev — production'da strict kullanılması önerilir (Apple/Google secret gerekli).");
+            errors.add("IAP_VERIFY_MODE production ortamında strict olmalıdır.");
         }
         if (isProd && "strict".equalsIgnoreCase(iapMode)) {
             if ("__MISSING__".equals(appleSharedSecret) || appleSharedSecret.isBlank()) {
                 errors.add("Production IAP strict modunda IAP_APPLE_SHARED_SECRET tanımlı değil.");
             }
             if ("__MISSING__".equals(googleServiceAccount) || googleServiceAccount.isBlank()) {
-                errors.add("Production IAP strict modunda IAP_GOOGLE_SERVICE_ACCOUNT_JSON tanımlı değil.");
+                warnings.add("IAP_GOOGLE_SERVICE_ACCOUNT_JSON tanımlı değil. Android satın almaları doğrulanamaz.");
             }
         }
 

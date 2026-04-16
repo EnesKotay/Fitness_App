@@ -103,6 +103,7 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
       return null;
     }
     final nut = p['nutriments'] as Map<String, dynamic>? ?? {};
+    final brand = p['brands']?.toString().split(',').first.trim();
     num? kcal = nut['energy-kcal_100g'] ?? nut['energy_100g'];
     if (kcal == null && nut['energy-kcal_100g'] == null) {
       final kj = nut['energy-kj_100g'] ?? nut['energy_100g'];
@@ -114,7 +115,7 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
     return FoodItem(
       id: 'off_$code',
       name: name,
-      category: 'Diğer',
+      category: 'Paketli Ürün (Etiket)',
       basis: const FoodBasis(amount: 100, unit: 'g'),
       nutrients: Nutrients(
         kcal: kcal != null ? kcal.toDouble() : 0,
@@ -122,6 +123,8 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
         carb: carb,
         fat: fat,
       ),
+      tags: const ['verified-source', 'etiket-verisi', 'open-food-facts'],
+      brand: brand != null && brand.isNotEmpty ? brand : null,
     );
   }
 }

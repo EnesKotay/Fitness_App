@@ -34,7 +34,9 @@ class FavoriteExerciseEntry {
   bool matches(String otherName, {String? otherMuscleGroup}) {
     final normalizedName = name.trim().toLowerCase();
     if (normalizedName != otherName.trim().toLowerCase()) return false;
-    if (otherMuscleGroup == null || otherMuscleGroup.trim().isEmpty) return true;
+    if (otherMuscleGroup == null || otherMuscleGroup.trim().isEmpty) {
+      return true;
+    }
     final group = muscleGroup?.trim().toUpperCase();
     return group == null || group == otherMuscleGroup.trim().toUpperCase();
   }
@@ -535,6 +537,18 @@ class StorageHelper {
         false;
   }
 
+  static Future<bool> saveQuickAccessHintSeen(bool value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setBool(
+      _userKey(StorageKeys.quickAccessHintSeen),
+      value,
+    );
+  }
+
+  static bool getQuickAccessHintSeen() {
+    return _prefs?.getBool(_userKey(StorageKeys.quickAccessHintSeen)) ?? false;
+  }
+
   /// Sadece oturum bilgilerini temizler (çıkış yapınca). Cache sıfırlanır; guest suffix kullanılır.
   static Future<bool> clearUserData() async {
     if (_prefs == null) return false;
@@ -684,7 +698,8 @@ class StorageHelper {
   // Favori egzersizler
   static List<FavoriteExerciseEntry> getFavoriteExercises() {
     try {
-      final raw = _prefs?.getStringList(
+      final raw =
+          _prefs?.getStringList(
             _userKey(StorageKeys.favoriteExerciseEntries),
           ) ??
           [];
@@ -735,7 +750,9 @@ class StorageHelper {
       );
     }
 
-    final serialized = entries.map((entry) => jsonEncode(entry.toJson())).toList();
+    final serialized = entries
+        .map((entry) => jsonEncode(entry.toJson()))
+        .toList();
     final names = entries.map((entry) => entry.name).toList();
     final entriesSaved =
         await _prefs?.setStringList(

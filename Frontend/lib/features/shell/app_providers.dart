@@ -36,5 +36,33 @@ class AppProviders {
                 ..setWorkoutProvider(workoutProvider)
                 ..setAIService(aiService),
         ),
+        // Logout callback'lerini wire-up et: AuthProvider logout/deleteAccount
+        // çağrıldığında tüm provider'lar otomatik reset edilir.
+        ProxyProvider6<
+            AuthProvider,
+            DietProvider,
+            WorkoutProvider,
+            WeightProvider,
+            TrackingProvider,
+            DailyTasksController,
+            void>(
+          create: (_) {},
+          update: (
+            _,
+            auth,
+            diet,
+            workout,
+            weight,
+            tracking,
+            tasks,
+            _,
+          ) {
+            auth.addLogoutCallback(diet.reset);
+            auth.addLogoutCallback(workout.reset);
+            auth.addLogoutCallback(weight.reset);
+            auth.addLogoutCallback(tracking.reset);
+            auth.addLogoutCallback(tasks.reset);
+          },
+        ),
       ];
 }

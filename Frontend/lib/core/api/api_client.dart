@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show NavigatorState, GlobalKey;
 import '../constants/api_constants.dart';
 import '../utils/storage_helper.dart';
 import 'api_exception.dart';
@@ -7,6 +8,9 @@ import 'api_exception.dart';
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
   late Dio _dio;
+
+  /// main.dart'tan set edilir; 401'de login'e yönlendirmek için kullanılır.
+  static GlobalKey<NavigatorState>? navigatorKey;
 
   factory ApiClient() {
     return _instance;
@@ -249,7 +253,7 @@ class _LoggingInterceptor extends Interceptor {
   }
 }
 
-// Error interceptor — 401 alındığında token temizle, kullanıcı login'e yönlendirilir.
+// Error interceptor — 401 alındığında token temizle ve anında login'e yönlendir.
 class _ErrorInterceptor extends Interceptor {
   // Auth endpoint'leri 401 dönebilir (yanlış şifre vb.), oturum temizlenmemeli.
   static const _authPaths = {'/api/auth/login', '/api/auth/register'};
@@ -261,8 +265,12 @@ class _ErrorInterceptor extends Interceptor {
       final isAuthEndpoint = _authPaths.any((p) => path.endsWith(p));
       if (!isAuthEndpoint) {
         // Token süresi dolmuş veya geçersiz → oturumu kapat.
-        // SplashScreen / AuthProvider bir sonraki navigasyonda durumu algılar.
         StorageHelper.clearUserData();
+        // Global navigator key üzerinden anında login ekranına yönlendir.
+        ApiClient.navigatorKey?.currentState?.pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
+        );
       }
     }
     handler.next(err);

@@ -57,15 +57,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Plan\'a ekle'), findsOneWidget);
+    expect(find.text('Ekle'), findsOneWidget);
 
-    await tester.tap(find.text('Plan\'a ekle'));
+    await tester.tap(find.text('Ekle'));
     await tester.pumpAndSettle();
 
     expect(controller.totalCount, 1);
-    expect(find.textContaining('Plan\'da'), findsOneWidget);
+    expect(find.byIcon(Icons.radio_button_unchecked_rounded), findsOneWidget);
 
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.byType(IconButton).first);
     await tester.pumpAndSettle();
 
     final task = controller.taskForTitle('Aksam 20 dakika yuruyus yap');

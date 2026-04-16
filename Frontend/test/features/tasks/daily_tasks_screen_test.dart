@@ -37,27 +37,30 @@ void main() {
         child: const MaterialApp(home: DailyTasksScreen()),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Gunluk Gorevler'), findsOneWidget);
-    expect(find.text('1/2 tamamlandi'), findsOneWidget);
+    expect(find.text('GÜNLÜK GÖREVLER'), findsOneWidget);
+    expect(find.text('1/2 görev tamamlandı'), findsOneWidget);
     expect(find.text('Yuruyus'), findsOneWidget);
     expect(find.text('Protein ogunu'), findsOneWidget);
 
-    await tester.tap(find.text('Yapilacak'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kalan'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Yuruyus'), findsOneWidget);
     expect(find.text('Protein ogunu'), findsNothing);
 
-    await tester.tap(find.text('Tamamlanan'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bitti'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Yuruyus'), findsNothing);
     expect(find.text('Protein ogunu'), findsOneWidget);
 
-    await tester.tap(find.text('Tumu'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hepsi'));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Yuruyus'), findsOneWidget);
     expect(find.text('Protein ogunu'), findsOneWidget);
     expect(first, isNotNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
   });
 }

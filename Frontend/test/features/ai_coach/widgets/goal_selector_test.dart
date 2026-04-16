@@ -22,10 +22,10 @@ void main() {
 
     expect(find.text('Hedefin'), findsOneWidget);
     expect(find.text('Hacim'), findsOneWidget);
-    expect(find.text('Yag Yakimi'), findsOneWidget);
-    expect(find.text('Guc'), findsOneWidget);
+    expect(find.text('Yağ Yakımı'), findsOneWidget);
+    expect(find.text('Güç'), findsOneWidget);
 
-    await tester.tap(find.text('Yag Yakimi'));
+    await tester.tap(find.text('Yağ Yakımı'));
     await tester.pump();
 
     expect(selected, Goal.cut);

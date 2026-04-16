@@ -167,6 +167,23 @@ class DailyTasksController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Logout sırasında bellekteki görevleri temizler.
+  void reset() {
+    _tasks = [];
+    _recurringTemplates = [];
+    _filter = DailyTasksFilter.all;
+    _selectedDate = _normalizeDate(_nowProvider());
+    notifyListeners();
+  }
+
+  /// Silinmiş bir görevi geri yükler (undo desteği için).
+  Future<void> restoreTask(DailyTask task) async {
+    if (_tasks.any((t) => t.id == task.id)) return;
+    _tasks = [..._tasks, task];
+    await _storage.saveForDate(_selectedDate, _tasks);
+    notifyListeners();
+  }
+
   void setFilter(DailyTasksFilter filter) {
     if (_filter == filter) return;
     _filter = filter;

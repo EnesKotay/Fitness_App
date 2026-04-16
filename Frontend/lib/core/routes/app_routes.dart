@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../features/ai_coach/models/ai_coach_models.dart';
 import '../../features/ai_coach/screens/ai_coach_screen.dart';
 import '../../features/ai_coach/screens/weekly_plan_screen.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/profile_screen.dart';
@@ -29,11 +30,23 @@ class AppRoutes {
   static const home = '/home';
   static const forgotPassword = '/forgot-password';
 
+  /// Oturum açmamış kullanıcıyı login'e yönlendirir.
+  static Widget _guard(BuildContext context, Widget child) {
+    final isAuth = context.read<AuthProvider>().isAuthenticated;
+    if (!isAuth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      });
+      return const SizedBox.shrink();
+    }
+    return child;
+  }
+
   static Map<String, WidgetBuilder> getRoutes() {
     return {
       '/login': (context) => const LoginScreen(),
       '/onboarding': (context) => const OnboardingPage(),
-      home: (context) => const MainShell(),
+      home: (context) => _guard(context, const MainShell()),
       aiCoach: (context) {
         final dietProvider = context.read<DietProvider>();
         final workout = context.read<WorkoutProvider>();
@@ -67,20 +80,26 @@ class AppRoutes {
           workoutMinutes: todayWorkoutMinutes,
           workoutHighlights: todayWorkoutHighlights,
         );
-        return AiCoachScreen(initialSummary: summary);
+        return _guard(context, AiCoachScreen(initialSummary: summary));
       },
-      weeklyPlan: (context) => const WeeklyPlanScreen(),
-      dailyTasks: (context) => const DailyTasksScreen(),
-      '/profile': (context) => const ProfileScreen(),
-      '/profile-setup': (context) => const ProfileSetupPage(),
-      '/settings-password': (context) => const SettingsPasswordScreen(),
+      weeklyPlan: (context) => _guard(context, const WeeklyPlanScreen()),
+      dailyTasks: (context) => _guard(context, const DailyTasksScreen()),
+      '/profile': (context) => _guard(context, const ProfileScreen()),
+      '/profile-setup': (context) => _guard(context, const ProfileSetupPage()),
+      '/settings-password': (context) =>
+          _guard(context, const SettingsPasswordScreen()),
       '/settings-notifications': (context) =>
-          const SettingsNotificationsScreen(),
-      '/settings-privacy': (context) => const SettingsPrivacyScreen(),
-      '/settings-nutrition': (context) => const SettingsNutritionScreen(),
-      '/settings-theme': (context) => const SettingsThemeScreen(),
-      '/settings-help': (context) => const SettingsHelpScreen(),
-      '/achievements': (context) => const AchievementsScreen(),
+          _guard(context, const SettingsNotificationsScreen()),
+      '/settings-privacy': (context) =>
+          _guard(context, const SettingsPrivacyScreen()),
+      '/settings-nutrition': (context) =>
+          _guard(context, const SettingsNutritionScreen()),
+      '/settings-theme': (context) =>
+          _guard(context, const SettingsThemeScreen()),
+      '/settings-help': (context) =>
+          _guard(context, const SettingsHelpScreen()),
+      '/achievements': (context) =>
+          _guard(context, const AchievementsScreen()),
       forgotPassword: (context) => const ForgotPasswordScreen(),
     };
   }

@@ -46,11 +46,6 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
     _checkStates = {for (final item in _guide.checklist) item.title: false};
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   Future<void> _openYouTube() async {
     final query = Uri.encodeComponent(
       '${widget.exercise.name} nasıl yapılır egzersiz',

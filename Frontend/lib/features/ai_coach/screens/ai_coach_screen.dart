@@ -147,9 +147,15 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final highlights = todayWorkouts.map((w) => w.name).take(5).toList();
 
     // 2. Macros
-    final proteinGrams = diet.totals.totalProtein > 0 ? diet.totals.totalProtein.round() : null;
-    final carbsGrams = diet.totals.totalCarb > 0 ? diet.totals.totalCarb.round() : null;
-    final fatGrams = diet.totals.totalFat > 0 ? diet.totals.totalFat.round() : null;
+    final proteinGrams = diet.totals.totalProtein > 0
+        ? diet.totals.totalProtein.round()
+        : null;
+    final carbsGrams = diet.totals.totalCarb > 0
+        ? diet.totals.totalCarb.round()
+        : null;
+    final fatGrams = diet.totals.totalFat > 0
+        ? diet.totals.totalFat.round()
+        : null;
 
     // 3. Meal names eaten today
     final mealNames = diet.entries.map((e) => e.foodName).take(6).toList();
@@ -160,10 +166,12 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final userHeightCm = profile?.height;
     final userGender = profile?.gender.name;
     final activityLevel = profile?.activityLevel.name;
-    final tdee = profile != null ? profile.tdee.round() : null;
+    final tdee = profile?.tdee.round();
 
     // 5. Weight trend
-    final weeklyWeightChangeKg = weight.entries.isNotEmpty ? weight.weeklyChange : null;
+    final weeklyWeightChangeKg = weight.entries.isNotEmpty
+        ? weight.weeklyChange
+        : null;
     final weightStreak = weight.currentStreak > 0 ? weight.currentStreak : null;
 
     // 6. Phase 8: Historical Context (Last 7 Days)
@@ -493,9 +501,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -581,7 +587,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final s = controller.dailySummary;
     final parts = <String>[];
     if (s.calories > 0) parts.add('${s.calories} kcal');
-    if (s.waterLiters > 0) parts.add('${s.waterLiters.toStringAsFixed(1)} L su');
+    if (s.waterLiters > 0) {
+      parts.add('${s.waterLiters.toStringAsFixed(1)} L su');
+    }
     if (s.workouts > 0) {
       parts.add(
         '${s.workouts} antrenman${s.workoutMinutes > 0 ? ' (${s.workoutMinutes} dk)' : ''}',
@@ -601,7 +609,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
         (s.currentWeightKg ?? 0) > 0;
   }
 
-  List<(IconData, String, Color)> _buildInsightItems(AiCoachController controller) {
+  List<(IconData, String, Color)> _buildInsightItems(
+    AiCoachController controller,
+  ) {
     final s = controller.dailySummary;
     final items = <(IconData, String, Color)>[];
 
@@ -690,7 +700,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     }
   }
 
-
   Widget _buildStartExperience(AiCoachController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -743,7 +752,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           padding: const EdgeInsets.only(left: 2, bottom: 8),
           child: Row(
             children: [
-              const Icon(Icons.person_rounded, size: 14, color: Color(0xFF73D4FF)),
+              const Icon(
+                Icons.person_rounded,
+                size: 14,
+                color: Color(0xFF73D4FF),
+              ),
               const SizedBox(width: 6),
               Text(
                 'Koç karakterini seç',
@@ -767,7 +780,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                   margin: EdgeInsets.only(
                     right: item.p != CoachPersonality.supportive ? 8 : 0,
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: selected
                         ? item.color.withValues(alpha: 0.12)
@@ -809,7 +825,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                         item.desc,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
-                          color: Colors.white.withValues(alpha: selected ? 0.6 : 0.38),
+                          color: Colors.white.withValues(
+                            alpha: selected ? 0.6 : 0.38,
+                          ),
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           height: 1.3,
@@ -845,10 +863,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final timeGreeting = hour >= 5 && hour < 12
         ? 'Günaydın'
         : hour >= 12 && hour < 17
-            ? 'Merhaba'
-            : hour >= 17 && hour < 22
-                ? 'İyi akşamlar'
-                : 'İyi geceler';
+        ? 'Merhaba'
+        : hour >= 17 && hour < 22
+        ? 'İyi akşamlar'
+        : 'İyi geceler';
     final greeting = userName != null && userName.isNotEmpty
         ? '$timeGreeting, $userName!'
         : '$timeGreeting!';
@@ -1108,7 +1126,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
               runSpacing: 10,
               children: List.generate(prompts.length, (index) {
                 final prompt = prompts[index];
-                final theme = _promptCardThemes[index % _promptCardThemes.length];
+                final theme =
+                    _promptCardThemes[index % _promptCardThemes.length];
                 return InkWell(
                       onTap: () => _applyPrompt(controller, prompt),
                       borderRadius: BorderRadius.circular(16),
@@ -1244,9 +1263,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const PremiumScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()),
                     ),
                     child: Container(
                       width: double.infinity,
@@ -1329,7 +1346,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       ],
                     ),
                   ),
-                if (controller.messages.length > 1 && !controller.isLoading) ...[
+                if (controller.messages.length > 1 &&
+                    !controller.isLoading) ...[
                   const SizedBox(height: 6),
                   SizedBox(
                     height: 32,
@@ -1340,7 +1358,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                           onTap: () => _applyPrompt(controller, chip),
                           child: Container(
                             margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(20),
@@ -1418,8 +1439,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                             hintText: controller.isCooldownActive
                                 ? 'Bekleniyor...'
                                 : !_isPremium && _remainingFreePrompts <= 1
-                                    ? 'Son hakkın, iyi kullan'
-                                    : controller.taskMode.hint,
+                                ? 'Son hakkın, iyi kullan'
+                                : controller.taskMode.hint,
                             hintStyle: GoogleFonts.dmSans(
                               color: Colors.white.withValues(alpha: 0.25),
                               fontSize: 13.5,
@@ -1460,7 +1481,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
               onTap: () => controller.setTaskMode(mode),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: selected
                       ? _brandBlue.withValues(alpha: 0.14)
@@ -1857,8 +1881,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       ),
                     ],
             ),
-              child: Center(
-                child: controller.isLoading
+            child: Center(
+              child: controller.isLoading
                   ? const SizedBox(
                       width: 22,
                       height: 22,
@@ -1904,11 +1928,7 @@ class _AnimatedMeshBackgroundState extends State<_AnimatedMeshBackground> {
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF050814),
-                Color(0xFF09111E),
-                Color(0xFF060A12),
-              ],
+              colors: [Color(0xFF050814), Color(0xFF09111E), Color(0xFF060A12)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),

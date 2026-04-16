@@ -26,7 +26,9 @@ class WorkoutService {
     try {
       final response = await _apiClient.get(ApiConstants.workouts);
       final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((j) => Workout.fromJson(j as Map<String, dynamic>)).toList();
+      return data
+          .map((j) => Workout.fromJson(j as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'Antrenmanlar alınamadı');
@@ -45,7 +47,11 @@ class WorkoutService {
   }
 
   /// Antrenman kaydını güncelle
-  Future<Workout> updateWorkout(int userId, int workoutId, WorkoutRequest request) async {
+  Future<Workout> updateWorkout(
+    int userId,
+    int workoutId,
+    WorkoutRequest request,
+  ) async {
     try {
       final response = await _apiClient.put(
         ApiConstants.workout(workoutId),
@@ -71,18 +77,25 @@ class WorkoutService {
   // ── Yeni endpoint'ler ──────────────────────────────────────────────────────
 
   /// Belirli bir egzersizin geçmişini getir (ağırlık trendi)
-  Future<List<Workout>> getExerciseHistory(int userId, String exerciseName) async {
+  Future<List<Workout>> getExerciseHistory(
+    int userId,
+    String exerciseName,
+  ) async {
     try {
-      final response = await _apiClient.get(ApiConstants.exerciseHistory(exerciseName));
+      final response = await _apiClient.get(
+        ApiConstants.exerciseHistory(exerciseName),
+      );
       final List<dynamic> data = response.data as List<dynamic>;
-      return data.map((j) => Workout.fromJson(j as Map<String, dynamic>)).toList();
+      return data
+          .map((j) => Workout.fromJson(j as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'Egzersiz geçmişi alınamadı');
     }
   }
 
-  /// Kişisel rekorları getir: Map<egzersizAdı, maxOneRepMax>
+  /// Kişisel rekorları getir: `Map<egzersizAdı, maxOneRepMax>`
   Future<Map<String, double>> getPersonalRecords(int userId) async {
     try {
       final response = await _apiClient.get(ApiConstants.personalRecords);

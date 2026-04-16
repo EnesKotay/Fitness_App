@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/routes/app_routes.dart';
+import '../../core/utils/storage_helper.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/premium_hub_screen.dart';
 import '../home/screens/dashboard_screen.dart';
@@ -25,6 +26,7 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final Set<int> _visitedTabs = {0};
   bool _quickMenuOpen = false;
+  bool _showQuickAccessHint = false;
 
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.home_rounded, label: 'Ana Sayfa'),
@@ -37,6 +39,7 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     MainShell.tabSwitchRequest.addListener(_handleExternalTabSwitch);
+    _showQuickAccessHint = !StorageHelper.getQuickAccessHintSeen();
   }
 
   @override
@@ -62,6 +65,26 @@ class _MainShellState extends State<MainShell> {
       _selectedIndex = index;
       _visitedTabs.add(index);
       _quickMenuOpen = false;
+    });
+  }
+
+  void _handleQuickAccessToggle() {
+    if (_showQuickAccessHint) {
+      StorageHelper.saveQuickAccessHintSeen(true);
+    }
+    setState(() {
+      _quickMenuOpen = !_quickMenuOpen;
+      _showQuickAccessHint = false;
+    });
+  }
+
+  void _handleQuickAccessActionSelected() {
+    if (_showQuickAccessHint) {
+      StorageHelper.saveQuickAccessHintSeen(true);
+    }
+    setState(() {
+      _quickMenuOpen = false;
+      _showQuickAccessHint = false;
     });
   }
 
@@ -116,8 +139,9 @@ class _MainShellState extends State<MainShell> {
         padding: const EdgeInsets.only(bottom: 72),
         child: _QuickAccessFab(
           isOpen: _quickMenuOpen,
-          onToggle: () => setState(() => _quickMenuOpen = !_quickMenuOpen),
-          onActionSelected: () => setState(() => _quickMenuOpen = false),
+          showIntroHint: _showQuickAccessHint,
+          onToggle: _handleQuickAccessToggle,
+          onActionSelected: _handleQuickAccessActionSelected,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -165,11 +189,13 @@ class _MainShellState extends State<MainShell> {
 class _QuickAccessFab extends StatelessWidget {
   const _QuickAccessFab({
     required this.isOpen,
+    required this.showIntroHint,
     required this.onToggle,
     required this.onActionSelected,
   });
 
   final bool isOpen;
+  final bool showIntroHint;
   final VoidCallback onToggle;
   final VoidCallback onActionSelected;
 
@@ -224,19 +250,86 @@ class _QuickAccessFab extends StatelessWidget {
                 )
               : const SizedBox.shrink(),
         ),
-        FloatingActionButton.small(
-          heroTag: 'quick_access_toggle_fab',
-          tooltip: isOpen ? 'Kısayolları Kapat' : 'Kısayolları Aç',
-          onPressed: onToggle,
-          backgroundColor: const Color(0xFF171A20),
-          child: AnimatedRotation(
-            turns: isOpen ? 0.125 : 0,
-            duration: const Duration(milliseconds: 180),
-            child: Icon(
-              isOpen ? Icons.close_rounded : Icons.grid_view_rounded,
-              color: Colors.white,
+        if (showIntroHint && !isOpen) ...[
+          Container(
+            constraints: const BoxConstraints(maxWidth: 220),
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF171A20).withValues(alpha: 0.96),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.26),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kısayollar burada',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'AI Koç, görevler ve premium araçlarını buradan açabilirsin.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.68),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    height: 1.3,
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: showIntroHint && !isOpen
+              ? FloatingActionButton.extended(
+                  key: const ValueKey('quick_access_toggle_extended'),
+                  heroTag: 'quick_access_toggle_fab',
+                  tooltip: 'Kısayolları Aç',
+                  onPressed: onToggle,
+                  backgroundColor: const Color(0xFF171A20),
+                  icon: const Icon(
+                    Icons.grid_view_rounded,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Kısayollar',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              : FloatingActionButton.small(
+                  key: const ValueKey('quick_access_toggle_small'),
+                  heroTag: 'quick_access_toggle_fab',
+                  tooltip: isOpen ? 'Kısayolları Kapat' : 'Kısayolları Aç',
+                  onPressed: onToggle,
+                  backgroundColor: const Color(0xFF171A20),
+                  child: AnimatedRotation(
+                    turns: isOpen ? 0.125 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(
+                      isOpen ? Icons.close_rounded : Icons.grid_view_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
         ),
       ],
     );

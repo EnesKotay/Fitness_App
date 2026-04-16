@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -116,21 +118,27 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
             date: DateTime.now(),
             note: 'Başlangıç Kilosu',
           );
-          final added = await wp.addEntry(firstEntry);
-          if (!added) {
-            debugPrint('İlk kilo eklenirken hata: ${wp.error}');
-          }
+          // Timeout: backend yanıt vermezse navigation'ı bloklamasın
+          await wp.addEntry(firstEntry).timeout(
+            const Duration(seconds: 8),
+            onTimeout: () {
+              debugPrint('İlk kilo ekleme timeout');
+              return false;
+            },
+          );
         }
       }
 
-      // Backend profile senkronizasyonu (cross-device tutarlilik)
-      try {
-        if (!currentContext.mounted) return;
-        await currentContext.read<AuthProvider>().updateProfileFromDiet(
-          profile,
+      // Backend profile senkronizasyonu — navigation'ı bloklamasın
+      if (currentContext.mounted) {
+        unawaited(
+          currentContext
+              .read<AuthProvider>()
+              .updateProfileFromDiet(profile)
+              .catchError((e) {
+                debugPrint('ProfileSetup backend sync hatasi: $e');
+              }),
         );
-      } catch (e) {
-        debugPrint('ProfileSetup backend sync hatasi: $e');
       }
 
       if (currentContext.mounted) {

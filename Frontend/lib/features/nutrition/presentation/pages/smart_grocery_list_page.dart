@@ -75,9 +75,9 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
   int _loadingMessageIndex = 0;
 
   static const List<String> _loadingMessages = [
-    'Alisveris listen hazirlaniyor...',
-    'Hedeflerine uygun urunler seciliyor...',
-    'Kategoriler ve yemek fikirleri toparlaniyor...',
+    'Alışveriş listen hazırlanıyor...',
+    'Hedeflerine uygun ürünler seçiliyor...',
+    'Kategoriler ve yemek fikirleri toparlıyor...',
   ];
 
   bool get _hasPremiumAccess {

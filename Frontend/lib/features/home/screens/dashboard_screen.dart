@@ -10,15 +10,14 @@ import '../../../core/widgets/pro_badge.dart';
 import '../../../core/widgets/premium_state_badge.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../tasks/controllers/daily_tasks_controller.dart';
+import '../../tasks/models/daily_task.dart';
 import '../../workout/providers/workout_provider.dart';
-import '../../workout/providers/streak_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 import '../../../core/utils/storage_helper.dart';
-import '../../../core/routes/app_routes.dart';
 import '../../../core/services/app_review_service.dart';
 import 'dart:async';
 
@@ -254,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return 'Antrenman performansini beslenmeyle destekle';
       case Goal.maintain:
       case null:
-        return 'Bugun ritmini koru ve istikrar sagla';
+        return 'Bugün ritmini koru ve istikrar sağla';
     }
   }
 
@@ -359,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Bugun ritmini takip et ve hedefte kal.',
+                'Bugün ritmini takip et ve hedefte kal.',
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: Colors.white.withValues(alpha: 0.72),
                 ),
@@ -581,6 +580,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     VoidCallback? onTapCalories,
     VoidCallback? onTapProtein,
     VoidCallback? onTapCard,
+    VoidCallback? onAddMeal,
   }) {
     final remaining = (targetCalories - dailyCalories).clamp(0, 999999);
     final progressPct = (progress * 100).round();
@@ -804,538 +804,167 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodayFocusCard({
-    required Goal? goal,
-    required Color accent,
-    required Color secondaryAccent,
-    required int remainingCalories,
-    required int remainingProtein,
-    required SuggestedFoodInsight? mealSuggestion,
-    required TodayWorkoutSuggestion? workoutSuggestion,
-  }) {
-    final goalText = _goalLabel(goal);
-    final focusTone = switch (goal) {
-      Goal.cut => 'Bugün açığı kontrollü yönet',
-      Goal.bulk => 'Bugün kalite kaloriyi tamamla',
-      Goal.strength => 'Bugün performansı destekle',
-      Goal.maintain || null => 'Bugün ritmi ve dengeyi koru',
-    };
-    return _glassCard(
-      accentColor: accent,
-      padding: const EdgeInsets.all(20),
-      radius: 26,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  accent.withValues(alpha: 0.22),
-                  secondaryAccent.withValues(alpha: 0.08),
+          if (dailyCalories == 0) ...[
+            const SizedBox(height: 16),
+            Container(height: 1, color: Colors.white.withValues(alpha: 0.07)),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Bugün henüz öğün eklemedin. İlk öğününle günü başlat.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.58),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _buildActionPill(
+                  icon: Icons.add_rounded,
+                  label: 'Öğün Ekle',
+                  onTap: onAddMeal,
+                  accent: calorieAccent,
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Beslenme detayları',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.28),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 9,
+                    color: Colors.white.withValues(alpha: 0.28),
+                  ),
                 ],
               ),
-              border: Border.all(color: accent.withValues(alpha: 0.16)),
             ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(13),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    color: accent,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Bugün Ne Yapmalıyım?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$goalText hedefin için bugün en yüksek etkili 3 adım burada.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.72),
-                          fontSize: 13.2,
-                          fontWeight: FontWeight.w500,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildTodayFocusBadge(
-                icon: Icons.flash_on_rounded,
-                label: '3 kritik adım',
-                color: accent,
-              ),
-              _buildTodayFocusBadge(
-                icon: Icons.psychology_alt_rounded,
-                label: 'AI günlük plan',
-                color: secondaryAccent,
-              ),
-              _buildTodayFocusBadge(
-                icon: Icons.flag_rounded,
-                label: focusTone,
-                color: Colors.white,
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _buildTodayFocusMetric(
-                  label: 'Kalan Kalori',
-                  value: '$remainingCalories kcal',
-                  color: accent,
-                  icon: Icons.local_fire_department_rounded,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildTodayFocusMetric(
-                  label: 'Kalan Protein',
-                  value: '$remainingProtein g',
-                  color: secondaryAccent,
-                  icon: Icons.bolt_rounded,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildFocusRow(
-            index: '1',
-            badge: 'Beslenme',
-            icon: Icons.restaurant_rounded,
-            color: accent,
-            title: mealSuggestion?.item.name ?? 'Makroya uygun öğün seç',
-            subtitle: mealSuggestion != null
-                ? '${mealSuggestion.suggestedPortionG.round()} g öneri • ${mealSuggestion.reasons.join(' • ')}'
-                : '$remainingCalories kcal ve $remainingProtein g protein açığını kapatacak bir öğün ekle.',
-            cta: 'Beslenmeye git',
-            onTap: () => widget.onNavigateToTab?.call(3),
-          ),
-          const SizedBox(height: 10),
-          _buildFocusRow(
-            index: '2',
-            badge: 'Antrenman',
-            icon: workoutSuggestion?.icon ?? Icons.fitness_center_rounded,
-            color: workoutSuggestion?.color ?? secondaryAccent,
-            title: workoutSuggestion?.title ?? 'Kısa bir antrenman planla',
-            subtitle:
-                workoutSuggestion?.detail ??
-                'Bugün 20-30 dakikalık bir güç seansı hedef ritmini korur.',
-            cta: 'Antrenmana git',
-            onTap: () => widget.onNavigateToTab?.call(1),
-          ),
-          const SizedBox(height: 10),
-          _buildFocusRow(
-            index: '3',
-            badge: 'Takip',
-            icon: Icons.monitor_weight_rounded,
-            color: secondaryAccent,
-            title: 'Günün takibini kapat',
-            subtitle:
-                'Kilo, su ve görevlerini güncelle; AI koç yarına daha isabetli hazırlansın.',
-            cta: 'Takibe git',
-            onTap: () => widget.onNavigateToTab?.call(2),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFocusRow({
-    required String index,
-    required String badge,
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String subtitle,
-    required String cta,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.12),
-            Colors.white.withValues(alpha: 0.03),
           ],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: color.withValues(alpha: 0.18)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  index,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: 2,
-                height: 88,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      color.withValues(alpha: 0.32),
-                      color.withValues(alpha: 0.02),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: color.withValues(alpha: 0.16)),
-                  ),
-                  child: Text(
-                    badge,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(icon, size: 15, color: color),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.5,
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.68),
-                    fontSize: 12.7,
-                    height: 1.42,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionPill(
-                        icon: Icons.arrow_forward_rounded,
-                        label: cta,
-                        onTap: onTap,
-                        accent: color,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: color.withValues(alpha: 0.16),
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.north_east_rounded,
-                        color: color,
-                        size: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildTodayFocusBadge({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: color == Colors.white ? 0.06 : 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: color.withValues(alpha: color == Colors.white ? 0.08 : 0.16),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 13,
-            color: color == Colors.white ? Colors.white70 : color,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: color == Colors.white ? Colors.white70 : color,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTodayFocusMetric({
-    required String label,
-    required String value,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 17),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.58),
-                    fontSize: 11.2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStoryFlowCard({
-    required bool mealDone,
-    required bool workoutDone,
-    required bool trackingDone,
+  Widget _buildQuickStatusRow({
+    required int streak,
+    required bool hasWorkoutToday,
+    required int workoutCount,
+    required String? firstWorkoutName,
+    required double? weightKg,
+    required double weeklyWeightChange,
     required Color accent,
-    VoidCallback? onMealTap,
+    required Color secondaryAccent,
     VoidCallback? onWorkoutTap,
-    VoidCallback? onTrackingTap,
+    VoidCallback? onWeightTap,
   }) {
-    Widget step({
-      required String title,
-      required bool done,
+    Widget chip({
       required IconData icon,
+      required String label,
+      required String value,
+      required Color color,
       VoidCallback? onTap,
     }) {
-      final panel = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: done
-              ? accent.withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: done
-                ? accent.withValues(alpha: 0.32)
-                : Colors.white.withValues(alpha: 0.1),
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: color.withValues(alpha: 0.18)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 12, color: color),
+                    const SizedBox(width: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Row(
-          children: [
-            Icon(
-              done ? Icons.check_circle_rounded : icon,
-              color: done ? accent : Colors.white54,
-              size: 16,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: 11.6,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-      return Expanded(
-        child: onTap == null
-            ? panel
-            : InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: onTap,
-                child: panel,
-              ),
       );
     }
 
-    return _glassCard(
-      accentColor: accent,
-      radius: 24,
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Bugun Akisi',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.96),
-              fontSize: 14.5,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 9),
-          Row(
-            children: [
-              step(
-                title: 'Beslenme',
-                done: mealDone,
-                icon: Icons.restaurant_menu_rounded,
-                onTap: onMealTap,
-              ),
-              const SizedBox(width: 8),
-              step(
-                title: 'Antrenman',
-                done: workoutDone,
-                icon: Icons.fitness_center_rounded,
-                onTap: onWorkoutTap,
-              ),
-              const SizedBox(width: 8),
-              step(
-                title: 'Takip',
-                done: trackingDone,
-                icon: Icons.monitor_weight_rounded,
-                onTap: onTrackingTap,
-              ),
-            ],
-          ),
-        ],
-      ),
+    final streakColor = streak >= 30
+        ? const Color(0xFFFFD700)
+        : streak >= 7
+        ? const Color(0xFFFFA56E)
+        : streak >= 3
+        ? _freshGreen
+        : Colors.white54;
+    final streakValue = streak > 0 ? '$streak Gün 🔥' : 'İlk Günün!';
+
+    final workoutColor = hasWorkoutToday ? accent : Colors.white38;
+    final workoutValue = hasWorkoutToday ? '${workoutCount}x Kayıt' : 'Başla!';
+
+    final weightColor = weightKg != null ? secondaryAccent : Colors.white38;
+    final weightValue = weightKg != null
+        ? '${weightKg.toStringAsFixed(1)} kg'
+        : 'Kilo Ekle';
+
+    return Row(
+      children: [
+        chip(
+          icon: Icons.local_fire_department_rounded,
+          label: 'SERİ',
+          value: streakValue,
+          color: streakColor,
+        ),
+        const SizedBox(width: 8),
+        chip(
+          icon: Icons.fitness_center_rounded,
+          label: 'ANTRENMAN',
+          value: workoutValue,
+          color: workoutColor,
+          onTap: onWorkoutTap,
+        ),
+        const SizedBox(width: 8),
+        chip(
+          icon: Icons.monitor_weight_rounded,
+          label: 'KİLO',
+          value: weightValue,
+          color: weightColor,
+          onTap: onWeightTap,
+        ),
+      ],
     );
   }
 
@@ -1465,7 +1094,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.2), // More visible
+          color: accent.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: accent.withValues(alpha: 0.4), width: 1),
         ),
@@ -1485,166 +1114,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatTile({
-    required IconData icon,
-    required String label,
-    required String value,
-    required String subtext,
-    required Color accentColor,
-    required Color subtextColor,
-    VoidCallback? onTap,
-  }) {
-    return _glassCard(
-      accentColor: accentColor,
-      padding: const EdgeInsets.all(16),
-      radius: 20,
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: accentColor),
-              const SizedBox(width: 5),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            subtext,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: subtextColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStreakActivityRow({
-    required int streak,
-    required int netKcal,
-    required int burnedKcal,
-    required Color accent,
-  }) {
-    Widget chip({
-      required IconData icon,
-      required String label,
-      required String value,
-      required Color color,
-      VoidCallback? onTap,
-    }) {
-      return Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: color.withValues(alpha: 0.18)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, size: 12, color: color),
-                    const SizedBox(width: 4),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Streak badge rengi
-    final streakColor = streak >= 30
-        ? const Color(0xFFFFD700)
-        : streak >= 7
-        ? const Color(0xFFFFA56E)
-        : streak >= 3
-        ? _freshGreen
-        : Colors.white54;
-    final streakLabel = streak >= 30
-        ? '🔥 $streak Gün Seri'
-        : streak >= 7
-        ? '🔥 $streak Gün'
-        : streak > 0
-        ? '$streak Gün'
-        : '—';
-
-    final netColor = netKcal <= 0 ? _freshGreen : _warmAccent;
-
-    return Row(
-      children: [
-        chip(
-          icon: Icons.local_fire_department_rounded,
-          label: 'SERİ',
-          value: streakLabel,
-          color: streakColor,
-        ),
-        const SizedBox(width: 8),
-        chip(
-          icon: Icons.bolt_rounded,
-          label: 'NET KALORİ',
-          value: netKcal >= 0 ? '+$netKcal kcal' : '$netKcal kcal',
-          color: netColor,
-        ),
-        const SizedBox(width: 8),
-        chip(
-          icon: Icons.fitness_center_rounded,
-          label: 'YAKILAN',
-          value: burnedKcal > 0 ? '$burnedKcal kcal' : '—',
-          color: _softBlue,
-        ),
-      ],
     );
   }
 
@@ -1716,8 +1185,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildDailyTasksCard({
     required int completed,
     required int total,
-    required List<dynamic> tasks,
+    required List<DailyTask> tasks,
     required Color accent,
+    required void Function(String taskId) onToggle,
   }) {
     final ratio = total == 0 ? 0.0 : completed / total;
     return _glassCard(
@@ -1754,7 +1224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 2),
                     Text(
                       total == 0
-                          ? 'Henüz görev eklenmedi'
+                          ? 'AI Koç\'tan kişisel görev önerileri alabilirsin'
                           : '$completed/$total tamamlandı · %${(ratio * 100).toInt()}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.55),
@@ -1786,38 +1256,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             if (tasks.isNotEmpty) ...[
               const SizedBox(height: 10),
-              ...tasks.map((t) {
-                final task = t as dynamic;
+              ...tasks.map((task) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 5),
-                  child: Row(
-                    children: [
-                      Icon(
-                        task.isDone
-                            ? Icons.check_circle_rounded
-                            : Icons.radio_button_unchecked_rounded,
-                        size: 14,
-                        color: task.isDone ? accent : Colors.white30,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          task.title as String,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: task.isDone
-                                ? Colors.white38
-                                : Colors.white.withValues(alpha: 0.85),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            decoration: task.isDone
-                                ? TextDecoration.lineThrough
-                                : null,
+                  child: GestureDetector(
+                    onTap: () => onToggle(task.id),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      children: [
+                        Icon(
+                          task.isDone
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked_rounded,
+                          size: 14,
+                          color: task.isDone ? accent : Colors.white30,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            task.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: task.isDone
+                                  ? Colors.white38
+                                  : Colors.white.withValues(alpha: 0.85),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w500,
+                              decoration: task.isDone
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               }),
@@ -1867,11 +1340,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final proteinProgress = targetProtein > 0
                           ? (dailyProtein / targetProtein).clamp(0.0, 1.0)
                           : 0.0;
-                      final remainingCalories = (targetCalories - dailyCalories)
-                          .clamp(0, 999999);
-                      final remainingProtein = (targetProtein - dailyProtein)
-                          .clamp(0, 9999);
-
                       final now = DateTime.now();
                       final todayWorkouts = workoutProvider.workouts
                           .where((w) => _isSameDay(w.workoutDate, now))
@@ -1891,11 +1359,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final isWeightLoading = weightProvider.isLoading;
                       final primaryAccent = _goalPrimaryColor(goal);
                       final secondaryAccent = _goalSecondaryColor(goal);
-                      final nutritionDone =
-                          progress >= 0.8 && proteinProgress >= 0.8;
-                      final trackingDone =
-                          weightProvider.latestEntry != null &&
-                          _isSameDay(weightProvider.latestEntry!.date, now);
                       final isInitialCompositeLoading =
                           isDietLoading &&
                           isWorkoutLoading &&
@@ -1907,6 +1370,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           dietProvider.error ??
                           workoutProvider.errorMessage ??
                           weightProvider.error;
+
+                      final isPremium =
+                          authProvider.user?.premiumTier
+                              ?.toLowerCase()
+                              .trim() ==
+                          'premium';
 
                       return SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
@@ -1961,6 +1430,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             widget.onNavigateToTab?.call(3),
                                         onTapCard: () =>
                                             widget.onNavigateToTab?.call(3),
+                                        onAddMeal: widget.onAddMeal,
                                       )
                                       .animate()
                                       .fadeIn(duration: 240.ms)
@@ -1972,130 +1442,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                             const SizedBox(height: 12),
 
-                            // ── 3. Bugün ne yapmalıyım ──
-                            isInitialCompositeLoading
+                            // ── 3. Hızlı durum: Streak | Antrenman | Kilo ──
+                            (isInitialCompositeLoading)
                                 ? _buildSkeletonCard(
-                                    height: 240,
+                                    height: 72,
                                     accent: primaryAccent,
                                   )
-                                : _buildTodayFocusCard(
-                                        goal: goal,
+                                : _buildQuickStatusRow(
+                                        streak: dietProvider.currentStreak,
+                                        hasWorkoutToday: hasWorkoutToday,
+                                        workoutCount: todayWorkouts.length,
+                                        firstWorkoutName: firstWorkout?.name,
+                                        weightKg: weightProvider
+                                            .latestEntry
+                                            ?.weightKg,
+                                        weeklyWeightChange:
+                                            weightProvider.weeklyChange,
                                         accent: primaryAccent,
                                         secondaryAccent: secondaryAccent,
-                                        remainingCalories: remainingCalories,
-                                        remainingProtein: remainingProtein,
-                                        mealSuggestion: _todayMealSuggestion,
-                                        workoutSuggestion:
-                                            _todayWorkoutSuggestion,
-                                      )
-                                      .animate()
-                                      .fadeIn(duration: 220.ms)
-                                      .slideY(
-                                        begin: 0.04,
-                                        end: 0,
-                                        duration: 220.ms,
-                                        curve: Curves.easeOut,
-                                      ),
-                            const SizedBox(height: 12),
-
-                            // ── 4. Yan yana: Kilo + Antrenman ──
-                            Row(
-                                  children: [
-                                    Expanded(
-                                      child:
-                                          isWeightLoading &&
-                                              weightProvider.latestEntry == null
-                                          ? _buildSkeletonCard(
-                                              height: 100,
-                                              accent: secondaryAccent,
-                                            )
-                                          : _buildStatTile(
-                                              icon:
-                                                  Icons.monitor_weight_rounded,
-                                              label: 'KİLO',
-                                              value:
-                                                  weightProvider.latestEntry !=
-                                                      null
-                                                  ? '${weightProvider.latestEntry!.weightKg.toStringAsFixed(1)} kg'
-                                                  : '—',
-                                              subtext:
-                                                  weightProvider.weeklyChange ==
-                                                      0
-                                                  ? 'Stabil'
-                                                  : '${weightProvider.weeklyChange > 0 ? "+" : ""}${weightProvider.weeklyChange.toStringAsFixed(1)} kg bu hafta',
-                                              accentColor: secondaryAccent,
-                                              subtextColor:
-                                                  weightProvider.weeklyChange ==
-                                                      0
-                                                  ? Colors.white38
-                                                  : weightProvider
-                                                            .weeklyChange <
-                                                        0
-                                                  ? _freshGreen
-                                                  : Colors.orangeAccent,
-                                              onTap: () => widget
-                                                  .onNavigateToTab
-                                                  ?.call(2),
-                                            ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child:
-                                          isWorkoutLoading &&
-                                              todayWorkouts.isEmpty
-                                          ? _buildSkeletonCard(
-                                              height: 100,
-                                              accent: primaryAccent,
-                                            )
-                                          : _buildStatTile(
-                                              icon:
-                                                  Icons.fitness_center_rounded,
-                                              label: 'ANTRENMAN',
-                                              value: hasWorkoutToday
-                                                  ? '${todayWorkouts.length} kayıt'
-                                                  : 'Başla!',
-                                              subtext:
-                                                  firstWorkout?.name ??
-                                                  'İlk antrenmanını başlat',
-                                              accentColor: primaryAccent,
-                                              subtextColor: hasWorkoutToday
-                                                  ? primaryAccent.withValues(
-                                                      alpha: 0.75,
-                                                    )
-                                                  : Colors.white38,
-                                              onTap: () => widget
-                                                  .onNavigateToTab
-                                                  ?.call(1),
-                                            ),
-                                    ),
-                                  ],
-                                )
-                                .animate()
-                                .fadeIn(delay: 60.ms, duration: 240.ms)
-                                .slideY(
-                                  begin: 0.04,
-                                  end: 0,
-                                  duration: 240.ms,
-                                  curve: Curves.easeOut,
-                                ),
-                            const SizedBox(height: 12),
-
-                            // ── 5. Günlük akış (kompakt) ──
-                            isInitialCompositeLoading
-                                ? _buildSkeletonCard(
-                                    height: 80,
-                                    accent: primaryAccent,
-                                  )
-                                : _buildStoryFlowCard(
-                                        mealDone: nutritionDone,
-                                        workoutDone: hasWorkoutToday,
-                                        trackingDone: trackingDone,
-                                        accent: primaryAccent,
-                                        onMealTap: () =>
-                                            widget.onNavigateToTab?.call(3),
                                         onWorkoutTap: () =>
                                             widget.onNavigateToTab?.call(1),
-                                        onTrackingTap: () =>
+                                        onWeightTap: () =>
                                             widget.onNavigateToTab?.call(2),
                                       )
                                       .animate()
@@ -2108,45 +1475,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                             const SizedBox(height: 12),
 
-                            // ── 6. Streak + Net Kalori + Yakılan ──
-                            _buildStreakActivityRow(
-                                  streak: dietProvider.currentStreak,
-                                  netKcal:
-                                      (dietProvider.totals.totalKcal -
-                                              dietProvider.todayBurnedKcal)
-                                          .round(),
-                                  burnedKcal: dietProvider.todayBurnedKcal
-                                      .round(),
-                                  accent: primaryAccent,
-                                )
-                                .animate()
-                                .fadeIn(delay: 70.ms, duration: 240.ms)
-                                .slideY(
-                                  begin: 0.04,
-                                  end: 0,
-                                  duration: 240.ms,
-                                  curve: Curves.easeOut,
-                                ),
-                            const SizedBox(height: 12),
-
-                            // ── 7. Öğün özeti (kompakt) ──
-                            _buildMealSummaryCard(
-                                  todayEntries: todayEntries,
-                                  dailyCalories: dailyCalories,
-                                  progress: progress,
-                                  primaryAccent: primaryAccent,
-                                )
-                                .animate()
-                                .fadeIn(delay: 100.ms, duration: 240.ms)
-                                .slideY(
-                                  begin: 0.04,
-                                  end: 0,
-                                  duration: 240.ms,
-                                  curve: Curves.easeOut,
-                                ),
-                            const SizedBox(height: 12),
-
-                            // ── 8. Günlük görev özeti ──
+                            // ── 4. Günlük görevler ──
                             Consumer<DailyTasksController>(
                               builder: (ctx, tasksCtrl, _) =>
                                   _buildDailyTasksCard(
@@ -2154,9 +1483,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         total: tasksCtrl.totalCount,
                                         tasks: tasksCtrl.tasks.take(3).toList(),
                                         accent: primaryAccent,
+                                        onToggle: tasksCtrl.toggleTaskDone,
                                       )
                                       .animate()
-                                      .fadeIn(delay: 120.ms, duration: 240.ms)
+                                      .fadeIn(delay: 60.ms, duration: 240.ms)
                                       .slideY(
                                         begin: 0.04,
                                         end: 0,
@@ -2166,135 +1496,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 12),
 
-                            // ── 9. Streak + Haftalık plan hızlı erişim ──
-                            Consumer<StreakProvider>(
-                              builder: (context, streak, _) {
-                                if (streak.currentStreak == 0) {
-                                  return const SizedBox.shrink();
-                                }
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.orange.withValues(
-                                          alpha: streak.isOnFire ? 0.22 : 0.12,
-                                        ),
-                                        Colors.orange.withValues(alpha: 0.04),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: Colors.orange.withValues(
-                                        alpha: streak.isOnFire ? 0.35 : 0.18,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () => Navigator.of(
-                                        context,
-                                      ).pushNamed(AppRoutes.weeklyPlan),
-                                      borderRadius: BorderRadius.circular(22),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 14,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Text(
-                                              streak.isOnFire ? '🔥' : '⚡',
-                                              style: const TextStyle(
-                                                fontSize: 28,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '${streak.currentStreak} Günlük Seri!',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                      fontSize: 16,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    streak.isOnFire
-                                                        ? 'Harika devam ediyor! Alev alev 🔥'
-                                                        : 'Devam et, ritim yakalandı!',
-                                                    style: TextStyle(
-                                                      color: Colors.white
-                                                          .withValues(
-                                                            alpha: 0.65,
-                                                          ),
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange.withValues(
-                                                  alpha: 0.18,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: const Text(
-                                                'Haftalık Plan ›',
-                                                style: TextStyle(
-                                                  color: Colors.orange,
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 11,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ).animate().fadeIn(
-                                  delay: 60.ms,
-                                  duration: 240.ms,
-                                );
-                              },
-                            ),
-
-                            // ── 10. Premium banner (kompakt) ──
-                            _buildPremiumHubCard(
-                                  isPremium:
-                                      authProvider.user?.premiumTier
-                                          ?.toLowerCase()
-                                          .trim() ==
-                                      'premium',
-                                  onManage: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const PremiumScreen(),
-                                    ),
-                                  ),
-                                  onCoach: () => Navigator.of(
-                                    context,
-                                  ).pushNamed('/ai-coach'),
-                                  onPhoto: () =>
-                                      widget.onNavigateToTab?.call(3),
-                                  onTrends: () => Navigator.of(
-                                    context,
-                                  ).pushNamed('/nutrition-trends'),
+                            // ── 5. Öğün ekle ──
+                            _buildMealSummaryCard(
+                                  todayEntries: todayEntries,
+                                  dailyCalories: dailyCalories,
+                                  progress: progress,
+                                  primaryAccent: primaryAccent,
                                 )
                                 .animate()
                                 .fadeIn(delay: 80.ms, duration: 240.ms)
@@ -2304,6 +1511,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   duration: 240.ms,
                                   curve: Curves.easeOut,
                                 ),
+
+                            // ── Premium hub (yalnızca premium değilse ve kullanıcı en az bir aksiyon aldıysa) ──
+                            if (!isPremium && (dietProvider.currentStreak > 0 || workoutProvider.workouts.isNotEmpty || todayEntries.isNotEmpty)) ...[
+                              const SizedBox(height: 12),
+                              _buildPremiumHubCard(
+                                    isPremium: false,
+                                    onManage: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const PremiumScreen(),
+                                      ),
+                                    ),
+                                    onCoach: () => Navigator.of(
+                                      context,
+                                    ).pushNamed('/ai-coach'),
+                                    onPhoto: () =>
+                                        widget.onNavigateToTab?.call(3),
+                                    onTrends: () => Navigator.of(
+                                      context,
+                                    ).pushNamed('/nutrition-trends'),
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 100.ms, duration: 240.ms)
+                                  .slideY(
+                                    begin: 0.04,
+                                    end: 0,
+                                    duration: 240.ms,
+                                    curve: Curves.easeOut,
+                                  ),
+                            ],
                           ],
                         ),
                       );
