@@ -12,9 +12,7 @@ class ApiConstants {
   ///   flutter build appbundle --dart-define=API_BASE_URL=https://api.fitnessapp.com
   ///
   /// Geliştirme ortamında dart-define verilmezse platform varsayılanları kullanılır.
-  // Render URL — Render dashboard'dan servis URL'ini buraya yaz
-  // veya build sırasında --dart-define=API_BASE_URL=https://... ile geç
-  static const String _productionUrl = 'https://RENDER_SERVICE_URL_BURAYA.onrender.com';
+  static const String _productionUrl = 'https://fitness-backend-jrcn.onrender.com';
 
   static String get baseUrl {
     // 1) Build-time dart-define (production build için)
