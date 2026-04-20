@@ -13,6 +13,8 @@ import '../../../features/nutrition/domain/entities/meal_type.dart' show MealTyp
 import '../../../features/nutrition/presentation/pages/nutrition_trends_page.dart';
 import '../../../features/nutrition/presentation/pages/smart_grocery_list_page.dart';
 import '../../../features/nutrition/presentation/pages/weekly_meal_plan_page.dart';
+import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import 'premium_screen.dart';
 
@@ -77,6 +79,16 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
       if (mounted) _showSnack('İptal işlemi başarısız oldu. Lütfen tekrar dene.', isError: true);
     } finally {
       if (mounted) setState(() => _cancelLoading = false);
+    }
+  }
+
+  Future<void> _openManageSubscriptions() async {
+    final isIos = Platform.isIOS;
+    final uri = Uri.parse(isIos
+        ? 'https://apps.apple.com/account/subscriptions'
+        : 'https://play.google.com/store/account/subscriptions');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -158,6 +170,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                             isMonthly: isMonthly,
                             cancelLoading: _cancelLoading,
                             onCancel: _cancelMembership,
+                            onManage: _openManageSubscriptions,
                             onUpgrade: () {
                               Navigator.of(context).pop();
                               Navigator.of(context).push(
@@ -277,9 +290,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                                 locked: !isPremium,
                                 onTap: () {
                                   Navigator.of(context).pop();
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                                  );
+                                  Navigator.pushNamed(context, AppRoutes.weeklyPlan);
                                 },
                               ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.08),
                             ),
@@ -425,6 +436,7 @@ class _MembershipCard extends StatelessWidget {
     required this.isMonthly,
     required this.cancelLoading,
     required this.onCancel,
+    required this.onManage,
     required this.onUpgrade,
   });
 
@@ -435,6 +447,7 @@ class _MembershipCard extends StatelessWidget {
   final bool isMonthly;
   final bool cancelLoading;
   final VoidCallback onCancel;
+  final VoidCallback onManage;
   final VoidCallback onUpgrade;
 
   @override
@@ -695,16 +708,22 @@ class _MembershipCard extends StatelessWidget {
                 ],
                 if (!cancelAtEnd)
                   Expanded(
-                    child: _ActionButton(
-                      label: 'İptal Et',
-                      icon: Icons.cancel_outlined,
-                      color: Colors.redAccent,
-                      outlined: true,
-                      loading: cancelLoading,
-                      enabled: isMonthly,
-                      disabledLabel: isMonthly ? null : 'Yıllık kilitli',
-                      onTap: isMonthly ? onCancel : null,
-                    ),
+                    child: isMonthly
+                        ? _ActionButton(
+                            label: 'İptal Et',
+                            icon: Icons.cancel_outlined,
+                            color: Colors.redAccent,
+                            outlined: true,
+                            loading: cancelLoading,
+                            onTap: onCancel,
+                          )
+                        : _ActionButton(
+                            label: 'Aboneliği Yönet',
+                            icon: Icons.open_in_new_rounded,
+                            color: _gold,
+                            outlined: true,
+                            onTap: onManage,
+                          ),
                   )
                 else
                   Expanded(
@@ -821,8 +840,6 @@ class _ActionButton extends StatelessWidget {
     required this.color,
     this.outlined = false,
     this.loading = false,
-    this.enabled = true,
-    this.disabledLabel,
     this.onTap,
   });
 
@@ -831,18 +848,14 @@ class _ActionButton extends StatelessWidget {
   final Color color;
   final bool outlined;
   final bool loading;
-  final bool enabled;
-  final String? disabledLabel;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveLabel = (!enabled && disabledLabel != null) ? disabledLabel! : label;
-
     return GestureDetector(
-      onTap: enabled ? onTap : null,
+      onTap: onTap,
       child: AnimatedOpacity(
-        opacity: enabled ? 1.0 : 0.4,
+        opacity: 1.0,
         duration: const Duration(milliseconds: 200),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 13),
@@ -876,7 +889,7 @@ class _ActionButton extends StatelessWidget {
                 Icon(icon, size: 16, color: outlined ? color : Colors.white),
               const SizedBox(width: 6),
               Text(
-                effectiveLabel,
+                label,
                 style: TextStyle(
                   color: outlined ? color : Colors.white,
                   fontSize: 13,

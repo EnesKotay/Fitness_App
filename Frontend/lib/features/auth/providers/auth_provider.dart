@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../../core/api/services/auth_service.dart';
 import '../../../core/models/auth_models.dart';
@@ -150,10 +151,39 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// JWT payload'ından exp alanını parse eder. Token süresi dolmuşsa true döner.
+  bool _isTokenExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      var payload = parts[1];
+      // Base64 padding
+      while (payload.length % 4 != 0) {
+        payload += '=';
+      }
+      final decoded = utf8.decode(
+        base64.decode(payload.replaceAll('-', '+').replaceAll('_', '/')),
+      );
+      final json = decoded;
+      final expMatch = RegExp(r'"exp"\s*:\s*(\d+)').firstMatch(json);
+      if (expMatch == null) return true;
+      final exp = int.parse(expMatch.group(1)!);
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      return now >= exp;
+    } catch (_) {
+      return true;
+    }
+  }
+
   /// Oturum kontrolü (uygulama başlangıcında). User bilgisi token'dan GET /me ile alınır; local cache güncellenir.
   Future<void> checkAuthStatus() async {
     final token = StorageHelper.getToken();
     if (token == null || token.isEmpty) return;
+
+    if (_isTokenExpired(token)) {
+      await logout();
+      return;
+    }
 
     // Token varsa hemen authenticated say — ağ olmasa da kullanıcı giriş yapmış sayılır.
     // Cached kullanıcı bilgilerini yükle (varsa).

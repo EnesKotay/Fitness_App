@@ -78,26 +78,8 @@ class _SettingsNutritionScreenState extends State<SettingsNutritionScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _sectionHeader('DİNİ & ETİK'),
+          _sectionHeader('DİYET'),
           _buildCard([
-            _prefTile(
-              icon: Icons.no_food_outlined,
-              iconColor: const Color(0xFFEF5350),
-              title: 'Domuz Eti Hariç',
-              subtitle: 'Domuz içeren besinleri filtrele',
-              value: _prefs.excludePork,
-              onChanged: (v) => _update(_prefs.copyWith(excludePork: v)),
-            ),
-            _divider(),
-            _prefTile(
-              icon: Icons.star_half_rounded,
-              iconColor: const Color(0xFF66BB6A),
-              title: 'Helal Dostu',
-              subtitle: 'Helal sertifikalı ürünleri tercih et',
-              value: _prefs.halalFriendly,
-              onChanged: (v) => _update(_prefs.copyWith(halalFriendly: v)),
-            ),
-            _divider(),
             _prefTile(
               icon: Icons.grass_rounded,
               iconColor: const Color(0xFF4CAF50),

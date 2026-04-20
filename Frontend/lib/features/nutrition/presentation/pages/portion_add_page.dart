@@ -15,7 +15,6 @@ import '../../../../core/utils/app_snack.dart';
 import '../widgets/portion/portion_utils.dart';
 import '../widgets/portion/food_hero_card.dart';
 import '../widgets/portion/quick_portion_card.dart';
-import '../widgets/portion/servings_card.dart';
 import '../widgets/portion/advanced_adjustments_card.dart';
 import '../widgets/portion/macro_and_meal_cards.dart';
 
@@ -200,14 +199,6 @@ class _PortionAddPageState extends State<PortionAddPage>
                         onGramsSelected: _setGrams,
                       ),
                       const SizedBox(height: 14),
-                      if (widget.food.servings.isNotEmpty) ...[
-                        ServingsCard(
-                          food: widget.food,
-                          currentGrams: _currentGrams,
-                          onGramsSelected: _setGrams,
-                        ),
-                        const SizedBox(height: 14),
-                      ],
                       AdvancedAdjustmentsCard(
                         gramController: _gramController,
                         currentGrams: _currentGrams,

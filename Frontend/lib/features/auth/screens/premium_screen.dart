@@ -324,7 +324,6 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
   }
 
-  // ignore: unused_element
   Future<void> _showSuccessSheet() async {
     if (!mounted) return;
     await showModalBottomSheet<void>(

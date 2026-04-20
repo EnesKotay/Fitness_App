@@ -85,9 +85,28 @@ class AiCoachController extends ChangeNotifier {
 
   String _getWelcomeMessage() {
     final greeting = _getTimeGreeting();
+    final s = _dailySummary;
+
+    // Personalised opening when we have live data
+    if (s.calories > 0 && s.targetCalories != null) {
+      final diff = s.targetCalories! - s.calories;
+      if (diff > 200) {
+        return '$greeting! Bugün ${s.calories} kcal girdin, hedefe $diff kcal kaldı. Ne soruyorsun?';
+      } else if (diff < -200) {
+        return '$greeting! Bugün ${s.calories} kcal girdin — hedefin ${s.targetCalories} kcal, biraz aşıldı. Nasıl yardımcı olabilirim?';
+      }
+    }
+    if (s.workouts > 0 && s.workoutMinutes > 0) {
+      return '$greeting! Bugün ${s.workoutMinutes} dakika antrenman yapmışsın 💪 Nasıl hissediyorsun?';
+    }
+    if (s.waterLiters > 0 && s.waterLiters < 1.0) {
+      return '$greeting! Su tüketimin henüz ${s.waterLiters.toStringAsFixed(1)} L — hedefe biraz daha var. Ne sormak istiyorsun?';
+    }
+
+    // Fallback: personality-based
     switch (_personality) {
       case CoachPersonality.motivator:
-        return '$greeting! Bahaneleri kapı önünde bırak. Bugün neler başardın? Hemen rapor ver.';
+        return '$greeting! Bahaneleri kapı önünde bırak. Bugün neler başardın?';
       case CoachPersonality.scientist:
         return '$greeting. Fizyolojik verilerini analiz etmeye hazırım. Bugünkü performans metriklerini paylaş.';
       case CoachPersonality.supportive:
@@ -132,14 +151,57 @@ class AiCoachController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns chips contextually relevant to the last AI message when in conversation,
+  /// or data-driven starter chips on the welcome screen.
+  List<String> _buildContextualChips(String lastResponse) {
+    final lower = lastResponse.toLowerCase();
+    final chips = <String>[];
+
+    if (lower.contains('kalori') || lower.contains('kcal')) {
+      chips.add('Nasıl tamamlayabilirim?');
+      chips.add('Kalorim yeterli mi?');
+    }
+    if (lower.contains('antrenman') || lower.contains('egzersiz') || lower.contains('training')) {
+      chips.add('Farklı bir antrenman öner');
+      chips.add('Dinlenmeli miyim?');
+    }
+    if (lower.contains('protein') || lower.contains('makro') || lower.contains('karbonhidrat')) {
+      chips.add('Makrolarımı nasıl dengelerim?');
+      chips.add('En iyi protein kaynakları neler?');
+    }
+    if (lower.contains('kilo') || lower.contains('ağırlık') || lower.contains('weight')) {
+      chips.add('Ne kadar sürede değişir?');
+      chips.add('Neden kilo alamıyorum?');
+    }
+    if (lower.contains('su') || lower.contains('water')) {
+      chips.add('Su hedefime nasıl ulaşırım?');
+    }
+    if (lower.contains('toparlanma') || lower.contains('uyku') || lower.contains('recovery')) {
+      chips.add('Toparlanma için ne yapabilirim?');
+    }
+
+    // Always pad to 4 chips with universals
+    const universals = [
+      'Devam et, daha fazla anlat',
+      'Peki ya bunun yerine?',
+      'Bunu daha basit açıkla',
+      'Başka ne önerirsin?',
+    ];
+    for (final u in universals) {
+      if (chips.length >= 4) break;
+      if (!chips.contains(u)) chips.add(u);
+    }
+    return chips.take(4).toList();
+  }
+
   List<String> get actionChips {
     if (_messages.length > 1) {
-      return [
-        'Daha fazla detay ver',
-        'Bunu bugüne göre netleştir',
-        'Bunu daha basit açıkla',
-        'Başka ne yapabilirim?',
-      ];
+      // Find the last non-error assistant message
+      final lastAi = _messages.lastWhere(
+        (m) => m.role == ChatRole.assistant && !m.isError,
+        orElse: () => _messages.first,
+      );
+      return _buildContextualChips(lastAi.content);
     }
 
     // Verilere göre akıllı öneriler
@@ -378,13 +440,10 @@ class AiCoachController extends ChangeNotifier {
       _messages.add(initialAiMsg);
       notifyListeners();
 
-      // Faster typing simulation
-      const int charsPerStep = 5;
-      for (int i = 0; i <= fullContent.length; i += charsPerStep) {
-        await Future.delayed(const Duration(milliseconds: 20));
-        final end = (i + charsPerStep) > fullContent.length
-            ? fullContent.length
-            : (i + charsPerStep);
+      // Variable-speed typing — pauses on punctuation like a real human
+      int i = 0;
+      while (i < fullContent.length) {
+        final end = (i + 4) > fullContent.length ? fullContent.length : (i + 4);
         _messages[_messages.length - 1] = ChatMessage(
           id: aiMsgId,
           role: ChatRole.assistant,
@@ -392,7 +451,22 @@ class AiCoachController extends ChangeNotifier {
           structuredResponse: response,
         );
         notifyListeners();
-        if (end == fullContent.length) break;
+        i = end;
+
+        if (i >= fullContent.length) break;
+
+        final nextChar = fullContent[i - 1];
+        final int delay;
+        if (nextChar == '.' || nextChar == '!' || nextChar == '?') {
+          delay = 90; // Sentence end — natural pause
+        } else if (nextChar == ',' || nextChar == ':' || nextChar == '—') {
+          delay = 45; // Clause break — slight hesitation
+        } else if (nextChar == '\n') {
+          delay = 60; // New line — brief breath
+        } else {
+          delay = 16; // Normal character — fast
+        }
+        await Future.delayed(Duration(milliseconds: delay));
       }
 
       return true;
@@ -524,6 +598,12 @@ class AiCoachController extends ChangeNotifier {
     final trimmed = prompt.trim();
     final timeCtx = '[Gün: ${_getTimeOfDay()}]';
     if (trimmed.isEmpty) return '$timeCtx ${mode.promptLead}';
+
+    // When conversation is ongoing, drop the mode prefix so the chat flows naturally.
+    // The mode context was already established in earlier turns.
+    final isOngoing = _messages.where((m) => !m.isError).length > 2;
+    if (isOngoing) return '$timeCtx $trimmed';
+
     return '$timeCtx [Mod: ${mode.label}] ${mode.promptLead}\n$trimmed';
   }
 

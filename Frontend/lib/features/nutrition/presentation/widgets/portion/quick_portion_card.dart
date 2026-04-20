@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../../core/theme/app_colors.dart';
 import '../../../domain/entities/food_item.dart';
@@ -20,208 +21,192 @@ class QuickPortionCard extends StatelessWidget {
     required this.onGramsSelected,
   });
 
-  String _selectedFriendlyAmountTitle() {
-    final presets = PortionUtils.buildUserFriendlyPresets(food, defaultPortionGrams);
-    for (final preset in presets) {
-      if ((preset.$3 - currentGrams).abs() < 1) {
-        return PortionUtils.displayPresetTitle(preset.$1, food);
-      }
-    }
-
-    for (final serving in food.servings) {
-      if ((serving.grams - currentGrams).abs() < 1) {
-        return PortionUtils.displayServingLabel(serving.label);
-      }
-    }
-
-    // fallback unit using diet provider logic moved to utils if possible, otherwise hardcode
-    final unit = 'Porsiyon'; 
-    if (currentGrams <= 0) return 'Miktar seç';
-    final ratio = currentGrams / (defaultPortionGrams <= 0 ? 100 : defaultPortionGrams);
-
-    if ((ratio - 0.5).abs() < 0.1) return 'Yarım $unit';
-    if ((ratio - 1).abs() < 0.1) return '1 $unit';
-    if ((ratio - 1.5).abs() < 0.1) return '1,5 $unit';
-    if ((ratio - 2).abs() < 0.15) return '2 $unit';
-    return '${ratio.toStringAsFixed(1).replaceAll('.0', '').replaceAll('.', ',')} $unit';
-  }
-
-  String _selectedFriendlyAmountSubtitle() {
-    if (currentGrams <= 0) return 'Miktar seçildiğinde burada görünür';
-    return '${PortionUtils.formatGrams(currentGrams)} • yaklaşık ${calculatedKcal.round()} kcal';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final title = _selectedFriendlyAmountTitle();
-    final subtitle = _selectedFriendlyAmountSubtitle();
+    // ── 1. Uygulama presetleri ──────────────────────────────────
+    final presets = PortionUtils.buildUserFriendlyPresets(food, defaultPortionGrams);
+
+    // ── 2. Yiyeceğe özel ölçüler (servings) — "100g" hariç ──────
+    final extraServings = food.servings.where((s) {
+      final lower = s.label.toLowerCase().trim();
+      return lower != '100 g' && lower != '100g';
+    }).toList();
+
+    // ── 3. Birleşik tile listesi ────────────────────────────────
+    // Preset tile'ları
+    final List<_PortionTile> tiles = presets.take(4).map((p) {
+      final (label, icon, grams) = p;
+      return _PortionTile(
+        label: PortionUtils.displayPresetTitle(label, food),
+        icon: icon,
+        grams: grams,
+        kcal: (food.kcalPer100g * grams / 100).round(),
+      );
+    }).toList();
+
+    // Serving tile'ları — preset ile çakışanları atla (±5g tolerans)
+    for (final s in extraServings) {
+      final g = s.grams.toDouble();
+      final alreadyCovered = tiles.any((t) => (t.grams - g).abs() < 5);
+      if (!alreadyCovered) {
+        tiles.add(_PortionTile(
+          label: PortionUtils.displayServingLabel(s.label),
+          icon: PortionUtils.servingIcon(s.label),
+          grams: g,
+          kcal: (food.kcalPer100g * g / 100).round(),
+          isServing: true,
+        ));
+      }
+    }
 
     return PortionUtils.buildGlassCard(
-      radius: 24,
+      radius: 22,
       accentBorder: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PortionUtils.buildHeader(Icons.restaurant_menu_rounded, 'Bugün Ne Kadar Yedin?'),
-          const SizedBox(height: 10),
-          Text(
-            'Önce tabak, kase veya porsiyon seç. Gram bilmen gerekmiyor.',
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.62),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.20),
-                  AppColors.secondary.withValues(alpha: 0.12),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          // ── Başlık ────────────────────────────────
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.restaurant_menu_rounded,
+                  size: 15,
+                  color: AppColors.primaryLight,
+                ),
               ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Seçilen miktar',
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.58),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(width: 10),
+              Text(
+                'Porsiyon Seç',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const Spacer(),
+              // Seçili kcal pill
+              if (currentGrams > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.secondary.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Text(
+                    '${calculatedKcal.round()} kcal',
+                    style: GoogleFonts.inter(
+                      color: AppColors.secondary,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.1,
-                    height: 1.05,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _summaryPill('${calculatedKcal.round()} kcal', const Color(0xFFFFB067)),
-                    _summaryPill(subtitle, Colors.white70),
-                  ],
-                ),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(height: 16),
-          _buildQuickPortionGrid(context),
+
+          const SizedBox(height: 14),
+
+          // ── Tile Grid ─────────────────────────────
+          _buildGrid(context, tiles),
         ],
       ),
     );
   }
 
-  Widget _buildQuickPortionGrid(BuildContext context) {
-    final presets = PortionUtils.buildUserFriendlyPresets(food, defaultPortionGrams);
+  Widget _buildGrid(BuildContext context, List<_PortionTile> tiles) {
+    final screenW = MediaQuery.of(context).size.width;
+    // 3 sütun: dış padding 16×2 + kart iç padding 16×2 + 2 boşluk×10
+    final itemW = (screenW - 32 - 32 - 20) / 3;
+
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: presets.map((preset) {
-        final (label, icon, grams) = preset;
-        final isSelected = (currentGrams - grams).abs() < 1;
-        final title = PortionUtils.displayPresetTitle(label, food);
-        final subtitle = PortionUtils.humanPresetSubtitle(title, grams, food);
+      children: tiles.map((tile) {
+        final isSelected = (currentGrams - tile.grams).abs() < 1;
+        final accentColor = tile.isServing ? AppColors.secondary : AppColors.primary;
+        final accentLight = tile.isServing ? AppColors.secondary : AppColors.primaryLight;
 
         return GestureDetector(
-          onTap: () => onGramsSelected(grams),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onGramsSelected(tile.grams);
+          },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: (MediaQuery.of(context).size.width - 82) / 2,
-            padding: const EdgeInsets.all(14),
+            duration: const Duration(milliseconds: 160),
+            width: itemW,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
               gradient: isSelected
                   ? LinearGradient(
                       colors: [
-                        AppColors.primary.withValues(alpha: 0.30),
-                        AppColors.primary.withValues(alpha: 0.14),
+                        accentColor.withValues(alpha: 0.28),
+                        accentColor.withValues(alpha: 0.10),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
-                  : LinearGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.06),
-                        Colors.white.withValues(alpha: 0.03),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              borderRadius: BorderRadius.circular(18),
+                  : null,
+              color: isSelected ? null : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.70)
+                    ? accentColor.withValues(alpha: 0.65)
                     : Colors.white.withValues(alpha: 0.08),
                 width: isSelected ? 1.5 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.15),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+                        color: accentColor.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ]
                   : null,
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary.withValues(alpha: 0.20)
-                        : Colors.white.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 19,
-                    color: isSelected ? AppColors.primaryLight : Colors.white.withValues(alpha: 0.72),
-                  ),
+                Icon(
+                  tile.icon,
+                  size: 20,
+                  color: isSelected
+                      ? accentLight
+                      : Colors.white.withValues(alpha: 0.6),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
-                  title,
+                  tile.label,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
                     color: Colors.white,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  '${tile.kcal} kcal',
                   style: GoogleFonts.inter(
-                    color: isSelected ? AppColors.primaryLight : Colors.white.withValues(alpha: 0.54),
-                    fontSize: 10.8,
+                    color: isSelected
+                        ? accentLight
+                        : Colors.white.withValues(alpha: 0.45),
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    height: 1.2,
                   ),
                 ),
               ],
@@ -231,21 +216,20 @@ class QuickPortionCard extends StatelessWidget {
       }).toList(),
     );
   }
+}
 
-  Widget _summaryPill(String text, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.12),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: color.withValues(alpha: 0.22)),
-    ),
-    child: Text(
-      text,
-      style: GoogleFonts.inter(
-        color: color == Colors.white70 ? Colors.white70 : color,
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  );
+class _PortionTile {
+  final String label;
+  final IconData icon;
+  final double grams;
+  final int kcal;
+  final bool isServing; // serving tile'ları hafif farklı renk alır
+
+  const _PortionTile({
+    required this.label,
+    required this.icon,
+    required this.grams,
+    required this.kcal,
+    this.isServing = false,
+  });
 }

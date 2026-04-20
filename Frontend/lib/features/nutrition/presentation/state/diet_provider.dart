@@ -1835,20 +1835,6 @@ class DietProvider with ChangeNotifier {
     'pancetta',
   };
 
-  static const Set<String> _alcoholTokens = {
-    'alkol',
-    'alcohol',
-    'beer',
-    'wine',
-    'liqueur',
-    'vodka',
-    'whiskey',
-    'rum',
-    'brandy',
-    'sarap',
-    'bira',
-  };
-
   static const Set<String> _meatTokens = {
     'et',
     'beef',
@@ -1941,10 +1927,6 @@ class DietProvider with ChangeNotifier {
     }
 
     if (prefs.excludePork && containsAny(_porkTokens)) return false;
-    if (prefs.halalFriendly &&
-        (containsAny(_porkTokens) || containsAny(_alcoholTokens))) {
-      return false;
-    }
     if (prefs.vegetarian && containsAny(_meatTokens.union(_porkTokens))) {
       return false;
     }

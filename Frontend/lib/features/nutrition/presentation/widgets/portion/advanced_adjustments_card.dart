@@ -43,33 +43,29 @@ class _AdvancedAdjustmentsCardState extends State<AdvancedAdjustmentsCard> {
             },
             child: Row(
               children: [
-                PortionUtils.buildHeader(Icons.tune_rounded, 'İnce Ayar'),
+                PortionUtils.buildHeader(Icons.tune_rounded, 'Gram ile Ayarla'),
                 const Spacer(),
-                Text(
-                  _showAdvancedAdjustments ? 'Gizle' : 'Gram ile düzelt',
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.56),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                // Show current grams inline when collapsed
+                if (!_showAdvancedAdjustments && widget.currentGrams > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      '${widget.currentGrams.round()}g',
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
                 Icon(
                   _showAdvancedAdjustments
                       ? Icons.keyboard_arrow_up_rounded
                       : Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white.withValues(alpha: 0.56),
+                  color: Colors.white.withValues(alpha: 0.45),
+                  size: 20,
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'İstersen gramı elle düzenleyebilirsin. Bu alan isteğe bağlı.',
-            style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.56),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
             ),
           ),
           if (_showAdvancedAdjustments) ...[

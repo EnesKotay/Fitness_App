@@ -762,24 +762,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   runSpacing: 10,
                   children: [
                     _buildPreferenceChip(
-                      label: 'Domuz yok',
-                      selected: _nutritionPreferences.excludePork,
-                      onTap: () => setState(() {
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          excludePork: !_nutritionPreferences.excludePork,
-                        );
-                      }),
-                    ),
-                    _buildPreferenceChip(
-                      label: 'Helal uyumlu',
-                      selected: _nutritionPreferences.halalFriendly,
-                      onTap: () => setState(() {
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          halalFriendly: !_nutritionPreferences.halalFriendly,
-                        );
-                      }),
-                    ),
-                    _buildPreferenceChip(
                       label: 'Vejetaryen',
                       selected: _nutritionPreferences.vegetarian,
                       onTap: () => setState(() {

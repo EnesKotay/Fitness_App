@@ -46,6 +46,7 @@ public class PremiumController {
 
     @GET
     @Path("/premium-status")
+    @Transactional
     public Response getPremiumStatus(@Context HttpHeaders headers) {
         try {
             Long userId = resolveUserId(headers);
@@ -61,7 +62,11 @@ public class PremiumController {
             if (isActive && user.premiumExpiresAt != null
                     && user.premiumExpiresAt.isBefore(LocalDateTime.now())) {
                 isActive = false;
-                tier = "expired";
+                tier = "free";
+                user.premiumTier = "free";
+                user.premiumCancelAtPeriodEnd = false;
+                user.persist();
+                LOG.infof("Premium süresi doldu, tier güncellendi — userId=%d", user.id);
             }
 
             Map<String, Object> result = new HashMap<>();
