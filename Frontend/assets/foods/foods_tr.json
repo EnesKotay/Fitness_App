@@ -7437,8 +7437,8 @@
       "imageUrl": null
     },
     {
-      "id": "tr_food_1004_greek_yogurt_granola_meyve",
-      "name": "Greek yoğurt + granola + meyve",
+      "id": "tr_food_1004_suzme_yogurt_granola_meyve",
+      "name": "Süzme yoğurt + granola + meyve",
       "category": "Kahvaltı",
       "basis": {
         "amount": 300.0,
@@ -7491,8 +7491,8 @@
       "source": "fitness_tarif_veritabani.xlsx"
     },
     {
-      "id": "tr_food_1030_greek_yogurt_yaban_mersini",
-      "name": "Greek yoğurt + yaban mersini",
+      "id": "tr_food_1030_suzme_yogurt_yaban_mersini",
+      "name": "Süzme yoğurt + yaban mersini",
       "category": "Ara Öğün",
       "basis": {
         "amount": 200.0,
@@ -7546,8 +7546,8 @@
       "source": "fitness_tarif_veritabani.xlsx"
     },
     {
-      "id": "tr_food_1203_greek_yogurt_parfe_katmanli",
-      "name": "Greek yoğurt parfé (katmanlı)",
+      "id": "tr_food_1203_suzme_yogurt_parfe_katmanli",
+      "name": "Süzme yoğurt parfé (katmanlı)",
       "category": "Tatlı & Atıştırma",
       "basis": {
         "amount": 250.0,
@@ -7586,7 +7586,7 @@
         }
       ],
       "aliases": [
-        "Greek yoğurt parfé",
+        "Süzme yoğurt parfé",
         "katmanlı"
       ],
       "tags": [
@@ -40694,69 +40694,6 @@
       "source": "Türk Gıda Veritabanı: süzme yoğurt (%10 protein, tam yağlı süzme)"
     },
     {
-      "id": "tr_food_1341_greek_yogurt",
-      "name": "Greek yoğurt (az yağlı, sade)",
-      "category": "Süt Ürünleri",
-      "basis": {
-        "amount": 170.0,
-        "unit": "g"
-      },
-      "nutrientsPerBasis": {
-        "kcal": 136.0,
-        "protein": 17.0,
-        "carb": 6.1,
-        "fat": 0.7
-      },
-      "servings": [
-        {
-          "id": "s_default",
-          "label": "1 kase (170g)",
-          "grams": 170.0,
-          "isDefault": true
-        },
-        {
-          "id": "s_100",
-          "label": "100 g",
-          "grams": 100,
-          "isDefault": false
-        },
-        {
-          "id": "s_small",
-          "label": "Küçük (125ml)",
-          "grams": 125,
-          "isDefault": false
-        },
-        {
-          "id": "s_medium",
-          "label": "Orta (200ml)",
-          "grams": 200,
-          "isDefault": false
-        },
-        {
-          "id": "s_large",
-          "label": "Büyük (500ml)",
-          "grams": 500,
-          "isDefault": false
-        }
-      ],
-      "aliases": [
-        "yunan yoğurdu",
-        "greek yogurt",
-        "protein yoğurt"
-      ],
-      "tags": [
-        "sut-urunleri",
-        "yogurt",
-        "protein",
-        "az-yagli",
-        "yerel-veritabani"
-      ],
-      "brand": null,
-      "barcode": null,
-      "imageUrl": null,
-      "source": "USDA #01253 Greek yogurt, nonfat, plain"
-    },
-    {
       "id": "tr_food_1342_bal",
       "name": "Bal",
       "category": "Kahvaltılık",
@@ -48156,6 +48093,674 @@
       "barcode": null,
       "imageUrl": null,
       "source": "USDA #01123 whole egg, raw, small"
+    },
+    {
+      "id": "tr_food_1467_alabalik_taze",
+      "name": "Alabalık (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 178.5, "protein": 30.8, "carb": 0.0, "fat": 5.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false },
+        { "id": "s_250", "label": "250 g", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["alabalık", "gökkuşağı alabalığı", "tatlı su balığı", "trout", "rainbow trout"],
+      "tags": ["balik", "ham-balik", "tatli-su-baligi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15236 trout, rainbow, raw"
+    },
+    {
+      "id": "tr_food_1468_sardalya_taze",
+      "name": "Sardalya (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 312.0, "protein": 36.9, "carb": 0.0, "fat": 17.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["sardalya", "sardine", "ham sardalya", "taze sardalya"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15088 sardine, raw"
+    },
+    {
+      "id": "tr_food_1469_palamut_taze",
+      "name": "Palamut (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 216.0, "protein": 33.2, "carb": 0.0, "fat": 8.6 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false },
+        { "id": "s_250", "label": "250 g", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["palamut", "bonito", "Atlantic bonito", "taze palamut"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15012 bonito, raw"
+    },
+    {
+      "id": "tr_food_1470_lufer_taze",
+      "name": "Lüfer (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 238.5, "protein": 30.8, "carb": 0.0, "fat": 12.5 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false },
+        { "id": "s_250", "label": "250 g", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["lüfer", "bluefish", "taze lüfer"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15017 bluefish, raw"
+    },
+    {
+      "id": "tr_food_1471_istavrit_taze",
+      "name": "İstavrit (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 168.0, "protein": 29.3, "carb": 0.0, "fat": 5.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["istavrit", "horse mackerel", "stavrit", "taze istavrit"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15050 jack mackerel, raw"
+    },
+    {
+      "id": "tr_food_1472_barbun_balik_taze",
+      "name": "Barbun balığı (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 175.5, "protein": 30.3, "carb": 0.0, "fat": 5.7 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["barbun", "barbun balığı", "tekir", "red mullet", "taze barbun"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15069 mullet, striped, raw"
+    },
+    {
+      "id": "tr_food_1473_kalkan_taze",
+      "name": "Kalkan (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 142.5, "protein": 25.1, "carb": 0.0, "fat": 4.4 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["kalkan", "turbot", "kalkan balığı", "taze kalkan"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "dusuk-yag", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15261 turbot, raw"
+    },
+    {
+      "id": "tr_food_1474_kilic_baligi_taze",
+      "name": "Kılıç balığı (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 216.0, "protein": 30.0, "carb": 0.0, "fat": 10.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 dilim (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["kılıç", "kılıç balığı", "swordfish", "taze kılıç"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15092 swordfish, raw"
+    },
+    {
+      "id": "tr_food_1475_ton_baligi_taze",
+      "name": "Ton balığı (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 216.0, "protein": 35.0, "carb": 0.0, "fat": 7.7 },
+      "servings": [
+        { "id": "s_default", "label": "1 dilim (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["ton balığı taze", "taze ton", "yellowfin tuna", "bluefin tuna", "tuna steak"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "yuksek-protein", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15264 tuna, yellowfin, raw"
+    },
+    {
+      "id": "tr_food_1476_ahtapot_taze",
+      "name": "Ahtapot (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 123.0, "protein": 22.4, "carb": 3.3, "fat": 1.5 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["ahtapot", "octopus", "taze ahtapot"],
+      "tags": ["deniz-urunu", "ham-deniz-urunu", "dusuk-yag", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15150 octopus, raw"
+    },
+    {
+      "id": "tr_food_1477_morina_taze",
+      "name": "Morina (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 123.0, "protein": 26.7, "carb": 0.0, "fat": 1.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["morina", "cod", "taze morina", "atlantic cod"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "dusuk-yag", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15015 cod, atlantic, raw"
+    },
+    {
+      "id": "tr_food_1478_dil_baligi_taze",
+      "name": "Dil balığı (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 136.5, "protein": 28.2, "carb": 0.0, "fat": 2.6 },
+      "servings": [
+        { "id": "s_default", "label": "1 fileto (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_75", "label": "75 g", "grams": 75, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["dil balığı", "sole", "flounder", "taze dil balığı"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "dusuk-yag", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15026 flatfish (flounder/sole), raw"
+    },
+    {
+      "id": "tr_food_1479_tirsi_taze",
+      "name": "Tirsi (taze)",
+      "category": "Et & Protein",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 295.5, "protein": 26.1, "carb": 0.0, "fat": 20.9 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["tirsi", "shad", "gizzard shad", "taze tirsi"],
+      "tags": ["balik", "ham-balik", "deniz-urunu", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #15036 herring/shad, raw"
+    },
+    {
+      "id": "tr_food_1480_maydanoz_taze",
+      "name": "Maydanoz (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 20.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 7.2, "protein": 0.6, "carb": 1.3, "fat": 0.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 demet (~20g)", "grams": 20.0, "isDefault": true },
+        { "id": "s_10", "label": "10 g", "grams": 10, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["maydanoz", "taze maydanoz", "parsley"],
+      "tags": ["sebze", "ot", "taze-ot", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #11297 parsley, fresh"
+    },
+    {
+      "id": "tr_food_1481_nane_taze",
+      "name": "Nane (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 20.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 8.8, "protein": 0.7, "carb": 1.7, "fat": 0.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 demet (~20g)", "grams": 20.0, "isDefault": true },
+        { "id": "s_10", "label": "10 g", "grams": 10, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["nane", "taze nane", "mint", "spearmint"],
+      "tags": ["sebze", "ot", "taze-ot", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #02064 spearmint, fresh"
+    },
+    {
+      "id": "tr_food_1482_dereotu_taze",
+      "name": "Dereotu (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 20.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 8.6, "protein": 0.7, "carb": 1.4, "fat": 0.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 demet (~20g)", "grams": 20.0, "isDefault": true },
+        { "id": "s_10", "label": "10 g", "grams": 10, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["dereotu", "taze dereotu", "dill", "taze dill"],
+      "tags": ["sebze", "ot", "taze-ot", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #02045 dill weed, fresh"
+    },
+    {
+      "id": "tr_food_1483_fesle_en_taze",
+      "name": "Fesleğen (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 20.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 4.6, "protein": 0.6, "carb": 0.5, "fat": 0.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 demet (~20g)", "grams": 20.0, "isDefault": true },
+        { "id": "s_10", "label": "10 g", "grams": 10, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["fesleğen", "taze fesleğen", "basil", "fresh basil"],
+      "tags": ["sebze", "ot", "taze-ot", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #02044 basil, fresh"
+    },
+    {
+      "id": "tr_food_1484_ki_ni_taze",
+      "name": "Kişniş (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 20.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 4.6, "protein": 0.4, "carb": 0.7, "fat": 0.1 },
+      "servings": [
+        { "id": "s_default", "label": "1 demet (~20g)", "grams": 20.0, "isDefault": true },
+        { "id": "s_10", "label": "10 g", "grams": 10, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["kişniş", "taze kişniş", "cilantro", "coriander", "kosbor"],
+      "tags": ["sebze", "ot", "taze-ot", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #11165 coriander (cilantro), raw"
+    },
+    {
+      "id": "tr_food_1485_roka_taze",
+      "name": "Roka (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 50.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 12.5, "protein": 1.3, "carb": 1.9, "fat": 0.4 },
+      "servings": [
+        { "id": "s_default", "label": "1 porsiyon (~50g)", "grams": 50.0, "isDefault": true },
+        { "id": "s_30", "label": "30 g", "grams": 30, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["roka", "taze roka", "arugula", "rocket"],
+      "tags": ["sebze", "yesil-yaprakli", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #11959 arugula, raw"
+    },
+    {
+      "id": "tr_food_1486_semizotu_taze",
+      "name": "Semizotu (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 20.0, "protein": 2.0, "carb": 3.4, "fat": 0.4 },
+      "servings": [
+        { "id": "s_default", "label": "100 g", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_150", "label": "150 g", "grams": 150, "isDefault": false }
+      ],
+      "aliases": ["semizotu", "taze semizotu", "purslane", "portulak"],
+      "tags": ["sebze", "yesil-yaprakli", "dusuk-kalori", "omega3", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #11453 purslane, raw"
+    },
+    {
+      "id": "tr_food_1487_pazi_taze",
+      "name": "Pazı (taze)",
+      "category": "Sebze & Meyve",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 19.0, "protein": 1.8, "carb": 3.7, "fat": 0.2 },
+      "servings": [
+        { "id": "s_default", "label": "100 g", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_150", "label": "150 g", "grams": 150, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["pazı", "taze pazı", "swiss chard", "chard", "pazi"],
+      "tags": ["sebze", "yesil-yaprakli", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #11147 chard, swiss, raw"
+    },
+    {
+      "id": "tr_food_1488_kepekli_ekmek",
+      "name": "Kepekli ekmek",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 50.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 123.5, "protein": 4.5, "carb": 24.4, "fat": 1.6 },
+      "servings": [
+        { "id": "s_default", "label": "1 dilim (~50g)", "grams": 50.0, "isDefault": true },
+        { "id": "s_30", "label": "1 ince dilim (~30g)", "grams": 30, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["kepekli ekmek", "kepek ekmek", "buğday kepeği ekmeği", "bran bread"],
+      "tags": ["ekmek", "kepekli", "tahil", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18069 bread, wheat bran"
+    },
+    {
+      "id": "tr_food_1489_cavdar_ekmek",
+      "name": "Çavdar ekmeği",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 50.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 129.5, "protein": 4.3, "carb": 24.2, "fat": 1.7 },
+      "servings": [
+        { "id": "s_default", "label": "1 dilim (~50g)", "grams": 50.0, "isDefault": true },
+        { "id": "s_30", "label": "1 ince dilim (~30g)", "grams": 30, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["çavdar ekmeği", "çavdar", "rye bread", "siyah ekmek"],
+      "tags": ["ekmek", "cavdar", "tahil", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18023 bread, rye"
+    },
+    {
+      "id": "tr_food_1490_lavas",
+      "name": "Lavaş",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 60.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 166.2, "protein": 5.3, "carb": 32.7, "fat": 2.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~60g)", "grams": 60.0, "isDefault": true },
+        { "id": "s_30", "label": "yarım lavaş (~30g)", "grams": 30, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["lavaş", "lavash", "ince ekmek", "lavaş ekmeği"],
+      "tags": ["ekmek", "lavas", "tahil", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18266 flatbread, lavash"
+    },
+    {
+      "id": "tr_food_1491_bazlama",
+      "name": "Bazlama",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 80.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 220.0, "protein": 6.4, "carb": 41.6, "fat": 3.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~80g)", "grams": 80.0, "isDefault": true },
+        { "id": "s_40", "label": "yarım adet (~40g)", "grams": 40, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["bazlama", "tava bazlaması", "köy bazlaması"],
+      "tags": ["ekmek", "geleneksel", "tahil", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18262 flatbread, Turkish style"
+    },
+    {
+      "id": "tr_food_1492_yufka_yaprak",
+      "name": "Yufka (1 yaprak)",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 30.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 107.1, "protein": 2.9, "carb": 21.2, "fat": 1.3 },
+      "servings": [
+        { "id": "s_default", "label": "1 yaprak (~30g)", "grams": 30.0, "isDefault": true },
+        { "id": "s_15", "label": "yarım yaprak (~15g)", "grams": 15, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["yufka", "yufka yaprağı", "phyllo", "börek yufkası", "dürüm yufkası"],
+      "tags": ["ekmek", "yufka", "hamur", "tahil", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18261 phyllo/filo dough"
+    },
+    {
+      "id": "tr_food_1493_cok_tahilli_ekmek",
+      "name": "Çok tahıllı ekmek",
+      "category": "Tahıl & Ekmek",
+      "basis": { "amount": 50.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 125.0, "protein": 4.8, "carb": 23.5, "fat": 1.8 },
+      "servings": [
+        { "id": "s_default", "label": "1 dilim (~50g)", "grams": 50.0, "isDefault": true },
+        { "id": "s_30", "label": "1 ince dilim (~30g)", "grams": 30, "isDefault": false },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false }
+      ],
+      "aliases": ["çok tahıllı ekmek", "multigrain ekmek", "çok tahıllı", "9 tahıllı ekmek", "7 tahıllı ekmek"],
+      "tags": ["ekmek", "cok-tahilli", "multigrain", "lif", "tahil", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #18350 bread, multigrain"
+    },
+    {
+      "id": "tr_food_1494_papatya_cayi",
+      "name": "Papatya çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 2.0, "protein": 0.0, "carb": 0.4, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["papatya çayı", "papatya", "chamomile tea", "chamomile"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #14355 tea, herb, chamomile, brewed"
+    },
+    {
+      "id": "tr_food_1495_ihlamur_cayi",
+      "name": "Ihlamur çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 2.0, "protein": 0.0, "carb": 0.4, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["ıhlamur", "ıhlamur çayı", "linden tea", "lime blossom tea"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #14356 tea, herb, linden, brewed"
+    },
+    {
+      "id": "tr_food_1496_kusburnu_cayi",
+      "name": "Kuşburnu çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 4.0, "protein": 0.0, "carb": 1.0, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["kuşburnu", "kuşburnu çayı", "rosehip tea", "rose hip tea"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "c-vitamini", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #14278 rosehip tea, brewed"
+    },
+    {
+      "id": "tr_food_1497_ada_cayi",
+      "name": "Ada çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 2.0, "protein": 0.0, "carb": 0.3, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["ada çayı", "adaçayı", "sage tea", "salvia"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #14357 tea, herb, sage, brewed"
+    },
+    {
+      "id": "tr_food_1498_nane_limon_cayi",
+      "name": "Nane-limon çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 3.0, "protein": 0.1, "carb": 0.6, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["nane limon", "nane-limon çayı", "nane çayı", "mint lemon tea", "limonlu nane"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #02064 + 09150 mint-lemon tea, brewed"
+    },
+    {
+      "id": "tr_food_1499_zencefil_cayi",
+      "name": "Zencefil çayı (demlenmiş)",
+      "category": "İçecek",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 5.0, "protein": 0.1, "carb": 1.2, "fat": 0.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 fincan (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_300", "label": "1 büyük bardak (300ml)", "grams": 300, "isDefault": false }
+      ],
+      "aliases": ["zencefil çayı", "zencefil", "ginger tea", "ginger lemon tea"],
+      "tags": ["icecek", "bitki-cayi", "kafein-siz", "dusuk-kalori", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #02021 ginger root tea, brewed"
+    },
+    {
+      "id": "tr_food_1500_yesil_mercimek_kuru",
+      "name": "Yeşil mercimek (kuru)",
+      "category": "Baklagil",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 352.0, "protein": 24.6, "carb": 60.1, "fat": 1.1 },
+      "servings": [
+        { "id": "s_default", "label": "100 g (kuru)", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["yeşil mercimek", "yeşil mercimek kuru", "green lentil", "lentil"],
+      "tags": ["baklagil", "kuru-baklagil", "protein", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #16069 lentils, raw (green/brown)"
+    },
+    {
+      "id": "tr_food_1501_borulce_kuru",
+      "name": "Börülce (kuru)",
+      "category": "Baklagil",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 336.0, "protein": 23.5, "carb": 60.0, "fat": 1.3 },
+      "servings": [
+        { "id": "s_default", "label": "100 g (kuru)", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["börülce", "kuru börülce", "black-eyed pea", "cowpea"],
+      "tags": ["baklagil", "kuru-baklagil", "protein", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #16067 cowpeas (black-eyed peas), raw"
+    },
+    {
+      "id": "tr_food_1502_kuru_fasulye_cig",
+      "name": "Kuru fasulye (çiğ)",
+      "category": "Baklagil",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 337.0, "protein": 22.3, "carb": 60.7, "fat": 0.8 },
+      "servings": [
+        { "id": "s_default", "label": "100 g (kuru)", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["kuru fasulye çiğ", "çiğ kuru fasulye", "beyaz fasulye kuru", "haricot bean", "navy bean"],
+      "tags": ["baklagil", "kuru-baklagil", "protein", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #16040 beans, white, raw"
+    },
+    {
+      "id": "tr_food_1503_nohut_cig",
+      "name": "Nohut (kuru, çiğ)",
+      "category": "Baklagil",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 364.0, "protein": 19.3, "carb": 60.6, "fat": 6.0 },
+      "servings": [
+        { "id": "s_default", "label": "100 g (kuru)", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["nohut kuru", "kuru nohut çiğ", "chickpea raw", "garbanzo bean"],
+      "tags": ["baklagil", "kuru-baklagil", "protein", "lif", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #16056 chickpeas (garbanzo beans), raw"
+    },
+    {
+      "id": "tr_food_1504_lor_peyniri",
+      "name": "Lor peyniri",
+      "category": "Süt Ürünleri",
+      "basis": { "amount": 100.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 98.0, "protein": 12.5, "carb": 3.0, "fat": 3.5 },
+      "servings": [
+        { "id": "s_default", "label": "100 g", "grams": 100.0, "isDefault": true },
+        { "id": "s_50", "label": "50 g", "grams": 50, "isDefault": false },
+        { "id": "s_150", "label": "150 g", "grams": 150, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["lor", "lor peyniri", "çökelek", "tulum benzeri yumuşak peynir", "ricotta benzeri"],
+      "tags": ["sut-urunu", "peynir", "protein", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #01015 cheese, ricotta, part skim (lor equivalent)"
+    },
+    {
+      "id": "tr_food_1505_yarim_yagli_sut",
+      "name": "Yarım yağlı süt (%1.5)",
+      "category": "Süt Ürünleri",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 94.0, "protein": 6.8, "carb": 9.6, "fat": 3.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 bardak (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_100", "label": "100 ml", "grams": 100, "isDefault": false },
+        { "id": "s_250", "label": "1 büyük bardak (250ml)", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["yarım yağlı süt", "1.5 süt", "%1.5 süt", "light süt", "semi-skimmed milk"],
+      "tags": ["sut-urunu", "sut", "protein", "kalsiyum", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #01082 milk, 1.5% fat"
+    },
+    {
+      "id": "tr_food_1506_keci_sutu",
+      "name": "Keçi sütü",
+      "category": "Süt Ürünleri",
+      "basis": { "amount": 200.0, "unit": "ml" },
+      "nutrientsPerBasis": { "kcal": 138.0, "protein": 7.2, "carb": 9.0, "fat": 8.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 bardak (200ml)", "grams": 200.0, "isDefault": true },
+        { "id": "s_100", "label": "100 ml", "grams": 100, "isDefault": false },
+        { "id": "s_250", "label": "1 büyük bardak (250ml)", "grams": 250, "isDefault": false }
+      ],
+      "aliases": ["keçi sütü", "goat milk", "keci sutu"],
+      "tags": ["sut-urunu", "sut", "protein", "kalsiyum", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #01106 milk, goat, fluid"
+    },
+    {
+      "id": "tr_food_1507_keci_yogurdu",
+      "name": "Keçi yoğurdu",
+      "category": "Süt Ürünleri",
+      "basis": { "amount": 150.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 88.5, "protein": 5.3, "carb": 6.0, "fat": 4.5 },
+      "servings": [
+        { "id": "s_default", "label": "1 kase (150g)", "grams": 150.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100, "isDefault": false },
+        { "id": "s_200", "label": "200 g", "grams": 200, "isDefault": false }
+      ],
+      "aliases": ["keçi yoğurdu", "goat yogurt", "goat milk yogurt"],
+      "tags": ["sut-urunu", "yogurt", "protein", "probiyotik", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "USDA #01171 yogurt, goat milk"
     }
   ]
 }
