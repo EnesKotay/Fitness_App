@@ -29,9 +29,6 @@ dependencies:
   # State Management
   provider: ^6.1.5+1
 
-  # AI & Environment
-  google_generative_ai: ^0.4.0
-  
   # Local Storage (2.5.4 - shared_preferences_android compileSdk uyumluluğu için)
   shared_preferences: ^2.5.4
   flutter_secure_storage: ^9.2.2
@@ -85,6 +82,11 @@ dependencies:
 
   # App Icon Generator
   flutter_launcher_icons: ^0.14.3
+
+dependency_overrides:
+  # objective_c 9.x native dylib iOS simülatörde yüklenemiyor (iOS 26 uyumsuzluk).
+  # path_provider_foundation 2.5.1 objective_c bağımlılığı olmayan son versiyon.
+  path_provider_foundation: 2.5.1
 
 dev_dependencies:
   flutter_test:
