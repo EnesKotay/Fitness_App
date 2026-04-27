@@ -39,6 +39,9 @@ public class GeminiNutritionService {
     @Inject
     UserMealPreferenceService userPreferenceService;
 
+    @Inject
+    NutritionPlanCustomizationNormalizer planCustomizationNormalizer;
+
     @ConfigProperty(name = "gemini.nutrition.model", defaultValue = "gemini-2.0-flash")
     String nutritionModel;
 
@@ -287,6 +290,9 @@ public class GeminiNutritionService {
             // Parse meals array
             response.meals = parseMeals(parsed.path("meals"));
 
+            // Parse customizable daily plan array
+            response.dailyPlan = parseDailyPlan(parsed.path("dailyPlan"));
+
             // Parse shoppingList
             response.shoppingList = parseStringList(parsed.path("shoppingList"));
 
@@ -306,6 +312,9 @@ public class GeminiNutritionService {
         // Ensure lists are not null
         if (response.meals == null) {
             response.meals = new ArrayList<>();
+        }
+        if (response.dailyPlan == null) {
+            response.dailyPlan = new ArrayList<>();
         }
         if (response.shoppingList == null) {
             response.shoppingList = new ArrayList<>();
@@ -337,14 +346,47 @@ public class GeminiNutritionService {
             }
         }
 
-        // If meals is empty, generate followUpQuestions
-        if (response.meals.isEmpty() && response.followUpQuestions.isEmpty()) {
+        response.dailyPlan = planCustomizationNormalizer.normalize(response.dailyPlan);
+
+        for (NutritionAiResponse.DailyPlanMeal meal : response.dailyPlan) {
+            if (meal.ingredients == null) {
+                meal.ingredients = new ArrayList<>();
+            }
+            if (meal.macros == null) {
+                meal.macros = new NutritionAiResponse.MealMacros();
+            }
+            if (meal.time == null) {
+                meal.time = "";
+            }
+            if (meal.label == null) {
+                meal.label = "";
+            }
+            if (meal.mealType == null) {
+                meal.mealType = "";
+            }
+            if (meal.food == null) {
+                meal.food = "";
+            }
+            if (meal.reason == null) {
+                meal.reason = "";
+            }
+            if (meal.ingredients.size() > MAX_INGREDIENTS) {
+                meal.ingredients = meal.ingredients.subList(0, MAX_INGREDIENTS);
+            }
+        }
+
+        // If both structured outputs are empty, generate follow-up prompts
+        if (response.meals.isEmpty() && response.dailyPlan.isEmpty() && response.followUpQuestions.isEmpty()) {
             response.followUpQuestions = generateSmartFollowUpQuestions();
         }
 
         // Fill reply if empty
         if (response.reply == null || response.reply.isBlank()) {
-            if (!response.meals.isEmpty()) {
+            if (!response.dailyPlan.isEmpty()) {
+                response.reply = String.format(
+                        "%d öğünlük kişiselleştirilmiş bir günlük plan hazırladım. Uygulamak istersen tek dokunuşla bugüne ekleyebilirsin.",
+                        response.dailyPlan.size());
+            } else if (!response.meals.isEmpty()) {
                 response.reply = String.format(
                         "%d öneri hazırladım. Birini seç veya malzemelerini öğrenmek için sor.",
                         response.meals.size());
@@ -459,6 +501,7 @@ public class GeminiNutritionService {
     private NutritionAiResponse createFallbackResponse(String rawResponse) {
         NutritionAiResponse fallback = new NutritionAiResponse();
         fallback.meals = new ArrayList<>();
+        fallback.dailyPlan = new ArrayList<>();
         fallback.shoppingList = new ArrayList<>();
         fallback.followUpQuestions = generateSmartFollowUpQuestions();
 
@@ -529,6 +572,62 @@ public class GeminiNutritionService {
             meals.add(meal);
         }
         return meals;
+    }
+
+    private List<NutritionAiResponse.DailyPlanMeal> parseDailyPlan(JsonNode arrayNode) {
+        List<NutritionAiResponse.DailyPlanMeal> plan = new ArrayList<>();
+        if (arrayNode == null || !arrayNode.isArray()) {
+            return plan;
+        }
+
+        for (JsonNode node : arrayNode) {
+            if (!node.isObject()) {
+                continue;
+            }
+
+            String food = node.path("food").asText("").trim();
+            if (food.isEmpty()) {
+                continue;
+            }
+
+            NutritionAiResponse.DailyPlanMeal meal = new NutritionAiResponse.DailyPlanMeal();
+            meal.time = node.path("time").asText("").trim();
+            meal.label = node.path("label").asText("").trim();
+            meal.mealType = node.path("mealType").asText("").trim();
+            meal.food = food;
+            meal.reason = node.path("reason").asText("").trim();
+            meal.ingredients = parseStringList(node.path("ingredients"));
+            meal.macros = parseMacros(node.path("macros"));
+            plan.add(meal);
+        }
+
+        return plan;
+    }
+
+    private NutritionAiResponse.MealMacros parseMacros(JsonNode macrosNode) {
+        if (!macrosNode.isObject()) {
+            return null;
+        }
+
+        NutritionAiResponse.MealMacros macros = new NutritionAiResponse.MealMacros();
+        JsonNode kcalNode = macrosNode.path("kcal");
+        JsonNode proteinNode = macrosNode.path("proteinG");
+        JsonNode carbsNode = macrosNode.path("carbsG");
+        JsonNode fatNode = macrosNode.path("fatG");
+
+        if (kcalNode.isInt() || kcalNode.isLong()) {
+            macros.kcal = kcalNode.asInt();
+        }
+        if (proteinNode.isInt() || proteinNode.isLong()) {
+            macros.proteinG = proteinNode.asInt();
+        }
+        if (carbsNode.isInt() || carbsNode.isLong()) {
+            macros.carbsG = carbsNode.asInt();
+        }
+        if (fatNode.isInt() || fatNode.isLong()) {
+            macros.fatG = fatNode.asInt();
+        }
+        return macros;
     }
 
     private List<String> parseStringList(JsonNode arrayNode) {

@@ -8,11 +8,21 @@ import 'ring_painter.dart';
 class FoodHeroCard extends StatelessWidget {
   final FoodItem food;
   final Animation<double> ringAnim;
+  final double currentGrams;
+  final double calculatedKcal;
+  final double calculatedProtein;
+  final double calculatedCarb;
+  final double calculatedFat;
 
   const FoodHeroCard({
     super.key,
     required this.food,
     required this.ringAnim,
+    required this.currentGrams,
+    required this.calculatedKcal,
+    required this.calculatedProtein,
+    required this.calculatedCarb,
+    required this.calculatedFat,
   });
 
   static const _proteinColor = Color(0xFF5B9BFF);
@@ -27,112 +37,141 @@ class FoodHeroCard extends StatelessWidget {
     if (food.fatPer100g < 3) badges.add(('Düşük Yağ', const Color(0xFF8BC34A)));
     if (food.kcalPer100g < 50) badges.add(('Hafif', Colors.white70));
 
+    final total = calculatedProtein + calculatedCarb + calculatedFat;
+    final protPct = total > 0 ? (calculatedProtein / total * 100).round() : 0;
+    final carbPct = total > 0 ? (calculatedCarb / total * 100).round() : 0;
+    final fatPct  = total > 0 ? (calculatedFat  / total * 100).round() : 0;
+
     return PortionUtils.buildGlassCard(
       radius: 22,
       accentBorder: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            // ── Kalori Halkası ──────────────────────
-            AnimatedBuilder(
-              animation: ringAnim,
-              builder: (context, child) => SizedBox(
-                width: 72,
-                height: 72,
-                child: CustomPaint(
-                  painter: RingPainter(
-                    color: AppColors.secondary,
-                    strokeWidth: 3,
-                    glowOpacity: 0.08 + ringAnim.value * 0.14,
+            // ── Üst Kısım: İsim, Etiketler ve Kalori Halkası ──
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        food.name,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 5,
+                        runSpacing: 4,
+                        children: [
+                          PortionUtils.buildBadge(
+                            food.category.isEmpty ? 'Besin' : food.category,
+                            Colors.white.withValues(alpha: 0.45),
+                          ),
+                          ...badges.map((b) => PortionUtils.buildBadge(b.$1, b.$2)),
+                        ],
+                      ),
+                    ],
                   ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${food.kcalPer100g.round()}',
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            height: 1,
-                            letterSpacing: -0.8,
-                          ),
+                ),
+                const SizedBox(width: 14),
+                AnimatedBuilder(
+                  animation: ringAnim,
+                  builder: (context, child) => SizedBox(
+                    width: 76,
+                    height: 76,
+                    child: CustomPaint(
+                      painter: RingPainter(
+                        color: AppColors.secondary,
+                        strokeWidth: 3.5,
+                        glowOpacity: 0.08 + ringAnim.value * 0.14,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${calculatedKcal.round()}',
+                              style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                                height: 1,
+                                letterSpacing: -0.8,
+                              ),
+                            ),
+                            Text(
+                              'kcal',
+                              style: TextStyle(
+                                color: AppColors.secondary.withValues(alpha: 0.8),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '/${PortionUtils.formatGrams(currentGrams)}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'kcal',
-                          style: TextStyle(
-                            color: AppColors.secondary.withValues(alpha: 0.8),
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          '/100g',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            fontSize: 7.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
 
-            const SizedBox(width: 14),
+            const SizedBox(height: 18),
 
-            // ── İsim + Etiketler + Makrolar ─────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // İsim
-                  Text(
-                    food.name,
-                    style: GoogleFonts.inter(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Etiketler (kategori + besin etiketleri)
-                  Wrap(
-                    spacing: 5,
-                    runSpacing: 4,
-                    children: [
-                      PortionUtils.buildBadge(
-                        food.category.isEmpty ? 'Besin' : food.category,
-                        Colors.white.withValues(alpha: 0.45),
+            // ── Alt Kısım: Makro Bar ve Detaylı Kutular ──
+            if (total > 0) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Row(
+                  children: [
+                    if (calculatedProtein > 0)
+                      Flexible(
+                        flex: (calculatedProtein * 100).round(),
+                        child: Container(height: 7, color: _proteinColor),
                       ),
-                      ...badges.map((b) => PortionUtils.buildBadge(b.$1, b.$2)),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Makrolar — tek satır
-                  Row(
-                    children: [
-                      _macroChip('P', '${food.proteinPer100g.round()}g', _proteinColor),
-                      const SizedBox(width: 6),
-                      _macroChip('K', '${food.carbPer100g.round()}g', _carbColor),
-                      const SizedBox(width: 6),
-                      _macroChip('Y', '${food.fatPer100g.round()}g', _fatColor),
-                    ],
-                  ),
-                ],
+                    if (calculatedCarb > 0)
+                      Flexible(
+                        flex: (calculatedCarb * 100).round(),
+                        child: Container(height: 7, color: _carbColor),
+                      ),
+                    if (calculatedFat > 0)
+                      Flexible(
+                        flex: (calculatedFat * 100).round(),
+                        child: Container(height: 7, color: _fatColor),
+                      ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 14),
+            ],
+
+            Row(
+              children: [
+                Expanded(child: _detailedMacroChip('Protein', calculatedProtein, protPct, _proteinColor)),
+                const SizedBox(width: 8),
+                Expanded(child: _detailedMacroChip('Karb', calculatedCarb, carbPct, _carbColor)),
+                const SizedBox(width: 8),
+                Expanded(child: _detailedMacroChip('Yağ', calculatedFat, fatPct, _fatColor)),
+              ],
             ),
           ],
         ),
@@ -140,34 +179,43 @@ class FoodHeroCard extends StatelessWidget {
     );
   }
 
-  Widget _macroChip(String abbr, String value, Color color) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.10),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: color.withValues(alpha: 0.20)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          abbr,
-          style: TextStyle(
-            color: color.withValues(alpha: 0.65),
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-          ),
+  Widget _detailedMacroChip(String label, double grams, int pct, Color color) =>
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.16)),
         ),
-        const SizedBox(width: 3),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
+        child: Column(
+          children: [
+            Text(
+              '${grams.toStringAsFixed(1)}g',
+              style: GoogleFonts.inter(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.50),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              '$pct%',
+              style: TextStyle(
+                color: color.withValues(alpha: 0.50),
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }

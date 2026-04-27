@@ -63,6 +63,58 @@ public class NutritionPromptBuilder {
                     """.formatted(userContext, message, contextBlock);
         }
 
+        if ("PLAN_CUSTOMIZATION".equals(task)) {
+            return """
+                    You are a practical nutrition assistant inside a fitness app.
+                    Language: Turkish (tr)
+                    %s
+
+                    User request: %s
+
+                    Context:
+                    %s
+
+                    Only output valid JSON. Do not wrap with markdown.
+                    Response must follow this exact JSON schema:
+                    {
+                      "reply": "string - 1 to 3 short Turkish sentences explaining what changed",
+                      "dailyPlan": [
+                        {
+                          "time": "HH:mm",
+                          "label": "string - meal label in Turkish",
+                          "mealType": "BREAKFAST | LUNCH | DINNER | SNACK",
+                          "food": "string - the actual meal",
+                          "reason": "string - why this change fits the request",
+                          "ingredients": ["string"],
+                          "macros": {
+                            "kcal": 0,
+                            "proteinG": 0,
+                            "carbsG": 0,
+                            "fatG": 0
+                          }
+                        }
+                      ],
+                      "shoppingList": ["string - only extra items needed beyond listed available ingredients"],
+                      "followUpQuestions": ["string - short helpful next question"]
+                    }
+
+                        Rules:
+                    - dailyPlan must contain 3 to 4 items
+                    - Keep the plan aligned with the user's goal
+                    - Respect dietary restrictions and the user's request strictly
+                    - If the user mentions available ingredients, prioritize them heavily
+                    - Preserve a realistic full-day flow with breakfast, lunch, dinner, and optionally one snack
+                    - breakfast, lunch, and dinner are required; snack is optional
+                    - At most one item is allowed for each mealType
+                    - mealType must be one of BREAKFAST, LUNCH, DINNER, SNACK
+                    - time must be realistic and sorted chronologically
+                    - macros values must be integers
+                    - ingredients should be concise and practical
+                    - shoppingList should stay short and only mention truly missing extras
+                    - Do not provide medical diagnosis
+                    """.formatted(userContext, message, contextBlock);
+        }
+
         // Structured JSON prompt for meal suggestions with language/difficulty/budget
         return """
                 You are a practical nutrition assistant in a fitness app.
@@ -164,6 +216,20 @@ public class NutritionPromptBuilder {
         }
         if (context.availableIngredients != null && !context.availableIngredients.isEmpty()) {
             lines.add("- availableIngredients: " + String.join(", ", context.availableIngredients));
+        }
+        if (context.currentPlan != null && !context.currentPlan.isEmpty()) {
+            lines.add("- currentPlan:");
+            for (NutritionAiRequest.CurrentPlanMeal meal : context.currentPlan) {
+                if (meal == null) {
+                    continue;
+                }
+                String time = meal.time == null ? "" : meal.time.trim();
+                String label = meal.label == null ? "" : meal.label.trim();
+                String mealType = meal.mealType == null ? "" : meal.mealType.trim();
+                String food = meal.food == null ? "" : meal.food.trim();
+                String macros = meal.macros == null ? "" : meal.macros.trim();
+                lines.add("  - " + time + " | " + label + " | " + mealType + " | " + food + " | " + macros);
+            }
         }
         if (context.summaryText != null && !context.summaryText.isBlank()) {
             lines.add("- summaryText: " + context.summaryText.trim());

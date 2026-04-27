@@ -119,7 +119,7 @@ class DietProvider with ChangeNotifier {
     final lower = name.toLowerCase();
     final cat = category.toLowerCase();
 
-    // Adet
+    // Tane / Adet
     if (lower.contains('burger') ||
         lower.contains('hamburger') ||
         lower.contains('yumurta') ||
@@ -134,8 +134,12 @@ class DietProvider with ChangeNotifier {
         lower.contains('poğaça') ||
         lower.contains('simit') ||
         lower.contains('pide') ||
+        lower.contains('köfte') ||
+        lower.contains('içli köfte') ||
+        lower.contains('sarma') ||
+        lower.contains('dolma') ||
         cat.contains('fast food')) {
-      return 'Adet';
+      return 'Tane';
     }
 
     // Dilim
@@ -150,7 +154,10 @@ class DietProvider with ChangeNotifier {
     if (lower.contains('çorba') ||
         cat.contains('çorba') ||
         lower.contains('bowl') ||
-        lower.contains('salata')) {
+        lower.contains('kase') ||
+        lower.contains('salata') ||
+        lower.contains('yoğurt') ||
+        lower.contains('yulaf')) {
       return 'Kase';
     }
 
@@ -174,7 +181,9 @@ class DietProvider with ChangeNotifier {
         lower.contains('makarna') ||
         lower.contains('sebze') ||
         lower.contains('sote') ||
-        lower.contains('kavurma')) {
+        lower.contains('kavurma') ||
+        lower.contains('fasulye') ||
+        lower.contains('nohut')) {
       return 'Tabak';
     }
 
@@ -286,21 +295,92 @@ class DietProvider with ChangeNotifier {
     return effectiveTargetKcal - _totals.totalKcal;
   }
 
-  /// Profil kiloya göre makro hedefleri (g): protein 1.6g/kg, kalan kalori %50 karb / %50 yağ.
+  /// Profil hedefine göre makro hedefleri (g).
+  /// Protein: 1.6-2.0g/kg, Yağ: Toplam kalorinin %25-30'u, Karb: Kalan kaloriler.
   MacroTargets get macroTargets {
     final w =
         _weightProvider?.latestEntry?.weightKg ?? _profile?.weight ?? 70.0;
     final kcal = _dailyTargetKcal ?? 2000.0;
-    final proteinG = (w * 1.6).roundToDouble();
+    final goal = _profile?.goal ?? Goal.maintain;
+
+    // 1. Protein — hedefe göre g/kg
+    double proteinPerKg;
+    double fatPercent;
+    switch (goal) {
+      case Goal.cut:
+        proteinPerKg = 2.0; // Kas koruma için yüksek
+        fatPercent = 0.25; // %25
+        break;
+      case Goal.bulk:
+        proteinPerKg = 1.8; // Kas büyütme
+        fatPercent = 0.25; // %25
+        break;
+      case Goal.strength:
+        proteinPerKg = 1.8; // Güç performansı
+        fatPercent = 0.30; // %30 (hormon desteği)
+        break;
+      case Goal.maintain:
+        proteinPerKg = 1.6; // Koruma
+        fatPercent = 0.30; // %30
+        break;
+    }
+
+    final proteinG = (w * proteinPerKg).roundToDouble();
     final proteinKcal = proteinG * 4;
-    final remaining = (kcal - proteinKcal).clamp(0.0, double.infinity);
-    final carbKcal = remaining * 0.5;
-    final fatKcal = remaining * 0.5;
+
+    // 2. Yağ — toplam kalorinin %'si
+    final fatKcal = kcal * fatPercent;
+    final fatG = (fatKcal / 9).roundToDouble();
+
+    // 3. Karb — kalan kalori
+    final carbKcal = (kcal - proteinKcal - fatKcal).clamp(0.0, double.infinity);
+    final carbG = (carbKcal / 4).roundToDouble();
+
     return MacroTargets(
       protein: proteinG,
-      carb: (carbKcal / 4).roundToDouble(),
-      fat: (fatKcal / 9).roundToDouble(),
+      carb: carbG,
+      fat: fatG,
     );
+  }
+
+  /// Calculates the simulated daily calorie and protein targets if the user were to switch to [simulatedGoal].
+  ({double targetKcal, double proteinTarget}) getSimulatedTargets(Goal simulatedGoal) {
+    if (_profile == null) return (targetKcal: 2000.0, proteinTarget: 140.0);
+
+    final currentWeight = _weightProvider?.latestEntry?.weightKg ?? _profile!.weight;
+
+    final fakeProfile = UserProfile(
+      name: _profile!.name,
+      age: _profile!.age,
+      weight: currentWeight,
+      height: _profile!.height,
+      gender: _profile!.gender,
+      activityLevel: _profile!.activityLevel,
+      goal: simulatedGoal,
+      customKcalTarget: _profile!.customKcalTarget,
+    );
+
+    final baseKcal = fakeProfile.targetCalories;
+    final simulatedKcal = baseKcal + todayBurnedKcal;
+
+    double proteinPerKg;
+    switch (simulatedGoal) {
+      case Goal.cut:
+        proteinPerKg = 2.0;
+        break;
+      case Goal.bulk:
+        proteinPerKg = 1.8;
+        break;
+      case Goal.strength:
+        proteinPerKg = 1.8;
+        break;
+      case Goal.maintain:
+        proteinPerKg = 1.6;
+        break;
+    }
+    final proteinTarget = (currentWeight * proteinPerKg).roundToDouble();
+
+    return (targetKcal: simulatedKcal, proteinTarget: proteinTarget);
   }
 
   /// Vücut Kitle Endeksi (BMI) hesaplaması.

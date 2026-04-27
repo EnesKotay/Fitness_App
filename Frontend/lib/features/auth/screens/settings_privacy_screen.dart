@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/utils/storage_helper.dart';
 import 'legal_screen.dart';
@@ -21,6 +22,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
   bool _analytics = true;
   bool _personalization = true;
   bool _crashReports = true;
+  bool _healthConsent = false;
+  bool _transferConsent = false;
+  bool _paymentTransferConsent = false;
   bool _exporting = false;
   bool _processingDelete = false;
 
@@ -30,6 +34,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     _analytics = StorageHelper.getPrivacyAnalytics();
     _personalization = StorageHelper.getPrivacyPersonalization();
     _crashReports = StorageHelper.getPrivacyCrashReports();
+    _healthConsent = StorageHelper.getPrivacyHealthConsent();
+    _transferConsent = StorageHelper.getPrivacyTransferConsent();
+    _paymentTransferConsent = StorageHelper.getPrivacyPaymentTransferConsent();
   }
 
   Future<void> _save() async {
@@ -188,6 +195,126 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
             subtitle: const Text('Beklenmeyen hata bilgilerini anonim gönder'),
           ),
           const Divider(height: 22),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(
+              'KVKK AÇIK RIZA YÖNETİMİ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.4),
+                letterSpacing: 1.0,
+              ),
+            ),
+          ),
+          SwitchListTile(
+            value: _healthConsent,
+            onChanged: (v) async {
+              if (!v) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Sağlık Verisi Rızasını Geri Al'),
+                    content: const Text(
+                      'Bu onayı kapatırsanız sağlık verileriniz (kilo, beslenme, egzersiz) '
+                      'artık işlenemez ve uygulama temel işlevlerini kaybeder. '
+                      'Devam etmek istiyor musunuz?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Vazgeç'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Rızayı Geri Al'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
+              setState(() => _healthConsent = v);
+              await StorageHelper.savePrivacyHealthConsent(v);
+            },
+            title: const Text('Sağlık verisi işleme (KVKK Md.6)'),
+            subtitle: const Text(
+              'Kilo, beslenme, egzersiz verilerinin işlenmesine rıza. '
+              'Kapatırsanız temel özellikler devre dışı kalır.',
+            ),
+          ),
+          SwitchListTile(
+            value: _transferConsent,
+            onChanged: (v) async {
+              if (!v) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Yurt Dışı Aktarım Rızasını Geri Al'),
+                    content: const Text(
+                      'Bu onayı kapatırsanız verileriniz Google Gemini (ABD) ve '
+                      'Apple/Google\'a (ABD) aktarılamaz. AI koç özelliği devre dışı kalır. '
+                      'Devam etmek istiyor musunuz?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Vazgeç'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Rızayı Geri Al'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
+              setState(() => _transferConsent = v);
+              await StorageHelper.savePrivacyTransferConsent(v);
+            },
+            title: const Text('Google AI aktarımı (KVKK Md.9)'),
+            subtitle: const Text(
+              'Sağlık verilerinin Google Gemini (ABD)\'ye AI analizi için aktarımına rıza. '
+              'Kapatırsanız AI koç devre dışı kalır.',
+            ),
+          ),
+          SwitchListTile(
+            value: _paymentTransferConsent,
+            onChanged: (v) async {
+              if (!v) {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Ödeme Aktarımı Rızasını Geri Al'),
+                    content: const Text(
+                      'Bu onayı kapatırsanız abonelik doğrulaması için Apple/Google\'a aktarım yapılamaz. '
+                      'Premium özellikler devre dışı kalabilir. Devam etmek istiyor musunuz?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Vazgeç'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: const Text('Rızayı Geri Al'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
+              setState(() => _paymentTransferConsent = v);
+              await StorageHelper.savePrivacyPaymentTransferConsent(v);
+            },
+            title: const Text('Apple/Google ödeme aktarımı (KVKK Md.9)'),
+            subtitle: const Text(
+              'Abonelik doğrulaması için Apple/Google\'a aktarıma rıza. '
+              'Kart bilgisi FitMentor\'da saklanmaz.',
+            ),
+          ),
+          const Divider(height: 22),
           ListTile(
             leading: const Icon(Icons.download_rounded),
             title: const Text('Verilerimi dışa aktar'),
@@ -239,6 +366,58 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
               MaterialPageRoute(
                 builder: (_) => const LegalScreen(initialTab: LegalTab.terms),
               ),
+            ),
+          ),
+          const Divider(height: 22),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(
+              'KVKK Haklarım',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.4),
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_rounded),
+            title: const Text('KVKK Aydınlatma Metni'),
+            subtitle: const Text('Hangi veriler, neden, nasıl işleniyor'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const LegalScreen(initialTab: LegalTab.kvkk),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.send_outlined),
+            title: const Text('KVKK Başvurusu Yap'),
+            subtitle: const Text(
+              'Veri erişim, düzeltme, silme veya itiraz talebi',
+            ),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => launchUrl(
+              Uri.parse(
+                'mailto:privacy@fitmentor.app?subject=KVKK%20Madde%2011%20Ba%C5%9Fvurusu',
+              ),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_balance_outlined),
+            title: const Text('KVK Kurumu\'na Başvur'),
+            subtitle: const Text(
+              'Başvurunuz reddedilirse veya yanıt alınmazsa',
+            ),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => launchUrl(
+              Uri.parse('https://www.kvkk.gov.tr'),
+              mode: LaunchMode.externalApplication,
             ),
           ),
         ],

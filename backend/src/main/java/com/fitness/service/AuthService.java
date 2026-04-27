@@ -61,6 +61,10 @@ public class AuthService {
     @ConfigProperty(name = "smallrye.jwt.sign.key")
     String jwtSignKey;
 
+    @Inject
+    @ConfigProperty(name = "app.auth.jwt.clock-skew-seconds", defaultValue = "5")
+    long jwtClockSkewSeconds;
+
     /**
      * Kullanıcı kaydı - şifre BCrypt ile hash'lenir, cevap JWT döner.
      * Email küçük harfe normalize edilir; istemci tarafındaki hesap ayırımı
@@ -295,6 +299,9 @@ public class AuthService {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
+                    // Mobil istemci ve sunucu saati sınırda birkaç saniye kayabiliyor.
+                    // Tam exp anındaki isteklerin gereksiz yere düşmemesi için kısa tolerans tanıyoruz.
+                    .clockSkewSeconds(jwtClockSkewSeconds)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();

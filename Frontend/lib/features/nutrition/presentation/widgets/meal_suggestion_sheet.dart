@@ -2346,7 +2346,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           ),
         ),
         SizedBox(
-          height: 280,
+          height: 320,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2469,7 +2469,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 )
                 .toList(),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
             height: 38,

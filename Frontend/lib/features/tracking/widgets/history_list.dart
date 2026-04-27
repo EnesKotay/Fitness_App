@@ -301,7 +301,7 @@ class _HistoryListItem extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   Text(
                                     diffValue < 0
-                                        ? '${diffValue.toStringAsFixed(1)} kg'
+                                        ? '${(-diffValue).toStringAsFixed(1)} kg'
                                         : '+${diffValue.toStringAsFixed(1)} kg',
                                     style: TextStyle(
                                       fontSize: 12,

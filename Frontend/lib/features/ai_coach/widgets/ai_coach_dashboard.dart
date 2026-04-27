@@ -18,20 +18,49 @@ class AiCoachDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _goalAccent(goal);
+    final hasAnyMetric =
+        summary.calories > 0 ||
+        summary.waterLiters > 0 ||
+        summary.workouts > 0 ||
+        summary.workoutMinutes > 0;
     return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF101826).withValues(alpha: 0.94),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF121B2B).withValues(alpha: 0.98),
+                  const Color(0xFF0D1320).withValues(alpha: 0.98),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.insights_rounded,
+                        size: 18,
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Text(
                       'Bugünün özeti',
                       style: GoogleFonts.dmSans(
@@ -73,12 +102,14 @@ class AiCoachDashboard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     _MetricTile(
                       icon: Icons.local_fire_department_rounded,
-                      value: summary.calories > 0 ? '${summary.calories}' : null,
+                      value: summary.calories > 0
+                          ? '${summary.calories}'
+                          : null,
                       label: 'kcal',
                       color: const Color(0xFFFF7043),
                     ),
@@ -94,7 +125,9 @@ class AiCoachDashboard extends StatelessWidget {
                     const SizedBox(width: 8),
                     _MetricTile(
                       icon: Icons.fitness_center_rounded,
-                      value: summary.workouts > 0 ? '${summary.workouts}' : null,
+                      value: summary.workouts > 0
+                          ? '${summary.workouts}'
+                          : null,
                       label: 'seans',
                       color: const Color(0xFF34D399),
                     ),
@@ -109,7 +142,45 @@ class AiCoachDashboard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if ((summary.targetCalories ?? 0) > 0 && summary.calories > 0) ...[
+                if (!hasAnyMetric) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.timeline_rounded,
+                          size: 16,
+                          color: Colors.white.withValues(alpha: 0.46),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Günlük kayıt geldikçe özet ve yorumlar burada dolacak.',
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white.withValues(alpha: 0.54),
+                              fontSize: 11.8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if ((summary.targetCalories ?? 0) > 0 &&
+                    summary.calories > 0) ...[
                   const SizedBox(height: 12),
                   _CalorieProgressBar(
                     consumed: summary.calories,
@@ -240,16 +311,16 @@ class _MetricTile extends StatelessWidget {
     final hasValue = value != null;
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         decoration: BoxDecoration(
           color: hasValue
-              ? color.withValues(alpha: 0.09)
-              : Colors.white.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(16),
+              ? color.withValues(alpha: 0.1)
+              : Colors.white.withValues(alpha: 0.025),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: hasValue
-                ? color.withValues(alpha: 0.22)
-                : Colors.white.withValues(alpha: 0.04),
+                ? color.withValues(alpha: 0.24)
+                : Colors.white.withValues(alpha: 0.05),
           ),
         ),
         child: Column(
@@ -276,9 +347,7 @@ class _MetricTile extends StatelessWidget {
             Text(
               label,
               style: GoogleFonts.dmSans(
-                color: Colors.white.withValues(
-                  alpha: hasValue ? 0.4 : 0.12,
-                ),
+                color: Colors.white.withValues(alpha: hasValue ? 0.4 : 0.12),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
@@ -324,9 +393,7 @@ class _CalorieProgressBar extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              isOver
-                  ? '$diff kcal fazla'
-                  : '$diff kcal kaldı',
+              isOver ? '$diff kcal fazla' : '$diff kcal kaldı',
               style: GoogleFonts.dmSans(
                 color: isOver
                     ? const Color(0xFFFF7043)
@@ -356,10 +423,7 @@ class _CalorieProgressBar extends StatelessWidget {
                 height: 6,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      barColor.withValues(alpha: 0.7),
-                      barColor,
-                    ],
+                    colors: [barColor.withValues(alpha: 0.7), barColor],
                   ),
                   borderRadius: BorderRadius.circular(99),
                   boxShadow: [

@@ -5,6 +5,7 @@ import java.util.List;
 public class NutritionAiResponse {
     public String reply;
     public List<SuggestedMeal> meals;
+    public List<DailyPlanMeal> dailyPlan;
     public List<String> shoppingList;
     public List<String> followUpQuestions;
     public Integer retryAfterSeconds;
@@ -32,6 +33,16 @@ public class NutritionAiResponse {
         public Integer getEstimatedCalories() {
             return macros != null ? macros.kcal : null;
         }
+    }
+
+    public static class DailyPlanMeal {
+        public String time;
+        public String label;
+        public String mealType;
+        public String food;
+        public String reason;
+        public List<String> ingredients;
+        public MealMacros macros;
     }
 
     public static class MealMacros {

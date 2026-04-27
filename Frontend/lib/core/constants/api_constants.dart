@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 
 class ApiConstants {
   /// Backend base URL - Ortama gore otomatik secim
@@ -26,10 +25,8 @@ class ApiConstants {
     const bool isRelease = bool.fromEnvironment('dart.vm.product');
     if (isRelease) return _productionUrl;
 
-    // 3) Debug/geliştirme ortamı platform varsayılanları
-    if (Platform.isAndroid) return 'http://10.0.2.2:8080';
-    if (Platform.isIOS) return 'http://127.0.0.1:8080'; // Simulator
-    return 'http://localhost:8080'; // macOS/Windows desktop
+    // 3) Local backend için: flutter run --dart-define=API_BASE_URL=http://localhost:8080
+    return _productionUrl;
   }
 
   /// Baglanti test endpoint'i (GET /api/auth/test)

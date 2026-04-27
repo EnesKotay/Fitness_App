@@ -64,14 +64,14 @@ class PortionUtils {
   static IconData servingIcon(String label) {
     final lower = label.toLowerCase();
     if (lower.contains('çay bardağı')) return Icons.local_cafe_rounded;
-    if (lower.contains('su bardağı')) return Icons.local_drink_rounded;
+    if (lower.contains('su bardağı') || lower.contains('bardak')) return Icons.local_drink_rounded;
+    if (lower.contains('fincan')) return Icons.coffee_rounded;
     if (lower.contains('çorba kaşığı')) return Icons.soup_kitchen_rounded;
     if (lower.contains('tatlı kaşığı') || lower.contains('çay kaşığı')) return Icons.restaurant_rounded;
-    if (lower.contains('adet')) return Icons.egg_alt_rounded;
+    if (lower.contains('adet') || lower.contains('tane')) return Icons.egg_alt_rounded;
     if (lower.contains('tabak') || lower.contains('dinner')) return Icons.dinner_dining_rounded;
-    if (lower.contains('kase')) return Icons.ramen_dining_rounded;
+    if (lower.contains('kase') || lower.contains('çorba')) return Icons.soup_kitchen_rounded;
     if (lower.contains('dilim')) return Icons.cake_rounded;
-    if (lower.contains('bardak')) return Icons.local_drink_rounded;
     if (lower.contains('avuç')) return Icons.back_hand_rounded;
     if (lower.contains('porsiyon')) return Icons.restaurant_rounded;
     return Icons.restaurant_menu_rounded;
@@ -106,71 +106,14 @@ class PortionUtils {
   }
 
   static List<(String, IconData, double)> buildUserFriendlyPresets(FoodItem food, double defaultPortionGrams) {
-    final smartUnit = DietProvider.getSmartUnit(food.name, food.category);
-    final Map<int, (String, IconData, double)> presetsByGram = {};
-
-    void addPreset(String label, IconData icon, double grams) {
-      if (grams <= 0) return;
-      
-      // Check for duplicate grams (within 3g margin)
-      bool exists = false;
-      for (final key in presetsByGram.keys) {
-        if ((key - grams).abs() <= 3) {
-          exists = true;
-          break;
-        }
-      }
-      if (!exists) {
-        presetsByGram[grams.round()] = (label, icon, grams);
-      }
-    }
-
-    String replacePorsiyon(String original) {
-      return original.replaceAll(RegExp('porsiyon', caseSensitive: false), capitalizeServing(smartUnit));
-    }
-
-    // 1st Pass: Add original servings from the DB (translated to smart unit)
-    for (final s in food.servings) {
-      if (s.label.toLowerCase().contains('100 g') || s.label.toLowerCase().contains('100g')) continue;
-      String label = displayServingLabel(s.label);
-      label = replacePorsiyon(label);
-      addPreset(label, servingIcon(label), s.grams);
-    }
-
-    // 2nd Pass: Add fractions of those servings
-    for (final s in food.servings) {
-      if (s.label.toLowerCase().contains('100 g') || s.label.toLowerCase().contains('100g')) continue;
-      
-      String label = replacePorsiyon(s.label);
-      final u = unit(label);
-      final icon = servingIcon(label);
-      final grams = s.grams;
-
-      addPreset('Yarım $u', icon, grams * 0.5);
-      addPreset('1.5 $u', icon, grams * 1.5);
-      addPreset('2 $u', icon, grams * 2);
-    }
-
-    var presets = presetsByGram.values.toList();
-    
-    // Sort by grams ascending
-    presets.sort((a, b) => a.$3.compareTo(b.$3));
-
-    // Limit to 6 presets, keeping the ones closest to the default portion
-    if (presets.length > 6) {
-      presets.sort((a, b) => (a.$3 - defaultPortionGrams).abs().compareTo((b.$3 - defaultPortionGrams).abs()));
-      presets = presets.take(6).toList();
-      presets.sort((a, b) => a.$3.compareTo(b.$3));
-    }
-
-    final fallbackU = DietProvider.getSmartUnit(food.name, food.category);
-    final fallbackIcon = servingIcon(fallbackU);
+    final smartUnit = capitalizeServing(DietProvider.getSmartUnit(food.name, food.category));
+    final icon = servingIcon(smartUnit);
 
     return [
-      ('Yarım $fallbackU', Icons.pie_chart_outline_rounded, defaultPortionGrams * 0.5),
-      ('1 $fallbackU', fallbackIcon, defaultPortionGrams),
-      ('1.5 $fallbackU', Icons.restaurant_menu_rounded, defaultPortionGrams * 1.5),
-      ('2 $fallbackU', Icons.lunch_dining_rounded, defaultPortionGrams * 2),
+      ('Yarım $smartUnit', icon, defaultPortionGrams * 0.5),
+      ('1 $smartUnit', icon, defaultPortionGrams),
+      ('1.5 $smartUnit', icon, defaultPortionGrams * 1.5),
+      ('2 $smartUnit', icon, defaultPortionGrams * 2),
     ];
   }
 

@@ -70,7 +70,7 @@ public class AiNutritionController {
             userId = resolveUserId(headers);
             boolean isPremium = aiProviderRouter.isPremium(userId);
             if (isPremiumTask(request)) {
-                entitlementService.ensurePremium(userId, "AI destekli premium planlama");
+                entitlementService.ensurePremium(userId, premiumFeatureName(request));
                 isPremium = true;
             }
 
@@ -158,7 +158,20 @@ public class AiNutritionController {
             return false;
         }
         String task = request.task.trim().toUpperCase();
-        return "GROCERY_LIST".equals(task);
+        return "GROCERY_LIST".equals(task) || "PLAN_CUSTOMIZATION".equals(task);
+    }
+
+    private String premiumFeatureName(NutritionAiRequest request) {
+        if (request == null || request.task == null || request.task.isBlank()) {
+            return "Premium AI ozelligi";
+        }
+
+        String task = request.task.trim().toUpperCase();
+        return switch (task) {
+            case "PLAN_CUSTOMIZATION" -> "AI ile plan ozellestirme";
+            case "GROCERY_LIST" -> "Akilli alisveris listesi";
+            default -> "Premium AI ozelligi";
+        };
     }
 
     /**

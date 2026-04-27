@@ -703,7 +703,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                   builder: (_) => MicroNutrientsSheet(totals: t),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
                   child: Row(
                     children: [
                       _miniMacro('Protein', t.totalProtein, targets.protein,
@@ -720,32 +720,49 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 32,
-                            height: 32,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(10),
+                              shape: BoxShape.circle,
                               border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.08)),
+                                  color: Colors.white.withValues(alpha: 0.10)),
                             ),
                             child: Icon(
                               Icons.chevron_right_rounded,
-                              size: 18,
-                              color: Colors.white.withValues(alpha: 0.4),
+                              size: 20,
+                              color: Colors.white.withValues(alpha: 0.5),
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 6),
                           Text(
                             'Detay',
                             style: GoogleFonts.dmSans(
-                              fontSize: 10,
-                              color: Colors.white.withValues(alpha: 0.35),
-                              fontWeight: FontWeight.w600,
+                              fontSize: 10.5,
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontWeight: FontWeight.w700,
                             ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '',
+                            style: GoogleFonts.dmSans(fontSize: 9),
                           ),
                         ],
                       ),
                     ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+                child: Text(
+                  '* Kalori ve makro değerleri Mifflin-St Jeor formülüyle tahmin edilir. Kişisel metabolizma farklılık gösterebilir.',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 9.5,
+                    color: Colors.white.withValues(alpha: 0.28),
+                    fontStyle: FontStyle.italic,
+                    height: 1.4,
                   ),
                 ),
               ),
@@ -792,53 +809,80 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
 
   Widget _miniMacro(String label, double value, double target, Color color) {
     final progress = target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0;
+    final remaining = (target - value).clamp(0, double.infinity);
+    final isComplete = value >= target && target > 0;
+
     return Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '${value.round()}g',
-            style: GoogleFonts.dmSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 5),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+          // Circular progress with value inside
+          SizedBox(
+            width: 44,
+            height: 44,
             child: Stack(
+              alignment: Alignment.center,
               children: [
-                Container(
-                  height: 4,
-                  color: Colors.white.withValues(alpha: 0.07),
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: CircularProgressIndicator(
+                    value: 1,
+                    strokeWidth: 3.5,
+                    color: color.withValues(alpha: 0.12),
+                  ),
                 ),
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: color.withValues(alpha: 0.5),
-                          blurRadius: 4,
-                        ),
-                      ],
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: progress),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, _) => SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: CircularProgressIndicator(
+                      value: v,
+                      strokeWidth: 3.5,
+                      strokeCap: StrokeCap.round,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isComplete ? const Color(0xFF43E97B) : color,
+                      ),
                     ),
+                  ),
+                ),
+                Text(
+                  '${value.round()}',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    height: 1.0,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
+          // Label
           Text(
             label,
             style: GoogleFonts.dmSans(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 10.5,
+              color: color,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 2),
+          // Target info
+          Text(
+            target > 0
+                ? (isComplete ? '✓ ${target.round()}g' : '${remaining.round()}g kaldı')
+                : '—',
+            style: GoogleFonts.dmSans(
+              fontSize: 9,
+              color: isComplete
+                  ? const Color(0xFF43E97B).withValues(alpha: 0.8)
+                  : Colors.white.withValues(alpha: 0.35),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -850,7 +894,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   Widget _macroSeparator() {
     return Container(
       width: 1,
-      height: 28,
+      height: 44,
       margin: const EdgeInsets.symmetric(horizontal: 4),
       color: Colors.white.withValues(alpha: 0.06),
     );

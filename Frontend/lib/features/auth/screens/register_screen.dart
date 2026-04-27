@@ -34,6 +34,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _tosAccepted = false;
+  bool _healthDataAccepted = false;
+  bool _aiTransferAccepted = false;
+  bool _paymentTransferAccepted = false;
 
   @override
   void dispose() {
@@ -63,6 +66,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SnackBar(
           content: Text(
             'Devam etmek için Kullanım Koşullarını kabul etmelisiniz.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!_healthDataAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Devam etmek için sağlık verisi işleme onayını vermelisiniz (KVKK Md.6).',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!_aiTransferAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Devam etmek için Google AI aktarım onayını vermelisiniz (KVKK Md.9).',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!_paymentTransferAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Devam etmek için ödeme aktarım onayını vermelisiniz (KVKK Md.9).',
           ),
         ),
       );
@@ -113,6 +146,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         workoutProvider.reset();
 
         await dietProvider.init();
+        await StorageHelper.savePrivacyHealthConsent(true);
+        await StorageHelper.savePrivacyTransferConsent(true);
+        await StorageHelper.savePrivacyPaymentTransferConsent(true);
 
         if (!mounted) return;
         final shouldShowProfileSetup =
@@ -497,6 +533,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 12),
+
+                // KVKK Md.6 — Sağlık verisi açık rızası
+                _ConsentRow(
+                  value: _healthDataAccepted,
+                  onChanged: (v) =>
+                      setState(() => _healthDataAccepted = v ?? false),
+                  label:
+                      'Boy, kilo, beslenme ve egzersiz gibi sağlık verilerimin kişiselleştirilmiş '
+                      'fitness takibi için işlenmesine açık rıza veriyorum (KVKK Md.6). '
+                      'Bu rızamı istediğim zaman Ayarlar → Gizlilik\'ten geri alabilirim.',
+                  kvkkTab: LegalTab.kvkk,
+                  linkText: 'Aydınlatma Metni',
+                ),
+                const SizedBox(height: 10),
+
+                // KVKK Md.9 — Google AI aktarım açık rızası
+                _ConsentRow(
+                  value: _aiTransferAccepted,
+                  onChanged: (v) =>
+                      setState(() => _aiTransferAccepted = v ?? false),
+                  label:
+                      'Sağlık ve beslenme verilerimin AI koç hizmeti için Google LLC (ABD)\'ye '
+                      'aktarılmasına açık rıza veriyorum (KVKK Md.9). Rızamı geri alırsam AI koç '
+                      'özelliği devre dışı kalır.',
+                  kvkkTab: LegalTab.kvkk,
+                  linkText: 'Aktarım Detayı',
+                ),
+                const SizedBox(height: 10),
+
+                // KVKK Md.9 — Apple/Google ödeme aktarım açık rızası
+                _ConsentRow(
+                  value: _paymentTransferAccepted,
+                  onChanged: (v) =>
+                      setState(() => _paymentTransferAccepted = v ?? false),
+                  label:
+                      'Abonelik doğrulaması için Apple Inc. / Google Inc. (ABD)\'ye aktarım '
+                      'yapılmasına açık rıza veriyorum (KVKK Md.9). Kart bilgisi FitMentor\'da '
+                      'saklanmaz.',
+                  kvkkTab: LegalTab.kvkk,
+                  linkText: 'Aktarım Detayı',
+                ),
                 const SizedBox(height: 32),
 
                 // Kayıt Ol butonu
@@ -512,7 +590,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: (authProvider.isLoading || !_tosAccepted)
+                    onPressed: (authProvider.isLoading ||
+                            !_tosAccepted ||
+                            !_healthDataAccepted ||
+                            !_aiTransferAccepted ||
+                            !_paymentTransferAccepted)
                         ? null
                         : _handleRegister,
                     style: ElevatedButton.styleFrom(
@@ -632,6 +714,93 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+// ── Yeniden kullanılabilir onay satırı widget'ı ────────────────────────────────
+
+class _ConsentRow extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final String label;
+  final LegalTab kvkkTab;
+  final String linkText;
+
+  const _ConsentRow({
+    required this.value,
+    required this.onChanged,
+    required this.label,
+    required this.kvkkTab,
+    required this.linkText,
+  });
+
+  static const _kAccentColor = Color(0xFFCC7A4A);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            fillColor: WidgetStateProperty.resolveWith(
+              (s) => s.contains(WidgetState.selected)
+                  ? _kAccentColor
+                  : Colors.white.withValues(alpha: 0.1),
+            ),
+            checkColor: Colors.white,
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(!value),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+                children: [
+                  TextSpan(text: label),
+                  const TextSpan(text: ' '),
+                  WidgetSpan(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => LegalScreen(initialTab: kvkkTab),
+                        ),
+                      ),
+                      child: Text(
+                        linkText,
+                        style: const TextStyle(
+                          color: _kAccentColor,
+                          fontSize: 13,
+                          decoration: TextDecoration.underline,
+                          decorationColor: _kAccentColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

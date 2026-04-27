@@ -21741,51 +21741,20 @@
     },
     {
       "id": "tr_food_096_pogaca",
-      "name": "Poğaça",
-      "category": "Hamur İşi",
-      "basis": {
-        "amount": 100.0,
-        "unit": "g"
-      },
-      "nutrientsPerBasis": {
-        "kcal": 280.0,
-        "protein": 8.0,
-        "carb": 34.0,
-        "fat": 12.0
-      },
+      "name": "Poğaça (düz)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 90.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 293.0, "protein": 7.0, "carb": 37.8, "fat": 12.6 },
       "servings": [
-        {
-          "id": "s_default",
-          "label": "1 adet (100g)",
-          "grams": 100.0,
-          "isDefault": true
-        },
-        {
-          "id": "s_half",
-          "label": "Yarım (50g)",
-          "grams": 50.0,
-          "isDefault": false
-        },
-        {
-          "id": "s_double",
-          "label": "2 adet (200g)",
-          "grams": 200.0,
-          "isDefault": false
-        }
+        { "id": "s_default", "label": "1 adet (~90g)", "grams": 90.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (45g)", "grams": 45.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (180g)", "grams": 180.0, "isDefault": false }
       ],
-      "aliases": [
-        "peynirli firin"
-      ],
-      "tags": [
-        "hamur-isi",
-        "notlu",
-        "turk-mutfagi",
-        "yerel-veritabani"
-      ],
-      "brand": null,
-      "barcode": null,
-      "imageUrl": null,
-      "source": "Kullanici Excel - Turk Yemekleri Veritabani"
+      "aliases": ["düz poğaça", "sade poğaça", "fırın poğaça", "poğaça", "susam poğaça"],
+      "tags": ["firin", "pogaca", "sade", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: fırın sade poğaça, margarin/sıvıyağ, un, maya, yumurta, üzeri susamlı. ~325 kcal/100g"
     },
     {
       "id": "tr_food_1032_protein_bar_ev_yapimi_yulaf",
@@ -35924,7 +35893,126 @@
       "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, beyaz peynir dolgulu"
     },
     {
-      "id": "tr_food_1264_domates_taze",
+      "id": "tr_food_1264_pogaca_patatesli",
+      "name": "Poğaça (patatesli)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 95.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 247.0, "protein": 6.3, "carb": 36.1, "fat": 8.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~95g)", "grams": 95.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (47g)", "grams": 47.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (190g)", "grams": 190.0, "isDefault": false }
+      ],
+      "aliases": ["patatesli poğaça", "patatesli pogaca", "fırın patatesli poğaça"],
+      "tags": ["firin", "pogaca", "patates", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, haşlanmış patates dolgulu"
+    },
+    {
+      "id": "tr_food_1265_pogaca_kiymali",
+      "name": "Poğaça (kıymalı)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 95.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 281.0, "protein": 11.4, "carb": 28.5, "fat": 13.3 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~95g)", "grams": 95.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (47g)", "grams": 47.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (190g)", "grams": 190.0, "isDefault": false }
+      ],
+      "aliases": ["kıymalı poğaça", "etli poğaça", "kıymalı fırın poğaça"],
+      "tags": ["firin", "pogaca", "kiyma", "et", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, baharatlı kıyma ve soğan dolgulu"
+    },
+    {
+      "id": "tr_food_1266_pogaca_ispanakli",
+      "name": "Poğaça (ıspanaklı)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 90.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 229.0, "protein": 7.2, "carb": 29.7, "fat": 8.6 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~90g)", "grams": 90.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (45g)", "grams": 45.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (180g)", "grams": 180.0, "isDefault": false }
+      ],
+      "aliases": ["ıspanaklı poğaça", "ispanakli pogaca", "yeşillikli poğaça"],
+      "tags": ["firin", "pogaca", "ispanak", "sebze", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, ıspanak ve beyaz peynir dolgulu"
+    },
+    {
+      "id": "tr_food_1267_pogaca_sucuklu",
+      "name": "Poğaça (sucuklu)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 90.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 298.0, "protein": 10.8, "carb": 27.9, "fat": 15.3 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~90g)", "grams": 90.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (45g)", "grams": 45.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (180g)", "grams": 180.0, "isDefault": false }
+      ],
+      "aliases": ["sucuklu poğaça", "sucuklu fırın poğaça", "sucuk dolgulu poğaça"],
+      "tags": ["firin", "pogaca", "sucuk", "et", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, dilimlenmiş sucuk dolgulu"
+    },
+    {
+      "id": "tr_food_1268_pogaca_kasarli",
+      "name": "Poğaça (kaşarlı)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 90.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 272.0, "protein": 9.9, "carb": 28.8, "fat": 12.6 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~90g)", "grams": 90.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (45g)", "grams": 45.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (180g)", "grams": 180.0, "isDefault": false }
+      ],
+      "aliases": ["kaşarlı poğaça", "kasarli pogaca", "kaşar peynirli poğaça"],
+      "tags": ["firin", "pogaca", "kasar", "peynir", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, erimiş kaşar peyniri dolgulu"
+    },
+    {
+      "id": "tr_food_1269_pogaca_haspasli",
+      "name": "Poğaça (haşhaşlı)",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 80.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 256.0, "protein": 6.4, "carb": 32.8, "fat": 11.2 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~80g)", "grams": 80.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (40g)", "grams": 40.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (160g)", "grams": 160.0, "isDefault": false }
+      ],
+      "aliases": ["haşhaşlı poğaça", "hashasli pogaca", "haşhaş tohumlu poğaça"],
+      "tags": ["firin", "pogaca", "hashas", "tohumlu", "kahvalti", "sokak-yemegi", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: maya hamurundan fırın poğaça, haşhaş tohumlu sade"
+    },
+    {
+      "id": "tr_food_1271_pogaca_anne",
+      "name": "Anne Poğaçası",
+      "category": "Fırın & Pide",
+      "basis": { "amount": 75.0, "unit": "g" },
+      "nutrientsPerBasis": { "kcal": 306.0, "protein": 6.2, "carb": 29.3, "fat": 18.0 },
+      "servings": [
+        { "id": "s_default", "label": "1 adet (~75g)", "grams": 75.0, "isDefault": true },
+        { "id": "s_100", "label": "100 g", "grams": 100.0, "isDefault": false },
+        { "id": "s_half", "label": "Yarım (37g)", "grams": 37.0, "isDefault": false },
+        { "id": "s_double", "label": "2 adet (150g)", "grams": 150.0, "isDefault": false }
+      ],
+      "aliases": ["anne poğaçası", "ev yapımı poğaça", "ev poğaçası", "tereyağlı poğaça", "annemin poğaçası"],
+      "tags": ["firin", "pogaca", "ev-yapimi", "tereyag", "kahvalti", "turk-mutfagi", "yerel-veritabani"],
+      "brand": null, "barcode": null, "imageUrl": null,
+      "source": "Türk Gıda Veritabanı: ev yapımı poğaça, tereyağı, yumurta, yoğurt, un, maya. ~408 kcal/100g, fırın poğaçasından daha yağlı ve lezzetli"
+    },
+    {
+      "id": "tr_food_1270_domates_taze",
       "name": "Domates (taze)",
       "category": "Sebze",
       "basis": {

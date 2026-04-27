@@ -152,27 +152,16 @@ class UserProfile {
     }
   }
 
-  // İdeal Kilo Hesabı (Devine Formülü)
+  // İdeal Kilo Hesabı (WHO Standartlarına göre hedeflenen BMI: 22.0)
   double get idealWeight {
-    // Boyu inç cinsine çevir
-    double heightInInches = height / 2.54;
-
-    if (heightInInches <= 60) {
-      return gender == Gender.male ? 50.0 : 45.5;
-    }
-
-    // Devine Formülü
-    if (gender == Gender.male) {
-      return 50.0 + (2.3 * (heightInInches - 60.0));
-    } else {
-      return 45.5 + (2.3 * (heightInInches - 60.0));
-    }
+    final heightM = height / 100.0;
+    return 22.0 * heightM * heightM;
   }
 
-  // Sağlıklı kilo aralığı (BMI 20-25) ve merkez hedef (BMI 22)
+  // Sağlıklı kilo aralığı (WHO standardı: BMI 18.5 - 24.9) ve merkez hedef (BMI 22.0)
   ({double min, double target, double max}) get healthyWeightRange {
     final heightM = height / 100.0;
     final square = heightM * heightM;
-    return (min: 20.0 * square, target: 22.0 * square, max: 25.0 * square);
+    return (min: 18.5 * square, target: 22.0 * square, max: 24.9 * square);
   }
 }

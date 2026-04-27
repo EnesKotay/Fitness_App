@@ -85,9 +85,16 @@ class AIService {
               : 'Cok fazla istek. Lutfen biraz sonra tekrar dene.',
         );
       }
-      if (e.statusCode == 401 || e.statusCode == 403) {
+      if (e.statusCode == 401) {
         return NutritionAiResponseModel(
           reply: 'Oturum suresi dolmus olabilir. Lutfen tekrar giris yap.',
+        );
+      }
+      if (e.statusCode == 403) {
+        return NutritionAiResponseModel(
+          reply: e.message.isNotEmpty
+              ? e.message
+              : 'Bu ozellik icin yetkin bulunmuyor.',
         );
       }
       return NutritionAiResponseModel(

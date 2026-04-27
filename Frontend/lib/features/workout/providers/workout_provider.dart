@@ -150,7 +150,7 @@ class WorkoutProvider with ChangeNotifier {
       unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (_isOfflineConnectionIssue(e)) {
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
           PendingSync(
@@ -160,30 +160,15 @@ class WorkoutProvider with ChangeNotifier {
             payload: jsonEncode(request.toJson()),
           ),
         );
-        
-        final fakeWorkout = Workout(
-          id: DateTime.now().millisecondsSinceEpoch,
-          name: request.name ?? 'Yeni Antrenman',
-          workoutDate: request.workoutDate ?? DateTime.now(),
-          workoutType: request.workoutType,
-          durationMinutes: request.durationMinutes,
-          caloriesBurned: request.caloriesBurned,
-          sets: request.sets,
-          reps: request.reps,
-          weight: request.weight,
-          notes: request.notes,
-          setDetails: request.setDetails,
-          muscleGroup: request.muscleGroup,
-          isSuperset: request.isSuperset,
-          supersetPartner: request.supersetPartner,
-          oneRepMax: request.oneRepMax,
-          difficulty: request.difficulty,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
 
-        _upsertWorkout(fakeWorkout);
+        _upsertWorkout(
+          _buildOptimisticWorkout(
+            request,
+            id: DateTime.now().millisecondsSinceEpoch,
+          ),
+        );
         _isLoading = false;
+        _errorMessage = null;
         notifyListeners();
         return true;
       }
@@ -217,7 +202,7 @@ class WorkoutProvider with ChangeNotifier {
       unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (_isOfflineConnectionIssue(e)) {
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
           PendingSync(
@@ -251,8 +236,13 @@ class WorkoutProvider with ChangeNotifier {
             createdAt: previous.createdAt,
             updatedAt: DateTime.now(),
           );
+        } else {
+          _workouts.add(_buildOptimisticWorkout(request, id: workoutId));
         }
+        _sortWorkouts();
+        _buildWorkoutSuggestion();
         _isLoading = false;
+        _errorMessage = null;
         notifyListeners();
         return true;
       }
@@ -288,7 +278,7 @@ class WorkoutProvider with ChangeNotifier {
       unawaited(loadWorkoutStats(userId));
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (_isOfflineConnectionIssue(e)) {
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
           PendingSync(
@@ -302,6 +292,7 @@ class WorkoutProvider with ChangeNotifier {
         _sortWorkouts();
         _buildWorkoutSuggestion();
         _isLoading = false;
+        _errorMessage = null;
         notifyListeners();
         return true;
       }
@@ -334,10 +325,46 @@ class WorkoutProvider with ChangeNotifier {
     _exerciseHistory = [];
     _personalRecords = {};
     _workoutStats = {};
+    _workoutSuggestion = null;
     _isLoading = false;
     _errorMessage = null;
     _selectedDate = DateTime.now();
     notifyListeners();
+  }
+
+  bool _isOfflineConnectionIssue(ApiException e) {
+    if (e.statusCode != null) {
+      return false;
+    }
+    final message = e.message.toLowerCase();
+    return message.contains('sunucuya bağlanılamadı') ||
+        message.contains('internet bağlantınızı kontrol edin') ||
+        message.contains('socketexception') ||
+        message.contains('failed host lookup');
+  }
+
+  Workout _buildOptimisticWorkout(WorkoutRequest request, {required int id}) {
+    final now = DateTime.now();
+    return Workout(
+      id: id,
+      name: request.name ?? 'Yeni Antrenman',
+      workoutDate: request.workoutDate ?? now,
+      workoutType: request.workoutType,
+      durationMinutes: request.durationMinutes,
+      caloriesBurned: request.caloriesBurned,
+      sets: request.sets,
+      reps: request.reps,
+      weight: request.weight,
+      notes: request.notes,
+      setDetails: request.setDetails,
+      muscleGroup: request.muscleGroup,
+      isSuperset: request.isSuperset,
+      supersetPartner: request.supersetPartner,
+      oneRepMax: request.oneRepMax,
+      difficulty: request.difficulty,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   void _upsertWorkout(Workout workout) {

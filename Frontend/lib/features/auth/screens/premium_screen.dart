@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
@@ -69,6 +70,7 @@ class PremiumScreen extends StatefulWidget {
 
 class _PremiumScreenState extends State<PremiumScreen>
     with SingleTickerProviderStateMixin {
+  final IapService _iap = IapService.instance;
   bool _isPremiumActive = false;
   bool _canCancel = false;
   bool _cancelAtPeriodEnd = false;
@@ -76,6 +78,8 @@ class _PremiumScreenState extends State<PremiumScreen>
   DateTime? _premiumExpiresAt;
   _Plan _selectedPlan = _plans[1];
   bool _purchasing = false;
+  StreamSubscription<IapPurchaseResult>? _iapSubscription;
+  Timer? _purchasingTimeoutTimer;
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
@@ -90,13 +94,23 @@ class _PremiumScreenState extends State<PremiumScreen>
     _pulseAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    _iap.addListener(_onIapChanged);
+    _iapSubscription = _iap.purchaseResultStream.listen(_handlePurchaseResult);
+    unawaited(_iap.refreshProducts());
     _checkStatus();
   }
 
   @override
   void dispose() {
+    _purchasingTimeoutTimer?.cancel();
+    _iapSubscription?.cancel();
+    _iap.removeListener(_onIapChanged);
     _pulseController.dispose();
     super.dispose();
+  }
+
+  void _onIapChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _checkStatus() async {
@@ -137,136 +151,137 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
   }
 
-  Future<void> _startIapPurchase() async {
+  void _startPurchasingGuard() {
     setState(() => _purchasing = true);
-
-    final iap = IapService.instance;
-
-    // Callback: mağaza işlemi tamamlandığında çağrılır
-    iap.onPurchaseComplete = (IapPurchaseResult result) async {
-      if (!mounted) return;
-
-      if (!result.success) {
-        // Kullanıcı kendisi iptal etti — sessizce geç
-        if (result.errorMessage == 'canceled') {
-          setState(() => _purchasing = false);
-          return;
-        }
-        // Ebeveyn / aile paylaşımı onayı bekleniyor
-        if (result.errorMessage == 'pending') {
-          setState(() => _purchasing = false);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Ödeme onay bekliyor (ebeveyn / aile paylaşımı). '
-                  'Onaylandıktan sonra premium otomatik aktif olacak.',
-                ),
-                backgroundColor: Color(0xFF1A3A5C),
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 6),
-              ),
-            );
-          }
-          return;
-        }
+    _purchasingTimeoutTimer?.cancel();
+    _purchasingTimeoutTimer = Timer(const Duration(seconds: 60), () {
+      if (mounted && _purchasing) {
+        setState(() => _purchasing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result.errorMessage ?? 'Satın alma başarısız oldu.'),
-            backgroundColor: Colors.redAccent,
+          const SnackBar(
+            content: Text(
+              'App Store yanıt vermedi. Ödeme gerçekleştiyse premium birkaç '
+              'dakika içinde aktif olur; aksi hâlde tekrar deneyebilirsin.',
+            ),
+            backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 6),
           ),
         );
+      }
+    });
+  }
+
+  Future<void> _handlePurchaseResult(IapPurchaseResult result) async {
+    if (!mounted) return;
+    _purchasingTimeoutTimer?.cancel();
+
+    if (!result.success) {
+      if (result.errorMessage == 'canceled') {
         setState(() => _purchasing = false);
         return;
       }
-
-      // Başarılı → backend'e token gönder, premium aktifleştir
-      try {
-        await ApiClient().post(
-          ApiConstants.verifyIapPurchase,
-          data: {
-            'planId': result.planId,
-            'purchaseToken': result.purchaseToken, // Android
-            'receiptData': result.receiptData, // iOS
-            'transactionId': result.transactionId,
-            'platform': Platform.isAndroid ? 'android' : 'ios',
-          },
-        );
-        if (!mounted) return;
-        await _checkStatus();
-        if (!mounted) return;
-        await _showSuccessSheet();
-      } catch (e) {
-        debugPrint('PremiumScreen: backend doğrulama hatası: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Satın alma alındı fakat doğrulanamadı. '
-                'Birkaç dakika sonra tekrar kontrol et.',
-              ),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
+      if (result.errorMessage == 'pending') {
+        setState(() => _purchasing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ödemen onay bekliyor — bu genellikle aile paylaşımı veya '
+              'ebeveyn denetimi olduğunda olur. '
+              'Onay verildiğinde premium üyeliğin otomatik aktif olacak.',
             ),
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _purchasing = false);
+            backgroundColor: Color(0xFF1A3A5C),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 7),
+          ),
+        );
+        return;
       }
-    };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.errorMessage ?? 'Satın alma tamamlanamadı. Lütfen tekrar dene.',
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+      setState(() => _purchasing = false);
+      return;
+    }
 
-    // Native ödeme sayfasını aç
-    final started = await iap.purchase(_selectedPlan.id);
+    try {
+      await ApiClient().post(
+        ApiConstants.verifyIapPurchase,
+        data: {
+          'planId': result.planId,
+          'purchaseToken': result.purchaseToken,
+          'receiptData': result.receiptData,
+          'transactionId': result.transactionId,
+          'platform': Platform.isAndroid ? 'android' : 'ios',
+        },
+      );
+      
+      result.complete?.call();
+
+      if (!mounted) return;
+      await _checkStatus();
+      if (!mounted) return;
+      
+      if (_isPremiumActive) {
+        await _showSuccessSheet();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Satın alım doğrulandı ancak aktif bir abonelik bulunamadı. '
+              'Uygulamayı kapatıp açarsan premium aktif olmalı.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('PremiumScreen: backend doğrulama hatası: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ödemen alındı fakat sistemimizle doğrulama şu an tamamlanamadı. '
+              'Uygulamayı kapatıp açarsan premium genellikle birkaç dakika içinde aktif olur.',
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 7),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _purchasing = false);
+    }
+  }
+
+  Future<void> _startIapPurchase() async {
+    _startPurchasingGuard();
+    final started = await _iap.purchase(_selectedPlan.id);
     if (!started && mounted) {
+      _purchasingTimeoutTimer?.cancel();
       setState(() => _purchasing = false);
     }
   }
 
   Future<void> _restorePurchases() async {
-    setState(() => _purchasing = true);
-
-    final iap = IapService.instance;
-
-    iap.onPurchaseComplete = (IapPurchaseResult result) async {
-      if (!mounted) return;
-      if (result.success) {
-        // Geri yüklenen satın almayı backend'e bildir
-        try {
-          await ApiClient().post(
-            ApiConstants.verifyIapPurchase,
-            data: {
-              'planId': result.planId,
-              'purchaseToken': result.purchaseToken,
-              'receiptData': result.receiptData,
-              'transactionId': result.transactionId,
-              'platform': Platform.isAndroid ? 'android' : 'ios',
-            },
-          );
-        } catch (e) {
-          debugPrint('PremiumScreen: restore backend hatası: $e');
-        }
-        if (mounted) await _checkStatus();
-      }
-      if (mounted) setState(() => _purchasing = false);
-    };
-
+    _startPurchasingGuard();
     try {
-      await iap.restorePurchases();
-      // Geri yükleme yoksa stream tetiklenmez; state'i sıfırla
-      await Future.delayed(const Duration(seconds: 3));
-      if (mounted) {
-        setState(() => _purchasing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Satın alma geçmişi kontrol edildi.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      await _iap.restorePurchases();
     } catch (e) {
       debugPrint('PremiumScreen: restore error: $e');
-      if (mounted) setState(() => _purchasing = false);
+      if (mounted) {
+        _purchasingTimeoutTimer?.cancel();
+        setState(() => _purchasing = false);
+      }
     }
   }
 
@@ -823,6 +838,8 @@ class _PremiumScreenState extends State<PremiumScreen>
   Widget _buildPlanCard(_Plan plan) {
     final selected = _selectedPlan.id == plan.id;
     final isYearly = plan.months == 12;
+    final storePrice = _iap.priceFor(plan.id);
+    final priceText = storePrice ?? plan.priceLabel; // Fallback to hardcoded price
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = plan),
@@ -945,11 +962,15 @@ class _PremiumScreenState extends State<PremiumScreen>
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    IapService.instance.priceFor(plan.id) ?? plan.priceLabel,
+                    priceText,
                     style: TextStyle(
-                      color: selected
-                          ? _premiumLightGold.withValues(alpha: 0.9)
-                          : Colors.white.withValues(alpha: 0.4),
+                      color: storePrice != null
+                          ? selected
+                                ? _premiumLightGold.withValues(alpha: 0.9)
+                                : Colors.white.withValues(alpha: 0.4)
+                          : selected
+                                ? _premiumLightGold.withValues(alpha: 0.9)
+                                : Colors.white.withValues(alpha: 0.44),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -957,7 +978,7 @@ class _PremiumScreenState extends State<PremiumScreen>
                   if (isYearly) ...[
                     const SizedBox(height: 2),
                     Text(
-                      '99₺/ay olarak hesaplanır',
+                      'Toplam yıllık tahsilat onay sayfasında gösterilir.',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 11,
@@ -998,10 +1019,9 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   Widget _buildPaymentButton() {
-    final storePrice = IapService.instance.priceFor(_selectedPlan.id);
-    final priceLabel = storePrice ?? _selectedPlan.priceLabel;
-    final priceReady = storePrice != null;
-    final canBuy = !_purchasing && priceReady;
+    final storePrice = _iap.priceFor(_selectedPlan.id);
+    final priceLabel = storePrice ?? _selectedPlan.priceLabel; // Fallback price
+    final canBuy = !_purchasing;
 
     return Column(
       children: [
@@ -1044,29 +1064,6 @@ class _PremiumScreenState extends State<PremiumScreen>
                           color: Colors.white,
                           strokeWidth: 2.5,
                         ),
-                      )
-                    : !priceReady
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              color: Colors.white54,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Fiyat yükleniyor...',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white.withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
                       )
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1133,10 +1130,7 @@ class _PremiumScreenState extends State<PremiumScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const _LegalLink(
-          label: 'Kullanım Şartları',
-          isPrivacy: false,
-        ),
+        const _LegalLink(label: 'Kullanım Şartları', isPrivacy: false),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
@@ -1147,10 +1141,7 @@ class _PremiumScreenState extends State<PremiumScreen>
             ),
           ),
         ),
-        const _LegalLink(
-          label: 'Gizlilik Politikası',
-          isPrivacy: true,
-        ),
+        const _LegalLink(label: 'Gizlilik Politikası', isPrivacy: true),
       ],
     );
   }
@@ -1315,6 +1306,7 @@ class _PremiumScreenState extends State<PremiumScreen>
 
     return '$planLabel$expiryText';
   }
+
 }
 
 // ─── Helper widgets ───────────────────────────────────────────────────────────

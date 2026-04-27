@@ -15,6 +15,7 @@ import '../../../features/nutrition/presentation/pages/smart_grocery_list_page.d
 import '../../../features/nutrition/presentation/pages/weekly_meal_plan_page.dart';
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/iap_service.dart';
 import '../providers/auth_provider.dart';
 import 'premium_screen.dart';
 
@@ -36,6 +37,49 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
   bool _cancelLoading = false;
 
   Future<void> _cancelMembership() async {
+    // Apple IAP abonelikleri yalnızca mağaza üzerinden iptal edilebilir.
+    // App Store Guideline 3.1.2(b): uygulama içi iptaller yanıltıcı sayılır.
+    if (Platform.isIOS) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF111827),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            'Aboneliği İptal Et',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
+          content: Text(
+            'Apple abonelikleri yalnızca App Store üzerinden iptal edilebilir.\n\n'
+            'İptal etmek için:\n'
+            'Ayarlar → Apple ID adın → Abonelikler → FitMentor\n\n'
+            'İptal edene kadar mevcut dönem sonunda otomatik yenilenir.',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Tamam', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD97706),
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openManageSubscriptions();
+              },
+              child: const Text("App Store'u Aç"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Android: Play Store abonelikleri uygulama aracılığıyla iptal edilebilir.
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -46,7 +90,8 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
         content: Text(
-          'Otomatik yenileme kapatılacak. Premium erişimin mevcut dönem sonuna kadar devam eder.',
+          'Otomatik yenileme kapatılacak. Premium erişimin mevcut dönem sonuna kadar devam eder. '
+          'Google Play faturalamasını durdurmak için Play Store abonelikler sayfasından da iptal et.',
           style: TextStyle(color: Colors.white.withValues(alpha: 0.7), height: 1.45),
         ),
         actions: [
@@ -57,7 +102,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
-              'Evet, İptal Et',
+              'Devam Et',
               style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
             ),
           ),
@@ -71,9 +116,12 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
     try {
       await ApiClient().post(ApiConstants.downgradePremium);
       if (mounted) {
-        // AuthProvider'ı güncelle
         await context.read<AuthProvider>().checkAuthStatus();
-        _showSnack('Üyelik iptali planlandı. Dönem sonuna kadar erişimin devam eder.', isError: false);
+        _showSnack(
+          'İptal kaydedildi. Dönem sonuna kadar erişimin devam eder. '
+          'Play Store\'dan da iptal etmeyi unutma.',
+          isError: false,
+        );
       }
     } catch (_) {
       if (mounted) _showSnack('İptal işlemi başarısız oldu. Lütfen tekrar dene.', isError: true);
@@ -194,10 +242,10 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                         _AiCard(
                           icon: Icons.smart_toy_rounded,
                           label: 'AI Koç',
-                          sublabel: 'Claude ile kişisel koçluk',
+                          sublabel: 'Yapay zeka ile kişisel koçluk',
                           description: 'Antrenman, beslenme ve motivasyon hakkında sınırsız soru sor.',
                           accentColor: const Color(0xFFFFB74D),
-                          tag: 'CLAUDE',
+                          tag: 'AI',
                           locked: !isPremium,
                           onTap: () {
                             Navigator.of(context).pop();
@@ -1217,12 +1265,14 @@ class _BenefitRow extends StatelessWidget {
             child: Icon(icon, color: color, size: 17),
           ),
           const SizedBox(width: 13),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-              Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.42), fontSize: 11)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.42), fontSize: 11)),
+              ],
+            ),
           ),
         ],
       ),
@@ -1239,6 +1289,9 @@ class _UpgradeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final storePrice = IapService.instance.priceFor(IapProductIds.monthly);
+    final priceLabel = storePrice != null ? '$storePrice / ay' : '149₺ / ay';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1260,14 +1313,14 @@ class _UpgradeBanner extends StatelessWidget {
             ),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lock_open_rounded, color: Color(0xFF1A0F00), size: 20),
-            SizedBox(width: 10),
+            const Icon(Icons.lock_open_rounded, color: Color(0xFF1A0F00), size: 20),
+            const SizedBox(width: 10),
             Text(
-              "Premium'u Aç — 149₺ / ay",
-              style: TextStyle(
+              "Premium'u Aç — $priceLabel",
+              style: const TextStyle(
                 color: Color(0xFF1A0F00),
                 fontWeight: FontWeight.w800,
                 fontSize: 15,

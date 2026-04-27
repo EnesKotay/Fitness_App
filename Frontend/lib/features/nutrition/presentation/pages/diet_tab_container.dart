@@ -32,113 +32,118 @@ class DietTabContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: _navigatorKey,
-      initialRoute: 'dashboard',
-      onGenerateRoute: (settings) {
-        try {
-          switch (settings.name) {
-            case 'dashboard':
-              return MaterialPageRoute(
-                builder: (_) => const DietDashboardPage(),
-              );
-            case 'profile':
-              final provider = Provider.of<DietProvider>(
-                context,
-                listen: false,
-              );
-              return MaterialPageRoute(
-                builder: (_) => ProfileSetupPage(
-                  initial: provider.profile,
-                  navigateToHomeOnSave: false,
-                ),
-              );
-            case 'search':
-              final mealType = settings.arguments as MealType?;
-              return MaterialPageRoute(
-                builder: (_) => FoodSearchPage(selectedMealType: mealType),
-              );
-            case 'portion':
-              final args = settings.arguments as Map<String, dynamic>?;
-              final food = args?['food'] as FoodItem?;
-              final mealType = args?['mealType'] as MealType?;
-              final initialGrams = (args?['initialGrams'] as num?)?.toDouble();
-              if (food == null) {
+    return ScaffoldMessenger(
+      child: Navigator(
+        key: _navigatorKey,
+        initialRoute: 'dashboard',
+        onGenerateRoute: (settings) {
+          try {
+            switch (settings.name) {
+              case 'dashboard':
                 return MaterialPageRoute(
                   builder: (_) => const DietDashboardPage(),
                 );
-              }
-              return MaterialPageRoute(
-                builder: (_) => PortionAddPage(
-                  food: food,
-                  selectedMealType: mealType,
-                  initialGrams: initialGrams,
-                ),
-              );
-            case 'add_custom_food':
-              return MaterialPageRoute(
-                builder: (_) => const AddCustomFoodPage(),
-              );
-            case 'diet_chat':
-              return MaterialPageRoute(builder: (_) => const DietChatPage());
-            case 'nutrition_trends':
-              return MaterialPageRoute(
-                builder: (_) => const NutritionTrendsPage(),
-              );
-            case 'nutrition_guide':
-              return MaterialPageRoute(
-                builder: (_) => const NutritionGuidePage(),
-              );
-            case 'weekly_meal_plan':
-              return MaterialPageRoute(
-                builder: (_) => const WeeklyMealPlanPage(),
-              );
-            case 'smart_grocery_list':
-              final args = settings.arguments as Map<String, dynamic>?;
-              final seedItems =
-                  (args?['seedItems'] as List?)?.whereType<String>().toList() ??
-                  const <String>[];
-              final seedGroceryItems =
-                  (args?['seedGroceryItems'] as List?)
-                      ?.whereType<GroceryItem>()
-                      .toList() ??
-                  const <GroceryItem>[];
-              final seedReason = args?['seedReason'] as String?;
-              final seedMealName = args?['seedMealName'] as String?;
-              return MaterialPageRoute(
-                builder: (_) => SmartGroceryListPage(
-                  seedItems: seedItems,
-                  seedGroceryItems: seedGroceryItems,
-                  seedReason: seedReason,
-                  seedMealName: seedMealName,
-                ),
-              );
-            case 'recipes':
-              return MaterialPageRoute(
-                builder: (_) => const RecipeListPage(),
-              );
-            case 'recipe_detail':
-              final recipe = settings.arguments as Recipe?;
-              if (recipe == null) {
+              case 'profile':
+                final provider = Provider.of<DietProvider>(
+                  context,
+                  listen: false,
+                );
+                return MaterialPageRoute(
+                  builder: (_) => ProfileSetupPage(
+                    initial: provider.profile,
+                    navigateToHomeOnSave: false,
+                  ),
+                );
+              case 'search':
+                final mealType = settings.arguments as MealType?;
+                return MaterialPageRoute(
+                  builder: (_) => FoodSearchPage(selectedMealType: mealType),
+                );
+              case 'portion':
+                final args = settings.arguments as Map<String, dynamic>?;
+                final food = args?['food'] as FoodItem?;
+                final mealType = args?['mealType'] as MealType?;
+                final initialGrams = (args?['initialGrams'] as num?)
+                    ?.toDouble();
+                if (food == null) {
+                  return MaterialPageRoute(
+                    builder: (_) => const DietDashboardPage(),
+                  );
+                }
+                return MaterialPageRoute(
+                  builder: (_) => PortionAddPage(
+                    food: food,
+                    selectedMealType: mealType,
+                    initialGrams: initialGrams,
+                  ),
+                );
+              case 'add_custom_food':
+                return MaterialPageRoute(
+                  builder: (_) => const AddCustomFoodPage(),
+                );
+              case 'diet_chat':
+                return MaterialPageRoute(builder: (_) => const DietChatPage());
+              case 'nutrition_trends':
+                return MaterialPageRoute(
+                  builder: (_) => const NutritionTrendsPage(),
+                );
+              case 'nutrition_guide':
+                return MaterialPageRoute(
+                  builder: (_) => const NutritionGuidePage(),
+                );
+              case 'weekly_meal_plan':
+                return MaterialPageRoute(
+                  builder: (_) => const WeeklyMealPlanPage(),
+                );
+              case 'smart_grocery_list':
+                final args = settings.arguments as Map<String, dynamic>?;
+                final seedItems =
+                    (args?['seedItems'] as List?)
+                        ?.whereType<String>()
+                        .toList() ??
+                    const <String>[];
+                final seedGroceryItems =
+                    (args?['seedGroceryItems'] as List?)
+                        ?.whereType<GroceryItem>()
+                        .toList() ??
+                    const <GroceryItem>[];
+                final seedReason = args?['seedReason'] as String?;
+                final seedMealName = args?['seedMealName'] as String?;
+                return MaterialPageRoute(
+                  builder: (_) => SmartGroceryListPage(
+                    seedItems: seedItems,
+                    seedGroceryItems: seedGroceryItems,
+                    seedReason: seedReason,
+                    seedMealName: seedMealName,
+                  ),
+                );
+              case 'recipes':
                 return MaterialPageRoute(
                   builder: (_) => const RecipeListPage(),
                 );
-              }
-              return MaterialPageRoute(
-                builder: (_) => RecipeDetailPage(recipe: recipe),
-              );
-            default:
-              return MaterialPageRoute(
-                builder: (_) => const DietDashboardPage(),
-              );
+              case 'recipe_detail':
+                final recipe = settings.arguments as Recipe?;
+                if (recipe == null) {
+                  return MaterialPageRoute(
+                    builder: (_) => const RecipeListPage(),
+                  );
+                }
+                return MaterialPageRoute(
+                  builder: (_) => RecipeDetailPage(recipe: recipe),
+                );
+              default:
+                return MaterialPageRoute(
+                  builder: (_) => const DietDashboardPage(),
+                );
+            }
+          } catch (e) {
+            debugPrint(
+              'DietTabContainer route generation hatası: $e, route: ${settings.name}',
+            );
+            return MaterialPageRoute(builder: (_) => const DietDashboardPage());
           }
-        } catch (e) {
-          debugPrint(
-            'DietTabContainer route generation hatası: $e, route: ${settings.name}',
-          );
-          return MaterialPageRoute(builder: (_) => const DietDashboardPage());
-        }
-      },
+        },
+      ),
     );
   }
 }

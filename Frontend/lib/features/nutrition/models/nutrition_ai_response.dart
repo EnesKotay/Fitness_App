@@ -2,15 +2,18 @@
 class NutritionAiResponseModel {
   final String? reply;
   final List<SuggestedMealModel> meals;
+  final List<CustomizedDailyPlanMealModel> dailyPlan;
   final List<String> shoppingList;
   final List<String> followUpQuestions;
 
   NutritionAiResponseModel({
     this.reply,
     List<SuggestedMealModel>? meals,
+    List<CustomizedDailyPlanMealModel>? dailyPlan,
     List<String>? shoppingList,
     List<String>? followUpQuestions,
   }) : meals = meals ?? [],
+       dailyPlan = dailyPlan ?? [],
        shoppingList = shoppingList ?? [],
        followUpQuestions = followUpQuestions ?? [];
 
@@ -18,6 +21,7 @@ class NutritionAiResponseModel {
     return NutritionAiResponseModel(
       reply: json['reply'] as String?,
       meals: _parseMeals(json['meals']),
+      dailyPlan: _parseDailyPlan(json['dailyPlan']),
       shoppingList: _parseStringList(json['shoppingList']),
       followUpQuestions: _parseStringList(json['followUpQuestions']),
     );
@@ -31,6 +35,15 @@ class NutritionAiResponseModel {
         .toList();
   }
 
+  static List<CustomizedDailyPlanMealModel> _parseDailyPlan(dynamic data) {
+    if (data is! List) return [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map((item) => CustomizedDailyPlanMealModel.fromJson(item))
+        .where((item) => item.food.isNotEmpty)
+        .toList();
+  }
+
   static List<String> _parseStringList(dynamic data) {
     if (data is! List) return [];
     return data
@@ -41,8 +54,57 @@ class NutritionAiResponseModel {
   }
 
   bool get hasMeals => meals.isNotEmpty;
+  bool get hasDailyPlan => dailyPlan.isNotEmpty;
   bool get hasFollowUpQuestions => followUpQuestions.isNotEmpty;
   bool get hasShoppingList => shoppingList.isNotEmpty;
+}
+
+class CustomizedDailyPlanMealModel {
+  final String time;
+  final String label;
+  final String mealType;
+  final String food;
+  final String reason;
+  final List<String> ingredients;
+  final MealMacrosModel? macros;
+
+  CustomizedDailyPlanMealModel({
+    required this.time,
+    required this.label,
+    required this.mealType,
+    required this.food,
+    required this.reason,
+    List<String>? ingredients,
+    this.macros,
+  }) : ingredients = ingredients ?? const [];
+
+  factory CustomizedDailyPlanMealModel.fromJson(Map<String, dynamic> json) {
+    return CustomizedDailyPlanMealModel(
+      time: (json['time'] as String?)?.trim() ?? '',
+      label: (json['label'] as String?)?.trim() ?? '',
+      mealType: (json['mealType'] as String?)?.trim() ?? '',
+      food: (json['food'] as String?)?.trim() ?? '',
+      reason: (json['reason'] as String?)?.trim() ?? '',
+      ingredients: _parseStringList(json['ingredients']),
+      macros: json['macros'] != null
+          ? MealMacrosModel.fromJson(json['macros'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  static List<String> _parseStringList(dynamic data) {
+    if (data is! List) return [];
+    return data
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  int get kcal => macros?.kcal ?? 0;
+  int get proteinG => macros?.proteinG ?? 0;
+  int get carbsG => macros?.carbsG ?? 0;
+  int get fatG => macros?.fatG ?? 0;
 }
 
 /// Suggested meal model - maps to backend SuggestedMeal

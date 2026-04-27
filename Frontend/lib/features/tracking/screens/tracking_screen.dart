@@ -143,7 +143,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
           },
         ),
         IconButton(
-          onPressed: () => _showAddWeightSheet(context),
+          onPressed: () => _showWeightEntrySheet(context),
           icon: const Icon(
             Icons.add_rounded,
             color: AppColors.primaryLight,
@@ -296,7 +296,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   provider: provider,
                   screenshotController: _screenshotController,
                   onShare: () => _shareProgress(context),
-                  onSettingsTap: () {},
                 ),
               ),
             ),
@@ -319,7 +318,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
           HistoryList(
             provider: provider,
             onDelete: (entry) => _confirmDelete(context, provider, entry),
-            onEdit: (entry) => _showEditWeightSheet(context, entry),
+            onEdit: (entry) => _showWeightEntrySheet(context, existing: entry),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
@@ -328,7 +327,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   }
 
   Widget _buildQuickSummaryCard(BuildContext context, WeightProvider provider) {
-    final diet = context.read<DietProvider>();
+    final diet = context.watch<DietProvider>();
     final target = diet.profile?.targetWeight;
     final current = provider.latestEntry?.weightKg;
     final weekly = provider.weeklyChange;
@@ -697,10 +696,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ? 'Hızlı'
         : 'İyi';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -847,10 +845,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
       color = AppColors.error;
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1143,7 +1140,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ),
         const SizedBox(width: 8),
         TextButton.icon(
-          onPressed: () => _showAddWeightSheet(context),
+          onPressed: () => _showWeightEntrySheet(context),
           icon: const Icon(
             Icons.add_rounded,
             size: 18,
@@ -1407,7 +1404,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 width: double.infinity,
                 child: AppButton.primary(
                   text: 'İlk Kilomu Kaydet',
-                  onPressed: () => _showAddWeightSheet(context),
+                  onPressed: () => _showWeightEntrySheet(context),
                 ),
               ),
             ],
@@ -1477,7 +1474,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
           builder: (_, isEmpty, child) {
             if (isEmpty) return const SizedBox.shrink();
             return FloatingActionButton.extended(
-              onPressed: () => _showAddWeightSheet(context),
+              onPressed: () => _showWeightEntrySheet(context),
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add_rounded, color: Colors.white),
               label: const Text(
@@ -1754,14 +1751,20 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  void _showAddWeightSheet(BuildContext context) {
+  /// Unified weight entry sheet for both adding and editing.
+  void _showWeightEntrySheet(BuildContext context, {WeightEntry? existing}) {
+    final isEdit = existing != null;
+    final initialDate = existing?.date ?? DateTime.now();
     final dateController = TextEditingController(
-      text: DateFormat('d.MM.yyyy').format(DateTime.now()),
+      text: DateFormat('d.MM.yyyy').format(initialDate),
     );
-    DateTime selectedDate = DateTime.now();
-    final lastWeight = context.read<WeightProvider>().latestEntry?.weightKg;
-    final profileWeight = context.read<DietProvider>().profile?.weightKg;
-    double currentWeight = lastWeight ?? profileWeight ?? 70.0;
+    DateTime selectedDate = initialDate;
+
+    final fallbackWeight = existing?.weightKg ??
+        context.read<WeightProvider>().latestEntry?.weightKg ??
+        context.read<DietProvider>().profile?.weightKg ??
+        70.0;
+    double currentWeight = fallbackWeight;
 
     showModalBottomSheet(
       context: context,
@@ -1798,9 +1801,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Kilo ekle',
-                    style: TextStyle(
+                  Text(
+                    isEdit ? 'Kilo düzenle' : 'Kilo ekle',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -1899,7 +1902,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: AppButton.primary(
-                      text: 'Kaydet',
+                      text: isEdit ? 'Güncelle' : 'Kaydet',
                       onPressed: () async {
                         if (currentWeight <= 0) {
                           AppSnack.showError(
@@ -1908,30 +1911,46 @@ class _TrackingScreenState extends State<TrackingScreen> {
                           );
                           return;
                         }
-                        final entry = WeightEntry(
-                          id: const Uuid().v4(),
-                          date: selectedDate,
-                          weightKg: currentWeight,
-                        );
                         final currentContext = context;
                         final wp = currentContext.read<WeightProvider>();
                         final dp = currentContext.read<DietProvider>();
-                        final success = await wp.addEntry(entry);
+
+                        bool success;
+                        if (isEdit) {
+                          final updatedEntry = WeightEntry(
+                            id: existing.id,
+                            date: selectedDate,
+                            weightKg: currentWeight,
+                            note: existing.note,
+                          );
+                          success = await wp.updateEntry(updatedEntry);
+                        } else {
+                          final newEntry = WeightEntry(
+                            id: const Uuid().v4(),
+                            date: selectedDate,
+                            weightKg: currentWeight,
+                          );
+                          success = await wp.addEntry(newEntry);
+                        }
+
                         if (!success) {
                           if (!currentContext.mounted) return;
                           AppSnack.showError(
                             currentContext,
-                            wp.error ?? 'Kilo kaydı eklenemedi',
+                            wp.error ?? (isEdit
+                                ? 'Kilo kaydı güncellenemedi'
+                                : 'Kilo kaydı eklenemedi'),
                           );
                           return;
                         }
-                        await dp.updateProfileWeightFromTracking(
-                          entry.weightKg,
-                        );
+                        await dp.updateProfileWeightFromTracking(currentWeight);
                         if (!ctx.mounted) return;
                         Navigator.pop(ctx);
                         if (!currentContext.mounted) return;
-                        AppSnack.showSuccess(currentContext, 'Kaydedildi');
+                        AppSnack.showSuccess(
+                          currentContext,
+                          isEdit ? 'Güncellendi' : 'Kaydedildi',
+                        );
                       },
                     ),
                   ),
@@ -1944,194 +1963,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
     );
   }
 
-  void _showEditWeightSheet(BuildContext context, WeightEntry entry) {
-    final dateController = TextEditingController(
-      text: DateFormat('d.MM.yyyy').format(entry.date),
-    );
-    DateTime selectedDate = entry.date;
-    double currentWeight = entry.weightKg;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            return Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(24),
-                ),
-                border: Border(
-                  top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-                ),
-              ),
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-                top: 12,
-                left: 20,
-                right: 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Kilo düzenle',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                        builder: (context, child) =>
-                            Theme(data: AppTheme.darkTheme, child: child!),
-                      );
-                      if (picked != null) {
-                        setSheetState(() {
-                          selectedDate = picked;
-                          dateController.text = DateFormat(
-                            'd.MM.yyyy',
-                          ).format(picked);
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.calendar_today_rounded,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            dateController.text,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        currentWeight.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 52,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -2,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'kg',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 100,
-                    child: WeightRulerPicker(
-                      initialValue: currentWeight,
-                      minValue: 30,
-                      maxValue: 250,
-                      onChanged: (v) => setSheetState(() => currentWeight = v),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: AppButton.primary(
-                      text: 'Güncelle',
-                      onPressed: () async {
-                        if (currentWeight <= 0) {
-                          AppSnack.showError(
-                            context,
-                            'Geçerli bir değer girin',
-                          );
-                          return;
-                        }
-                        final updatedEntry = WeightEntry(
-                          id: entry.id,
-                          date: selectedDate,
-                          weightKg: currentWeight,
-                          note: entry.note,
-                        );
-                        final currentContext = context;
-                        final wp = currentContext.read<WeightProvider>();
-                        final dp = currentContext.read<DietProvider>();
-                        final success = await wp.updateEntry(updatedEntry);
-                        if (!success) {
-                          if (!currentContext.mounted) return;
-                          AppSnack.showError(
-                            currentContext,
-                            wp.error ?? 'Kilo kaydı güncellenemedi',
-                          );
-                          return;
-                        }
-                        await dp.updateProfileWeightFromTracking(
-                          updatedEntry.weightKg,
-                        );
-                        if (!ctx.mounted) return;
-                        Navigator.pop(ctx);
-                        if (!currentContext.mounted) return;
-                        AppSnack.showSuccess(currentContext, 'Güncellendi');
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   Future<void> _shareProgress(BuildContext context) async {
     final currentContext = context;

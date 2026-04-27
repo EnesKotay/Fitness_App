@@ -12,14 +12,12 @@ class PremiumSummaryCard extends StatelessWidget {
   final WeightProvider provider;
   final ScreenshotController screenshotController;
   final VoidCallback onShare;
-  final VoidCallback onSettingsTap;
 
   const PremiumSummaryCard({
     super.key,
     required this.provider,
     required this.screenshotController,
     required this.onShare,
-    required this.onSettingsTap,
   });
 
   @override
@@ -233,7 +231,7 @@ class PremiumSummaryCard extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Devine referans: ${diet.profile!.idealWeight.toStringAsFixed(1)} kg',
+                                        'İdeal ağırlık (BMI 22): ${diet.profile!.idealWeight.toStringAsFixed(1)} kg',
                                         style: TextStyle(
                                           color: Colors.white.withValues(
                                             alpha: 0.45,

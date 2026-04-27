@@ -27,6 +27,15 @@ class ApiException implements Exception {
           message = data;
         }
 
+        final normalized = message.toLowerCase();
+        if (statusCode == 401 &&
+            (normalized.contains('jwt expired') ||
+                normalized.contains('token expired') ||
+                normalized.contains('geçersiz token') ||
+                normalized.contains('gecersiz token'))) {
+          message = 'Oturum süreniz doldu. Lütfen yeniden giriş yapın.';
+        }
+
         return ApiException(
           message: message,
           statusCode: statusCode,

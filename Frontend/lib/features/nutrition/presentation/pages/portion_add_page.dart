@@ -189,6 +189,11 @@ class _PortionAddPageState extends State<PortionAddPage>
                       FoodHeroCard(
                         food: widget.food,
                         ringAnim: _ringAnim,
+                        currentGrams: _currentGrams,
+                        calculatedKcal: _calculatedKcal,
+                        calculatedProtein: _protein,
+                        calculatedCarb: _carb,
+                        calculatedFat: _fat,
                       ),
                       const SizedBox(height: 14),
                       QuickPortionCard(
@@ -206,15 +211,7 @@ class _PortionAddPageState extends State<PortionAddPage>
                         sliderMax: _sliderMax,
                         onGramsSelected: _setGrams,
                       ),
-                      const SizedBox(height: 14),
-                      MacroSummaryCard(
-                        calculatedKcal: _calculatedKcal,
-                        protein: _protein,
-                        carb: _carb,
-                        fat: _fat,
-                        ringAnim: _ringAnim,
-                      ),
-                      const SizedBox(height: 14),
+
                       MealTypeCard(
                         selectedMealType: _mealType,
                         onMealTypeSelected: (type) => setState(() => _mealType = type),

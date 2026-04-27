@@ -695,6 +695,46 @@ class StorageHelper {
       _prefs?.getBool(_userKey(StorageKeys.settingsPrivacyCrashReports)) ??
       true;
 
+  // KVKK Md.6 — Sağlık verisi açık rızası
+  static Future<bool> savePrivacyHealthConsent(bool value) async {
+    return await _prefs?.setBool(
+          _userKey(StorageKeys.settingsPrivacyHealthConsent),
+          value,
+        ) ??
+        false;
+  }
+
+  static bool getPrivacyHealthConsent() =>
+      _prefs?.getBool(_userKey(StorageKeys.settingsPrivacyHealthConsent)) ??
+      false;
+
+  // KVKK Md.9 — Yurt dışı aktarım açık rızası
+  static Future<bool> savePrivacyTransferConsent(bool value) async {
+    return await _prefs?.setBool(
+          _userKey(StorageKeys.settingsPrivacyTransferConsent),
+          value,
+        ) ??
+        false;
+  }
+
+  static bool getPrivacyTransferConsent() =>
+      _prefs?.getBool(_userKey(StorageKeys.settingsPrivacyTransferConsent)) ??
+      false;
+
+  // KVKK Md.9 — Ödeme aktarımı açık rızası (Apple/Google)
+  static Future<bool> savePrivacyPaymentTransferConsent(bool value) async {
+    return await _prefs?.setBool(
+          _userKey(StorageKeys.settingsPrivacyPaymentTransferConsent),
+          value,
+        ) ??
+        false;
+  }
+
+  static bool getPrivacyPaymentTransferConsent() =>
+      _prefs?.getBool(
+          _userKey(StorageKeys.settingsPrivacyPaymentTransferConsent)) ??
+      false;
+
   // Favori egzersizler
   static List<FavoriteExerciseEntry> getFavoriteExercises() {
     try {

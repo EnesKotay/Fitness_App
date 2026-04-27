@@ -21,6 +21,8 @@ import '../../../core/services/notification_service.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../workout/providers/workout_provider.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
+import '../../../core/utils/storage_helper.dart';
+import '../../auth/screens/legal_screen.dart';
 
 class AiCoachScreen extends StatelessWidget {
   const AiCoachScreen({super.key, this.initialSummary});
@@ -43,7 +45,6 @@ class AiCoachScreenBody extends StatefulWidget {
 
 class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   static const Color _surface = Color(0xFF101826);
-  static const Color _surfaceSoft = Color(0xFF141F31);
   static const Color _brandBlue = Color(0xFF73D4FF);
   static const Color _brandGold = Color(0xFFEBC374);
   final TextEditingController _textController = TextEditingController();
@@ -245,6 +246,39 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final text = _textController.text.trim();
     if (text.isEmpty || controller.isLoading) return;
 
+    if (!StorageHelper.getPrivacyTransferConsent()) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Yurt Dışı Aktarım Rızası Gerekli'),
+          content: const Text(
+            'AI koç özelliği, verilerinizin Google Gemini (ABD) sunucularına '
+            'aktarılmasını gerektirir. Bu özelliği kullanmak için '
+            'Ayarlar → Gizlilik → Yurt dışı aktarım rızasını açmanız gerekiyor.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Kapat'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const LegalScreen(initialTab: LegalTab.kvkk),
+                  ),
+                );
+              },
+              child: const Text('Aydınlatma Metnini Oku'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     if (!_isPremium && _remainingFreePrompts <= 0) {
       Navigator.of(
         context,
@@ -302,6 +336,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           });
         }
 
+        final hasTransferConsent = StorageHelper.getPrivacyTransferConsent();
+
         return Scaffold(
           backgroundColor: const Color(0xFF070B16),
           appBar: _buildAppBar(controller),
@@ -312,6 +348,47 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                 top: false,
                 child: Column(
                   children: [
+                    if (!hasTransferConsent)
+                      Material(
+                        color: Colors.orange.shade900.withValues(alpha: 0.9),
+                        child: InkWell(
+                          onTap: () => Navigator.of(
+                            context,
+                          ).pushNamed('/settings-privacy'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                const Expanded(
+                                  child: Text(
+                                    'AI koç devre dışı — yurt dışı aktarım rızası gerekli. '
+                                    'Ayarlamak için dokun.',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Colors.white70,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     Expanded(
                       child: ListView(
                         controller: _scrollController,
@@ -724,23 +801,23 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     const personalities = [
       (
         p: CoachPersonality.motivator,
-        emoji: '💪',
+        icon: Icons.bolt_rounded,
         name: 'Motivatör',
-        desc: 'Sert & disiplinli',
-        color: Color(0xFFFF7043),
+        desc: 'Daha direkt ve disiplinli',
+        color: Color(0xFFFF8A65),
       ),
       (
         p: CoachPersonality.scientist,
-        emoji: '🔬',
+        icon: Icons.insights_rounded,
         name: 'Bilimsel',
-        desc: 'Veri & analize dayalı',
+        desc: 'Veri ve analize odaklı',
         color: Color(0xFF73D4FF),
       ),
       (
         p: CoachPersonality.supportive,
-        emoji: '🤝',
+        icon: Icons.favorite_border_rounded,
         name: 'Destekçi',
-        desc: 'Nazik & motive edici',
+        desc: 'Daha yumuşak ve motive edici',
         color: Color(0xFF34D399),
       ),
     ];
@@ -753,13 +830,13 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           child: Row(
             children: [
               const Icon(
-                Icons.person_rounded,
+                Icons.tune_rounded,
                 size: 14,
                 color: Color(0xFF73D4FF),
               ),
               const SizedBox(width: 6),
               Text(
-                'Koç karakterini seç',
+                'Koç tonu',
                 style: GoogleFonts.dmSans(
                   color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 12.5,
@@ -781,14 +858,21 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                     right: item.p != CoachPersonality.supportive ? 8 : 0,
                   ),
                   padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 6,
+                    vertical: 14,
+                    horizontal: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: selected
-                        ? item.color.withValues(alpha: 0.12)
-                        : const Color(0xFF101826),
-                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: selected
+                          ? [
+                              item.color.withValues(alpha: 0.16),
+                              item.color.withValues(alpha: 0.08),
+                            ]
+                          : [const Color(0xFF131D2D), const Color(0xFF101826)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: selected
                           ? item.color.withValues(alpha: 0.45)
@@ -808,7 +892,23 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(item.emoji, style: const TextStyle(fontSize: 20)),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? item.color.withValues(alpha: 0.16)
+                              : Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          item.icon,
+                          size: 19,
+                          color: selected
+                              ? item.color
+                              : Colors.white.withValues(alpha: 0.64),
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         item.name,
@@ -820,15 +920,15 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
                         item.desc,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.dmSans(
                           color: Colors.white.withValues(
-                            alpha: selected ? 0.6 : 0.38,
+                            alpha: selected ? 0.68 : 0.42,
                           ),
-                          fontSize: 10,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w600,
                           height: 1.3,
                         ),
@@ -874,11 +974,18 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final insights = _buildInsightItems(controller);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _surfaceSoft.withValues(alpha: 0.98),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: modelColor.withValues(alpha: 0.15)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF162133).withValues(alpha: 0.98),
+            const Color(0xFF0C1321).withValues(alpha: 0.98),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: modelColor.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -908,22 +1015,31 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
+                      'Günlük asistan',
+                      style: GoogleFonts.dmSans(
+                        color: modelColor,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       greeting,
                       style: GoogleFonts.dmSans(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: 22,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: -0.7,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      contextLine,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      'Bugünkü verilerine göre daha net planlar ve daha iyi kararlar al.',
                       style: GoogleFonts.dmSans(
-                        color: Colors.white.withValues(alpha: 0.52),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.58),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                        height: 1.35,
                       ),
                     ),
                   ],
@@ -947,8 +1063,38 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.timeline_rounded,
+                  size: 15,
+                  color: Colors.white.withValues(alpha: 0.56),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    contextLine,
+                    style: GoogleFonts.dmSans(
+                      color: Colors.white.withValues(alpha: 0.74),
+                      fontSize: 11.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (insights.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -961,13 +1107,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            item.$3.withValues(alpha: 0.1),
-                            item.$3.withValues(alpha: 0.04),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
+                        color: Colors.white.withValues(alpha: 0.035),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: item.$3.withValues(alpha: 0.22),
                         ),
@@ -1015,58 +1156,66 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _modeIcon(controller.taskMode),
-                  size: 14,
-                  color: _brandBlue,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  controller.taskMode.label,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.84),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.035),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: _brandBlue.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: _brandBlue.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _modeIcon(controller.taskMode),
+                    size: 14,
+                    color: _brandBlue,
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (chips.isNotEmpty) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                chips.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.dmSans(
-                  color: Colors.white.withValues(alpha: 0.42),
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                  const SizedBox(width: 6),
+                  Text(
+                    controller.taskMode.label,
+                    style: GoogleFonts.dmSans(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (chips.isNotEmpty) ...[
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  chips.join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withValues(alpha: 0.48),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
   static const _promptCardThemes = [
     (
-      bg: Color(0xFF0E2218),
+      bg: Color(0xFF102218),
       accent: Color(0xFF34D399),
       icon: Icons.fitness_center_rounded,
       label: 'Antrenman',
@@ -1099,7 +1248,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
         Row(
           children: [
             Text(
-              'Önerilen başlangıçlar',
+              'Hazır araçlar',
               style: GoogleFonts.dmSans(
                 color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 13,
@@ -1108,7 +1257,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
             ),
             const SizedBox(width: 8),
             Text(
-              'dokun ve gönder',
+              'tek dokunuşla doldur',
               style: GoogleFonts.dmSans(
                 color: Colors.white.withValues(alpha: 0.32),
                 fontSize: 11.5,
@@ -1133,13 +1282,17 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         width: itemWidth,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF111A2A),
-                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              theme.bg.withValues(alpha: 0.6),
+                              const Color(0xFF111A2A),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: theme.accent.withValues(alpha: 0.18),
                           ),
@@ -1168,7 +1321,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                                     theme.label,
                                     style: GoogleFonts.dmSans(
                                       color: theme.accent,
-                                      fontSize: 10,
+                                      fontSize: 10.5,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -1182,9 +1335,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.dmSans(
                                 color: Colors.white.withValues(alpha: 0.88),
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                height: 1.25,
+                                height: 1.3,
                               ),
                             ),
                           ],
@@ -1213,9 +1366,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.28),
+              color: Colors.black.withValues(alpha: 0.24),
               border: Border(
                 top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
@@ -1387,8 +1540,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: _surface,
-                    borderRadius: BorderRadius.circular(24),
+                    color: _surface.withValues(alpha: 0.98),
+                    borderRadius: BorderRadius.circular(26),
                     border: Border.all(
                       color: controller.isLoading
                           ? _brandGold.withValues(alpha: 0.24)

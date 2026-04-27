@@ -40,4 +40,11 @@ class StorageKeys {
       'settings_privacy_personalization';
   static const String settingsPrivacyCrashReports =
       'settings_privacy_crash_reports';
+  // KVKK Açık Rıza — Md.6 sağlık verisi ve Md.9 yurt dışı aktarım
+  static const String settingsPrivacyHealthConsent =
+      'settings_privacy_health_consent';
+  static const String settingsPrivacyTransferConsent =
+      'settings_privacy_transfer_consent';
+  static const String settingsPrivacyPaymentTransferConsent =
+      'settings_privacy_payment_transfer_consent';
 }

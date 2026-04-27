@@ -131,9 +131,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         ),
                       Expanded(
                         child: tasks.isEmpty
-                            ? _EmptyState(filter: controller.filter)
-                                .animate()
-                                .fadeIn(delay: 300.ms)
+                            ? _EmptyState(
+                                filter: controller.filter,
+                                onAddPressed: () => _showAddTaskDialog(context, controller),
+                              ).animate().fadeIn(delay: 300.ms)
                             : ListView.separated(
                                 padding: const EdgeInsets.only(bottom: 120),
                                 itemCount: tasks.length,
@@ -210,12 +211,12 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         ),
       ),
       title: Text(
-        'GÜNLÜK GÖREVLER',
-        style: GoogleFonts.cinzel(
-          color: const Color(0xFFEBC374),
-          fontWeight: FontWeight.w900,
+        'Günlük Görevler',
+        style: GoogleFonts.dmSans(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
           fontSize: 18,
-          letterSpacing: 2,
+          letterSpacing: 0.5,
         ),
       ),
       actions: [
@@ -727,65 +728,85 @@ class _ProgressCard extends StatelessWidget {
     final ratio = total == 0 ? 0.0 : completed / total;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFEBC374).withValues(alpha: 0.15),
-            const Color(0xFFBC74EB).withValues(alpha: 0.05),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        color: Colors.white.withValues(alpha: 0.04),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Bugünkü İlerlemen',
-                    style: GoogleFonts.dmSans(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    total == 0
-                        ? 'Bugün henüz görev yok'
-                        : '$completed/$total görev tamamlandı',
-                    style: GoogleFonts.dmSans(color: Colors.white54, fontSize: 13),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFEBC374).withValues(alpha: 0.1),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, color: Color(0xFFEBC374), size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'GÜNLÜK ÖZET',
+                      style: GoogleFonts.dmSans(
+                        color: const Color(0xFFEBC374),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  '${(ratio * 100).toInt()}%',
+                const SizedBox(height: 8),
+                Text(
+                  'Bugünkü İlerlemen',
                   style: GoogleFonts.dmSans(
-                    color: const Color(0xFFEBC374),
+                    color: Colors.white,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  total == 0
+                      ? 'Güne harika bir başlangıç yap!'
+                      : '$completed/$total görev tamamlandı',
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 10,
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFEBC374)),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 70,
+            height: 70,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: 1.0,
+                  strokeWidth: 8,
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+                CircularProgressIndicator(
+                  value: ratio,
+                  strokeWidth: 8,
+                  strokeCap: StrokeCap.round,
+                  color: const Color(0xFFEBC374),
+                ),
+                Center(
+                  child: Text(
+                    '${(ratio * 100).toInt()}%',
+                    style: GoogleFonts.dmSans(
+                      color: const Color(0xFFEBC374),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -986,35 +1007,103 @@ class _AnimatedMeshBackground extends StatelessWidget {
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.filter});
+  const _EmptyState({required this.filter, required this.onAddPressed});
 
   final DailyTasksFilter filter;
+  final VoidCallback onAddPressed;
 
   @override
   Widget build(BuildContext context) {
-    final text = switch (filter) {
-      DailyTasksFilter.all =>
-        'Bugün için henüz görev yok.\nAI Koç\'tan tavsiye alabilir veya manuel ekleyebilirsin.',
-      DailyTasksFilter.todo => 'Harika! Yapılacak tüm görevleri bitirdin.',
-      DailyTasksFilter.done => 'Henüz tamamlanan bir görev yok.',
-    };
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.assignment_turned_in_outlined, size: 64, color: Colors.white.withValues(alpha: 0.1)),
-          const SizedBox(height: 16),
-          Text(
-            text,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.dmSans(
-              color: Colors.white.withValues(alpha: 0.3),
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+    if (filter != DailyTasksFilter.all) {
+      final isTodo = filter == DailyTasksFilter.todo;
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isTodo ? Icons.celebration_rounded : Icons.history_toggle_off_rounded,
+              size: 72,
+              color: Colors.white.withValues(alpha: 0.1),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Text(
+              isTodo
+                  ? 'Harika! Yapılacak tüm\ngörevleri bitirdin.'
+                  : 'Henüz tamamlanan\nbir görev yok.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Default Empty State for "All"
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.03),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+              ),
+              child: Icon(
+                Icons.task_alt_rounded,
+                size: 40,
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+            ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack),
+            const SizedBox(height: 24),
+            Text(
+              'Gününüzü Planlayın',
+              style: GoogleFonts.dmSans(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+              ),
+            ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1, end: 0),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                'Su içme, antrenman veya öğün hedeflerini ekleyerek gününü organize et.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
+            const SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: onAddPressed,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('İlk Görevini Ekle'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFEBC374),
+                side: BorderSide(color: const Color(0xFFEBC374).withValues(alpha: 0.3)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                textStyle: GoogleFonts.dmSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ).animate().fadeIn(delay: 500.ms).scale(begin: const Offset(0.9, 0.9)),
+          ],
+        ),
       ),
     );
   }

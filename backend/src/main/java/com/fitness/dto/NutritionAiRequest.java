@@ -12,8 +12,17 @@ public class NutritionAiRequest {
         public List<String> dietaryRestrictions;
         public String mealType;
         public List<String> availableIngredients;
+        public List<CurrentPlanMeal> currentPlan;
         public DailySummary dailySummary;
         public String summaryText;
+    }
+
+    public static class CurrentPlanMeal {
+        public String time;
+        public String label;
+        public String mealType;
+        public String food;
+        public String macros;
     }
 
     public static class DailySummary {
