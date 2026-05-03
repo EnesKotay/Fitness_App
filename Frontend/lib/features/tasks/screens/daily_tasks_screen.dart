@@ -86,32 +86,46 @@ class DailyTasksScreen extends StatefulWidget {
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
-      emoji: '✅',
+      emoji: '📋',
       title: 'Günlük Görev Listesi',
       description:
-          'Her sabah sana özel küçük hedefler hazırlanır: su içmek, adım atmak, öğün eklemek gibi. Hepsi birden kolayca takip edilebilir.',
-      tip: 'Görevler günlük sıfırlanır — gece yarısında yeni liste hazır olur.',
+          'Bu sayfa, o gün tamamlaman gereken fitness ve yaşam hedeflerini listeler.\n\n'
+          'Sistem her sabah sana özel bazı temel görevler atar (örneğin: Su hedefini tamamla, 2 öğün kaydet vb.). Amacın gün bitmeden tüm görevleri tamamlayıp ilerleme çubuğunu %100 yapmaktır.',
+      tip: 'Görevler her gece yarısı sıfırlanır. Yeni güne temiz bir sayfayla başlarsın.',
     ),
     GuideStep(
       emoji: '👆',
-      title: 'Görevi Tamamlandı İşaretle',
+      title: 'Görevleri Tamamlama',
       description:
-          'Bir görevi yaptığında üzerine dokun veya yanındaki çembere dokun → yeşile döner. İlerleme çubuğu güncellenir.',
-      tip: 'Tüm görevleri bitirince özel bir animasyon seni karşılar!',
+          'Bir görevi bitirdiğinde yanındaki boş çembere (veya görevin üstüne) dokun. Görev yeşile döner ve altı çizilir.\n\n'
+          'Yanlışlıkla işaretlediysen tekrar dokunarak geri alabilirsin.',
+      tip: 'Tüm görevleri %100 tamamladığında başarı animasyonu seni karşılar ve günlük "Seri" kazanmana yardımcı olur.',
     ),
     GuideStep(
       emoji: '➕',
-      title: 'Kendi Görevini Oluştur',
+      title: 'Kendi Özel Görevlerini Ekle',
       description:
-          'Sağ alttaki "+" butonuna dokun → görev adı gir → kaydet. Kendi hedeflerini sisteme ekleyebilirsin.',
-      tip: '"Sabah koşusu", "Protein shake" gibi kişisel rutinlerini görev yap.',
+          'Sadece sistemin verdikleriyle sınırlı değilsin. Sağ alttaki sarı "+" butonuna dokunarak kendi görevlerini ekleyebilirsin:\n\n'
+          '• Göreve isim ver (Örn: "Sabah 30 dk yürüyüş")\n'
+          '• Kategori seç (Spor, Beslenme, Su, Diğer)\n'
+          '• Öncelik belirle (Yüksek, Orta, Düşük)',
+      tip: 'Görevleri önceliklendirerek gün içinde ilk neye odaklanman gerektiğini belirleyebilirsin. Yüksek öncelikliler kırmızı görünür.',
     ),
     GuideStep(
       emoji: '🔄',
-      title: 'Tekrarlayan Görevler',
+      title: 'Alışkanlık ve Rutin Oluşturma',
       description:
-          'Görev eklerken "Her gün tekrarla" seçeneğini aç → o görev her sabah otomatik gelir. Rutin oluşturmanın en iyi yolu!',
-      tip: 'Tekrarlayan görevler kırmızı renkte görünür — özel dikkat gerektiriyor demek.',
+          'Eğer eklediğin görev her gün yapman gereken bir şeyse (örn: "Uyanınca 2 bardak su iç"), görev eklerken alt kısımdaki "Her gün tekrarla" anahtarını aç.\n\n'
+          'Bu sayede görev, her sabah otomatik olarak listene eklenir ve harika bir rutine dönüşür.',
+      tip: 'Tekrarlayan görevlerini yönetmek veya silmek istersen sağ üstteki (🔄) ikonuna dokunabilirsin.',
+    ),
+    GuideStep(
+      emoji: '🧹',
+      title: 'Görev Silme',
+      description:
+          'Eklediğin bir görevi silmek istersen, görevi sağdan sola doğru kaydır (swipe). Ekrandan silinecektir.\n\n'
+          'Yanlışlıkla sildiysen ekranın altında çıkan "Geri Al" butonunu kullanabilirsin.',
+      tip: 'Üstteki butonları (Hepsi, Kalan, Bitti) kullanarak listeni filtreleyebilir ve sadece yapman gerekenleri görebilirsin.',
     ),
   ];
 

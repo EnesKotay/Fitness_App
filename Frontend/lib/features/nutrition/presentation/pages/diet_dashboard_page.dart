@@ -45,36 +45,61 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
       emoji: '🍽️',
       title: 'Öğün Ekleme',
       description:
-          'Kahvaltı, öğle, akşam ve ara öğün eklemek için her öğünün sağ tarafındaki "+" butonuna dokun. Yemek ara, miktarı gir ve kaydet.',
-      tip: 'Sık yediğin yemekler "Son Yenenler" listesinde otomatik çıkar — hızlıca ekleyebilirsin.',
+          'Kahvaltı, öğle, akşam ve ara öğün eklemek için her öğünün sağ tarafındaki "+" butonuna dokun.\n\n'
+          '• Yemekleri veritabanından arayabilirsin\n'
+          '• Porsiyon veya gram olarak miktar girebilirsin\n'
+          '• Her öğün anında kalori halkana yansır',
+      tip: 'Sık yediğin yemekler "Son Yenenler" listesinde otomatik çıkar — tek dokunuşla ekleyebilirsin.',
     ),
     GuideStep(
       emoji: '🔢',
-      title: 'Kalori & Makro Halkaları',
+      title: 'Kalori ve Makro Halkaları',
       description:
-          'Üstteki renkli halkalar günlük kalori, protein, karb ve yağ tüketimini gösterir. Halka tam dolunca o makro hedefine ulaştın demektir.',
-      tip: 'Bir halkaya dokununca detaylı gram ve yüzde bilgisini görebilirsin.',
+          'En üstteki büyük gösterge bugün kaç kalori hakkın kaldığını gösterir. Altındaki üç küçük halka ise protein, karbonhidrat ve yağ durumunu söyler.\n\n'
+          '• Halka tam dolarsa hedefe ulaştın demektir\n'
+          '• Kırmızıya dönerse hedefi aştın demektir',
+      tip: 'Bir halkaya dokunarak veya "Detay" butonuna basarak mikro besinlerini (demir, lif, kalsiyum vb.) inceleyebilirsin.',
     ),
     GuideStep(
       emoji: '📷',
-      title: 'Kamera ile Tara',
+      title: 'Kamera ile Hızlı Giriş (AI)',
       description:
-          'Sağ alttaki kamera butonuna dokun:\n• Barkod — paketli ürünler için\n• Fotoğraf — tabaktaki yemeği AI analiz eder\n• Etiket OCR — besin tablosunu kameraya tut\nHepsi otomatik beslenmeye eklenir.',
-      tip: 'Barkod tarama en hızlı ve en doğru yöntem — süpermarket ürünlerinin büyük çoğunluğu veritabanında mevcut.',
+          'Yemek aramak yerine sağ alttaki 📸 kamera butonuna dokun:\n\n'
+          '• 🥩 Fotoğraf Analizi: Tabaktaki yemeği çek, AI içindekileri ve porsiyonu tahmin etsin\n'
+          '• 📊 Besin Tablosu (OCR): Paketli gıdanın arkasındaki besin değerleri tablosunu kameraya okut\n'
+          '• 🔍 Barkod Okuyucu: Süpermarket ürünlerinin barkodunu tara',
+      tip: 'Fotoğraf taraması, dışarıda ne yediğini bilmediğin zamanlarda mükemmel bir yardımcıdır.',
     ),
     GuideStep(
-      emoji: '💧',
-      title: 'Su Takibi',
+      emoji: '📖',
+      title: 'Beslenme Rehberi',
       description:
-          'Sayfayı aşağı kaydır → Su Takibi kartını bul → bardak ikonlarına dokun veya "+" ile ml ekle. Günlük su hedefin sağ üstte gösterilir.',
-      tip: 'Günde 8 bardak (≈2000 ml) hedefle. Hedefini Profil → Ayarlar\'dan değiştirebilirsin.',
+          'Sağ üst köşedeki "Rehber" butonuna dokunarak kapsamlı beslenme bilgi tabanına erişebilirsin:\n\n'
+          '• Protein, karbonhidrat ve yağların ne işe yaradığı\n'
+          '• Hangi hedefe göre nasıl beslenmen gerektiği\n'
+          '• Örnek diyetler ve suplement tavsiyeleri burada',
+      tip: 'Eğer fitness dünyasında yeniysen, mutlaka Rehber sekmesindeki temel bilgileri oku.',
     ),
     GuideStep(
       emoji: '📅',
-      title: 'Geçmiş Günlere Bak',
+      title: 'Geçmiş Günleri İnceleme',
       description:
-          'Üstteki tarih şeridini sola kaydır → istediğin güne git → o günkü öğün ve makroları gör. Beslenme geçmişini dilediğin zaman inceleyebilirsin.',
-      tip: 'Haftalık trendler için Araçlar sekmesi → Beslenme Trendi\'ne git.',
+          'Üstteki tarih şeridini sağa veya sola kaydırarak geçmiş ve gelecek günlere gidebilirsin:\n\n'
+          '• Dün ne yediğini kontrol et\n'
+          '• Yarına şimdiden yemek planla\n'
+          '• Unuttuğun eski günlerin kayıtlarını gir',
+      tip: 'Eğer geriye dönük detaylı analiz istersen, Araçlar menüsünden haftalık özetine bakabilirsin.',
+    ),
+    GuideStep(
+      emoji: '🛠️',
+      title: 'Araçlar Menüsü',
+      description:
+          'Sayfanın ortasındaki Araçlar menüsünde faydalı kısayollar var:\n\n'
+          '• 🤖 Diyetisyene Sor: Beslenmenle ilgili AI'a soru sor\n'
+          '• 🍲 Tarifler: Sağlıklı yemek tariflerine ulaş\n'
+          '• 🛒 Alışveriş Listesi: Market planını yap\n'
+          '• 📅 Haftalık Plan: 7 günlük diyet planını gör',
+      tip: 'Araçlar bölümü, günlük öğün eklemenin ötesine geçip beslenmeni tam kontrol altına almanı sağlar.',
     ),
   ];
 

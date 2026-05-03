@@ -57,31 +57,55 @@ class _TrackingScreenState extends State<TrackingScreen> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '📊',
-      title: 'Kilo Grafiği',
+      title: 'Kilo Gelişim Grafiği',
       description:
-          'Kilonun zaman içindeki değişimini grafik üzerinde takip edersin. Üstteki butonlardan 7G, 1A, 3A, 1Y ve Tümü arasında geçiş yap.',
-      tip: 'Grafik çizgisi düz → istikrar, inen → yağ kaybı, çıkan → hacim dönemi.',
+          'Merkezdeki parlak grafik kilonun zaman içindeki değişimini gösterir:\n\n'
+          '• Üstteki butonlarla grafiği 7 Gün, 1 Ay, 3 Ay veya Tümü olarak filtrele\n'
+          '• Grafikteki noktalara dokunarak o günkü spesifik kilonu gör\n'
+          '• Hedef kilon grafikte kesik çizgi ile gösterilir',
+      tip: 'Grafik çizgisi düz gidiyorsa istikrarı, aşağı iniyorsa yağ kaybını, çıkıyorsa hacim/bulk dönemini ifade eder.',
     ),
     GuideStep(
       emoji: '➕',
-      title: 'Kilo Girdisi Ekle',
+      title: 'Günlük Kilo Kaydı Ekleme',
       description:
-          'Sağ üstteki "+" butonuna dokun → kilonu gir → Kaydet. Sabah aç karnına ölçüm en tutarlı sonucu verir.',
-      tip: 'Her gün aynı saatte ölç. Günlük dalgalanmalar normal — haftalık ortalamaya bak.',
+          'Sağ üstteki "+" butonuna dokunarak güncel kilonu sisteme girebilirsin. Kaydettiğin değer anında grafiğe yansır ve analizlerin güncellenir.',
+      tip: 'En tutarlı sonuçlar için her sabah uyandığında, tuvaletten sonra ve kahvaltıdan önce aç karnına tartıl.',
     ),
     GuideStep(
-      emoji: '📏',
-      title: 'Vücut Ölçüleri',
+      emoji: '🤖',
+      title: 'Gelişmiş AI Analizleri',
       description:
-          'Sayfayı aşağı kaydır → "Vücut Ölçüleri" bölümüne ulaş → bel, kalça, göğüs, kol ölçülerini gir. Sadece kiloya bakma!',
-      tip: 'Özellikle antrenman yapıyorsan kas gelişimini ölçülerle takip etmek daha doğru.',
+          '"Gelişmiş detayları göster" seçeneğine dokunarak AI tabanlı öngörüleri açabilirsin:\n\n'
+          '• Hız Koçu: Kilo verme/alma hızının sağlıklı aralıkta olup olmadığını söyler\n'
+          '• Hedef Tahmini: Mevcut hızınla hedefine ne zaman ulaşacağını hesaplar\n'
+          '• Haftalık Değişim: Son 7 gündeki net değişimini (kg) gösterir',
+      tip: 'Eğer Hız Koçu kırmızı veya sarı uyarı veriyorsa, diyetini hedefine göre biraz daha yavaş ve sürdürülebilir hale getir.',
     ),
     GuideStep(
       emoji: '🔥',
-      title: 'Aktivite Isı Haritası',
+      title: 'İstikrar (Consistency) Haritası',
       description:
-          'Alt kısımda gün başına aktivite haritası var. Koyu yeşil = aktif gün. Tutarlı kaldıkça harita renklenir!',
-      tip: 'Haftada en az 3 aktif gün hedefle. Renklenen kutular motivasyonunu artırır.',
+          'Sayfanın altındaki yeşil kareler senin istikrarını gösterir. Girdiğin her kilo kaydı, antrenman veya başarılı öğün takibi o günün karesini yeşile boyar.\n\n'
+          'Ne kadar koyu yeşil, o kadar istikrarlı bir gün demektir.',
+      tip: 'Haftada en az 4 koyu yeşil kare elde etmeyi hedefle. Bu haritayı dolu tutmak en büyük motivasyon kaynağındır!',
+    ),
+    GuideStep(
+      emoji: '📏',
+      title: 'Vücut Ölçüleri Sekmesi',
+      description:
+          'Sayfanın en üstündeki menüden "Vücut Ölçüleri" sekmesine geçebilirsin:\n\n'
+          '• Bel, kalça, göğüs, omuz ve kol ölçülerini mezura ile ölçüp kaydet\n'
+          '• Yağ oranındaki (Vücut Kompozisyonu) değişimi tahmini olarak takip et\n'
+          '• Sadece tartıdaki rakama bağımlı kalma',
+      tip: 'Özellikle ağırlık antrenmanı yapıyorsan kilon aynı kalırken belin incelebilir. Gerçek değişimi görmek için her ay ölçü al.',
+    ),
+    GuideStep(
+      emoji: '📸',
+      title: 'Gelişimini Paylaş',
+      description:
+          'Kilo grafiğinin yanındaki Paylaş butonuna basarak, mevcut kilonu ve hedefe ne kadar yaklaştığını gösteren özel tasarım bir "İlerleme Kartı" oluşturup arkadaşlarınla paylaşabilirsin.',
+      tip: 'Başarılarını sosyal medyada paylaşmak motivasyonunu canlı tutar!',
     ),
   ];
 

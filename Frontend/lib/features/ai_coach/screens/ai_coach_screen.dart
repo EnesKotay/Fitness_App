@@ -63,43 +63,46 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🤖',
-      title: 'AI Antrenörüne Hoş Geldin',
+      title: 'Kişisel AI Asistanın',
       description:
-          'Bu ekranda Gemini tabanlı kişisel AI antrenörünle sohbet edebilirsin. Beslenme, antrenman, kilo yönetimi ve günlük plan konularında uzman rehberlik alırsın.',
-      tip:
-          'Alt kısımdaki yazı kutusuna yaz ve gönder — AI hem Türkçe hem İngilizce anlıyor.',
+          'Bu ekran senin 7/24 hizmetindeki kişisel fitness ve beslenme koçundur.\n\n'
+          'Sadece genel geçer bilgiler değil, doğrudan senin mevcut kilona, hedefine ve gün içindeki kalori verilerine bakarak sana özel tavsiyeler verir.',
+      tip: 'AI asistanın Türkçe dilinde uzmandır, cümleleri tam kurmasan bile ne demek istediğini anlar.',
     ),
     GuideStep(
       emoji: '💬',
-      title: 'Ne Sorabilirsin?',
+      title: 'Neler Sorabilirsin?',
       description:
-          'Örnek sorular:\n• "Bugün ne yemem gerekiyor?"\n• "Göbek yağını eritecek antrenman planı ver"\n• "2000 kaloride yüksek protein menü öner"\n• "Motivasyonum düştü, ne yapayım?"',
-      tip:
-          'Ne kadar özel soru sorarsan o kadar kişisel cevap alırsın — boy, kilo ve hedefini de belirt.',
+          'Her türlü konuda yardım isteyebilirsin:\n\n'
+          '• Antrenman Programı: "Bana 3 günlük tüm vücut ağırlık programı ver"\n'
+          '• Yemek Planı: "Kalan 500 kalorim için bol proteinli bir akşam yemeği öner"\n'
+          '• Bilgi & Sorular: "Kreatin ne zaman kullanılmalı?"\n'
+          '• Psikolojik Destek: "Bugün antrenmana gitmeye üşeniyorum, beni motive et"',
+      tip: 'Eğer bir antrenman programı veya tarif istersen, AI bunu senin için okunaklı liste halinde sunar.',
     ),
     GuideStep(
       emoji: '📊',
-      title: 'Günlük Analizini Al',
+      title: 'Veri Entegrasyonu',
       description:
-          '"Bugünkü özetimi ver" veya "Bugün nasılım?" yaz → AI kalori, protein, su ve antrenman verilerini analiz edip değerlendirme yapar.',
-      tip:
-          'Sabah ve akşam birer kez özet alarak günü kapatmak iyi bir rutin oluşturur.',
+          'AI Koç, uygulamanın geri kalanıyla bağlantılıdır.\n\n'
+          '"Bugün nasılım?" veya "Diyetime uyuyor muyum?" diye sorduğunda o gün yediğin kalorilere, attığın adımlara ve su tüketimine bakar ve sana durum değerlendirmesi yapar.',
+      tip: 'Gece uyumadan önce "Bana günümün özetini yap" diyerek gidişatını kontrol edebilirsin.',
     ),
     GuideStep(
       emoji: '📷',
-      title: 'Fotoğraf Gönder',
+      title: 'Görsel Analiz (Fotoğraf)',
       description:
-          'Kamera ikonuna dokun → yemek tabağının fotoğrafını çek veya gönder → AI içindekileri tahmin edip kalori ve makro değerlerini verir.',
-      tip:
-          'Fotoğraf net ve iyi aydınlatılmış olsun — tahmin doğruluğu dramatik şekilde artar.',
+          'Yazı kutusunun yanındaki artı/kamera (➕) ikonuna dokunarak yemeğinin fotoğrafını gönderebilirsin.\n\n'
+          'AI görüntüyü analiz eder, tabağındaki yiyecekleri tespit eder ve sana tahmini kalori ile protein, karb, yağ değerlerini söyler.',
+      tip: 'Dışarıda yemek yerken porsiyonu bilemediğinde fotoğraf çekip sormak hayat kurtarır.',
     ),
     GuideStep(
       emoji: '🔁',
-      title: 'Sohbet Bağlamı',
+      title: 'Bağlamı Hatırlama',
       description:
-          'Önceki mesajlardan bağımsız olarak devam edebilirsin — "az önce verdiğin planda kaloriyi düşür" gibi bağlamlı cümleler kullanabilirsin.',
-      tip:
-          'Günlük ücretsiz kullanım hakkın var. Premium ile sınırsız sohbet ve gelişmiş analizler açılır.',
+          'AI ile arandaki sohbet devamlıdır. Önceki dediklerini unutmaz.\n\n'
+          'Örneğin sana bir yemek planı verdiğinde; "Bu plandaki tavuğu çıkarıp yerine balık koy" dersen, önceki planı anlar ve sadece istediğin kısmı güncelleyerek yeniden sunar.',
+      tip: 'Sohbet geçmişin kaydedilir. Ücretsiz sürümde mesaj hakkın sınırlıdır (tepe noktasında gösterilir).',
     ),
   ];
 

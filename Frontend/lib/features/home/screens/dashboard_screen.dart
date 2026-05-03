@@ -55,38 +55,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🏠',
-      title: 'Ana Sayfa — Günlük Özet',
+      title: 'Ana Sayfa — Komuta Merkezin',
       description:
-          'Bu sayfada bugünkü kalori, protein, karbonhidrat ve yağ tüketimini tek bakışta görürsün. Üstteki renkli kart hedef modunu (Hacim / Definasyon vb.) ve kalan kaloriyi gösterir.',
-      tip: 'Karta dokunarak beslenme detaylarına ve makro dağılımına geçebilirsin.',
+          'Bu sayfa senin fitness komuta merkezin. En üstte hedef modunu (Hacim / Definasyon / Performans / Denge) ve bugün kalan kalorini gösteren büyük kart var.\n\n'
+          '• Kalan kalori sayısı canlı güncellenir — öğün ekledikçe düşer\n'
+          '• Kartın sağ üstünde günlük yüzde ilerleme gösterilir\n'
+          '• Karta dokunursan beslenme sayfasına geçersin',
+      tip: 'Hedef modunu Profil → Beslenme Profili\'nden değiştirebilirsin. Mod değiştikçe kalori hedefin otomatik güncellenir.',
+    ),
+    GuideStep(
+      emoji: '🔢',
+      title: 'Makro Dağılımı',
+      description:
+          'Kalori kartının hemen altında 3 makro besin göstergesi var:\n\n'
+          '• 🟦 Protein — kas yapımı ve toparlanma\n'
+          '• 🟩 Karbonhidrat — enerji kaynağın\n'
+          '• 🟧 Yağ — hormon dengesi ve doygunluk\n\n'
+          'Her makronun yanında gram cinsinden tüketim / hedef ve küçük ilerleme çemberi görünür.',
+      tip: 'Makro çemberlerine dokunarak mikro besin detaylarını (demir, kalsiyum, lif vb.) görebilirsin.',
     ),
     GuideStep(
       emoji: '💧',
       title: 'Su Takibi',
       description:
-          'Sayfayı aşağı kaydır → Su Takibi kartını bul → bardak ikonlarına veya "+" butonuna dokun → günlük tüketimini kaydet. Hedef sağ üstte gösterilir.',
-      tip: '8 bardak su ≈ 2000 ml. Hedefini Profil → Ayarlar\'dan değiştirebilirsin.',
+          'Sayfayı aşağı kaydır → Su Takibi kartını bul.\n\n'
+          '• Bardak ikonlarına tek tek dokunarak su ekle\n'
+          '• + butonuyla hızlıca 1 bardak (250 ml) artır\n'
+          '• Günlük hedef sağ üstte gösterilir\n'
+          '• Su miktarı her gün sıfırlanır',
+      tip: '8 bardak su = 2 litre. Hedefini değiştirmek için su kartındaki hedef sayısına dokun.',
     ),
     GuideStep(
       emoji: '🚀',
       title: 'Hızlı Erişim Kartları',
       description:
-          'Ortadaki "Seri", "Antrenman" ve "Kilo" kartlarına dokunarak:\n• Antrenman kaydedebilir\n• Kilo girdisi yapabilir\n• Günlük serinizi görebilirsin.',
-      tip: 'Antrenman kartı seni direkt Antrenman sekmesine götürür.',
+          'Ortadaki 3 mini kart ile en sık kullanılan özelliklere tek dokunuşla eriş:\n\n'
+          '• 🔥 Seri kartı — kaç gündür aralıksız kayıt girdiğini gösterir\n'
+          '• 💪 Antrenman kartı — bu haftaki antrenman sayısı\n'
+          '• ⚖️ Kilo kartı — son tartını gösterir',
+      tip: 'Kartlara dokunarak ilgili sayfaya doğrudan gidebilirsin!',
+    ),
+    GuideStep(
+      emoji: '🤖',
+      title: 'Premium Hub ve AI Araçları',
+      description:
+          'Aşağı kaydırdığında Premium Hub kartını görürsün:\n\n'
+          '• 🧠 AI Koç — kişisel fitness asistanınla sohbet et\n'
+          '• 📷 Foto Analiz — yemeğin fotoğrafını çekip kalori tahmin ettir\n'
+          '• 📈 Trendler — haftalık beslenme ve antrenman trendlerini gör',
+      tip: 'Premium olmasan da AI Koç\'u günlük 2 mesaj hakkıyla kullanabilirsin!',
     ),
     GuideStep(
       emoji: '✅',
       title: 'Günlük Görevler',
       description:
-          'Her gün sana özel küçük fitness hedefleri hazırlanır: su içmek, adım atmak, öğün kaydetmek gibi. Görevleri tamamladıkça başarı rozeti kazanırsın.',
-      tip: 'Görevlerin tamamını görmek için Asistan butonu → Günlük Görevler\'e git.',
+          'Her gün sana özel küçük fitness hedefleri hazırlanır:\n\n'
+          '• 💧 Su hedefini tamamla\n'
+          '• 🏃 Adım hedefine ulaş\n'
+          '• 🍽️ En az 2 öğün kaydet\n'
+          '• 💪 Antrenman yap\n\n'
+          'Görevleri tamamladıkça ilerleme çubuğu dolar ve başarı rozeti kazanırsın.',
+      tip: 'Asistan butonu → Günlük Görevler\'den tüm görevleri yönetebilirsin.',
     ),
     GuideStep(
       emoji: '✨',
-      title: 'Asistan Butonu',
+      title: 'Asistan Butonu ve Rehber',
       description:
-          'Ekrandaki kayan "Asistan" butonuna dokun → AI Koç, Günlük Görevler ve Premium özelliklere anında eriş. Butonu sürükleyerek istediğin köşeye taşıyabilirsin.',
-      tip: 'Sağ üstteki ampul ikonu rehberi her zaman yeniden açar — hiçbir şeyi ezberlemeye gerek yok!',
+          'Ekranda süzülen yuvarlak Asistan butonuna dokun → açılan menüden:\n\n'
+          '• 🤖 AI Koç\'a hızlıca git\n'
+          '• ✅ Günlük Görevleri aç\n'
+          '• ⭐ Premium sayfasına eriş\n\n'
+          'Butonu parmağınla sürükleyerek ekranın herhangi bir köşesine taşıyabilirsin.',
+      tip: 'Sağ üstteki 💡 ampul ikonuna dokunarak bu rehberi istediğin zaman tekrar açabilirsin!',
     ),
   ];
 

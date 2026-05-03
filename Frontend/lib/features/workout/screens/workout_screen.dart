@@ -55,34 +55,60 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '💪',
-      title: 'Egzersiz Rehberi',
+      title: 'Kapsamlı Egzersiz Kütüphanesi',
       description:
-          '500+ egzersiz listesinden kas grubuna göre filtrele. Her egzersizin üstüne dokununca nasıl yapılacağını gösteren detay sayfası açılır.',
+          'Sayfadaki kas grubu filtrelerini (Göğüs, Sırt, Bacak vb.) kullanarak 500\'den fazla egzersizi keşfedebilirsin:\n\n'
+          '• Bir egzersize dokunarak nasıl yapıldığını, form ipuçlarını ve hedef kasları gör\n'
+          '• Çoğu egzersiz için 3D animasyonlu veya videolu anlatım mevcut\n'
+          '• Yeni hareketler öğrenip programına ekle',
       tip:
-          'Yeni başlıyorsan "Başlangıç" filtresini kullan — doğru formla başlamak çok önemli.',
+          'Yeni başlıyorsan mutlaka egzersizin detay sayfasına girip doğru formu öğren. Yanlış form sakatlığa yol açar.',
+    ),
+    GuideStep(
+      emoji: '🔍',
+      title: 'Hızlı Arama ve Filtreleme',
+      description:
+          'Aradığın spesifik bir hareket varsa üstteki arama çubuğunu kullanabilirsin. Ayrıca kas grubu seçtikten sonra, o kasın alt bölgelerine göre de (Örn: "Üst Göğüs") filtreleme yapabilirsin.',
+      tip:
+          'İngilizce isimleri de (örn: Bench Press, Deadlift) Türkçe aratarak kolayca bulabilirsin.',
     ),
     GuideStep(
       emoji: '⭐',
-      title: 'Favori Egzersizler',
+      title: 'Favori Egzersizlerini Seç',
       description:
-          'Beğendiğin egzersizin yanındaki yıldız ikonuna dokun → Favorilere ekle. Üstteki "Favoriler" sekmesinden hızlıca eriş.',
+          'Sık yaptığın veya beğendiğin bir egzersizin yanındaki yıldız (⭐) ikonuna dokun. Bu egzersizler üstteki "Favoriler" sekmesinde toplanır. Böylece antrenman esnasında aramakla vakit kaybetmezsin.',
       tip:
-          'Düzenli yaptığın 8-10 egzersizi favorile — antrenman kurmak çok kolaylaşır.',
+          'En temel bileşik egzersizlerini (Squat, Deadlift, Bench Press) favorilere ekleyerek kendi ana cephaneliğini oluştur.',
     ),
     GuideStep(
       emoji: '➕',
-      title: 'Antrenman Kaydet',
+      title: 'Serbest Antrenman Kaydetme',
       description:
-          'Sağ üstteki "+" butonuna dokun → Tarih seç → Egzersizleri ekle → Set/tekrar gir → Kaydet. Her antrenman otomatik geçmişe eklenir.',
-      tip: 'Süre ve not alanı da var — kişisel rekorlarını not edebilirsin.',
+          'Kendi antrenmanını yaptıysan sağ üstteki "+" butonuna dokun:\n\n'
+          '1. Tarih ve saati seç\n'
+          '2. Yaptığın egzersizleri listeden ekle\n'
+          '3. Set, tekrar ve ağırlık değerlerini gir\n'
+          '4. Kaydet ve gelişimi gör',
+      tip: 'Antrenman esnasında notlar alabilir, o günkü yorgunluk seviyeni veya hissiyatını da kaydedebilirsin.',
+    ),
+    GuideStep(
+      emoji: '⚡',
+      title: 'Hızlı Başlat Şablonları',
+      description:
+          'Eğer o gün ne çalışacağına karar veremediysen, sayfanın üst kısmındaki "Hızlı Başlat" şablonlarını kullan. (Full Body, İtme, Çekme, Bacak vb.).\n\n'
+          'Bu şablonlar sana hazır egzersizler sunar, sadece ağırlıklarını girip antrenmana başlarsın.',
+      tip: 'Bu şablonları kendi seviyene göre değiştirebilir, egzersiz çıkarıp ekleyebilirsin.',
     ),
     GuideStep(
       emoji: '📅',
-      title: 'Antrenman Geçmişi',
+      title: 'Antrenman Geçmişi ve Kayıtlar',
       description:
-          'Alt sekmede geçmiş antrenmanlarını görebilirsin. Her kayda dokunarak detayları incele ve aynı antrenmanı tekrarlayabilirsin.',
+          '"Geçmiş" sekmesine geçerek daha önce kaydettiğin tüm antrenmanları kronolojik sırada görebilirsin:\n\n'
+          '• Eski antrenmanlarının detaylarına bakıp kaldırdığın ağırlıkları kontrol et\n'
+          '• Bir antrenmanı kolayca kopyalayıp bugüne tekrar ekle\n'
+          '• Antrenman hacmini (toplam kaldırılan ağırlık) takip et',
       tip:
-          'Haftalık antrenman sayısını takip etmek için Ana Sayfa → Seri kartına bak.',
+          'Aynı antrenmanı kopyalayıp ağırlıkları veya tekrarları bir tık artırmaya çalış (Progressive Overload).',
     ),
   ];
 
