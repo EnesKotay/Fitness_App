@@ -216,25 +216,13 @@ public class GeminiCoachService {
     }
 
     private void sanitizeResponse(AiCoachResponse response, AiCoachRequest request) {
-        if (response == null || request == null) {
-            return;
-        }
-
-        String question = request.question == null ? "" : request.question.trim();
-        String normalized = question.toLowerCase(java.util.Locale.ROOT);
-        String taskMode = request.taskMode == null ? "" : request.taskMode.trim().toLowerCase(java.util.Locale.ROOT);
+        if (response == null) return;
 
         if (response.todayFocus != null) {
             response.todayFocus = response.todayFocus.trim();
         }
 
-        boolean wantsStructuredPlan = asksForStructuredPlan(normalized, taskMode);
-        boolean wantsNutritionExtras = asksForNutritionExtras(normalized, taskMode);
-        boolean wantsUpdateNutrition = asksForNutritionUpdate(normalized);
-
-        if (!wantsStructuredPlan) {
-            response.actionItems = List.of();
-        } else if (response.actionItems != null && !response.actionItems.isEmpty()) {
+        if (response.actionItems != null && !response.actionItems.isEmpty()) {
             response.actionItems = response.actionItems.stream()
                     .filter(item -> item != null && !item.isBlank())
                     .map(String::trim)
@@ -242,77 +230,16 @@ public class GeminiCoachService {
                     .toList();
         }
 
-        if (!wantsNutritionExtras) {
-            response.nutritionNote = "";
-        } else if (response.nutritionNote != null) {
+        if (response.nutritionNote != null) {
             response.nutritionNote = response.nutritionNote.trim();
         }
 
         if (response.actions != null && !response.actions.isEmpty()) {
             response.actions = response.actions.stream()
                     .filter(action -> action != null && action.type != null && !action.type.isBlank())
-                    .filter(action -> wantsUpdateNutrition && "UPDATE_NUTRITION".equalsIgnoreCase(action.type))
                     .limit(1)
                     .toList();
-            if (response.actions.isEmpty()) {
-                response.actions = List.of();
-            }
         }
-    }
-
-    private boolean asksForStructuredPlan(String normalized, String taskMode) {
-        if (normalized.isBlank()) {
-            return false;
-        }
-        if ("plan".equals(taskMode)) {
-            return normalized.contains("plan")
-                    || normalized.contains("program")
-                    || normalized.contains("liste")
-                    || normalized.contains("routine")
-                    || normalized.contains("rutin");
-        }
-        return normalized.contains("plan")
-                || normalized.contains("program")
-                || normalized.contains("liste")
-                || normalized.contains("adım adım")
-                || normalized.contains("madde madde")
-                || normalized.contains("rutini")
-                || normalized.contains("rutin")
-                || normalized.contains("öğün öğün");
-    }
-
-    private boolean asksForNutritionExtras(String normalized, String taskMode) {
-        if (normalized.isBlank()) {
-            return false;
-        }
-        if ("nutrition".equals(taskMode)) {
-            return normalized.contains("kalori")
-                    || normalized.contains("makro")
-                    || normalized.contains("protein")
-                    || normalized.contains("karbonhidrat")
-                    || normalized.contains("yağ")
-                    || normalized.contains("öğün")
-                    || normalized.contains("yemek");
-        }
-        return normalized.contains("kalori")
-                || normalized.contains("makro")
-                || normalized.contains("protein")
-                || normalized.contains("karbonhidrat")
-                || normalized.contains("yağ")
-                || normalized.contains("öğün")
-                || normalized.contains("yemek")
-                || normalized.contains("beslenme");
-    }
-
-    private boolean asksForNutritionUpdate(String normalized) {
-        if (normalized.isBlank()) {
-            return false;
-        }
-        return (normalized.contains("hedef") || normalized.contains("kalori"))
-                && (normalized.contains("güncelle")
-                        || normalized.contains("değiştir")
-                        || normalized.contains("ayarla")
-                        || normalized.contains("update"));
     }
 
     private AiCoachServiceException mapFailure(GeminiClientResult result) {

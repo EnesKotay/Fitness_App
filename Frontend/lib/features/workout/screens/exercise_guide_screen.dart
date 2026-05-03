@@ -597,24 +597,22 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
   void _onComplete() {
     final messenger = ScaffoldMessenger.maybeOf(context);
     final streakProvider = Provider.of<StreakProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final nav = Navigator.of(context); // Async gap oncesi navigator'i al
 
-    // Streak güncelle — async, ama UI'yi bg'da yap
+    // Streak güncelle — async
     streakProvider.onWorkoutCompleted().then((badge) {
-      if (!mounted) return;
+      if (!nav.mounted) return;
       if (badge != null) {
         // Rozet kazanıldı — overlay göster
         final isPremiumUser =
-            Provider.of<AuthProvider>(context, listen: false)
-                .user
-                ?.premiumTier
-                ?.toLowerCase()
-                .trim() ==
-            'premium';
+            authProvider.user?.premiumTier?.toLowerCase().trim() == 'premium';
+        
         showDialog<void>(
-          context: context,
+          context: nav.context, // Root/aktif navigator context'ini kullan
           barrierDismissible: true,
           barrierColor: Colors.transparent,
-          builder: (_) => AchievementOverlay(
+          builder: (dialogCtx) => AchievementOverlay(
             badge: badge,
             accentColor: widget.accentColor,
             isPremium: isPremiumUser,
@@ -622,22 +620,21 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
                 ? null
                 : () {
                     streakProvider.clearJustUnlocked();
-                    Navigator.of(context)
-                      ..pop() // overlay
-                      ..push(MaterialPageRoute(
-                        builder: (_) => const PremiumScreen(),
-                      ));
+                    Navigator.of(dialogCtx).pop(); // dialog'u kapat
+                    nav.push(MaterialPageRoute(
+                      builder: (_) => const PremiumScreen(),
+                    ));
                   },
             onDismiss: () {
               streakProvider.clearJustUnlocked();
-              Navigator.of(context).pop();
+              Navigator.of(dialogCtx).pop(); // dialog'u kapat
             },
           ),
         );
       }
     });
 
-    Navigator.of(context).pop();
+    nav.pop(); // Mevcut guide screen'i kapat
     messenger?.showSnackBar(
       SnackBar(
         content: Row(

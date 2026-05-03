@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_gradient_background.dart';
 import '../../../core/widgets/pro_badge.dart';
 import '../../../core/widgets/premium_state_badge.dart';
@@ -327,6 +326,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${now.day} ${months[now.month - 1]}, ${weekdays[now.weekday - 1]}';
   }
 
+  /// Saate + hedefe + bugünkü ilerlemeye göre kişiselleştirilmiş selamlama.
+  String _dynamicGreeting({
+    required String name,
+    required Goal? goal,
+    required double calorieProgress,
+    required double proteinProgress,
+    required double waterLiters,
+  }) {
+    final hour = DateTime.now().hour;
+    final allDone = calorieProgress >= 1.0 && proteinProgress >= 1.0 && waterLiters >= 2.0;
+    if (allDone) {
+      return 'Harika iş, $name! 🏆 Tüm hedeflerini tamamladın.';
+    }
+    if (hour >= 5 && hour < 11) {
+      switch (goal) {
+        case Goal.cut:
+          return 'Günaydın $name, bugün açığını kapat! 🔥';
+        case Goal.bulk:
+          return 'Günaydın $name, kahvaltıyı atlatma! 💪';
+        case Goal.strength:
+          return 'Günaydın $name, güce güç kat! ⚡';
+        default:
+          return 'Günaydın $name, güne 1 bardak su ile başla! 💧';
+      }
+    } else if (hour >= 11 && hour < 14) {
+      if (proteinProgress < 0.3) {
+        return 'Öğle vakti $name — protein hedefini unutma! 🥩';
+      }
+      return 'Öğle arası, $name. Ritmini koru! 🚀';
+    } else if (hour >= 14 && hour < 18) {
+      return 'İyi günler $name, öğleden sonra enerjin yüksek! ⚡';
+    } else if (hour >= 18 && hour < 22) {
+      if (calorieProgress < 0.7) {
+        return 'Akşam oldu $name, kalan kalorini tamamla! 🍽️';
+      }
+      return 'Güzel bir gün $name, antrenmanını yaptın mı? 💪';
+    } else {
+      return 'Gece geç $name, dinlenme de hedefin! 🌙';
+    }
+  }
+
   String _goalLabel(Goal? goal) {
     switch (goal) {
       case Goal.cut:
@@ -446,92 +486,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTopHeader({
     required BuildContext context,
     required String displayName,
+    required String greetingText,
   }) {
     final isPremium =
         context.watch<AuthProvider>().user?.premiumTier?.toLowerCase().trim() ==
         'premium';
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Merhaba, $displayName',
-                style: AppTextStyles.titleMedium.copyWith(
+        // ── Üst satır: sadece butonlar (sağ hizalı) ──
+        Row(
+          children: [
+            const Spacer(),
+            PageGuideButton(onTap: _showGuide),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PremiumScreen(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(999),
+              child: isPremium
+                  ? const PremiumStateBadge(active: true)
+                  : const ProBadge(),
+            ),
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: () async {
+                final result = await Navigator.pushNamed(context, '/profile');
+                if (result is int && widget.onNavigateToTab != null) {
+                  widget.onNavigateToTab!(result);
+                }
+              },
+              borderRadius: BorderRadius.circular(999),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _softBlue.withValues(alpha: 0.5),
+                      _warmAccent.withValues(alpha: 0.4),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.45),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _softBlue.withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
                   color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _todayDateString(),
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: Colors.white.withValues(alpha: 0.72),
+                  size: 20,
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // ── Alt satır: tam selamlama metni (tam genişlik, 2 satır) ──
+        Text(
+          greetingText,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            height: 1.2,
           ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(width: 8),
-        PageGuideButton(onTap: _showGuide),
-        const SizedBox(width: 8),
-        // PRO Badge / Premium Button
-        InkWell(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const PremiumScreen()),
-            );
-          },
-          borderRadius: BorderRadius.circular(999),
-          child: isPremium
-              ? const PremiumStateBadge(active: true)
-              : const ProBadge(),
-        ),
-        const SizedBox(width: 12),
-        InkWell(
-          onTap: () async {
-            final result = await Navigator.pushNamed(context, '/profile');
-            if (result is int && widget.onNavigateToTab != null) {
-              widget.onNavigateToTab!(result);
-            }
-          },
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            width: 44, // Slightly larger
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _softBlue.withValues(alpha: 0.5),
-                  _warmAccent.withValues(alpha: 0.4),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _softBlue.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
+        const SizedBox(height: 4),
+        Text(
+          _todayDateString(),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.60),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
@@ -687,8 +733,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int target,
     Color color, {
     IconData? icon,
+    String? emptyHint,
   }) {
     final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    final isEmpty = current == 0;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -721,10 +769,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '$current / $target g',
-                    style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700),
-                  ),
+                  isEmpty && emptyHint != null
+                      ? Text(
+                          emptyHint,
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.55),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                        )
+                      : Text(
+                          '$current / $target g',
+                          style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
                 ],
               ),
             ),
@@ -735,7 +794,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: pct,
                 strokeWidth: 3,
                 backgroundColor: Colors.white.withValues(alpha: 0.15),
-                valueColor: AlwaysStoppedAnimation(color),
+                valueColor: AlwaysStoppedAnimation(
+                  isEmpty ? color.withValues(alpha: 0.3) : color,
+                ),
               ),
             ),
           ],
@@ -970,9 +1031,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              _macroMini('KARB', dailyCarb, targetCarb, const Color(0xFF5FD8B7), icon: Icons.grass_rounded),
+              _macroMini('KARB', dailyCarb, targetCarb, const Color(0xFF5FD8B7),
+                  icon: Icons.grass_rounded,
+                  emptyHint: 'Henüz karb girmedin'),
               const SizedBox(width: 8),
-              _macroMini('YAĞ', dailyFat, targetFat, const Color(0xFFFFA56E), icon: Icons.water_drop_rounded),
+              _macroMini('YAĞ', dailyFat, targetFat, const Color(0xFFFFA56E),
+                  icon: Icons.water_drop_rounded,
+                  emptyHint: 'Henüz yağ girmedin'),
             ],
           ),
           const SizedBox(height: 24),
@@ -1667,6 +1732,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  /// Tüm günlük hedefler tamamlandıysa altın glow rengi döndürür.
+  Color? _successGlowColor({
+    required double calorieProgress,
+    required double proteinProgress,
+    required double waterLiters,
+  }) {
+    if (calorieProgress >= 1.0 && proteinProgress >= 1.0 && waterLiters >= 2.0) {
+      return const Color(0xFFFFD700);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1729,6 +1806,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final isWeightLoading = weightProvider.isLoading;
                       final primaryAccent = _goalPrimaryColor(goal);
                       final secondaryAccent = _goalSecondaryColor(goal);
+                      // Başarı rengi: tüm günlük hedefler tamamlanınca altın glow
+                      final successGlow = _successGlowColor(
+                        calorieProgress: targetCalories > 0
+                            ? (dailyCalories / targetCalories).clamp(0.0, 1.0)
+                            : 0.0,
+                        proteinProgress: targetProtein > 0
+                            ? (dailyProtein / targetProtein).clamp(0.0, 1.0)
+                            : 0.0,
+                        waterLiters: dietProvider.waterLiters,
+                      );
+                      final effectiveAccent = successGlow ?? primaryAccent;
                       final isInitialCompositeLoading =
                           isDietLoading &&
                           isWorkoutLoading &&
@@ -1757,13 +1845,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             _buildTopHeader(
                                   context: context,
                                   displayName: displayName,
+                                  greetingText: _dynamicGreeting(
+                                    name: displayName,
+                                    goal: goal,
+                                    calorieProgress: progress,
+                                    proteinProgress: proteinProgress,
+                                    waterLiters: dietProvider.waterLiters,
+                                  ),
                                 )
                                 .animate()
-                                .fadeIn(duration: 200.ms)
+                                .fadeIn(duration: 300.ms)
                                 .slideY(
-                                  begin: -0.03,
+                                  begin: -0.05,
                                   end: 0,
-                                  duration: 200.ms,
+                                  duration: 300.ms,
                                   curve: Curves.easeOut,
                                 ),
                             const SizedBox(height: 16),
@@ -1782,11 +1877,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             (isDietLoading && todayEntries.isEmpty)
                                 ? _buildSkeletonCard(
                                     height: 190,
-                                    accent: primaryAccent,
+                                    accent: effectiveAccent,
                                   )
                                 : _buildHeroCard(
                                         goal: goal,
-                                        calorieAccent: primaryAccent,
+                                        calorieAccent: effectiveAccent,
                                         proteinAccent: secondaryAccent,
                                         progress: progress,
                                         dailyCalories: dailyCalories,
@@ -1807,12 +1902,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         onAddMeal: widget.onAddMeal,
                                       )
                                       .animate()
-                                      .fadeIn(duration: 240.ms)
+                                      .fadeIn(delay: 80.ms, duration: 320.ms)
                                       .slideY(
-                                        begin: 0.04,
+                                        begin: 0.06,
                                         end: 0,
-                                        duration: 240.ms,
-                                        curve: Curves.easeOut,
+                                        delay: 80.ms,
+                                        duration: 320.ms,
+                                        curve: Curves.easeOutCubic,
                                       ),
                             const SizedBox(height: 12),
 
@@ -1820,7 +1916,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             (isInitialCompositeLoading)
                                 ? _buildSkeletonCard(
                                     height: 72,
-                                    accent: primaryAccent,
+                                    accent: effectiveAccent,
                                   )
                                 : _buildQuickStatusRow(
                                         streak: dietProvider.currentStreak,
@@ -1832,7 +1928,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             ?.weightKg,
                                         weeklyWeightChange:
                                             weightProvider.weeklyChange,
-                                        accent: primaryAccent,
+                                        accent: effectiveAccent,
                                         secondaryAccent: secondaryAccent,
                                         onWorkoutTap: () =>
                                             widget.onNavigateToTab?.call(1),
@@ -1840,12 +1936,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             widget.onNavigateToTab?.call(2),
                                       )
                                       .animate()
-                                      .fadeIn(delay: 40.ms, duration: 240.ms)
+                                      .fadeIn(delay: 160.ms, duration: 320.ms)
                                       .slideY(
-                                        begin: 0.04,
+                                        begin: 0.06,
                                         end: 0,
-                                        duration: 240.ms,
-                                        curve: Curves.easeOut,
+                                        delay: 160.ms,
+                                        duration: 320.ms,
+                                        curve: Curves.easeOutCubic,
                                       ),
                             const SizedBox(height: 12),
 
@@ -1861,12 +1958,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       widget.onNavigateToTab?.call(1),
                                 )
                                 .animate()
-                                .fadeIn(delay: 50.ms, duration: 240.ms)
+                                .fadeIn(delay: 240.ms, duration: 320.ms)
                                 .slideY(
-                                  begin: 0.04,
+                                  begin: 0.06,
                                   end: 0,
-                                  duration: 240.ms,
-                                  curve: Curves.easeOut,
+                                  delay: 240.ms,
+                                  duration: 320.ms,
+                                  curve: Curves.easeOutCubic,
                                 ),
                             const SizedBox(height: 12),
 
@@ -1881,12 +1979,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         onToggle: tasksCtrl.toggleTaskDone,
                                       )
                                       .animate()
-                                      .fadeIn(delay: 60.ms, duration: 240.ms)
+                                      .fadeIn(delay: 320.ms, duration: 320.ms)
                                       .slideY(
-                                        begin: 0.04,
+                                        begin: 0.06,
                                         end: 0,
-                                        duration: 240.ms,
-                                        curve: Curves.easeOut,
+                                        delay: 320.ms,
+                                        duration: 320.ms,
+                                        curve: Curves.easeOutCubic,
                                       ),
                             ),
                             const SizedBox(height: 12),
@@ -1899,12 +1998,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   primaryAccent: primaryAccent,
                                 )
                                 .animate()
-                                .fadeIn(delay: 80.ms, duration: 240.ms)
+                                .fadeIn(delay: 400.ms, duration: 320.ms)
                                 .slideY(
-                                  begin: 0.04,
+                                  begin: 0.06,
                                   end: 0,
-                                  duration: 240.ms,
-                                  curve: Curves.easeOut,
+                                  delay: 400.ms,
+                                  duration: 320.ms,
+                                  curve: Curves.easeOutCubic,
                                 ),
 
                             // ── 8. AI Öneri ──

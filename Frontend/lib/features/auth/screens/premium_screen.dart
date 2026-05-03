@@ -5,7 +5,6 @@ import 'dart:io';
 import 'dart:ui';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/constants/api_constants.dart';
-import '../../../../core/constants/premium_features.dart';
 import '../../../../core/services/iap_service.dart';
 import '../../../core/widgets/premium_state_badge.dart';
 import '../providers/auth_provider.dart';
@@ -14,8 +13,7 @@ import 'legal_screen.dart';
 
 const Color _premiumGold = Color(0xFFD97706);
 const Color _premiumLightGold = Color(0xFFFBBF24);
-const Color _premiumAmber = Color(0xFFFF8F00);
-const Color _darkBg = Color(0xFF070809);
+
 
 // ─── Plan model ──────────────────────────────────────────────────────────────
 
@@ -448,364 +446,226 @@ class _PremiumScreenState extends State<PremiumScreen>
     );
   }
 
+  // ══════════════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ══════════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
+    final safe = MediaQuery.of(context).padding;
     return Scaffold(
-      backgroundColor: _darkBg,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white70),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+      backgroundColor: const Color(0xFF09090B),
       body: Stack(
         children: [
-          // Animated top-right glow
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (context, child) => Positioned(
-              top: -140,
-              right: -100,
-              child: Container(
-                width: 420,
-                height: 420,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _premiumGold.withValues(
-                    alpha: 0.13 * _pulseAnimation.value,
+          // ── Scrollable body ──
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: safe.top + 56),
+                _buildLightHero(),
+                const SizedBox(height: 28),
+                if (!_isPremiumActive) ...[
+                  _buildHighlightScroll(),
+                  const SizedBox(height: 28),
+                  _buildLightFeatures(),
+                  const SizedBox(height: 280),
+                ] else ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildActiveCard(),
                   ),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 110, sigmaY: 110),
-                  child: const SizedBox(),
-                ),
-              ),
-            ),
-          ),
-          // Bottom-left secondary glow
-          Positioned(
-            bottom: -100,
-            left: -140,
-            child: Container(
-              width: 380,
-              height: 380,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _premiumAmber.withValues(alpha: 0.06),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100),
-                child: const SizedBox(),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildHeroSection(),
-                      _buildKeyFeaturesSection(),
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: _buildIncludedSection(),
-                      ),
-                      const SizedBox(height: 28),
-                      if (!_isPremiumActive) ...[
-                        _buildPlanSection(),
-                        const SizedBox(height: 12),
-                        _buildTrustRow(),
-                      ] else ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _buildActiveCard(),
-                        ),
-                      ],
-                      const SizedBox(height: 48),
-                    ],
-                  ),
-                ),
+                  const SizedBox(height: 40),
+                ],
               ],
             ),
           ),
+          // ── Close button ──
+          Positioned(
+            top: safe.top + 10,
+            right: 16,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF27272A),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 16, color: Color(0xFFA1A1AA)),
+              ),
+            ),
+          ),
+          // ── Sticky bottom CTA ──
+          if (!_isPremiumActive)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _buildStickyBottomCta(safe.bottom),
+            ),
         ],
       ),
     );
   }
 
-  // ─── Hero ─────────────────────────────────────────────────────────────────
+  // ── Light Hero ───────────────────────────────────────────────────────────────
 
-  Widget _buildHeroSection() {
+  Widget _buildLightHero() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Column(
         children: [
-          // Icon with layered glow rings
-          AnimatedBuilder(
-            animation: _pulseAnimation,
-            builder: (_, child) => Stack(
-              alignment: Alignment.center,
-              children: [
-                // Outer ring
-                Container(
-                  width: 110,
-                  height: 110,
+          // Icon + laurel row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const _LaurelBranch(flipped: false),
+              const SizedBox(width: 16),
+              // App icon card
+              AnimatedBuilder(
+                animation: _pulseAnimation,
+                builder: (_, child) => Container(
+                  width: 88,
+                  height: 88,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    color: const Color(0xFF18181B),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: _premiumGold.withValues(
-                        alpha: 0.12 * _pulseAnimation.value,
-                      ),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-                // Inner glow
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _premiumGold.withValues(alpha: 0.1),
-                    border: Border.all(
-                      color: _premiumGold.withValues(alpha: 0.3),
+                      color: const Color(0xFFFF7B3E).withValues(alpha: 0.4 * _pulseAnimation.value),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _premiumGold.withValues(
-                          alpha: 0.25 * _pulseAnimation.value,
+                        color: const Color(0xFFFF7B3E).withValues(
+                          alpha: 0.35 * _pulseAnimation.value,
                         ),
-                        blurRadius: 30,
-                        spreadRadius: 2,
+                        blurRadius: 36,
+                        spreadRadius: 4,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: child,
                 ),
-              ],
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              size: 36,
-              color: _premiumLightGold,
-            ),
+                child: Center(
+                  child: ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [Color(0xFFFF9F5C), Color(0xFFFF6B3E)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ).createShader(bounds),
+                    child: const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 52,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              const _LaurelBranch(flipped: true),
+            ],
           ),
           const SizedBox(height: 22),
-          // PRO title with gradient
-          ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFFFFF0A0), _premiumLightGold, _premiumGold],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds),
-            child: const Text(
-              'PRO ÜYELİK',
-              style: TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 3,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'AI destekli araçların tüm gücünü aç.',
+          const Text(
+            'FitMentor Premium',
             style: TextStyle(
-              fontSize: 15,
-              color: Colors.white.withValues(alpha: 0.75),
-              fontWeight: FontWeight.w500,
+              color: Colors.white,
+              fontSize: 27,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Temel takip araçları ücretsiz kalır. Premium, analiz,\notomasyon ve AI özelliklerini açar.',
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'AI destekli antrenman ve beslenme koçun.\nHedeflerine daha akıllı, daha hızlı ulaş.',
             style: TextStyle(
-              fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.42),
+              color: Color(0xFFA1A1AA),
+              fontSize: 14.5,
               height: 1.5,
             ),
-          ),
-          const SizedBox(height: 20),
-          // Value pills
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _ValuePill(icon: Icons.smart_toy_rounded, label: 'AI Koç'),
-              _ValuePill(icon: Icons.insights_rounded, label: 'Derin Analiz'),
-              _ValuePill(
-                icon: Icons.restaurant_menu_rounded,
-                label: 'Öğün Planı',
-              ),
-              _ValuePill(
-                icon: Icons.fitness_center_rounded,
-                label: 'Programlar',
-              ),
-            ],
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  // ─── Key Features ─────────────────────────────────────────────────────────
+  // ── Highlight Cards (horizontal scroll) ─────────────────────────────────────
 
-  Widget _buildKeyFeaturesSection() {
+  Widget _buildHighlightScroll() {
+    // 2x2 grid yerine tam genişlik iki kart + alt satır
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionLabel(label: 'Premium ile açılanlar'),
-          const SizedBox(height: 14),
-          ...premiumFeatures.map(
-            (f) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _buildFeatureCard(f),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(PremiumFeature f) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            f.accent.withValues(alpha: 0.10),
-            Colors.white.withValues(alpha: 0.025),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: f.accent.withValues(alpha: 0.18)),
-      ),
-      child: Row(
-        children: [
-          // Icon box
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              color: f.accent.withValues(alpha: 0.16),
-              border: Border.all(color: f.accent.withValues(alpha: 0.28)),
-              boxShadow: [
-                BoxShadow(
-                  color: f.accent.withValues(alpha: 0.18),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Icon(f.icon, color: f.accent, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  f.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  f.description,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              color: f.accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(99),
-              border: Border.all(color: f.accent.withValues(alpha: 0.24)),
-            ),
-            child: Text(
-              f.tag,
-              style: TextStyle(
-                color: f.accent,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ─── Free included ────────────────────────────────────────────────────────
-
-  Widget _buildIncludedSection() {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 16,
-                color: Colors.white.withValues(alpha: 0.4),
+              Expanded(
+                child: _buildHighlightCard(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A3EAA), Color(0xFF3B5BDB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.smart_toy_rounded,
+                  title: 'AI Koç',
+                  subtitle: 'Kişisel Asistan',
+                ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                'Her zaman ücretsiz',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildHighlightCard(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1E7A4A), Color(0xFF40B488)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Foto Analiz',
+                  subtitle: 'Kalori Tahmini',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              _FreePill('Manuel yemek ekleme'),
-              _FreePill('Barkod tarama'),
-              _FreePill('Kalori & makro takibi'),
-              _FreePill('Su & kilo takibi'),
-              _FreePill('Workout kaydı'),
+              Expanded(
+                child: _buildHighlightCard(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6B2D8B), Color(0xFFA848C8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.insights_rounded,
+                  title: 'Trendler',
+                  subtitle: 'Haftalık Analiz',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildHighlightCard(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFB84800), Color(0xFFFF7B3E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  icon: Icons.restaurant_menu_rounded,
+                  title: 'Oğün Planı',
+                  subtitle: 'Makro Takibi',
+                ),
+              ),
             ],
           ),
         ],
@@ -813,248 +673,252 @@ class _PremiumScreenState extends State<PremiumScreen>
     );
   }
 
-  // ─── Plan selection ───────────────────────────────────────────────────────
-
-  Widget _buildPlanSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHighlightCard({
+    required LinearGradient gradient,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
         children: [
-          _SectionLabel(label: 'Plan seç'),
-          const SizedBox(height: 14),
-          // Yearly plan (highlighted)
-          _buildPlanCard(_plans[1]),
-          const SizedBox(height: 10),
-          // Monthly plan
-          _buildPlanCard(_plans[0]),
-          const SizedBox(height: 20),
-          _buildPaymentButton(),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPlanCard(_Plan plan) {
-    final selected = _selectedPlan.id == plan.id;
-    final isYearly = plan.months == 12;
-    final storePrice = _iap.priceFor(plan.id);
-    final priceText = storePrice ?? plan.priceLabel; // Fallback to hardcoded price
+  // ── Feature rows ─────────────────────────────────────────────────────────────
 
-    return GestureDetector(
-      onTap: () => setState(() => _selectedPlan = plan),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.all(18),
+  Widget _buildLightFeatures() {
+    const features = [
+      _FeatureRow(
+        icon: Icons.smart_toy_rounded,
+        iconColor: Color(0xFF3B5BDB),
+        title: 'AI Koç ile Birebir Rehberlik',
+        subtitle: 'Hedefine özel adaptif programlar ve günlük motivasyon.',
+      ),
+      _FeatureRow(
+        icon: Icons.camera_alt_rounded,
+        iconColor: Color(0xFF27A06A),
+        title: 'Fotoğrafla Kalori Analizi',
+        subtitle: 'Yemeğini fotoğrafla — anında besin değerlerini öğren.',
+      ),
+      _FeatureRow(
+        icon: Icons.insights_rounded,
+        iconColor: Color(0xFF9B38B4),
+        title: 'Gelişmiş Trendler & Raporlar',
+        subtitle: 'Haftalık beslenme ve antrenman trendlerini izle.',
+      ),
+      _FeatureRow(
+        icon: Icons.restaurant_menu_rounded,
+        iconColor: Color(0xFFE05A1A),
+        title: 'Kişisel Öğün Planı',
+        subtitle: 'Makro hedefine uygun haftalık menü ve liste.',
+      ),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
         decoration: BoxDecoration(
-          gradient: selected && isYearly
-              ? LinearGradient(
-                  colors: [
-                    _premiumGold.withValues(alpha: 0.2),
-                    _premiumGold.withValues(alpha: 0.06),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : selected
-              ? LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.07),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: selected ? null : Colors.white.withValues(alpha: 0.03),
+          color: const Color(0xFF18181B),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected
-                ? _premiumGold.withValues(alpha: isYearly ? 0.55 : 0.3)
-                : Colors.white.withValues(alpha: 0.08),
-            width: selected ? 1.5 : 1,
-          ),
-          boxShadow: selected && isYearly
-              ? [
-                  BoxShadow(
-                    color: _premiumGold.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
+          border: Border.all(color: const Color(0xFF27272A)),
         ),
-        child: Row(
-          children: [
-            // Radio indicator
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected
-                      ? _premiumGold
-                      : Colors.white.withValues(alpha: 0.22),
-                  width: 2,
+        child: Column(
+          children: features.asMap().entries.map((entry) {
+            final i = entry.key;
+            final f = entry.value;
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: f,
                 ),
-                color: selected
-                    ? _premiumGold.withValues(alpha: 0.18)
-                    : Colors.transparent,
-              ),
-              child: selected
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _premiumLightGold,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        plan.title,
-                        style: TextStyle(
-                          color: selected ? Colors.white : Colors.white70,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      if (plan.badge != null) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _premiumGold.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(99),
-                            border: Border.all(
-                              color: _premiumGold.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Text(
-                            plan.badge!,
-                            style: const TextStyle(
-                              color: _premiumLightGold,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                if (i < features.length - 1)
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFF27272A),
+                    indent: 70,
+                    endIndent: 16,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    priceText,
-                    style: TextStyle(
-                      color: storePrice != null
-                          ? selected
-                                ? _premiumLightGold.withValues(alpha: 0.9)
-                                : Colors.white.withValues(alpha: 0.4)
-                          : selected
-                                ? _premiumLightGold.withValues(alpha: 0.9)
-                                : Colors.white.withValues(alpha: 0.44),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (isYearly) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'Toplam yıllık tahsilat onay sayfasında gösterilir.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (isYearly)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_premiumGold, _premiumAmber],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Text(
-                  'TAVSİYE\nEDİLEN',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 8,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.3,
-                    height: 1.3,
-                  ),
-                ),
-              ),
-          ],
+              ],
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _buildPaymentButton() {
+  // ── Sticky bottom CTA ────────────────────────────────────────────────────────
+
+  Widget _buildStickyBottomCta(double bottomPadding) {
     final storePrice = _iap.priceFor(_selectedPlan.id);
-    final priceLabel = storePrice ?? _selectedPlan.priceLabel; // Fallback price
+    final priceLabel = storePrice ?? _selectedPlan.priceLabel;
+    final isYearly = _selectedPlan.months == 12;
     final canBuy = !_purchasing;
 
-    return Column(
-      children: [
-        // ── Satın Alma Butonu ──────────────────────────────────────────────────
-        Container(
-          width: double.infinity,
-          height: 58,
-          decoration: BoxDecoration(
-            gradient: canBuy
-                ? const LinearGradient(
-                    colors: [_premiumLightGold, _premiumGold, _premiumAmber],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: canBuy ? null : Colors.white24,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: canBuy
-                ? [
-                    BoxShadow(
-                      color: _premiumGold.withValues(alpha: 0.4),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                      spreadRadius: -4,
-                    ),
-                  ]
-                : null,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: const Border(top: BorderSide(color: Color(0xFF27272A))),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: canBuy ? _startIapPurchase : null,
-              borderRadius: BorderRadius.circular(18),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPadding + 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Plan toggle ──
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF27272A),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: _plans.map((plan) {
+                final selected = _selectedPlan.id == plan.id;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedPlan = plan),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: selected ? const Color(0xFF3F3F46) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  blurRadius: 8,
+                                )
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            plan.title,
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : const Color(0xFFA1A1AA),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (plan.badge != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFF7B3E),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: Text(
+                                plan.badge!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // ── Price hint ──
+          Text(
+            isYearly ? '1 hafta ücretsiz, sonra $priceLabel' : priceLabel,
+            style: const TextStyle(
+              color: Color(0xFFA1A1AA),
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // ── CTA Button ──
+          GestureDetector(
+            onTap: canBuy ? _startIapPurchase : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: double.infinity,
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: canBuy
+                    ? const LinearGradient(
+                        colors: [Color(0xFFFF9F5C), Color(0xFFFF6B3E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: canBuy ? null : const Color(0xFFE5E5EA),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: canBuy
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFFF7B3E).withValues(alpha: 0.35),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        )
+                      ]
+                    : null,
+              ),
               child: Center(
                 child: _purchasing
                     ? const SizedBox(
@@ -1065,193 +929,154 @@ class _PremiumScreenState extends State<PremiumScreen>
                           strokeWidth: 2.5,
                         ),
                       )
-                    : Row(
+                    : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
-                            Icons.lock_open_rounded,
-                            size: 18,
-                            color: Color(0xFF20160B),
-                          ),
-                          const SizedBox(width: 8),
                           Text(
-                            "Premium'u Aç — $priceLabel",
+                            isYearly ? 'Ücretsiz Dene' : 'Başla — $priceLabel',
                             style: const TextStyle(
-                              fontSize: 16,
+                              color: Colors.white,
+                              fontSize: 17,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1A0F00),
-                              letterSpacing: 0.2,
+                              letterSpacing: -0.2,
                             ),
                           ),
+                          if (isYearly)
+                            const Text(
+                              'İstediğin zaman iptal',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                         ],
                       ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-        // ── Satın Alımları Geri Yükle ─────────────────────────────────────────
-        TextButton(
-          onPressed: _purchasing ? null : _restorePurchases,
-          child: Text(
-            'Satın alımları geri yükle',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.38),
-              fontSize: 12,
+          const SizedBox(height: 10),
+          // ── More options / restore ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                onPressed: _purchasing ? null : _restorePurchases,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFFFF7B3E),
+                ),
+                child: const Text(
+                  'Satın Alımı Geri Yükle',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Text('·', style: TextStyle(color: Color(0xFF52525B))),
+              const SizedBox(width: 4),
+              _LightLegalLink(label: 'Gizlilik', isPrivacy: true),
+            ],
+          ),
+          // ── Legal disclaimer ──
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 2),
+            child: Text(
+              'Ödeme Apple ID / Google hesabına yapılır. Abonelik dönem bitmeden '
+              '24 saat önce iptal edilmezse otomatik yenilenir.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.3),
+                fontSize: 10,
+                height: 1.5,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 14),
-        // ── Ödeme ve Otomatik Yenileme Açıklaması (App Store zorunluluğu) ──────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Text(
-            'Ödeme, satın alma onayında Apple ID / Google hesabınıza yapılır. '
-            'Abonelik, mevcut dönem bitmeden en az 24 saat önce iptal edilmediği takdirde '
-            'otomatik olarak yenilenir ve aynı ücret tekrar tahsil edilir. '
-            'Aboneliğinizi istediğiniz zaman ${Platform.isIOS ? 'iOS Ayarlar → Apple ID → Abonelikler' : 'Google Play → Abonelikler'} '
-            'üzerinden yönetebilirsiniz.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3),
-              fontSize: 10.5,
-              height: 1.55,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // ── Kullanım Şartları & Gizlilik Politikası ───────────────────────────
-        _buildLegalRow(),
-      ],
-    );
-  }
-
-  Widget _buildLegalRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const _LegalLink(label: 'Kullanım Şartları', isPrivacy: false),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            '•',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.2),
-              fontSize: 11,
-            ),
-          ),
-        ),
-        const _LegalLink(label: 'Gizlilik Politikası', isPrivacy: true),
-      ],
-    );
-  }
-
-  Widget _buildTrustRow() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _TrustItem(icon: Icons.lock_rounded, label: 'Güvenli ödeme'),
-          _trustDot(),
-          _TrustItem(
-            icon: Icons.cancel_outlined,
-            label: 'İstediğin zaman iptal',
-          ),
-          _trustDot(),
-          _TrustItem(icon: Icons.store_rounded, label: 'App Store / Play'),
         ],
       ),
     );
   }
 
-  Widget _trustDot() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: Container(
-      width: 3,
-      height: 3,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withValues(alpha: 0.2),
-      ),
-    ),
-  );
+  // ── Active user card ─────────────────────────────────────────────────────────
 
   Widget _buildActiveCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _premiumGold.withValues(alpha: 0.12),
-            Colors.white.withValues(alpha: 0.03),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _premiumGold.withValues(alpha: 0.3)),
+        color: const Color(0xFF18181B),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _premiumGold.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFFF7B3E).withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(
+          color: const Color(0xFFFF7B3E).withValues(alpha: 0.25),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const PremiumStateBadge(active: true, compact: true),
-              const SizedBox(width: 10),
-              const Text(
-                'Premium aktif',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF7B3E).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.verified_rounded,
+                  color: Color(0xFFFF7B3E),
+                  size: 22,
                 ),
               ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Premium Aktif',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _premiumGold.withValues(alpha: 0.16),
+                  color: const Color(0xFFFF7B3E).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
-                    color: _premiumGold.withValues(alpha: 0.28),
+                    color: const Color(0xFFFF7B3E).withValues(alpha: 0.25),
                   ),
                 ),
                 child: Text(
                   _activePlanId == 'yearly' ? 'Yıllık' : 'Aylık',
                   style: const TextStyle(
-                    color: _premiumLightGold,
-                    fontSize: 11,
+                    color: Color(0xFFFF7B3E),
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             _buildActiveSubscriptionText(),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
-              fontSize: 13,
+            style: const TextStyle(
+              color: Color(0xFFA1A1AA),
+              fontSize: 14,
               height: 1.45,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 46,
+            height: 48,
             child: OutlinedButton.icon(
               onPressed: _openManageSubscriptions,
               icon: const Icon(Icons.open_in_new_rounded, size: 16),
@@ -1262,16 +1087,13 @@ class _PremiumScreenState extends State<PremiumScreen>
                 style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               style: OutlinedButton.styleFrom(
-                foregroundColor: _cancelAtPeriodEnd
-                    ? Colors.white38
-                    : _premiumLightGold,
-                side: BorderSide(
-                  color: _cancelAtPeriodEnd
-                      ? Colors.white.withValues(alpha: 0.1)
-                      : _premiumGold.withValues(alpha: 0.4),
+                foregroundColor: const Color(0xFFFF7B3E),
+                side: const BorderSide(
+                  color: Color(0xFFFF7B3E),
+                  width: 1.5,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
@@ -1287,152 +1109,130 @@ class _PremiumScreenState extends State<PremiumScreen>
       'yearly' => 'Yıllık plan aktif.',
       _ => 'Premium plan aktif.',
     };
-
     final expiryText = _premiumExpiresAt == null
         ? ''
-        : ' Bitiş: ${_premiumExpiresAt!.day.toString().padLeft(2, '0')}/${_premiumExpiresAt!.month.toString().padLeft(2, '0')}/${_premiumExpiresAt!.year}.';
-
+        : ' Bitiş: ${_premiumExpiresAt!.day.toString().padLeft(2, '0')}/'
+            '${_premiumExpiresAt!.month.toString().padLeft(2, '0')}/'
+            '${_premiumExpiresAt!.year}.';
     if (_cancelAtPeriodEnd) {
-      return '$planLabel Otomatik yenileme kapatıldı. Premium erişimin dönem sonuna kadar devam edecek.$expiryText';
+      return '$planLabel Otomatik yenileme kapatıldı. '
+          'Premium erişimin dönem sonuna kadar devam edecek.$expiryText';
     }
-
     if (_canCancel) {
-      return '$planLabel Dilersen otomatik yenilemeyi kapatabilirsin; premium erişimin dönem sonuna kadar sürer.$expiryText';
+      return '$planLabel Dilersen otomatik yenilemeyi kapatabilirsin; '
+          'premium erişimin dönem sonuna kadar sürer.$expiryText';
     }
-
-    if (_activePlanId == 'yearly') {
-      return '$planLabel Aboneliğini ${Platform.isIOS ? 'iOS Ayarlar → Apple ID → Abonelikler' : 'Google Play → Abonelikler'} üzerinden yönetebilirsin.$expiryText';
-    }
-
     return '$planLabel$expiryText';
   }
-
 }
 
 // ─── Helper widgets ───────────────────────────────────────────────────────────
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.label});
-  final String label;
+/// Zafer dalı (laurel branch) dekorasyon widget'ı
+class _LaurelBranch extends StatelessWidget {
+  const _LaurelBranch({required this.flipped});
+  final bool flipped;
+
+  @override
+  Widget build(BuildContext context) {
+    // Yaprak: oval, açılı konumlandırılmış
+    Widget leaf(double x, double y, double angleDeg, double width, double height) {
+      return Positioned(
+        left: x,
+        top: y,
+        child: Transform.rotate(
+          angle: angleDeg * 3.14159 / 180,
+          child: Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF7B3E).withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Sol dal (flipped=false): yapraklar soldan sağa açılır
+    // Sağ dal (flipped=true): ayna görüntüsü
+    final branch = SizedBox(
+      width: 48,
+      height: 88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          leaf(18, 2,  -55, 22, 9),
+          leaf(10, 18, -38, 24, 9),
+          leaf(6,  36, -20, 26, 9),
+          leaf(8,  54,  -4, 24, 9),
+          leaf(14, 70,  12, 22, 9),
+        ],
+      ),
+    );
+
+    if (!flipped) return branch;
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..scale(-1.0, 1.0),
+      child: branch,
+    );
+  }
+}
+
+/// Highlight card data model
+
+/// Feature row (icon + title + subtitle)
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          width: 3,
-          height: 16,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(2),
-            gradient: const LinearGradient(
-              colors: [_premiumLightGold, _premiumGold],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
+          child: Icon(icon, color: iconColor, size: 22),
         ),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ValuePill extends StatelessWidget {
-  const _ValuePill({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: _premiumGold.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: _premiumLightGold),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.7),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FreePill extends StatelessWidget {
-  const _FreePill(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.check_rounded,
-            size: 12,
-            color: Colors.white.withValues(alpha: 0.4),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TrustItem extends StatelessWidget {
-  const _TrustItem({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.25)),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.28),
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFFA1A1AA),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -1440,38 +1240,38 @@ class _TrustItem extends StatelessWidget {
   }
 }
 
-class _LegalLink extends StatelessWidget {
-  const _LegalLink({required this.label, required this.isPrivacy});
+/// Legal link (light theme)
+class _LightLegalLink extends StatelessWidget {
+  const _LightLegalLink({required this.label, required this.isPrivacy});
   final String label;
   final bool isPrivacy;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => LegalScreen(
-              initialTab: isPrivacy ? LegalTab.privacy : LegalTab.terms,
-            ),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LegalScreen(
+            initialTab: isPrivacy ? LegalTab.privacy : LegalTab.terms,
           ),
-        );
-      },
+        ),
+      ),
       child: Text(
         label,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.38),
-          fontSize: 11,
+        style: const TextStyle(
+          color: Color(0xFFA1A1AA),
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           decoration: TextDecoration.underline,
-          decorationColor: Colors.white.withValues(alpha: 0.2),
+          decorationColor: Color(0xFF52525B),
         ),
       ),
     );
   }
 }
 
+/// Success sheet (premium activated) — unchanged logic, new visual style
 class _UnlockLine extends StatelessWidget {
   const _UnlockLine({required this.icon, required this.text});
   final IconData icon;
@@ -1483,14 +1283,22 @@ class _UnlockLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: _premiumLightGold),
-          const SizedBox(width: 10),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF7B3E).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: const Color(0xFFFF7B3E)),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.84),
-                fontSize: 13,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),

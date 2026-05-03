@@ -197,7 +197,7 @@ class _SettingsNotificationsScreenState
                   final granted = await LocalNotificationService.instance
                       .requestPermission();
                   if (!granted) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Cihaz ayarlarından bildirim izni vermelisiniz.'),

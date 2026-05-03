@@ -2079,6 +2079,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/fitmentor_progress.png');
       await file.writeAsBytes(image);
+      if (!currentContext.mounted) return;
       final box = currentContext.findRenderObject() as RenderBox?;
       if (box != null) {
         await Share.shareXFiles([
