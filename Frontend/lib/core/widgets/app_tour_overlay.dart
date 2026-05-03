@@ -621,6 +621,10 @@ class _SpotlightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // BlendMode.clear'ın sadece bu katmanı temizlemesi için saveLayer kullanılmalı.
+    // Yoksa iOS Impeller renderer'da alttaki widget'ları da silip siyah yapar.
+    canvas.saveLayer(Offset.zero & size, Paint());
+
     final dimPaint = Paint()..color = Colors.black.withValues(alpha: 0.68);
 
     // Full dim
@@ -644,6 +648,8 @@ class _SpotlightPainter extends CustomPainter {
       spotPath,
       Paint()..blendMode = BlendMode.clear,
     );
+
+    canvas.restore();
 
     // Glow ring
     final pulseVal = pulse.value;
