@@ -481,6 +481,13 @@ class _DietChatPageState extends State<DietChatPage> {
           icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: Colors.white70),
+            onPressed: () => _showAssistantInfoSheet(context),
+            tooltip: 'Hangi Asistan?',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -1300,6 +1307,137 @@ class _DietChatPageState extends State<DietChatPage> {
         'Çıktıyı aynı JSON formatında ver.';
     _controller.text = prompt;
     _handleSend();
+  }
+
+  void _showAssistantInfoSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          MediaQuery.of(ctx).padding.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.psychology_alt_rounded,
+                    color: AppColors.primaryLight,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Hangi Asistanı Kullanmalıyım?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _buildInfoRow(
+              icon: Icons.restaurant_menu_rounded,
+              title: 'Beslenme Asistanı (Şu An Buradasın)',
+              desc:
+                  'Sadece yediklerine odaklanır. Yediğin yemekleri listene ekler, porsiyon hesaplar ve kalori/makro durumunu anında özetler.',
+              color: AppColors.primaryLight,
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(
+              icon: Icons.fitness_center_rounded,
+              title: 'Ana AI Koç (Ana Ekrandadır)',
+              desc:
+                  'Tüm fitness serüvenini takip eder. Antrenman programını değiştirir, vücut ölçülerini analiz eder ve sana genel motivasyon sağlar.',
+              color: const Color(0xFF10B981), // Zümrüt yeşili
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text('Anladım'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String title,
+    required String desc,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    fontSize: 13.5,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
