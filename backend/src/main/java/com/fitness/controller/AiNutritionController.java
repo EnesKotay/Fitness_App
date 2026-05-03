@@ -18,7 +18,7 @@ import com.fitness.service.AuthService;
 import com.fitness.service.GeminiNutritionService;
 import com.fitness.service.UserMealPreferenceService;
 
-import io.quarkus.security.Authenticated;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -180,7 +180,6 @@ public class AiNutritionController {
      */
     @POST
     @Path("/nutrition/feedback")
-    @Authenticated
     public Response nutritionFeedback(@Context HttpHeaders headers, NutritionFeedbackRequest request) {
         Long userId = null;
         try {
@@ -222,7 +221,6 @@ public class AiNutritionController {
     @POST
     @Path("/nutrition/scan-label")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Authenticated
     public Response scanLabel(@Context HttpHeaders headers,
             @RestForm("image") FileUpload imageFile) {
         long startNs = System.nanoTime();
@@ -305,7 +303,6 @@ public class AiNutritionController {
     @POST
     @Path("/nutrition/analyze-image")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Authenticated
     public Response analyzeFoodImage(@Context HttpHeaders headers,
             @RestForm("image") FileUpload imageFile) {
         long startNs = System.nanoTime();
