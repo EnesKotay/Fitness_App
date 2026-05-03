@@ -113,9 +113,6 @@ class _DietChatPageState extends State<DietChatPage> {
       if (!mounted) return;
       _checkPremiumBadge();
       _checkBackendStatus();
-      _addBot(
-        'Merhaba! "Bugün ne yedim?" diye sorabilir veya "Öğle yemeğine döner ekle" gibi cümlelerle yemek ekleyebilirsin.',
-      );
       await _checkFirstVisitGuide();
     });
   }
@@ -553,95 +550,252 @@ class _DietChatPageState extends State<DietChatPage> {
               ),
             ),
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: _messages.length,
-              itemBuilder: (_, i) {
-                final m = _messages[i];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildMessage(m),
-                );
-              },
-            ),
+            child: _messages.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    itemCount: _messages.length,
+                    itemBuilder: (_, i) {
+                      final m = _messages[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildMessage(m),
+                      );
+                    },
+                  ),
           ),
           if (_loading)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 16, left: 24),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  const SizedBox(width: 42),
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.6),
+                          AppColors.primary.withValues(alpha: 0.2),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.smart_toy_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(4),
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
+                    child: const TypingIndicator(color: AppColors.primaryLight),
                   ),
                 ],
               ),
             ),
           _buildQuickChips(),
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              12,
-              16,
-              MediaQuery.of(context).padding.bottom + 12,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.95),
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          _buildInputBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.2),
+                    Colors.transparent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                  width: 2,
+                ),
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primaryLight,
+                  size: 36,
+                ),
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      hintText: _backendReady
-                          ? 'Örn: Öğle yemeğine döner ekle'
-                          : 'AI kapalı: temel komut yaz',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 14,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.08),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 12,
-                      ),
-                    ),
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
-                    onSubmitted: (_) => _handleSend(),
+            const SizedBox(height: 24),
+            const Text(
+              'Nasıl yardımcı olabilirim?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Öğünlerini doğal dille yazabilir veya\nbeslenme hedeflerin hakkında sorular sorabilirsin.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 15,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            _buildSuggestionCard(
+              'Öğle yemeğine 1 porsiyon döner ve ayran ekle',
+              Icons.restaurant_rounded,
+            ),
+            const SizedBox(height: 12),
+            _buildSuggestionCard(
+              'Bugün kaç kalorim kaldı?',
+              Icons.pie_chart_rounded,
+            ),
+            const SizedBox(height: 12),
+            _buildSuggestionCard(
+              'Yüksek proteinli bir akşam yemeği öner',
+              Icons.lightbulb_rounded,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionCard(String text, IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        _controller.text = text;
+        _handleSend();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primaryLight, size: 20),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white.withValues(alpha: 0.2),
+              size: 14,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.85),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              child: TextField(
+                controller: _controller,
+                decoration: InputDecoration(
+                  hintText: _backendReady
+                      ? 'Yediklerini yaz veya sor...'
+                      : 'AI kapalı: temel komut yaz',
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 14,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
                   ),
                 ),
-                const SizedBox(width: 10),
-                IconButton.filled(
-                  onPressed: _loading ? null : _handleSend,
-                  icon: const Icon(
-                    Icons.send_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.all(12),
-                  ),
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                onSubmitted: (_) => _handleSend(),
+                textInputAction: TextInputAction.send,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
+            ),
+            child: IconButton(
+              onPressed: _loading ? null : _handleSend,
+              icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 22),
+              tooltip: 'Gönder',
             ),
           ),
         ],
@@ -661,13 +815,20 @@ class _DietChatPageState extends State<DietChatPage> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.3),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.6),
+                  AppColors.primary.withValues(alpha: 0.2),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.smart_toy_rounded,
-              color: AppColors.primaryLight,
-              size: 18,
+              color: Colors.white,
+              size: 16,
             ),
           ),
         if (!m.isUser) const SizedBox(width: 10),
@@ -680,19 +841,42 @@ class _DietChatPageState extends State<DietChatPage> {
               // Message text
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+                  horizontal: 16,
+                  vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: m.isUser
-                      ? AppColors.primary.withValues(alpha: 0.25)
-                      : Colors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
+                  gradient: m.isUser
+                      ? LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.85),
+                            AppColors.primary.withValues(alpha: 0.65),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        )
+                      : null,
+                  color: !m.isUser ? Colors.white.withValues(alpha: 0.08) : null,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(20),
+                    topRight: const Radius.circular(20),
+                    bottomLeft: Radius.circular(m.isUser ? 20 : 4),
+                    bottomRight: Radius.circular(m.isUser ? 4 : 20),
+                  ),
                   border: Border.all(
                     color: m.isUser
-                        ? AppColors.primary.withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.06),
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.08),
+                    width: 0.5,
                   ),
+                  boxShadow: m.isUser
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : [],
                 ),
                 child: Text(
                   m.text,
@@ -770,13 +954,13 @@ class _DietChatPageState extends State<DietChatPage> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.person_rounded,
               color: Colors.white70,
-              size: 18,
+              size: 16,
             ),
           ),
       ],
@@ -792,30 +976,33 @@ class _DietChatPageState extends State<DietChatPage> {
       ('Kalori açığım ne kadar?', Icons.analytics_rounded),
     ];
     return SizedBox(
-      height: 38,
+      height: 42,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         children: chips.map((chip) {
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 10),
             child: ActionChip(
-              avatar: Icon(chip.$2, size: 13, color: AppColors.primaryLight),
+              avatar: Icon(chip.$2, size: 14, color: AppColors.primaryLight),
               label: Text(
                 chip.$1,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 11.5,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               onPressed: () {
                 _controller.text = chip.$1;
                 _handleSend();
               },
-              backgroundColor: Colors.white.withValues(alpha: 0.07),
-              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              visualDensity: VisualDensity.compact,
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
+              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           );
         }).toList(),
@@ -1113,5 +1300,63 @@ class _DietChatPageState extends State<DietChatPage> {
         'Çıktıyı aynı JSON formatında ver.';
     _controller.text = prompt;
     _handleSend();
+  }
+}
+
+class TypingIndicator extends StatefulWidget {
+  final Color color;
+  const TypingIndicator({super.key, required this.color});
+
+  @override
+  State<TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        return AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            final delay = index * 0.2;
+            var t = (_controller.value - delay) % 1.0;
+            if (t < 0) t += 1.0;
+            final y = t < 0.5 ? (t * 2) : (1.0 - (t - 0.5) * 2);
+            return Transform.translate(
+              offset: Offset(0, -y * 4),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(alpha: 0.5 + y * 0.5),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          },
+        );
+      }),
+    );
   }
 }
