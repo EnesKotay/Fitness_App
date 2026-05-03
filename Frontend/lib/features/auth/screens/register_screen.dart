@@ -9,6 +9,7 @@ import '../../tracking/providers/tracking_provider.dart';
 import '../../workout/providers/workout_provider.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/services/page_guide_service.dart';
 import 'legal_screen.dart';
 import 'widgets/auth_scaffold.dart';
 
@@ -151,6 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await StorageHelper.savePrivacyPaymentTransferConsent(true);
         await StorageHelper.savePendingAppTour(true);
         await StorageHelper.saveAppTourSeen(false);
+        await PageGuideService.resetAllGuides();
 
         if (!mounted) return;
         final shouldShowProfileSetup =
