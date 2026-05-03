@@ -44,31 +44,54 @@ class _DietChatPageState extends State<DietChatPage> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🤖',
-      title: 'Beslenme AI Asistanı',
+      title: 'Diyetisyene Sor (AI)',
       description:
-          'Bu ekranda doğal dilde konuşarak beslenme kaydı yapabilir, kalori sorabilir ve diyet tavsiyesi alabilirsin. Yemek ismi yaz, AI veritabanında arayıp ekler.',
-      tip: 'Örnek: "Öğle yemeğine 1 porsiyon mercimek çorbası ekle" → AI anında ekler.',
+          'Bu sayfa, senin doğal dilde konuşarak beslenme kaydı yapmanı ve tavsiye almanı sağlayan akıllı asistanındır.\n\n'
+          'Sadece bir şeyler yazıp göndererek yediklerini otomatik olarak kaydedebilir veya kalori/makro durumunu anında öğrenebilirsin.',
+      tip: 'Yemek aramakla vakit kaybetmek yerine, yediğin yemeği doğrudan buraya yazabilirsin.',
     ),
     GuideStep(
       emoji: '🍽️',
-      title: 'Hızlı Yemek Ekleme',
+      title: 'Doğal Dille Öğün Ekleme',
       description:
-          '"Kahvaltıya 2 yumurta ve beyaz peynir ekle" veya "Az önce bir elma yedim" gibi cümleler yaz. AI yemeği tanıyıp otomatik olarak ilgili öğüne ekler.',
-      tip: 'Öğün belirtmezsen AI en uygun öğünü tahmin eder — dilersen sonradan değiştirebilirsin.',
+          'Yediklerini bir insanla konuşur gibi yaz:\n\n'
+          '• "Öğle yemeğine 1 porsiyon döner ve 1 bardak ayran ekle"\n'
+          '• "Sabah 2 yumurta, 5 zeytin ve 1 dilim kepek ekmek yedim"\n'
+          '• "Ara öğüne 1 elma ekler misin?"\n\n'
+          'AI yazdıklarını anlar, porsiyonları hesaplar ve ilgili öğüne anında ekler.',
+      tip: 'Eğer bir öğün ismi (sabah, öğle, akşam) belirtmezsen, AI o anki saate bakarak en uygun öğünü tahmin eder.',
     ),
     GuideStep(
       emoji: '📊',
-      title: 'Anlık Bilgi Al',
+      title: 'Durum Özeti İsteme',
       description:
-          'Soru örnekleri:\n• "Bugün kaç kalori yedim?"\n• "Protein hedefime ne kadar kaldı?"\n• "Akşam ne yesem?" → AI profiline göre öneri sunar.',
-      tip: 'Serbest yaz — AI Türkçe komutların tümünü anlıyor.',
+          'Gün içindeki durumunu merak ettiğinde sadece sor:\n\n'
+          '• "Bugün ne yedim?"\n'
+          '• "Kaç kalorim kaldı?"\n'
+          '• "Bugün yeterince protein aldım mı?"\n\n'
+          'Asistan sana o günkü makro dağılımını ve öğünlerinin detaylı bir özetini sunar.',
+      tip: 'Her akşam yatmadan önce "Bana günümün özetini ver" diyerek günü değerlendirebilirsin.',
     ),
     GuideStep(
       emoji: '🔁',
-      title: 'Eklemeyi Geri Al',
+      title: 'İşlemleri Geri Alma',
       description:
-          'Yanlış bir yemek eklediysen AI\'a "Az önce eklediğim yemeği iptal et" veya "Son eklemeyi sil" yaz. Eklenen yemekler Beslenme → Öğünler\'de de düzenlenebilir.',
-      tip: 'Bu sayfada eklediğin yemekler anında Öğünler sekmesine yansır.',
+          'Eğer asistan yanlış bir yemeği eklerse veya fikrini değiştirirsen:\n\n'
+          '• "Son eklediğimi sil"\n'
+          '• "İptal et"\n'
+          '• "Geri al"\n\n'
+          'Yazman yeterlidir. Sistem en son eklenen öğünü anında diyet listenden çıkarır.',
+      tip: 'Ayrıca eklenen tüm öğünleri "Ana Sayfa" veya "Beslenme" sekmesinden de manuel olarak düzenleyebilirsin.',
+    ),
+    GuideStep(
+      emoji: '💡',
+      title: 'Tavsiye ve Alternatifler',
+      description:
+          'Sadece kayıt tutmakla kalma, ne yiyeceğini de danış:\n\n'
+          '• "Kalan 400 kalorim için bol proteinli bir akşam yemeği öner"\n'
+          '• "Canım tatlı çekiyor, düşük kalorili ne yiyebilirim?"\n\n'
+          'Sana hedefine uygun tarifler ve yiyecek seçenekleri sunacaktır.',
+      tip: 'Üst menüdeki kısayol çipleriyle (Bugün ne yedim, Kalori açığım ne kadar vb.) tek dokunuşla hazır soruları gönderebilirsin.',
     ),
   ];
 
