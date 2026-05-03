@@ -90,6 +90,18 @@ class _PageGuideOverlayState extends State<PageGuideOverlay>
     }
   }
 
+  void _prev() {
+    HapticFeedback.selectionClick();
+    if (_current > 0) {
+      _animController.reverse().then((_) {
+        if (mounted) {
+          setState(() => _current--);
+          _animController.forward();
+        }
+      });
+    }
+  }
+
   void _skip() {
     HapticFeedback.lightImpact();
     Navigator.of(context).pop();
@@ -358,9 +370,31 @@ class _PageGuideOverlayState extends State<PageGuideOverlay>
 
                                     const SizedBox(height: 24),
 
-                                    // Alt: dot indikatörler + İleri butonu
+                                    // Alt: Önceki + dot indikatörler + İleri butonu
                                     Row(
                                       children: [
+                                        // Önceki butonu
+                                        if (_current > 0) ...[
+                                          GestureDetector(
+                                            onTap: _prev,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 10,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.arrow_back_rounded,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                        ],
                                         // Dot indikatörler
                                         if (widget.steps.length > 1)
                                           Expanded(

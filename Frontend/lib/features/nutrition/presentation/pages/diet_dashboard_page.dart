@@ -95,7 +95,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
       title: 'Araçlar Menüsü',
       description:
           'Sayfanın ortasındaki Araçlar menüsünde faydalı kısayollar var:\n\n'
-          '• 🤖 Diyetisyene Sor: Beslenmenle ilgili AI'a soru sor\n'
+          '• 🤖 Diyetisyene Sor: Beslenmenle ilgili AI\'a soru sor\n'
           '• 🍲 Tarifler: Sağlıklı yemek tariflerine ulaş\n'
           '• 🛒 Alışveriş Listesi: Market planını yap\n'
           '• 📅 Haftalık Plan: 7 günlük diyet planını gör',
