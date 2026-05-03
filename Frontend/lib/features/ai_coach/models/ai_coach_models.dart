@@ -107,10 +107,10 @@ extension CoachTaskModeX on CoachTaskMode {
 
 @immutable
 class DailySummary {
-  final int steps;
+  final int? steps;
   final int calories;
   final double waterLiters;
-  final double sleepHours;
+  final double? sleepHours;
   final int workouts;
   final int workoutMinutes;
   final List<String> workoutHighlights;
@@ -138,10 +138,10 @@ class DailySummary {
   final int? tdee;
 
   const DailySummary({
-    required this.steps,
+    this.steps,
     required this.calories,
     required this.waterLiters,
-    required this.sleepHours,
+    this.sleepHours,
     required this.workouts,
     this.workoutMinutes = 0,
     this.workoutHighlights = const <String>[],
@@ -226,6 +226,9 @@ class CoachResponse {
   final List<CoachMedia>? media;
   final bool isAchievement;
 
+  /// Remaining free requests for today — set by backend, null for premium.
+  final int? remainingFreeRequests;
+
   const CoachResponse({
     required this.focus,
     required this.todoItems,
@@ -233,6 +236,7 @@ class CoachResponse {
     this.actions,
     this.media,
     this.isAchievement = false,
+    this.remainingFreeRequests,
   });
 
   factory CoachResponse.fromJson(Map<String, dynamic> json) {
@@ -282,6 +286,9 @@ class CoachResponse {
       isAchievement: json['isAchievement'] == true,
       actions: parseActions(json['actions']),
       media: parseMedia(json['media']),
+      remainingFreeRequests: json['remainingFreeRequests'] is int
+          ? json['remainingFreeRequests'] as int
+          : null,
     );
   }
 }

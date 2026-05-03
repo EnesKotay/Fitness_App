@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../domain/entities/meal_type.dart';
@@ -39,17 +41,59 @@ class _DietChatPageState extends State<DietChatPage> {
   bool _isPremium = false;
   bool _backendReady = true;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🤖',
+      title: 'Beslenme AI Asistanı',
+      description:
+          'Bu ekranda doğal dilde konuşarak beslenme kaydı yapabilir, kalori sorabilir ve diyet tavsiyesi alabilirsin. Yemek ismi yaz, AI veritabanında arayıp ekler.',
+      tip: 'Örnek: "Öğle yemeğine 1 porsiyon mercimek çorbası ekle" → AI anında ekler.',
+    ),
+    GuideStep(
+      emoji: '🍽️',
+      title: 'Hızlı Yemek Ekleme',
+      description:
+          '"Kahvaltıya 2 yumurta ve beyaz peynir ekle" veya "Az önce bir elma yedim" gibi cümleler yaz. AI yemeği tanıyıp otomatik olarak ilgili öğüne ekler.',
+      tip: 'Öğün belirtmezsen AI en uygun öğünü tahmin eder — dilersen sonradan değiştirebilirsin.',
+    ),
+    GuideStep(
+      emoji: '📊',
+      title: 'Anlık Bilgi Al',
+      description:
+          'Soru örnekleri:\n• "Bugün kaç kalori yedim?"\n• "Protein hedefime ne kadar kaldı?"\n• "Akşam ne yesem?" → AI profiline göre öneri sunar.',
+      tip: 'Serbest yaz — AI Türkçe komutların tümünü anlıyor.',
+    ),
+    GuideStep(
+      emoji: '🔁',
+      title: 'Eklemeyi Geri Al',
+      description:
+          'Yanlış bir yemek eklediysen AI\'a "Az önce eklediğim yemeği iptal et" veya "Son eklemeyi sil" yaz. Eklenen yemekler Beslenme → Öğünler\'de de düzenlenebilir.',
+      tip: 'Bu sayfada eklediğin yemekler anında Öğünler sekmesine yansır.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('diet_chat')) return;
+    await PageGuideService.markGuideSeen('diet_chat');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      // Premium badge sadece görsel amaçlı — erişim engellenmez
       _checkPremiumBadge();
       _checkBackendStatus();
       _addBot(
         'Merhaba! "Bugün ne yedim?" diye sorabilir veya "Öğle yemeğine döner ekle" gibi cümlelerle yemek ekleyebilirsin.',
       );
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -401,7 +445,7 @@ class _DietChatPageState extends State<DietChatPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                _isPremium ? 'Claude AI' : 'Gemini',
+                _isPremium ? 'Claude' : 'Gemini',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,

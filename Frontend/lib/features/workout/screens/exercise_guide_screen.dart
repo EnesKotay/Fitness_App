@@ -10,6 +10,7 @@ import '../../../core/models/exercise.dart';
 import '../../../core/models/workout.dart';
 import '../../../core/models/workout_models.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/screens/premium_screen.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../models/exercise_guide_data.dart';
 import '../providers/workout_provider.dart';
@@ -602,6 +603,13 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
       if (!mounted) return;
       if (badge != null) {
         // Rozet kazanıldı — overlay göster
+        final isPremiumUser =
+            Provider.of<AuthProvider>(context, listen: false)
+                .user
+                ?.premiumTier
+                ?.toLowerCase()
+                .trim() ==
+            'premium';
         showDialog<void>(
           context: context,
           barrierDismissible: true,
@@ -609,6 +617,17 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
           builder: (_) => AchievementOverlay(
             badge: badge,
             accentColor: widget.accentColor,
+            isPremium: isPremiumUser,
+            onUpgradeTap: isPremiumUser
+                ? null
+                : () {
+                    streakProvider.clearJustUnlocked();
+                    Navigator.of(context)
+                      ..pop() // overlay
+                      ..push(MaterialPageRoute(
+                        builder: (_) => const PremiumScreen(),
+                      ));
+                  },
             onDismiss: () {
               streakProvider.clearJustUnlocked();
               Navigator.of(context).pop();

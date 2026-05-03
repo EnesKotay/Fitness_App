@@ -72,7 +72,9 @@ public class GeminiNutritionService {
                 }
 
                 Kurallar:
-                - Değerler 100g başına olmalı. Etiket farklı porsiyon veriyorsa 100g'a çevir.
+                - productName: Sadece markayı ve temel yiyecek adını çok kısa ve temiz bir şekilde yaz. Pazarlama sloganlarını, uzun ürün açıklamalarını veya parantez içindeki gereksiz/şaka amaçlı metinleri (örn: 'Yasal olarak Dondurma diyemiyorlar') KESİNLİKLE dahil etme. (Örnek: 'Sade Dövme (Yasal olarak...)' yerine sadece 'Sade Dövme' yaz).
+                - servingUnit: 'Porsiyon' gibi muğlak ifadeler yerine kullanıcıların tam olarak anlayabileceği net ölçü birimleri (örneğin 'g', 'ml', 'Adet', 'Paket', 'Kutu', 'Dilim') kullan.
+                - Değerler 100g veya 100ml başına olmalı. Etiket farklı porsiyon veriyorsa 100 birime çevir.
                 - Bulunamayan değerler için null yaz.
                 - Türkçe ve İngilizce etiketleri destekle.
                 - confidence: Değerlerin doğruluğundan ne kadar eminsin (0.0-1.0).

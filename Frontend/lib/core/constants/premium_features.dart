@@ -25,7 +25,7 @@ const premiumFeatures = <PremiumFeature>[
     icon: Icons.smart_toy_rounded,
     title: 'AI Koç ve Adaptif Planlar',
     description:
-        'Claude destekli kişisel koçluk al, hedefin değiştikçe önerilerini otomatik güncelle.',
+        'Claude destekli koçlukla sadece cevap alma; verilerini yorumlayan ve sonraki adımı öneren bir rehber kazan.',
     accent: Color(0xFFFFB74D),
     tag: 'AI KOÇ',
     shortLabel: 'AI Koç',
@@ -34,7 +34,7 @@ const premiumFeatures = <PremiumFeature>[
     icon: Icons.insights_rounded,
     title: 'Gelişmiş Analiz ve Grafikler',
     description:
-        'Beslenme trendlerini, ilerleme ritmini ve raporlarını daha derin verilerle incele.',
+        'Kayıtlarını sadece görmekle kalma; hangi günler iyi gittiğini ve nerede koptuğunu net biçimde fark et.',
     accent: Color(0xFF64B5F6),
     tag: 'ANALİZ',
     shortLabel: 'Derin Analiz',
@@ -43,7 +43,7 @@ const premiumFeatures = <PremiumFeature>[
     icon: Icons.restaurant_menu_rounded,
     title: 'Haftalık Öğün Planı ve Akıllı Liste',
     description:
-        'Kişisel hedeflerine göre öğün planı kur, alışveriş listesini akıllı şekilde üret.',
+        'Hedefine göre haftayı hazır gör, market listesini otomatik çıkar ve “ne yiyeceğim” yükünü azalt.',
     accent: Color(0xFF81C784),
     tag: 'PLANLAMA',
     shortLabel: 'Öğün Planı',
@@ -52,7 +52,7 @@ const premiumFeatures = <PremiumFeature>[
     icon: Icons.fitness_center_rounded,
     title: 'Hazır Antrenman Programları',
     description:
-        'Hedef bazlı premium programları aç, güçlü bir başlangıç için hazır splitleri kullan.',
+        'Hedefine uygun hazır splitleri incele, beğendiğini tek dokunuşla başlat ve sıfırdan plan kurma derdini azalt.',
     accent: Color(0xFFF06292),
     tag: 'WORKOUT',
     shortLabel: 'Programlar',

@@ -38,6 +38,15 @@ class VisualMealCard extends StatelessWidget {
     }
   }
 
+  String get _emptyStateMessage {
+    switch (mealType) {
+      case MealType.breakfast: return 'Güne enerjik başla, kahvaltını ekle!';
+      case MealType.lunch: return 'Öğle yemeği zamanı, tabağını doldur!';
+      case MealType.dinner: return 'Günü güzel kapat, akşam yemeğini gir!';
+      case MealType.snack: return 'Küçük bir mola, atıştırmalığını ekle!';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalKcal = entries.fold<double>(0, (sum, e) => sum + e.calculatedKcal);
@@ -98,18 +107,28 @@ class VisualMealCard extends StatelessWidget {
             )
           else
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               child: Column(
                 children: [
-                  Text(
-                    'Henüz eklenmedi',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontStyle: FontStyle.italic,
-                      fontSize: 14,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _color.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(_icon, size: 28, color: _color.withValues(alpha: 0.5)),
                   ),
                   const SizedBox(height: 12),
+                  Text(
+                    _emptyStateMessage,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(

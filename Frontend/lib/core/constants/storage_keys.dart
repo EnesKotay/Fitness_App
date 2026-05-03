@@ -23,9 +23,14 @@ class StorageKeys {
   static const String smartGroceryReason = 'smart_grocery_reason';
   static const String smartGroceryUpdatedAt = 'smart_grocery_updated_at';
   static const String smartGroceryMealIdeas = 'smart_grocery_meal_ideas';
+  static const String smartGroceryCheckedItems = 'smart_grocery_checked_items';
   static const String nutritionPreferences = 'nutrition_preferences';
   static const String pendingOnboardingSummary = 'pending_onboarding_summary';
   static const String quickAccessHintSeen = 'quick_access_hint_seen';
+
+  /// Yeni kayıt olan kullanıcıya 1 kere gösterilen uygulama tur rehberi.
+  static const String appTourSeen = 'app_tour_seen';
+  static const String pendingAppTour = 'pending_app_tour';
   // Settings
   static const String settingsNotifEnabled = 'settings_notif_enabled';
   static const String settingsNotifWater = 'settings_notif_water';

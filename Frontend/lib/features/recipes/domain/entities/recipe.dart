@@ -107,6 +107,15 @@ class RecipeIngredient {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'amount': amount,
+      'unit': unit,
+      if (category != null) 'category': category,
+    };
+  }
+
   String get displayAmount {
     final normalized = amount == amount.roundToDouble()
         ? amount.toInt().toString()
@@ -195,6 +204,30 @@ class Recipe {
       tags: (json['tags'] as List? ?? []).map((e) => e as String).toList(),
       difficulty: json['difficulty'] as String? ?? 'orta',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'category': category,
+      'servings': servings,
+      'prepTimeMinutes': prepTimeMinutes,
+      'cookTimeMinutes': cookTimeMinutes,
+      'ingredients': ingredients.map((i) => i.toJson()).toList(),
+      'steps': steps,
+      'imageEmoji': imageEmoji,
+      if (imageAsset != null) 'imageAsset': imageAsset,
+      'kcalPerServing': kcalPerServing,
+      'proteinPerServing': proteinPerServing,
+      'carbPerServing': carbPerServing,
+      'fatPerServing': fatPerServing,
+      'fiberPerServing': fiberPerServing,
+      'sugarPerServing': sugarPerServing,
+      'tags': tags,
+      'difficulty': difficulty,
+    };
   }
 
   // Lazy cached computed fields — bir kez hesaplanır, sonra tekrar kullanılır

@@ -404,15 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   context,
                                 ).pushNamed('/settings-nutrition'),
                               ),
-                              _settingsTile(
-                                icon: Icons.palette_outlined,
-                                accent: const Color(0xFFAB47BC),
-                                title: 'Tema ve Görünüm',
-                                subtitle: 'Koyu / açık mod, kontrast',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-theme'),
-                              ),
+
                               _settingsTile(
                                 icon: Icons.help_outline_rounded,
                                 accent: _softBlue,

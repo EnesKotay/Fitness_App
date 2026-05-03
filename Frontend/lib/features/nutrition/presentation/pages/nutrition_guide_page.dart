@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -958,6 +960,48 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
   late AnimationController _switchCtrl;
   late Animation<double> _fadeAnim;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '📚',
+      title: 'Beslenme Rehberin',
+      description:
+          'Bu sayfa hedefe göre kişiselleştirilmiş günlük kalori ihtiyacını, makro besin hedeflerini ve beslenme önerilerini gösterir. Hedefin değiştikçe otomatik güncellenir.',
+      tip: 'Profilindeki boy, kilo ve aktivite düzeyine göre hesaplanır — bunları güncel tutarsan plan daha doğru olur.',
+    ),
+    GuideStep(
+      emoji: '🎯',
+      title: 'Hedef Seç',
+      description:
+          'Sayfanın üstündeki hedef seçiciden:\n• Kilo Ver — kalori açığı ile yağ yakımı\n• Kilo Koru — bakım kalorileri\n• Kas Kazan — kalori fazlası ile hacim\nArasında geçiş yap, makrolar anında güncellenir.',
+      tip: 'Hedefi değiştirince önerilen kalori ve protein/karb/yağ oranları otomatik yeniden hesaplanır.',
+    ),
+    GuideStep(
+      emoji: '💡',
+      title: 'Kişisel Öneriler',
+      description:
+          'Aşağı kaydırdıkça günlük kalori, protein, karbonhidrat ve yağ önerilerini ayrıntılı görürsün. Her makronun neden önemli olduğu kısa açıklamalarla belirtilir.',
+      tip: '"Bugün ne yesem?" sorusunu AI Koç\'a sor — profilindeki hedefleri bilerek menü önerir.',
+    ),
+    GuideStep(
+      emoji: '🔄',
+      title: 'Planı Güncel Tut',
+      description:
+          'Kilonuz değiştikçe Profil → Fiziksel Bilgiler\'i güncelle. Bu sayfa profil bilgilerinden hesaplandığı için kilo veya aktivite güncellemesi makro hedeflerini de değiştirir.',
+      tip: 'Her 4 haftada bir profil bilgilerini güncelle — vücut değiştikçe kalori ihtiyacı da değişir.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('nutrition_guide')) return;
+    await PageGuideService.markGuideSeen('nutrition_guide');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -967,6 +1011,9 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
     );
     _fadeAnim = CurvedAnimation(parent: _switchCtrl, curve: Curves.easeOut);
     _switchCtrl.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkFirstVisitGuide();
+    });
   }
 
   @override
@@ -1340,6 +1387,14 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
                         ),
                     const SizedBox(height: 14),
 
+                    // Kişisel Profil Kartı
+                    if (provider.profile != null)
+                      _BodyProfileCard(profile: provider.profile!)
+                          .animate(key: ValueKey('profile_${goal.label}'))
+                          .fadeIn(delay: 80.ms, duration: 400.ms)
+                          .slideY(begin: 0.05, curve: Curves.easeOutQuad),
+                    if (provider.profile != null) const SizedBox(height: 14),
+
                     _PersonalSummaryCard(
                           goal: goal,
                           provider: provider,
@@ -1494,6 +1549,25 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
                         .slideY(begin: 0.05, curve: Curves.easeOutQuad),
                     const SizedBox(height: 20),
 
+                    // Sana Özel İpuçları
+                    if (provider.profile != null)
+                      Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SectionHeader(
+                                title: 'Sana Özel İpuçları',
+                                icon: Icons.person_pin_rounded,
+                                color: Color(0xFF64D2FF),
+                              ),
+                              const SizedBox(height: 10),
+                              _PersonalTipsSection(profile: provider.profile!),
+                            ],
+                          )
+                          .animate(key: ValueKey('personal_tips_${goal.label}'))
+                          .fadeIn(delay: 570.ms, duration: 400.ms)
+                          .slideY(begin: 0.05, curve: Curves.easeOutQuad),
+                    if (provider.profile != null) const SizedBox(height: 20),
+
                     // Genel İpuçları
                     Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1508,7 +1582,7 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
                           ],
                         )
                         .animate(key: ValueKey('tips_${goal.label}'))
-                        .fadeIn(delay: 600.ms, duration: 400.ms)
+                        .fadeIn(delay: 620.ms, duration: 400.ms)
                         .slideY(begin: 0.05, curve: Curves.easeOutQuad),
                   ],
                 ),
@@ -1702,6 +1776,67 @@ class _GoalSelector extends StatelessWidget {
 
 // ─── Hero Banner ──────────────────────────────────────────────────────────────
 
+class _CalorieRing extends StatelessWidget {
+  final DietProvider provider;
+  final Color color;
+  const _CalorieRing({required this.provider, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final current = provider.totals.totalKcal;
+    final remaining = provider.remainingKcal;
+    final target = current + remaining;
+    final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    final exceeded = remaining < 0;
+
+    return SizedBox(
+      width: 62,
+      height: 62,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 62,
+            height: 62,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 5.5,
+              backgroundColor: Colors.white.withValues(alpha: 0.09),
+              valueColor: AlwaysStoppedAnimation(
+                exceeded ? const Color(0xFFFF453A) : color,
+              ),
+              strokeCap: StrokeCap.round,
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                current.round().toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                'kcal',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _HeroBanner extends StatelessWidget {
   final _Goal goal;
   final DietProvider provider;
@@ -1709,9 +1844,12 @@ class _HeroBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profileLabel = provider.profile == null
-        ? 'Rehber modunda'
-        : 'Profilinle senkronlu';
+    final profile = provider.profile;
+    final profileLabel = profile == null ? 'Rehber modunda' : 'Profilinle senkronlu';
+    final dynamicRule = profile != null
+        ? 'Hedef: ${profile.targetCalories.round()} kcal/gün'
+        : goal.calorieRule;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -1736,9 +1874,10 @@ class _HeroBanner extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(goal.emoji, style: const TextStyle(fontSize: 48)),
-          const SizedBox(width: 16),
+          Text(goal.emoji, style: const TextStyle(fontSize: 44)),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1767,39 +1906,25 @@ class _HeroBanner extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: goal.color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        goal.calorieRule,
-                        style: TextStyle(
-                          color: goal.color,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        dynamicRule,
+                        style: TextStyle(color: goal.color, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         profileLabel,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -1807,6 +1932,8 @@ class _HeroBanner extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 10),
+          _CalorieRing(provider: provider, color: goal.color),
         ],
       ),
     );
@@ -1897,6 +2024,9 @@ class _PersonalSummaryCard extends StatelessWidget {
                             ? '$remaining kcal alan'
                             : '${remaining.abs()} kcal fazla',
                         color: goal.color,
+                        ratio: targetKcal > 0
+                            ? (currentKcal / targetKcal).clamp(0.0, 1.0)
+                            : 0.0,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1908,6 +2038,9 @@ class _PersonalSummaryCard extends StatelessWidget {
                             ? 'Hedefe ulaştın'
                             : '${proteinTarget - proteinCurrent}g kaldı',
                         color: const Color(0xFF30D158),
+                        ratio: proteinTarget > 0
+                            ? (proteinCurrent / proteinTarget).clamp(0.0, 1.0)
+                            : 0.0,
                       ),
                     ),
                   ],
@@ -2008,12 +2141,14 @@ class _MetricTile extends StatelessWidget {
   final String value;
   final String helper;
   final Color color;
+  final double? ratio;
 
   const _MetricTile({
     required this.label,
     required this.value,
     required this.helper,
     required this.color,
+    this.ratio,
   });
 
   @override
@@ -2055,6 +2190,18 @@ class _MetricTile extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (ratio != null) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: ratio!.clamp(0.0, 1.0),
+                minHeight: 4,
+                backgroundColor: Colors.white.withValues(alpha: 0.07),
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2296,14 +2443,27 @@ class _MacroRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         SizedBox(
-          width: 80,
+          width: 68,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: macro.ratio,
-              minHeight: 5,
+              minHeight: 7,
               backgroundColor: Colors.white.withValues(alpha: 0.06),
               valueColor: AlwaysStoppedAnimation(macro.color),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        SizedBox(
+          width: 30,
+          child: Text(
+            '${(macro.ratio * 100).round()}%',
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: macro.color.withValues(alpha: 0.85),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -2416,10 +2576,21 @@ class _MealCard extends StatelessWidget {
                   height: 1.3,
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                meal.detail,
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
+              const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: meal.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  meal.detail,
+                  style: TextStyle(
+                    color: meal.accent.withValues(alpha: 0.9),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -3234,6 +3405,36 @@ class _TopFoodsGrid extends StatelessWidget {
   final _Goal goal;
   const _TopFoodsGrid({required this.goal});
 
+  static String _emoji(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('tavuk') || n.contains('hindi')) return '🍗';
+    if (n.contains('somon')) return '🐟';
+    if (n.contains('ton')) return '🐡';
+    if (n.contains('hamsi') || n.contains('palamut') || n.contains('levrek') || n.contains('balık')) return '🐠';
+    if (n.contains('yumurta')) return '🥚';
+    if (n.contains('yoğurt') || n.contains('kefir')) return '🥛';
+    if (n.contains('süt')) return '🥛';
+    if (n.contains('peynir')) return '🧀';
+    if (n.contains('et') || n.contains('kıyma') || n.contains('biftek') || n.contains('kuzu') || n.contains('köfte')) return '🥩';
+    if (n.contains('pirinç') || n.contains('pilav')) return '🍚';
+    if (n.contains('makarna')) return '🍝';
+    if (n.contains('ekmek') || n.contains('bulgur')) return '🌾';
+    if (n.contains('muz')) return '🍌';
+    if (n.contains('elma')) return '🍎';
+    if (n.contains('portakal')) return '🍊';
+    if (n.contains('çilek')) return '🍓';
+    if (n.contains('brokoli') || n.contains('ıspanak') || n.contains('sebze')) return '🥦';
+    if (n.contains('patates')) return '🥔';
+    if (n.contains('avokado')) return '🥑';
+    if (n.contains('nohut') || n.contains('fasulye') || n.contains('mercimek')) return '🫘';
+    if (n.contains('badem') || n.contains('ceviz') || n.contains('fındık') || n.contains('fıstık')) return '🥜';
+    if (n.contains('yulaf')) return '🌾';
+    if (n.contains('protein')) return '💪';
+    if (n.contains('zeytinyağ') || n.contains('yağ')) return '🫒';
+    if (n.contains('quinoa') || n.contains('tahıl')) return '🌱';
+    return '🍽️';
+  }
+
   @override
   Widget build(BuildContext context) {
     return GridView.count(
@@ -3242,7 +3443,7 @@ class _TopFoodsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 8,
       mainAxisSpacing: 8,
-      childAspectRatio: 1.45,
+      childAspectRatio: 1.15,
       children: goal.topFoods
           .map(
             (f) => Container(
@@ -3256,15 +3457,8 @@ class _TopFoodsGrid extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: f.color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
+                  Text(_emoji(f.name), style: const TextStyle(fontSize: 18)),
+                  const SizedBox(height: 4),
                   Text(
                     f.name,
                     maxLines: 1,
@@ -3282,7 +3476,7 @@ class _TopFoodsGrid extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white38,
-                      fontSize: 9.5,
+                      fontSize: 10,
                       height: 1.3,
                     ),
                   ),
@@ -3421,6 +3615,21 @@ class _SupplementChips extends StatelessWidget {
   final _Goal goal;
   const _SupplementChips({required this.goal});
 
+  static IconData _iconFor(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('whey') || n.contains('protein')) return Icons.fitness_center_rounded;
+    if (n.contains('kreatin')) return Icons.bolt_rounded;
+    if (n.contains('vitamin') || n.contains('d3') || n.contains('b12') || n.contains('c vitamini')) return Icons.eco_rounded;
+    if (n.contains('omega') || n.contains('balık yağı')) return Icons.water_drop_rounded;
+    if (n.contains('magnezyum') || n.contains('çinko') || n.contains('mineral')) return Icons.diamond_rounded;
+    if (n.contains('zma') || n.contains('uyku')) return Icons.bedtime_rounded;
+    if (n.contains('kafein') || n.contains('pre-workout') || n.contains('enerji')) return Icons.local_fire_department_rounded;
+    if (n.contains('bcaa') || n.contains('amino') || n.contains('eaa')) return Icons.scatter_plot_rounded;
+    if (n.contains('glutamin')) return Icons.healing_rounded;
+    if (n.contains('demir') || n.contains('kalsiyum')) return Icons.opacity_rounded;
+    return Icons.science_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -3438,7 +3647,7 @@ class _SupplementChips extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.science_rounded, color: goal.color, size: 12),
+                  Icon(_iconFor(s), color: goal.color, size: 12),
                   const SizedBox(width: 5),
                   Text(
                     s,
@@ -3538,6 +3747,405 @@ class _GeneralTipsCard extends StatelessWidget {
                           height: 1.45,
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Body Profile Card ────────────────────────────────────────────────────────
+
+class _BmiBar extends StatelessWidget {
+  final double bmi;
+  final Color bmiColor;
+  final String bmiLabel;
+  const _BmiBar({required this.bmi, required this.bmiColor, required this.bmiLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final position = ((bmi - 15) / (40 - 15)).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('BMI', style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(
+              '${bmi.toStringAsFixed(1)}  ·  $bmiLabel',
+              style: TextStyle(color: bmiColor, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        LayoutBuilder(builder: (ctx, constraints) {
+          final w = constraints.maxWidth;
+          const ms = 10.0;
+          return SizedBox(
+            height: 18,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 4,
+                  left: 0,
+                  right: 0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: Container(
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0A84FF), Color(0xFF30D158), Color(0xFFFF9F0A), Color(0xFFFF453A)],
+                          stops: [0.0, 0.27, 0.55, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  left: (position * (w - ms)).clamp(0.0, w - ms),
+                  child: Container(
+                    width: ms,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: bmiColor,
+                      borderRadius: BorderRadius.circular(3),
+                      boxShadow: [BoxShadow(color: bmiColor.withValues(alpha: 0.55), blurRadius: 5)],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 4),
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('15', style: TextStyle(color: Colors.white24, fontSize: 9)),
+            Text('18.5', style: TextStyle(color: Colors.white24, fontSize: 9)),
+            Text('25', style: TextStyle(color: Colors.white24, fontSize: 9)),
+            Text('30', style: TextStyle(color: Colors.white24, fontSize: 9)),
+            Text('40', style: TextStyle(color: Colors.white24, fontSize: 9)),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _BodyProfileCard extends StatelessWidget {
+  final UserProfile profile;
+  const _BodyProfileCard({required this.profile});
+
+  static (String, Color) _bmiInfo(double bmi) {
+    if (bmi < 18.5) return ('Düşük Kilo', const Color(0xFF0A84FF));
+    if (bmi < 25.0) return ('Normal', const Color(0xFF30D158));
+    if (bmi < 30.0) return ('Hafif Fazla', const Color(0xFFFF9F0A));
+    return ('Obez', const Color(0xFFFF453A));
+  }
+
+  static String _activityLabel(ActivityLevel level) => switch (level) {
+        ActivityLevel.sedentary => 'Az hareketli',
+        ActivityLevel.lightlyActive => 'Hafif aktif',
+        ActivityLevel.moderatelyActive => 'Orta aktif',
+        ActivityLevel.veryActive => 'Çok aktif',
+        ActivityLevel.extraActive => 'Ekstra aktif',
+      };
+
+  Widget _statCell(String value, String label) => Expanded(
+        child: Column(
+          children: [
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+          ],
+        ),
+      );
+
+  Widget _vDivider() => Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.08));
+
+  Widget _infoTile(String label, String value, String sub, Color color) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 1),
+            Text(sub, style: const TextStyle(color: Colors.white38, fontSize: 9)),
+          ],
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final bmi = profile.weight / ((profile.height / 100) * (profile.height / 100));
+    final (bmiLabel, bmiColor) = _bmiInfo(bmi);
+    final targetW = profile.targetWeight;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.11)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.person_rounded, color: Colors.white60, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(profile.name, style: GoogleFonts.dmSans(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                        Text(_activityLabel(profile.activityLevel), style: GoogleFonts.dmSans(color: Colors.white38, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: bmiColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(bmiLabel, style: TextStyle(color: bmiColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _statCell('${profile.weight.toStringAsFixed(1)} kg', 'Kilo'),
+                  _vDivider(),
+                  _statCell('${profile.height.toStringAsFixed(0)} cm', 'Boy'),
+                  _vDivider(),
+                  _statCell('${profile.age}', 'Yaş'),
+                  _vDivider(),
+                  _statCell(profile.gender == Gender.male ? 'Erkek' : 'Kadın', 'Cinsiyet'),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _BmiBar(bmi: bmi, bmiColor: bmiColor, bmiLabel: bmiLabel),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(child: _infoTile('BMR', '${profile.bmr.round()} kcal', 'Bazal metabolizma', const Color(0xFF0A84FF))),
+                  const SizedBox(width: 8),
+                  Expanded(child: _infoTile('TDEE', '${profile.tdee.round()} kcal', 'Günlük harcama', const Color(0xFF30D158))),
+                  const SizedBox(width: 8),
+                  Expanded(child: _infoTile('Hedef', '${profile.targetCalories.round()} kcal', 'Günlük hedef', const Color(0xFFFF9F0A))),
+                ],
+              ),
+              if (targetW != null) ...[
+                const SizedBox(height: 12),
+                _WeightProgressRow(current: profile.weight, target: targetW),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeightProgressRow extends StatelessWidget {
+  final double current;
+  final double target;
+  const _WeightProgressRow({required this.current, required this.target});
+
+  @override
+  Widget build(BuildContext context) {
+    final diff = target - current;
+    final color = diff < 0 ? const Color(0xFFFF453A) : const Color(0xFF30D158);
+    final icon = diff < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 8),
+          Text('${current.toStringAsFixed(1)} kg', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6),
+            child: Icon(Icons.arrow_forward_rounded, color: Colors.white38, size: 14),
+          ),
+          Text('${target.toStringAsFixed(1)} kg', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+            child: Text(
+              '${diff > 0 ? '+' : ''}${diff.toStringAsFixed(1)} kg',
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Personal Tips Section ────────────────────────────────────────────────────
+
+class _PersonalTipsSection extends StatelessWidget {
+  final UserProfile profile;
+  const _PersonalTipsSection({required this.profile});
+
+  List<({IconData icon, Color color, String text})> _buildTips() {
+    final tips = <({IconData icon, Color color, String text})>[];
+    final bmi = profile.weight / ((profile.height / 100) * (profile.height / 100));
+
+    if (profile.gender == Gender.female) {
+      tips.add((
+        icon: Icons.favorite_rounded,
+        color: const Color(0xFFFF6B9D),
+        text: 'Kadınlarda günlük demir ihtiyacı 18 mg. Kırmızı et, mercimek ve ıspanak ile destekle. Kalsiyum alımına da dikkat et.',
+      ));
+    }
+
+    if (profile.age >= 40) {
+      tips.add((
+        icon: Icons.self_improvement_rounded,
+        color: const Color(0xFFBF5AF2),
+        text: '40+ yaşta metabolizma yavaşlar. Protein alımını 2.0–2.2 g/kg\'a çıkar, D vitamini ve kalsiyum takviyesini değerlendir.',
+      ));
+    } else if (profile.age < 25) {
+      tips.add((
+        icon: Icons.bolt_rounded,
+        color: const Color(0xFFFFD60A),
+        text: 'Genç metabolizman kas geliştirme için büyük avantaj. Bu dönemi düzenli antrenman ve yeterli proteinle değerlendir.',
+      ));
+    }
+
+    if (profile.activityLevel == ActivityLevel.sedentary) {
+      tips.add((
+        icon: Icons.directions_walk_rounded,
+        color: const Color(0xFF4FACFE),
+        text: 'Az hareketli yaşamda TDEE\'n düşük — küçük kalori açıkları bile etkili olur. Günde 8.000 adım metabolizmayı canlandırır.',
+      ));
+    } else if (profile.activityLevel == ActivityLevel.veryActive || profile.activityLevel == ActivityLevel.extraActive) {
+      tips.add((
+        icon: Icons.sports_score_rounded,
+        color: const Color(0xFF30D158),
+        text: 'Yoğun aktivitende karbonhidrat zamanlaması kritik: antrenman öncesi 1–2 saat, sonrasında 30 dk içinde karbonhidrat + protein al.',
+      ));
+    }
+
+    if (bmi >= 25 && bmi < 30) {
+      tips.add((
+        icon: Icons.monitor_weight_rounded,
+        color: const Color(0xFFFF9F0A),
+        text: 'Kalori açığını −300 ile −500 arasında tut. Daha sert kısıtlamalar kas kaybına ve metabolizma yavaşlamasına neden olur.',
+      ));
+    } else if (bmi < 18.5) {
+      tips.add((
+        icon: Icons.restaurant_rounded,
+        color: const Color(0xFF0A84FF),
+        text: 'Kilo almak için kalori fazlasını sağlıklı kaynaklardan al: fındık ezmesi, avokado, zeytinyağı, tam tahıllı ürünler.',
+      ));
+    }
+
+    switch (profile.goal) {
+      case Goal.cut:
+        tips.add((
+          icon: Icons.local_fire_department_rounded,
+          color: const Color(0xFFFF453A),
+          text: 'Haftada 1 refeed günü (TDEE kadar ye) metabolizmayı ve leptin seviyesini dengede tutar. Formdan çıkmaz.',
+        ));
+      case Goal.bulk:
+        tips.add((
+          icon: Icons.trending_up_rounded,
+          color: const Color(0xFF43E97B),
+          text: 'Temiz bulk için aylık 0.5–1 kg hedefle. Daha hızlı kilo alımı yağ birikimini artırır. Kreatin (5g/gün) ekle.',
+        ));
+      case Goal.strength:
+        tips.add((
+          icon: Icons.fitness_center_rounded,
+          color: const Color(0xFFFF9F0A),
+          text: 'Kuvvet performansı için kreatin (5g/gün), yeterli uyku (8 saat) ve antrenman öncesi karbonhidrat üçlüsü şart.',
+        ));
+      case Goal.maintain:
+        tips.add((
+          icon: Icons.balance_rounded,
+          color: const Color(0xFF64D2FF),
+          text: 'Kilo koruma da hedef sabittir. Haftalık varyasyonlar normal — 3 günlük trende bak, tek güne bakma.',
+        ));
+    }
+
+    return tips.take(4).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tips = _buildTips();
+    if (tips.isEmpty) return const SizedBox.shrink();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Column(
+            children: tips.asMap().entries.map((e) {
+              final tip = e.value;
+              final isLast = e.key == tips.length - 1;
+              return Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      margin: const EdgeInsets.only(right: 12, top: 1),
+                      decoration: BoxDecoration(
+                        color: tip.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(tip.icon, color: tip.color, size: 16),
+                    ),
+                    Expanded(
+                      child: Text(tip.text, style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.45)),
                     ),
                   ],
                 ),

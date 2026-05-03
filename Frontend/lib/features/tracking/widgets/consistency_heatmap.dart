@@ -237,11 +237,123 @@ class ConsistencyHeatmap extends StatelessWidget {
                     ],
                   ),
                 ),
-              ]
+              ],
+              
+              if (provider.entries.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    const Icon(Icons.workspace_premium_rounded, color: AppColors.primaryLight, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Kazanılan Rozetler',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildBadgeItem(
+                      title: 'İlk Adım',
+                      icon: Icons.star_rounded,
+                      color: const Color(0xFFCD7F32), // Bronze
+                      isUnlocked: provider.entries.isNotEmpty,
+                    ),
+                    _buildBadgeItem(
+                      title: '7 Gün',
+                      icon: Icons.local_fire_department_rounded,
+                      color: const Color(0xFFC0C0C0), // Silver
+                      isUnlocked: provider.currentStreak >= 7,
+                    ),
+                    _buildBadgeItem(
+                      title: '30 Gün',
+                      icon: Icons.emoji_events_rounded,
+                      color: const Color(0xFFFFD700), // Gold
+                      isUnlocked: provider.currentStreak >= 30,
+                    ),
+                    _buildBadgeItem(
+                      title: 'Sadık',
+                      icon: Icons.diamond_rounded,
+                      color: const Color(0xFF00E5FF), // Diamond
+                      isUnlocked: provider.entries.length >= 100,
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildBadgeItem({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required bool isUnlocked,
+  }) {
+    final badgeColor = isUnlocked ? color : Colors.white.withValues(alpha: 0.1);
+    
+    Widget badge = Column(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isUnlocked ? badgeColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+            border: Border.all(
+              color: isUnlocked ? badgeColor.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.05),
+              width: 2,
+            ),
+            boxShadow: isUnlocked ? [
+              BoxShadow(
+                color: badgeColor.withValues(alpha: 0.3),
+                blurRadius: 15,
+                spreadRadius: 1,
+              )
+            ] : null,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 28,
+              color: isUnlocked ? badgeColor : Colors.white.withValues(alpha: 0.2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: TextStyle(
+            color: isUnlocked ? Colors.white : Colors.white.withValues(alpha: 0.3),
+            fontSize: 11,
+            fontWeight: isUnlocked ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+
+    if (isUnlocked) {
+      badge = badge.animate().scale(
+        duration: 600.ms, 
+        curve: Curves.elasticOut,
+        delay: 300.ms,
+      ).shimmer(
+        duration: 2.seconds,
+        color: Colors.white.withValues(alpha: 0.4),
+        delay: 800.ms,
+      );
+    }
+
+    return badge;
   }
 }

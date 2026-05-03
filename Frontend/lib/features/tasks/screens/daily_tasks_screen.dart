@@ -7,6 +7,9 @@ import '../models/daily_task.dart';
 
 import 'dart:ui';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/services/page_guide_service.dart';
+import '../../../core/widgets/page_guide_overlay.dart';
+import '../../../core/widgets/page_guide_button.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -81,11 +84,54 @@ class DailyTasksScreen extends StatefulWidget {
 }
 
 class _DailyTasksScreenState extends State<DailyTasksScreen> {
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '✅',
+      title: 'Günlük Görev Listesi',
+      description:
+          'Her sabah sana özel küçük hedefler hazırlanır: su içmek, adım atmak, öğün eklemek gibi. Hepsi birden kolayca takip edilebilir.',
+      tip: 'Görevler günlük sıfırlanır — gece yarısında yeni liste hazır olur.',
+    ),
+    GuideStep(
+      emoji: '👆',
+      title: 'Görevi Tamamlandı İşaretle',
+      description:
+          'Bir görevi yaptığında üzerine dokun veya yanındaki çembere dokun → yeşile döner. İlerleme çubuğu güncellenir.',
+      tip: 'Tüm görevleri bitirince özel bir animasyon seni karşılar!',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Kendi Görevini Oluştur',
+      description:
+          'Sağ alttaki "+" butonuna dokun → görev adı gir → kaydet. Kendi hedeflerini sisteme ekleyebilirsin.',
+      tip: '"Sabah koşusu", "Protein shake" gibi kişisel rutinlerini görev yap.',
+    ),
+    GuideStep(
+      emoji: '🔄',
+      title: 'Tekrarlayan Görevler',
+      description:
+          'Görev eklerken "Her gün tekrarla" seçeneğini aç → o görev her sabah otomatik gelir. Rutin oluşturmanın en iyi yolu!',
+      tip: 'Tekrarlayan görevler kırmızı renkte görünür — özel dikkat gerektiriyor demek.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('daily_tasks')) return;
+    await PageGuideService.markGuideSeen('daily_tasks');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<DailyTasksController>().loadToday();
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -220,6 +266,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
         ),
       ),
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Center(child: PageGuideButton(onTap: _showGuide)),
+        ),
         IconButton(
           icon: const Icon(Icons.repeat_rounded, color: Color(0xFFEBC374), size: 22),
           tooltip: 'Tekrarlayan Görevler',

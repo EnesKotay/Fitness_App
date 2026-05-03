@@ -10,7 +10,6 @@ import '../../features/auth/screens/profile_screen.dart';
 import '../../features/auth/screens/settings_help_screen.dart';
 import '../../features/auth/screens/settings_notifications_screen.dart';
 import '../../features/auth/screens/settings_nutrition_screen.dart';
-import '../../features/auth/screens/settings_theme_screen.dart';
 import '../../features/workout/screens/achievements_screen.dart';
 import '../../features/auth/screens/settings_password_screen.dart';
 import '../../features/auth/screens/settings_privacy_screen.dart';
@@ -94,8 +93,7 @@ class AppRoutes {
           _guard(context, const SettingsPrivacyScreen()),
       '/settings-nutrition': (context) =>
           _guard(context, const SettingsNutritionScreen()),
-      '/settings-theme': (context) =>
-          _guard(context, const SettingsThemeScreen()),
+
       '/settings-help': (context) =>
           _guard(context, const SettingsHelpScreen()),
       '/achievements': (context) =>

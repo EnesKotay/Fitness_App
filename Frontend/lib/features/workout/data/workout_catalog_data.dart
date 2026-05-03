@@ -58,6 +58,18 @@ const Map<String, MuscleGroupInfo> kMuscleGroupInfo = {
     icon: Icons.directions_run,
     imageUrl: 'assets/images/region_legs.jpg',
   ),
+  'CARDIO': (
+    label: 'Kardiyo',
+    color: Color(0xFFFF6D00),
+    icon: Icons.monitor_heart_rounded,
+    imageUrl: 'assets/images/region_cardio.jpg',
+  ),
+  'FOREARMS': (
+    label: 'Ön Kol',
+    color: Color(0xFF26A69A),
+    icon: Icons.front_hand_rounded,
+    imageUrl: 'assets/images/region_arms.jpg',
+  ),
 };
 
 const Map<String, List<String>> kSubRegionFilters = {
@@ -69,6 +81,8 @@ const Map<String, List<String>> kSubRegionFilters = {
   'TRICEPS': ['Tümü', 'Uzun Baş', 'Lateral Baş', 'Medial Baş'],
   'CORE': ['Tümü', 'Üst Karın', 'Alt Karın', 'Oblik', 'Core Stabilite'],
   'GLUTES': ['Tümü', 'Glute Max', 'Glute Med', 'Glute Min'],
+  'CARDIO': ['Tümü', 'HIIT', 'Düşük Yoğunluk', 'Pliometrik', 'Kondisyon'],
+  'FOREARMS': ['Tümü', 'Ön Ön Kol', 'Arka Ön Kol', 'Bilek', 'Grip'],
 };
 
 const Map<String, List<String>> kMassExerciseNames = {
@@ -277,6 +291,47 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Cable Kickback',
     'Deficit Split Squat',
   ],
+  'CARDIO': [
+    'Tabata Interval (HIIT)',
+    'Battle Rope Slam (HIIT)',
+    'Kettlebell Swing (HIIT)',
+    'Sprint Interval (HIIT)',
+    'Assault Bike Interval (HIIT)',
+    'Tuck Jump (Pliometrik)',
+    'Broad Jump (Pliometrik)',
+    'Lateral Bound (Pliometrik)',
+    'Depth Jump (Pliometrik)',
+    'Power Skip (Pliometrik)',
+    'Jogging (Düşük Yoğunluk)',
+    'Elliptical (Düşük Yoğunluk)',
+    'Stationary Bike (Düşük Yoğunluk)',
+    'Swimming (Düşük Yoğunluk)',
+    'Yürüyüş (Düşük Yoğunluk)',
+    'Rowing Machine (Kondisyon)',
+    'Rope Climb (Kondisyon)',
+    'Sled Push (Kondisyon)',
+    'Sled Pull (Kondisyon)',
+    'Stair Climber (Kondisyon)',
+    'Sandbag Carry (Kondisyon)',
+    'Bear Crawl (Kondisyon)',
+  ],
+  'FOREARMS': [
+    'Barbell Wrist Curl (Ön Ön Kol)',
+    'Dumbbell Wrist Curl (Ön Ön Kol)',
+    'Cable Wrist Curl (Ön Ön Kol)',
+    'Finger Curl (Ön Ön Kol)',
+    'Barbell Reverse Wrist Curl (Arka Ön Kol)',
+    'Dumbbell Reverse Wrist Curl (Arka Ön Kol)',
+    'Cable Reverse Wrist Curl (Arka Ön Kol)',
+    'Barbell Wrist Rotation (Bilek)',
+    'Dumbbell Wrist Rotation (Bilek)',
+    'Rice Bucket Drill (Bilek)',
+    'Plate Pinch (Grip)',
+    'Towel Pull-Up (Grip)',
+    "Fat Gripz Curl (Grip)",
+    'Hex Dumbbell Hold (Grip)',
+    'Thick Bar Deadlift (Grip)',
+  ],
 };
 
 List<Exercise> buildExerciseCatalogForGroup(String group) {
@@ -305,7 +360,9 @@ List<Exercise> extraExercisesForGroup(String group) {
     'TRICEPS' => 9800,
     'CORE' => 9900,
     'GLUTES' => 10000,
-    _ => 10100,
+    'CARDIO' => 10100,
+    'FOREARMS' => 10200,
+    _ => 10300,
   };
   return List<Exercise>.generate(names.length, (index) {
     final name = names[index];
@@ -916,6 +973,22 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           instructions:
               'Dirsegi uyluga dayayip tek kol curl yap. 3 set 10-12 tekrar/kol.',
         ),
+        Exercise(
+          id: 9047,
+          muscleGroup: 'BICEPS',
+          name: 'EZ Bar Curl',
+          description: 'Bilege dost acili tutos ile biseps calistirir.',
+          instructions:
+              'EZ bari bilek stresi az konumda tut, kontrollu kivir. 3 set 8-12 tekrar.',
+        ),
+        Exercise(
+          id: 9048,
+          muscleGroup: 'BICEPS',
+          name: 'Spider Curl',
+          description: 'Biseps zirve kontraksiyonunu artiran egimli curl.',
+          instructions:
+              'Incline benchin on tarafina yaslan, kol sarkik, yukari kivir. 3 set 10-12 tekrar.',
+        ),
       ];
     case 'TRICEPS':
       return [
@@ -1082,6 +1155,132 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           description: 'Kalca ve bacaklari dengeli calistirir.',
           instructions:
               'Geri adim alarak lunge yap, ondeki topuktan guc al. 3 set 10-12 tekrar/ayak.',
+        ),
+      ];
+    case 'CARDIO':
+      return [
+        Exercise(
+          id: 9081,
+          muscleGroup: 'CARDIO',
+          name: 'Burpee',
+          description: 'Tum vucut kaslarini aktive eden yuksek yogunluklu hareket.',
+          instructions:
+              'Squat yap, elleri yere bas, plank poz, push-up, ayaga kalk ve ziplay. 3 set 10-15 tekrar.',
+        ),
+        Exercise(
+          id: 9082,
+          muscleGroup: 'CARDIO',
+          name: 'Jumping Jack',
+          description: 'Kondisyon ve isinim icin klasik kardiyo hareketidir.',
+          instructions:
+              'Ayni anda kol ve bacaklari ac-kapat hareketi yap. 3 set 30-60 saniye.',
+        ),
+        Exercise(
+          id: 9083,
+          muscleGroup: 'CARDIO',
+          name: 'Jump Rope',
+          description: 'Koordinasyon ve kardiyo dayanikliligini artiran hareket.',
+          instructions:
+              'Ritimli atlama yap. Baslangic: 30 sn, ileri: 1-3 dk araliklarla.',
+        ),
+        Exercise(
+          id: 9084,
+          muscleGroup: 'CARDIO',
+          name: 'Box Jump',
+          description: 'Patlamali guc ve pliometrik kapasite gelistirir.',
+          instructions:
+              'Derin squat, guclu itisle kutuya ziplay ve yumusak in. 3 set 8-10 tekrar.',
+        ),
+        Exercise(
+          id: 9085,
+          muscleGroup: 'CARDIO',
+          name: 'High Knees',
+          description: 'Kalp atisi ve bacak tempolu koordinasyonu gelistirir.',
+          instructions:
+              'Yerinde yururken dizleri kalca hizasina kadar kaldir. 3 set 30-45 saniye.',
+        ),
+        Exercise(
+          id: 9086,
+          muscleGroup: 'CARDIO',
+          name: 'Rowing Machine',
+          description: 'Tum vucut kardiyo ve kuvvet dayanikliligini gelistirir.',
+          instructions:
+              'Topuklarla it, govdeyi geri yatir, elleri gogse cek. 20-30 dk sabit tempo.',
+        ),
+        Exercise(
+          id: 9087,
+          muscleGroup: 'CARDIO',
+          name: 'Sprint Interval',
+          description: 'Maksimal hizda kisa sureli kosular aerobik kapasiteyi arttirir.',
+          instructions:
+              '20 sn tam hizda sprint, 40 sn yurus. 8-10 kez tekrarla.',
+        ),
+        Exercise(
+          id: 9088,
+          muscleGroup: 'CARDIO',
+          name: 'Assault Bike',
+          description: 'Kol ve bacaklari ayni anda yakan tam vucut kardiyo aletidir.',
+          instructions:
+              '10 sn maksimal pedal + 50 sn aktif dinlenme. 8-10 tur.',
+        ),
+      ];
+    case 'FOREARMS':
+      return [
+        Exercise(
+          id: 9091,
+          muscleGroup: 'FOREARMS',
+          name: 'Wrist Curl',
+          description: 'On kol fleksor kaslarini izole calistirir.',
+          instructions:
+              'Dizlere yasla, bilegi bukup dumbbelli yukari kivir. 3 set 15-20 tekrar.',
+        ),
+        Exercise(
+          id: 9092,
+          muscleGroup: 'FOREARMS',
+          name: 'Reverse Wrist Curl',
+          description: 'Arka on kol ekstresor kaslarini hedefler.',
+          instructions:
+              'Ust el tutusla bilegi yukarı doru kivir. 3 set 12-15 tekrar.',
+        ),
+        Exercise(
+          id: 9093,
+          muscleGroup: 'FOREARMS',
+          name: 'Farmer\'s Walk',
+          description: 'Grip ve on kol dayanikliligini en iyi sekilde gelistirir.',
+          instructions:
+              'Agir dumbbelllari iki eline al, dik dur ve 30-45 sn yuru. 3 tur.',
+        ),
+        Exercise(
+          id: 9094,
+          muscleGroup: 'FOREARMS',
+          name: 'Reverse Curl',
+          description: 'Brachioradialis ve on kol kasinı hedefleyen curl.',
+          instructions:
+              'Ust el tutusla (pronasyon) bari kivir. 3 set 10-12 tekrar.',
+        ),
+        Exercise(
+          id: 9095,
+          muscleGroup: 'FOREARMS',
+          name: 'Bar Hang',
+          description: 'Grip gucunu ve on kol dayanikliligini arttirir.',
+          instructions:
+              'Bardan asil ve tutun. 3 set 20-60 saniye. Agirlik ekleyerek ilerle.',
+        ),
+        Exercise(
+          id: 9096,
+          muscleGroup: 'FOREARMS',
+          name: 'Zottman Curl',
+          description: 'Hem on hem arka on kolu ayni harekette calistirir.',
+          instructions:
+              'Yukari giderken normal, asagi giderken reverse tutusla curl yap. 3 set 10-12 tekrar.',
+        ),
+        Exercise(
+          id: 9097,
+          muscleGroup: 'FOREARMS',
+          name: 'Plate Pinch',
+          description: 'Parmak ve grip gucunu izole eder.',
+          instructions:
+              'Iki plakay  parmaklarinla kistir ve 20-30 sn tut. 3 set.',
         ),
       ];
     default:

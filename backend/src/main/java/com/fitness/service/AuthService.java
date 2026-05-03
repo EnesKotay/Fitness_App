@@ -43,7 +43,7 @@ import java.security.SecureRandom;
 public class AuthService {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
-    private static final long JWT_LIFESPAN_MS = 1800L * 1000; // 30 dakika
+    private static final long JWT_LIFESPAN_MS = 7L * 24 * 3600 * 1000; // 7 gün
 
     @Inject
     UserRepository userRepository;

@@ -492,6 +492,47 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     return Colors.white38;
   }
 
+  String _matchLabel(double score) {
+    if (score >= 380) return 'Mükemmel';
+    if (score >= 260) return 'Çok İyi';
+    if (score >= 150) return 'İyi Seçim';
+    return 'Uygun';
+  }
+
+  static String _foodEmoji(FoodItem food) {
+    final n = food.name.toLowerCase();
+    final c = food.category.toLowerCase();
+    if (n.contains('tavuk')) return '🍗';
+    if (n.contains('yumurta') || n.contains('omlet')) return '🥚';
+    if (n.contains('somon') || n.contains('ton balık')) return '🐟';
+    if (n.contains('balık')) return '🐠';
+    if (n.contains('pilav') || n.contains('pirinç')) return '🍚';
+    if (n.contains('makarna') || n.contains('spagetti')) return '🍝';
+    if (n.contains('muz')) return '🍌';
+    if (n.contains('elma')) return '🍎';
+    if (n.contains('çilek')) return '🍓';
+    if (n.contains('portakal') || n.contains('mandalina')) return '🍊';
+    if (n.contains('domates')) return '🍅';
+    if (n.contains('salata') || n.contains('marul')) return '🥗';
+    if (n.contains('çorba')) return '🍲';
+    if (n.contains('kahve')) return '☕';
+    if (n.contains('çay')) return '🍵';
+    if (n.contains('peynir')) return '🧀';
+    if (n.contains('süt') || n.contains('yoğurt') || n.contains('ayran')) return '🥛';
+    if (n.contains('ekmek') || n.contains('simit') || n.contains('pide')) return '🍞';
+    if (n.contains('burger') || n.contains('hamburger')) return '🍔';
+    if (n.contains('biftek') || n.contains('antrikot') || n.contains('köfte')) return '🥩';
+    if (n.contains('ceviz') || n.contains('badem') || n.contains('fıstık')) return '🥜';
+    if (n.contains('yulaf') || n.contains('granola')) return '🥣';
+    if (n.contains('çikolata') || n.contains('baklava') || n.contains('tatlı')) return '🍫';
+    if (n.contains('nohut') || n.contains('mercimek') || n.contains('fasulye')) return '🫘';
+    if (n.contains('avokado')) return '🥑';
+    if (c.contains('meyve')) return '🍑';
+    if (c.contains('sebze')) return '🥦';
+    if (c.contains('tatlı')) return '🍮';
+    return '🍽️';
+  }
+
   List<({String label, Color color})> _badges(FoodItem food) {
     final badges = <({String label, Color color})>[];
     if (food.proteinPer100g >= 20) {
@@ -547,6 +588,63 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     }
   }
 
+  String _headerInsightText(DietProvider provider) {
+    final remKcal = provider.remainingKcal.round();
+    final targets = provider.macroTargets;
+    final totals = provider.totals;
+    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
+    final remC = (targets.carb - totals.totalCarb).clamp(0.0, double.infinity).round();
+    final mode = provider.suggestionMode;
+
+    if (remKcal < 0) {
+      return 'Kalori hedefini aştın — en düşük kalorili ve en besleyici seçenekler sıralandı.';
+    }
+    if (remKcal < 150) {
+      return 'Bugün neredeyse tamamdın! $remKcal kcal kalan alan için küçük ama dengeli seçimler hazır.';
+    }
+    if (mode == SuggestionMode.highProtein && remP > 20) {
+      return '${remP}g protein açığın var — yüksek protein modunda kas dostu seçenekler öne çıktı.';
+    }
+    if (mode == SuggestionMode.lowCarb) {
+      return 'Düşük karb modunda karbonhidrat minimize edildi, protein ve yağ odaklı seçimler sıralandı.';
+    }
+    if (remP > 35) {
+      return 'Bugün protein açığın belirgin (${remP}g) — tavuk, yumurta ve yoğurt öne çıkarıldı.';
+    }
+    if (remC > 60 && remC > remP * 2) {
+      return '${remC}g karbonhidrat açığın var — enerji verecek seçenekler de listeye eklendi.';
+    }
+    return 'Kalan makro hedeflerine ve günün saatine göre en akıllı seçimler sıralandı.';
+  }
+
+  String _carouselTitle(DietProvider provider) {
+    final mode = provider.suggestionMode;
+    final remKcal = provider.remainingKcal.round();
+    final targets = provider.macroTargets;
+    final totals = provider.totals;
+    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
+    if (mode == SuggestionMode.highProtein) return 'Protein Odaklı Seçimler';
+    if (mode == SuggestionMode.lowCarb) return 'Düşük Karb Seçimleri';
+    if (remKcal < 200 && remKcal >= 0) return 'Son Kaloriye Özel Seçimler';
+    if (remKcal < 0) return 'Hafif Toparlanma Seçimleri';
+    if (remP > 30) return 'Protein Açığını Kapatan Seçimler';
+    return 'Bugün En Mantıklı Seçimler';
+  }
+
+  String _carouselSubtitle(DietProvider provider) {
+    final mode = provider.suggestionMode;
+    final remKcal = provider.remainingKcal.round();
+    final targets = provider.macroTargets;
+    final totals = provider.totals;
+    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
+    if (mode == SuggestionMode.highProtein) return '18g+ protein içeren seçenekler';
+    if (mode == SuggestionMode.lowCarb) return 'Net karbonhidrat minimize edildi';
+    if (remKcal < 200 && remKcal >= 0) return 'Kalan $remKcal kcal için optimize edildi';
+    if (remKcal < 0) return 'Kalori hedefini aştın, en hafifler sırada';
+    if (remP > 30) return '${remP}g protein açığın var';
+    return 'Hedef ve geçmiş verilerine göre';
+  }
+
   List<String> _priorityMessages({
     required int remKcal,
     required int remP,
@@ -555,34 +653,41 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     required SuggestionMode mode,
   }) {
     final items = <String>[];
-    if (remP >= remC && remP >= remF && remP > 0) {
-      items.add('Protein açığın önde, bunu kapatan seçenekler öne çıktı.');
+
+    // 1. Kalori durumu — en kritik bağlam
+    if (remKcal < 0) {
+      items.add('Kalori hedefini ${(-remKcal)} kcal aştın — en hafif seçenekler öne çıkarıldı.');
+    } else if (remKcal < 150 && remKcal >= 0) {
+      items.add('Sadece $remKcal kcal kaldı — küçük ve dengeli bir seçim yeterli.');
+    } else if (remKcal > 600) {
+      items.add('$remKcal kcal alanın var, çeşitli ve besleyici seçenekler dahil edildi.');
     }
-    if (remKcal > 0) {
-      items.add(
-        '$remKcal kcal hedefin kaldı, porsiyonlar buna göre ayarlandı.',
-      );
+
+    // 2. Protein önceliği
+    if (remP > 35) {
+      items.add('Protein açığın yüksek (${remP}g) — tavuk, yumurta, yoğurt öne çıktı.');
+    } else if (remP > 15) {
+      items.add('${remP}g protein kaldı — bunu kapatan seçenekler önceliklendirildi.');
     }
+
+    // 3. Mod ve makro dengesine göre özel mesaj
     if (mode == SuggestionMode.highProtein) {
-      items.add(
-        'Yüksek protein modu aktif, kas korumaya uygun öneriler seçildi.',
-      );
+      items.add('Yüksek protein modu: 18g+ protein içeren yiyecekler önceliklendirildi.');
     } else if (mode == SuggestionMode.lowCarb) {
-      items.add(
-        'Düşük karbonhidrat modu aktif, daha hafif seçenekler öne çıktı.',
-      );
-    } else {
-      items.add('Makro dengesini bozmadan günü tamamlaman hedefleniyor.');
+      items.add('Düşük karb modu: 8g altı karbonhidrat içeren seçenekler öne çıktı.');
+    } else if (remC > remP * 2.0 && remC > 30) {
+      items.add('Karbonhidrat açığın önde (${remC}g) — pilav, tahıl gibi seçenekler dahil edildi.');
+    } else if (items.length < 2) {
+      items.add('Makro dengeyi bozmadan günü tamamlamak için ideal seçimler sıralandı.');
     }
+
+    // 4. Arama veya öğün bağlamı
     if (_searchQuery.trim().isNotEmpty) {
-      items.add(
-        '"${_searchQuery.trim()}" aramasıyla eşleşen öğeler filtrelendi.',
-      );
-    } else {
-      items.add(
-        '${_mealTypeLabel(_mealType)} için en uygun eşleşmeler sıralandı.',
-      );
+      items.add('"${_searchQuery.trim()}" aramasıyla eşleşen öğeler filtrelendi.');
+    } else if (items.length < 3) {
+      items.add('${_mealTypeLabel(_mealType)} için kişisel profiline uygun eşleşmeler sıralandı.');
     }
+
     return items.take(3).toList();
   }
 
@@ -835,11 +940,28 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
       );
       if (q1 != null && q2 != null) {
         combos.add(_MealComboPlan(
-          title: 'Pratik seçenek',
+          title: 'Pratik ve besleyici',
           subtitle: '${q1.item.name} + ${q2.item.name}',
-          reason: 'Hızlı hazırlanır, makro hedefini destekler.',
+          reason: 'Dakikalar içinde hazır, makro hedefini destekler.',
           icon: Icons.flash_on_rounded,
           items: [q1, q2],
+        ));
+        used.addAll([q1.item.id, q2.item.id]);
+      }
+
+      // 4. Protein bombası (provider'dan mod bilgisine ihtiyaç yok — her zaman değerli)
+      final hp1 = pick((i) => i.item.proteinPer100g >= 20);
+      final hp2 = pick(
+        (i) => i.item.proteinPer100g >= 15 && i.item.id != hp1?.item.id,
+        hp1?.item.id,
+      );
+      if (hp1 != null && hp2 != null && combos.length < 3) {
+        combos.add(_MealComboPlan(
+          title: 'Protein bombası',
+          subtitle: '${hp1.item.name} + ${hp2.item.name}',
+          reason: 'İki yüksek proteinli seçenek bir arada — kas desteği maksimum.',
+          icon: Icons.fitness_center_rounded,
+          items: [hp1, hp2],
         ));
       }
     }
@@ -1117,7 +1239,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Kalan hedeflerine ve seçtiğin öğüne göre en mantıklı seçimleri öne çıkardım.',
+                    _headerInsightText(provider),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 12.5,
@@ -1462,10 +1584,35 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             ),
             const SizedBox(height: 10),
             _buildSearchBar(),
+            if (_searchQuery.trim().isNotEmpty && !_loading) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.search_rounded,
+                    size: 12,
+                    color: AppColors.primaryLight.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _suggestions.isEmpty
+                        ? '"${_searchQuery.trim()}" için sonuç bulunamadı'
+                        : '${_suggestions.length} sonuç — "${_searchQuery.trim()}"',
+                    style: TextStyle(
+                      color: AppColors.primaryLight.withValues(alpha: 0.75),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 10),
             _buildMealTypeSelector(provider),
             const SizedBox(height: 10),
             _buildSuggestionModeSelector(provider),
+            const SizedBox(height: 10),
+            _buildDietaryFilters(provider),
             const SizedBox(height: 10),
             Text(
               'Hızlı ara',
@@ -1614,13 +1761,140 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   }
 
   List<String> _smartChips() {
-    const Map<MealType, List<String>> allChips = {
-      MealType.breakfast: ['Yumurta', 'Yulaf', 'Peynir', 'Simit', 'Omlet'],
-      MealType.lunch: ['Tavuk', 'Salata', 'Çorba', 'Pilav', 'Köfte'],
-      MealType.dinner: ['Izgara', 'Sebze', 'Balık', 'Et', 'Çorba'],
-      MealType.snack: ['Kuruyemiş', 'Meyve', 'Yoğurt', 'Kahve', 'Muz'],
+    final provider = Provider.of<DietProvider>(context, listen: false);
+    final targets = provider.macroTargets;
+    final totals = provider.totals;
+    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity);
+    final remC = (targets.carb - totals.totalCarb).clamp(0.0, double.infinity);
+    final mode = provider.suggestionMode;
+
+    const Map<MealType, List<String>> baseChips = {
+      MealType.breakfast: ['Yumurta', 'Yulaf', 'Peynir', 'Simit', 'Omlet', 'Süt'],
+      MealType.lunch: ['Tavuk', 'Salata', 'Çorba', 'Pilav', 'Köfte', 'Balık'],
+      MealType.dinner: ['Izgara', 'Sebze', 'Balık', 'Et', 'Çorba', 'Mercimek'],
+      MealType.snack: ['Kuruyemiş', 'Meyve', 'Yoğurt', 'Kahve', 'Muz', 'Badem'],
     };
-    return allChips[_mealType] ?? [];
+
+    final base = List<String>.from(baseChips[_mealType] ?? []);
+
+    // Protein açığı büyükse protein odaklı chip'leri öne al
+    if (remP > 30 || mode == SuggestionMode.highProtein) {
+      const proteinFirst = ['Tavuk', 'Ton Balık', 'Yumurta', 'Yoğurt', 'Peynir'];
+      for (final chip in proteinFirst.reversed) {
+        base.remove(chip);
+        base.insert(0, chip);
+      }
+    }
+    // Karb açığı büyükse karb odaklı chip'leri öne al
+    else if (remC > 50 && remC > remP * 1.8) {
+      const carbFirst = ['Pilav', 'Makarna', 'Ekmek', 'Yulaf'];
+      for (final chip in carbFirst.reversed) {
+        if (!base.contains(chip)) base.insert(0, chip);
+      }
+    }
+    // Düşük karb modunda sebze/protein odaklı
+    else if (mode == SuggestionMode.lowCarb) {
+      const lowCarbFirst = ['Salata', 'Izgara', 'Sebze', 'Balık'];
+      for (final chip in lowCarbFirst.reversed) {
+        base.remove(chip);
+        base.insert(0, chip);
+      }
+    }
+
+    return base.take(6).toList();
+  }
+
+  Widget _buildDietaryFilters(DietProvider provider) {
+    final prefs = provider.nutritionPreferences;
+    final filters = [
+      (
+        label: '🌿 Vejetaryen',
+        active: prefs.vegetarian,
+        toggle: () => provider.saveNutritionPreferences(
+              prefs.copyWith(vegetarian: !prefs.vegetarian, vegan: false),
+            ),
+      ),
+      (
+        label: '🌱 Vegan',
+        active: prefs.vegan,
+        toggle: () => provider.saveNutritionPreferences(
+              prefs.copyWith(vegan: !prefs.vegan, vegetarian: false),
+            ),
+      ),
+      (
+        label: '🌾 Glutensiz',
+        active: prefs.glutenFree,
+        toggle: () => provider.saveNutritionPreferences(
+              prefs.copyWith(glutenFree: !prefs.glutenFree),
+            ),
+      ),
+      (
+        label: '🥛 Laktozsuz',
+        active: prefs.lactoseFree,
+        toggle: () => provider.saveNutritionPreferences(
+              prefs.copyWith(lactoseFree: !prefs.lactoseFree),
+            ),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Beslenme tercihleri',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.42),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: filters.map((f) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 7),
+                child: GestureDetector(
+                  onTap: () async {
+                    HapticFeedback.selectionClick();
+                    f.toggle();
+                    await Future.delayed(const Duration(milliseconds: 80));
+                    _load();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: f.active
+                          ? AppColors.primaryLight.withValues(alpha: 0.18)
+                          : Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: f.active
+                            ? AppColors.primaryLight.withValues(alpha: 0.55)
+                            : Colors.white.withValues(alpha: 0.1),
+                        width: f.active ? 1.2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      f.label,
+                      style: TextStyle(
+                        color: f.active
+                            ? AppColors.primaryLight
+                            : Colors.white.withValues(alpha: 0.55),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildSearchBar() {
@@ -2263,20 +2537,35 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Bugün En Mantıklı Seçimler',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _carouselTitle(provider),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _carouselSubtitle(provider),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.42),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
               Text(
                 '${picks.length} öneri',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 11.5,
+                  color: Colors.white.withValues(alpha: 0.35),
+                  fontSize: 11,
                 ),
               ),
             ],
@@ -2579,7 +2868,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${score.round()} uyum',
+                        _matchLabel(score),
                         style: TextStyle(
                           color: scoreColor,
                           fontSize: 10,
@@ -2625,10 +2914,11 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                       color: scoreColor.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: Icon(
-                    Icons.restaurant_menu_rounded,
-                    size: 20,
-                    color: scoreColor,
+                  child: Center(
+                    child: Text(
+                      _foodEmoji(food),
+                      style: const TextStyle(fontSize: 22),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -2677,16 +2967,21 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             ),
             const SizedBox(height: 6),
             // Macro pills
-            Row(
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
               children: [
                 _macroPill(
                   '${food.kcalPer100g.round()} kcal',
                   AppColors.secondary,
                 ),
-                const SizedBox(width: 4),
                 _macroPill(
                   'P ${food.proteinPer100g.round()}g',
                   AppColors.chartBlue,
+                ),
+                _macroPill(
+                  'K ${food.carbPer100g.round()}g',
+                  AppColors.chartGreen,
                 ),
               ],
             ),
@@ -2715,26 +3010,49 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
               ),
             ],
             const SizedBox(height: 8),
-            // Reason + portion info
+            // Reason chip
             if (suggestion.reasons.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                suggestion.reasons.first,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w500,
-                  height: 1.4,
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.22),
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primaryLight,
+                      size: 11,
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        suggestion.reasons.first,
+                        style: TextStyle(
+                          color: AppColors.primaryLight.withValues(alpha: 0.88),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 6),
             Text(
-              'Öneri: ${suggestion.suggestedPortionG.round()}g',
+              '${suggestion.suggestedPortionG.round()}g · ${(food.kcalPer100g * suggestion.suggestedPortionG / 100).round()} kcal',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 9.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -2950,26 +3268,56 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      food.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 14.5,
-                                        height: 1.2,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      food.category,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.35,
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          _foodEmoji(food),
+                                          style: const TextStyle(fontSize: 16),
                                         ),
-                                        fontSize: 11,
-                                      ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            food.name,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14.5,
+                                              height: 1.2,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          food.category,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.35),
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: scoreColor.withValues(alpha: 0.14),
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: Text(
+                                            _matchLabel(score),
+                                            style: TextStyle(
+                                              color: scoreColor,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -3169,9 +3517,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Önerilen: ${suggestion.suggestedPortionG.round()}g',
+                                '${suggestion.suggestedPortionG.round()}g · ${(food.kcalPer100g * suggestion.suggestedPortionG / 100).round()} kcal',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.45),
+                                  color: Colors.white.withValues(alpha: 0.5),
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
                                 ),

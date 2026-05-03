@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/storage_helper.dart';
@@ -29,6 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+  String? _loadingMessage;
+  Timer? _loadingTimer;
 
   @override
   void initState() {
@@ -42,14 +45,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _loadingTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  void _startLoadingTimer() {
+    _loadingTimer?.cancel();
+    _loadingTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted) {
+        setState(() => _loadingMessage = 'Sunucu başlatılıyor, lütfen bekleyin...');
+      }
+    });
+  }
+
+  void _stopLoadingTimer() {
+    _loadingTimer?.cancel();
+    _loadingTimer = null;
+    if (mounted) setState(() => _loadingMessage = null);
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    _startLoadingTimer();
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     // Hesap değişmeden önce eski suffix; login sonrası bu box'lar kapatılacak
     final oldSuffix = StorageHelper.getUserStorageSuffix();
@@ -124,6 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
+    } finally {
+      _stopLoadingTimer();
     }
   }
 
@@ -381,6 +403,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                   ),
                 ),
+                if (_loadingMessage != null) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    _loadingMessage!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

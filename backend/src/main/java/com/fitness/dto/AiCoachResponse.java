@@ -6,7 +6,11 @@ public class AiCoachResponse {
     public String todayFocus;
     public List<String> actionItems;
     public String nutritionNote;
-    
+
+    // Quota info — backend is the single source of truth
+    /** Remaining free requests for today. null for premium users. */
+    public Integer remainingFreeRequests;
+
     // V5: Rich Data
     public List<AiCoachAction> actions;
     public List<AiCoachMedia> media;

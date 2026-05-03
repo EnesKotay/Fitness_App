@@ -1,14 +1,16 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/utils/storage_helper.dart';
+import '../../core/widgets/app_tour_overlay.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/premium_hub_screen.dart';
 import '../home/screens/dashboard_screen.dart';
 import '../nutrition/presentation/pages/diet_tab_container.dart';
 import '../tracking/screens/tracking_screen.dart';
 import '../workout/screens/workout_screen.dart';
-import 'dart:ui';
 
 const Color _warmAccent = Color(0xFFD89A6A);
 
@@ -25,6 +27,16 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final Set<int> _visitedTabs = {0};
 
+  double _fabRight = 16.0;
+  double _fabBottom = 72.0;
+
+  // GlobalKey'ler — interaktif tur için her nav öğesini ve FAB'ı hedef alır
+  final _navKey0 = GlobalKey();
+  final _navKey1 = GlobalKey();
+  final _navKey2 = GlobalKey();
+  final _navKey3 = GlobalKey();
+  final _fabKey = GlobalKey();
+
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.home_rounded, label: 'Ana Sayfa'),
     _NavItem(icon: Icons.fitness_center_rounded, label: 'Antrenman'),
@@ -36,6 +48,89 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     MainShell.tabSwitchRequest.addListener(_handleExternalTabSwitch);
+    // Yeni kayıt olan kullanıcı için interaktif turu başlat
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    if (!mounted) return;
+    final shouldShowTour =
+        StorageHelper.getPendingAppTour() && !StorageHelper.getAppTourSeen();
+    if (!shouldShowTour) return;
+
+    // Kısa gecikme: UI tam oturandan sonra başlat
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    _startTour();
+  }
+
+  void _startTour() {
+    AppTourOverlay.show(
+      context,
+      steps: [
+        const TourStep(
+          title: 'Hoş Geldin!',
+          description:
+              'Sana 30 saniyede uygulamayı tanıtacağız.\n\nEkrana dokun veya "Sonraki" butonuna bas. İstediğin zaman "Turu Atla" diyebilirsin.',
+          emoji: '👋',
+          accentColor: Color(0xFF4CAF50),
+        ),
+        TourStep(
+          title: 'Ana Sayfa',
+          description:
+              'Günlük kalori özetini, su takibini ve hızlı erişim kartlarını buradan gör. Her sabah buradan başla!',
+          emoji: '🏠',
+          targetKey: _navKey0,
+          spotShape: TourSpotShape.rect,
+          tooltipSide: TourTooltipSide.top,
+          accentColor: const Color(0xFF4CD1A3),
+        ),
+        TourStep(
+          title: 'Antrenman',
+          description:
+              '500+ egzersiz rehberi ve antrenman geçmişin burada. "+" butonuyla egzersiz ekle, planını oluştur.',
+          emoji: '💪',
+          targetKey: _navKey1,
+          spotShape: TourSpotShape.rect,
+          tooltipSide: TourTooltipSide.top,
+          accentColor: const Color(0xFF5B9BFF),
+        ),
+        TourStep(
+          title: 'Beslenme',
+          description:
+              'Öğün kaydet, barkod okut veya fotoğrafla tara.\n\n4 alt sekme:\n• Dashboard – günlük özet\n• Öğünler – yemek ekle\n• Rehber – beslenme planın\n• Araçlar – AI tarama, tarifler',
+          emoji: '🥗',
+          targetKey: _navKey3,
+          spotShape: TourSpotShape.rect,
+          tooltipSide: TourTooltipSide.top,
+          accentColor: const Color(0xFF4CAF50),
+        ),
+        TourStep(
+          title: 'Takip',
+          description:
+              'Kilo ve vücut ölçülerini grafik olarak izle. İlerlemenin büyüklüğünü görmek için gir.',
+          emoji: '📈',
+          targetKey: _navKey2,
+          spotShape: TourSpotShape.rect,
+          tooltipSide: TourTooltipSide.top,
+          accentColor: const Color(0xFFFFB74D),
+        ),
+        TourStep(
+          title: 'Asistan Butonu',
+          description:
+              'Dokun → AI Koç, Günlük Görevler ve Premium özelliklere anında ulaş.\nSürükleyerek istediğin köşeye taşıyabilirsin!',
+          emoji: '✨',
+          targetKey: _fabKey,
+          spotShape: TourSpotShape.rect,
+          tooltipSide: TourTooltipSide.top,
+          accentColor: const Color(0xFFEBC374),
+        ),
+      ],
+      onComplete: () async {
+        await StorageHelper.saveAppTourSeen(true);
+        await StorageHelper.savePendingAppTour(false);
+      },
+    );
   }
 
   @override
@@ -67,24 +162,54 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF070809),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          DashboardScreen(
-            onAddMeal: () => _onTabSelected(3),
-            onStartWorkout: () => _onTabSelected(1),
-            onNavigateToTab: _onTabSelected,
-          ),
-          _visitedTabs.contains(1)
-              ? const WorkoutScreen()
-              : const _TabLoadingPlaceholder(),
-          _visitedTabs.contains(2)
-              ? const TrackingScreen()
-              : const _TabLoadingPlaceholder(),
-          _visitedTabs.contains(3)
-              ? const DietTabContainer()
-              : const _TabLoadingPlaceholder(),
-        ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              IndexedStack(
+                index: _selectedIndex,
+                children: [
+                  DashboardScreen(
+                    onAddMeal: () => _onTabSelected(3),
+                    onStartWorkout: () => _onTabSelected(1),
+                    onNavigateToTab: _onTabSelected,
+                  ),
+                  _visitedTabs.contains(1)
+                      ? const WorkoutScreen()
+                      : const _TabLoadingPlaceholder(),
+                  _visitedTabs.contains(2)
+                      ? const TrackingScreen()
+                      : const _TabLoadingPlaceholder(),
+                  _visitedTabs.contains(3)
+                      ? const DietTabContainer()
+                      : const _TabLoadingPlaceholder(),
+                ],
+              ),
+              Positioned(
+                right: _fabRight,
+                bottom: _fabBottom,
+                child: GestureDetector(
+                  key: _fabKey,
+                  onPanUpdate: (details) {
+                    setState(() {
+                      _fabRight -= details.delta.dx;
+                      _fabBottom -= details.delta.dy;
+                      _fabRight = _fabRight.clamp(
+                        0.0,
+                        constraints.maxWidth - 148.0,
+                      );
+                      _fabBottom = _fabBottom.clamp(
+                        0.0,
+                        constraints.maxHeight - 58.0,
+                      );
+                    });
+                  },
+                  child: _AssistantFab(onTap: () => _showAsistanSheet(context)),
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -110,11 +235,6 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 72),
-        child: _AssistantFab(onTap: () => _showAsistanSheet(context)),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
@@ -252,11 +372,28 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  /// Nav item'ları için uygun GlobalKey'i döndürür
+  GlobalKey _navKeyFor(int index) {
+    switch (index) {
+      case 0:
+        return _navKey0;
+      case 1:
+        return _navKey1;
+      case 2:
+        return _navKey2;
+      case 3:
+        return _navKey3;
+      default:
+        return _navKey0;
+    }
+  }
+
   Widget _buildNavItem(int index) {
     final item = _navItems[index];
     final isSelected = _selectedIndex == index;
     return Expanded(
       child: InkWell(
+        key: _navKeyFor(index),
         onTap: () => _onTabSelected(index),
         borderRadius: BorderRadius.circular(12),
         child: Padding(

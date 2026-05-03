@@ -10,13 +10,21 @@ import '../../../core/api/services/exercise_service.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../data/workout_catalog_data.dart';
 import '../providers/workout_provider.dart';
+import '../providers/workout_program_provider.dart';
+import '../models/workout_program.dart';
+import 'program_builder_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 import '../../../core/constants/premium_features.dart';
+import '../../../core/widgets/app_gradient_background.dart';
+import '../../../core/widgets/ambient_glow_background.dart';
 import '../../nutrition/presentation/widgets/date_strip.dart';
 import '../services/recovery_engine.dart';
 import 'exercise_guide_screen.dart';
 import 'add_workout_page.dart';
+import '../../../core/services/page_guide_service.dart';
+import '../../../core/widgets/page_guide_overlay.dart';
+import '../../../core/widgets/page_guide_button.dart';
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -44,14 +52,60 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   List<FavoriteExerciseEntry> _favoriteExercises = const [];
   bool _sortAZ = false;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '💪',
+      title: 'Egzersiz Rehberi',
+      description:
+          '500+ egzersiz listesinden kas grubuna göre filtrele. Her egzersizin üstüne dokununca nasıl yapılacağını gösteren detay sayfası açılır.',
+      tip:
+          'Yeni başlıyorsan "Başlangıç" filtresini kullan — doğru formla başlamak çok önemli.',
+    ),
+    GuideStep(
+      emoji: '⭐',
+      title: 'Favori Egzersizler',
+      description:
+          'Beğendiğin egzersizin yanındaki yıldız ikonuna dokun → Favorilere ekle. Üstteki "Favoriler" sekmesinden hızlıca eriş.',
+      tip:
+          'Düzenli yaptığın 8-10 egzersizi favorile — antrenman kurmak çok kolaylaşır.',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Antrenman Kaydet',
+      description:
+          'Sağ üstteki "+" butonuna dokun → Tarih seç → Egzersizleri ekle → Set/tekrar gir → Kaydet. Her antrenman otomatik geçmişe eklenir.',
+      tip: 'Süre ve not alanı da var — kişisel rekorlarını not edebilirsin.',
+    ),
+    GuideStep(
+      emoji: '📅',
+      title: 'Antrenman Geçmişi',
+      description:
+          'Alt sekmede geçmiş antrenmanlarını görebilirsin. Her kayda dokunarak detayları incele ve aynı antrenmanı tekrarlayabilirsin.',
+      tip:
+          'Haftalık antrenman sayısını takip etmek için Ana Sayfa → Seri kartına bak.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('workout')) return;
+    await PageGuideService.markGuideSeen('workout');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _favoriteExercises = StorageHelper.getFavoriteExercises();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadMuscleGroups();
       _loadWorkoutsIfNeeded();
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -217,6 +271,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       'KALCA': 'GLUTES',
       'GLUTE': 'GLUTES',
       'GLUTES': 'GLUTES',
+      'KARDİYO': 'CARDIO',
+      'KARDIYO': 'CARDIO',
+      'CARDIO': 'CARDIO',
+      'HIIT': 'CARDIO',
+      'ÖN KOL': 'FOREARMS',
+      'ON KOL': 'FOREARMS',
+      'FOREARM': 'FOREARMS',
+      'FOREARMS': 'FOREARMS',
     };
 
     final direct = aliases[upper];
@@ -257,6 +319,16 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         upper.contains('KALC') ||
         upper.contains('GLUTE')) {
       return 'GLUTES';
+    }
+    if (upper.contains('KARD') ||
+        upper.contains('HIIT') ||
+        upper.contains('CARDIO')) {
+      return 'CARDIO';
+    }
+    if (upper.contains('FOREARM') ||
+        upper.contains('ÖN KOL') ||
+        upper.contains('ON KOL')) {
+      return 'FOREARMS';
     }
 
     return upper;
@@ -313,7 +385,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   List<dynamic> _buildRenderItems(List<Exercise> filtered, String code) {
     final sorted = _sortAZ
         ? (List<Exercise>.from(filtered)
-          ..sort((a, b) => a.name.compareTo(b.name)))
+            ..sort((a, b) => a.name.compareTo(b.name)))
         : filtered;
 
     if (_selectedSubRegion != 'Tümü' ||
@@ -666,17 +738,25 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
+      extendBodyBehindAppBar: true,
       appBar: _selectedMuscleGroup == null
           ? AppBar(
-              backgroundColor: const Color(0xFF0A0A0A),
+              backgroundColor: Colors.transparent,
               elevation: 0,
               titleSpacing: 20,
               title: Consumer<WorkoutProvider>(
                 builder: (context, provider, _) {
                   final today = DateTime.now();
-                  final weekStart = today.subtract(Duration(days: today.weekday - 1));
-                  final thisWeekCount = provider.workouts.where((w) =>
-                    w.workoutDate.isAfter(weekStart.subtract(const Duration(seconds: 1)))).length;
+                  final weekStart = today.subtract(
+                    Duration(days: today.weekday - 1),
+                  );
+                  final thisWeekCount = provider.workouts
+                      .where(
+                        (w) => w.workoutDate.isAfter(
+                          weekStart.subtract(const Duration(seconds: 1)),
+                        ),
+                      )
+                      .length;
                   final greeting = _workoutGreeting();
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,19 +785,29 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           if (thisWeekCount > 0) ...[
                             const SizedBox(width: 10),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: const Color(0xFF2E7D32).withValues(alpha: 0.5),
+                                  color: const Color(
+                                    0xFF2E7D32,
+                                  ).withValues(alpha: 0.5),
                                 ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.local_fire_department_rounded,
-                                      size: 12, color: Color(0xFF66BB6A)),
+                                  const Icon(
+                                    Icons.local_fire_department_rounded,
+                                    size: 12,
+                                    color: Color(0xFF66BB6A),
+                                  ),
                                   const SizedBox(width: 3),
                                   Text(
                                     'Bu hafta $thisWeekCount',
@@ -738,28 +828,55 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 },
               ),
               actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Center(child: PageGuideButton(onTap: _showGuide)),
+                ),
                 IconButton(
                   icon: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
                     ),
-                    child: const Icon(Icons.ios_share_rounded, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.ios_share_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   onPressed: () {
                     final provider = context.read<WorkoutProvider>();
                     final today = DateTime.now();
-                    final weekStart = today.subtract(Duration(days: today.weekday - 1));
-                    final thisWeekCount = provider.workouts.where((w) =>
-                      w.workoutDate.isAfter(weekStart.subtract(const Duration(seconds: 1)))).length;
+                    final weekStart = today.subtract(
+                      Duration(days: today.weekday - 1),
+                    );
+                    final thisWeekCount = provider.workouts
+                        .where(
+                          (w) => w.workoutDate.isAfter(
+                            weekStart.subtract(const Duration(seconds: 1)),
+                          ),
+                        )
+                        .length;
                     final totalCount = provider.workouts.length;
-                    
-                    final text = 'FitMentor\'da bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
+
+                    final text =
+                        'FitMentor\'da bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
                         'Toplamda $totalCount antrenmana ulaştım.\n\n'
                         '📲 FitMentor — Akıllı Antrenman Takibi';
-                    Share.share(text);
+                    final box = context.findRenderObject() as RenderBox?;
+                    if (box != null) {
+                      Share.share(
+                        text,
+                        sharePositionOrigin:
+                            box.localToGlobal(Offset.zero) & box.size,
+                      );
+                    } else {
+                      Share.share(text);
+                    }
                   },
                 ),
                 IconButton(
@@ -768,9 +885,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
                     ),
-                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   onPressed: () => _openAddWorkoutPage(context),
                 ),
@@ -803,8 +926,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       labelPadding: EdgeInsets.zero,
                       labelColor: Colors.white,
                       unselectedLabelColor: Colors.white.withValues(alpha: 0.4),
-                      labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                      ),
                       tabs: const [
                         Tab(text: 'Keşfet'),
                         Tab(text: 'Geçmişim'),
@@ -815,50 +944,66 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               ),
             )
           : null,
-      body: SafeArea(
-        child: Column(
+      body: AppGradientBackground(
+        imagePath: 'assets/images/nutrition_bg_dark.png',
+        child: Stack(
           children: [
-            if (_selectedMuscleGroup == null)
-              Consumer<WorkoutProvider>(
-                builder: (context, provider, _) {
-                  final today = DateTime.now();
-                  final weekStart = today.subtract(Duration(days: today.weekday - 1));
-                  final thisWeekCount = provider.workouts.where((w) =>
-                    w.workoutDate.isAfter(weekStart.subtract(const Duration(seconds: 1)))).length;
-                  final totalCount = provider.workouts.length;
-                  final prCount = provider.personalRecords.length;
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                        child: DateStrip(
-                          selectedDate: provider.selectedDate,
-                          onDateSelected: (date) => provider.setSelectedDate(date),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                        child: _WeeklyStreakRow(
-                          workouts: provider.workouts,
-                          totalCount: totalCount,
-                          thisWeekCount: thisWeekCount,
-                          prCount: prCount,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+            const AmbientGlowBackground(),
+            SafeArea(
+              child: Column(
+                children: [
+                  if (_selectedMuscleGroup == null)
+                    Consumer<WorkoutProvider>(
+                      builder: (context, provider, _) {
+                        final today = DateTime.now();
+                        final weekStart = today.subtract(
+                          Duration(days: today.weekday - 1),
+                        );
+                        final thisWeekCount = provider.workouts
+                            .where(
+                              (w) => w.workoutDate.isAfter(
+                                weekStart.subtract(const Duration(seconds: 1)),
+                              ),
+                            )
+                            .length;
+                        final totalCount = provider.workouts.length;
+                        final prCount = provider.personalRecords.length;
+                        return Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                              child: DateStrip(
+                                selectedDate: provider.selectedDate,
+                                onDateSelected: (date) =>
+                                    provider.setSelectedDate(date),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                              child: _WeeklyStreakRow(
+                                workouts: provider.workouts,
+                                totalCount: totalCount,
+                                thisWeekCount: thisWeekCount,
+                                prCount: prCount,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  Expanded(
+                    child: _selectedMuscleGroup == null
+                        ? TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildRegionGrid(context),
+                              _buildHistoryList(context),
+                            ],
+                          )
+                        : _buildExerciseList(context),
+                  ),
+                ],
               ),
-            Expanded(
-              child: _selectedMuscleGroup == null
-                  ? TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildRegionGrid(context),
-                        _buildHistoryList(context),
-                      ],
-                    )
-                  : _buildExerciseList(context),
             ),
           ],
         ),
@@ -882,32 +1027,43 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           child: _RecoveryInsightsCard(
             workoutSuggestion: provider.workoutSuggestion,
             recoveryStatuses: recovery,
-            totalWorkouts: (stats['totalWorkouts'] as num?)?.toInt() ??
+            totalWorkouts:
+                (stats['totalWorkouts'] as num?)?.toInt() ??
                 provider.workouts.length,
-            totalSets: (stats['totalSets'] as num?)?.toInt() ??
+            totalSets:
+                (stats['totalSets'] as num?)?.toInt() ??
                 provider.workouts.fold<int>(
                   0,
                   (sum, workout) => sum + (workout.sets ?? 0),
                 ),
             totalCaloriesBurned:
                 (stats['totalCaloriesBurned'] as num?)?.toInt() ??
-                    provider.workouts.fold<int>(
-                      0,
-                      (sum, workout) => sum + (workout.caloriesBurned ?? 0),
-                    ),
+                provider.workouts.fold<int>(
+                  0,
+                  (sum, workout) => sum + (workout.caloriesBurned ?? 0),
+                ),
             onSelectGroup: _selectMuscleGroup,
           ),
         ),
         SliverToBoxAdapter(child: _DailyTipCard()),
+        SliverToBoxAdapter(
+          child: Consumer<WorkoutProgramProvider>(
+            builder: (context, programProvider, _) => _MyProgramsSection(
+              programs: programProvider.programs,
+              onCreateTap: () => _openProgramBuilder(context),
+              onProgramTap: (p) => _showProgramDetail(context, p),
+            ),
+          ),
+        ),
         SliverToBoxAdapter(
           child: _WorkoutTemplatesSection(
             isPremium: isPremium,
             onStartPressed: (t) => _openTemplateWorkout(context, t),
             onSavePressed: (t) => _saveTemplate(context, t),
             onUpgradePressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PremiumScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()));
             },
           ),
         ),
@@ -957,8 +1113,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.grid_view_rounded,
-                          color: Color(0xFF66BB6A), size: 18),
+                      child: const Icon(
+                        Icons.grid_view_rounded,
+                        color: Color(0xFF66BB6A),
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     const Text(
@@ -1134,12 +1293,16 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         shape: BoxShape.circle,
                         color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
                         border: Border.all(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFF2E7D32,
+                          ).withValues(alpha: 0.35),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.25),
+                            color: const Color(
+                              0xFF2E7D32,
+                            ).withValues(alpha: 0.25),
                             blurRadius: 28,
                             spreadRadius: 4,
                           ),
@@ -1182,7 +1345,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF2E7D32).withValues(alpha: 0.45),
+                              color: const Color(
+                                0xFF2E7D32,
+                              ).withValues(alpha: 0.45),
                               blurRadius: 18,
                               offset: const Offset(0, 6),
                             ),
@@ -1191,7 +1356,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                            Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'İlk Antrenmanı Ekle',
@@ -1222,7 +1391,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF2E7D32).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
@@ -1248,8 +1420,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Üst Vücut',
                       subtitle: 'Göğüs · Sırt · Kol',
                       color: const Color(0xFF1E88E5),
-                      onTap: () =>
-                          _openQuickStartWorkout(context, _kQuickStartPresets[0]),
+                      onTap: () => _openQuickStartWorkout(
+                        context,
+                        _kQuickStartPresets[0],
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1257,8 +1431,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Bacak',
                       subtitle: 'Squat · Leg Press',
                       color: const Color(0xFFE53935),
-                      onTap: () =>
-                          _openQuickStartWorkout(context, _kQuickStartPresets[1]),
+                      onTap: () => _openQuickStartWorkout(
+                        context,
+                        _kQuickStartPresets[1],
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1266,8 +1442,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Full Body',
                       subtitle: 'Tüm kas grupları',
                       color: const Color(0xFF8E24AA),
-                      onTap: () =>
-                          _openQuickStartWorkout(context, _kQuickStartPresets[2]),
+                      onTap: () => _openQuickStartWorkout(
+                        context,
+                        _kQuickStartPresets[2],
+                      ),
                     ),
                     const SizedBox(width: 10),
                     _QuickStartTypeCard(
@@ -1275,8 +1453,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       label: 'Cardio',
                       subtitle: 'Yağ yakım · Kondisyon',
                       color: const Color(0xFFF57C00),
-                      onTap: () =>
-                          _openQuickStartWorkout(context, _kQuickStartPresets[3]),
+                      onTap: () => _openQuickStartWorkout(
+                        context,
+                        _kQuickStartPresets[3],
+                      ),
                     ),
                   ],
                 ),
@@ -1286,7 +1466,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         }
 
         if (selectedWorkouts.isEmpty) {
-          final formattedDate = DateFormat('d MMMM', 'tr_TR').format(provider.selectedDate);
+          final formattedDate = DateFormat(
+            'd MMMM',
+            'tr_TR',
+          ).format(provider.selectedDate);
           return ListView(
             padding: const EdgeInsets.all(20).copyWith(bottom: 100),
             children: [
@@ -1304,8 +1487,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                           color: Colors.white.withValues(alpha: 0.08),
                         ),
                       ),
-                      child: Icon(Icons.event_available_rounded,
-                          size: 42, color: Colors.white.withValues(alpha: 0.2)),
+                      child: Icon(
+                        Icons.event_available_rounded,
+                        size: 42,
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -1444,7 +1630,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     padding: const EdgeInsets.only(bottom: 2),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
@@ -1491,7 +1679,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                       onTap: () => _openAddWorkoutPage(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 9),
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
                         decoration: BoxDecoration(
                           color: info.color,
                           borderRadius: BorderRadius.circular(14),
@@ -1506,8 +1696,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.add_rounded,
-                                color: Colors.white, size: 16),
+                            const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 16,
+                            ),
                             const SizedBox(width: 5),
                             const Text(
                               'Antrenman Kaydet',
@@ -1562,8 +1755,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   itemBuilder: (context, index) {
                     // ── Filter panel ──────────────────────────────────────
                     if (index == 0) {
-                      final options =
-                          kSubRegionFilters[code] ?? const ['Tümü'];
+                      final options = kSubRegionFilters[code] ?? const ['Tümü'];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Column(
@@ -1590,7 +1782,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                         onPressed: () {
                                           _exerciseSearchController.clear();
                                           setState(
-                                              () => _exerciseSearchQuery = '');
+                                            () => _exerciseSearchQuery = '',
+                                          );
                                         },
                                         icon: const Icon(
                                           Icons.close_rounded,
@@ -1598,19 +1791,16 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                         ),
                                       ),
                                 filled: true,
-                                fillColor:
-                                    Colors.white.withValues(alpha: 0.04),
+                                fillColor: Colors.white.withValues(alpha: 0.04),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
                                   borderSide: BorderSide(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.08),
+                                    color: Colors.white.withValues(alpha: 0.08),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(14),
-                                  borderSide:
-                                      BorderSide(color: info.color),
+                                  borderSide: BorderSide(color: info.color),
                                 ),
                               ),
                             ),
@@ -1619,8 +1809,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                               scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: options.map((option) {
-                                  final selected =
-                                      option == _selectedSubRegion;
+                                  final selected = option == _selectedSubRegion;
                                   final count = counts[option] ?? 0;
                                   return Padding(
                                     padding: const EdgeInsets.only(right: 8),
@@ -1630,9 +1819,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                       onSelected: count == 0
                                           ? null
                                           : (_) {
-                                              setState(() =>
-                                                  _selectedSubRegion =
-                                                      option);
+                                              setState(
+                                                () =>
+                                                    _selectedSubRegion = option,
+                                              );
                                             },
                                       showCheckmark: false,
                                       avatar: selected
@@ -1647,27 +1837,29 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                         vertical: 8,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                       labelStyle: TextStyle(
                                         color: selected
                                             ? Colors.white
-                                            : Colors.white
-                                                .withValues(alpha: 0.68),
+                                            : Colors.white.withValues(
+                                                alpha: 0.68,
+                                              ),
                                         fontWeight: selected
                                             ? FontWeight.bold
                                             : FontWeight.w500,
                                         fontSize: 13,
                                       ),
                                       selectedColor: info.color,
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.05),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       side: BorderSide(
                                         color: selected
                                             ? info.color
-                                            : Colors.white
-                                                .withValues(alpha: 0.12),
+                                            : Colors.white.withValues(
+                                                alpha: 0.12,
+                                              ),
                                         width: 1,
                                       ),
                                     ),
@@ -1678,8 +1870,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                             const SizedBox(height: 10),
                             // Count + Sort row
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   _exerciseSearchQuery.trim().isEmpty
@@ -1687,32 +1878,31 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                       : '"${_exerciseSearchQuery.trim()}" → ${filtered.length} sonuç',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color:
-                                        Colors.white.withValues(alpha: 0.45),
+                                    color: Colors.white.withValues(alpha: 0.45),
                                   ),
                                 ),
                                 GestureDetector(
                                   onTap: () =>
                                       setState(() => _sortAZ = !_sortAZ),
                                   child: AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 200),
+                                    duration: const Duration(milliseconds: 200),
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 5),
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: _sortAZ
-                                          ? info.color
-                                              .withValues(alpha: 0.15)
-                                          : Colors.white
-                                              .withValues(alpha: 0.05),
-                                      borderRadius:
-                                          BorderRadius.circular(8),
+                                          ? info.color.withValues(alpha: 0.15)
+                                          : Colors.white.withValues(
+                                              alpha: 0.05,
+                                            ),
+                                      borderRadius: BorderRadius.circular(8),
                                       border: Border.all(
                                         color: _sortAZ
-                                            ? info.color
-                                                .withValues(alpha: 0.5)
-                                            : Colors.white
-                                                .withValues(alpha: 0.1),
+                                            ? info.color.withValues(alpha: 0.5)
+                                            : Colors.white.withValues(
+                                                alpha: 0.1,
+                                              ),
                                       ),
                                     ),
                                     child: Row(
@@ -1724,7 +1914,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                           color: _sortAZ
                                               ? info.color
                                               : Colors.white.withValues(
-                                                  alpha: 0.45),
+                                                  alpha: 0.45,
+                                                ),
                                         ),
                                         const SizedBox(width: 5),
                                         Text(
@@ -1735,7 +1926,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                                             color: _sortAZ
                                                 ? info.color
                                                 : Colors.white.withValues(
-                                                    alpha: 0.45),
+                                                    alpha: 0.45,
+                                                  ),
                                           ),
                                         ),
                                       ],
@@ -1814,8 +2006,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     }
 
                     final exercise = item as Exercise;
-                    final subRegion =
-                        _detectSubRegionLabel(exercise, code);
+                    final subRegion = _detectSubRegionLabel(exercise, code);
                     final isFav = _isFavoriteExercise(exercise);
                     return _ExerciseCard(
                       exercise: exercise,
@@ -1922,7 +2113,10 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   oneRepMax: workout.oneRepMax,
                   difficulty: workout.difficulty,
                 );
-                final restored = await workoutProvider.createWorkout(userId, request);
+                final restored = await workoutProvider.createWorkout(
+                  userId,
+                  request,
+                );
                 if (restored && mounted) {
                   messenger.showSnackBar(
                     const SnackBar(
@@ -2047,10 +2241,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                   ),
                   child: const Text(
                     'Süper! 💪',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ],
@@ -2091,9 +2282,15 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         });
   }
 
-  Future<void> _saveTemplate(BuildContext context, _TemplateData template) async {
+  Future<void> _saveTemplate(
+    BuildContext context,
+    _TemplateData template,
+  ) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final workoutProvider = Provider.of<WorkoutProvider>(context, listen: false);
+    final workoutProvider = Provider.of<WorkoutProvider>(
+      context,
+      listen: false,
+    );
     final messenger = ScaffoldMessenger.of(context);
     final userId = authProvider.user?.id;
     if (userId == null) return;
@@ -2136,12 +2333,91 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     _loadWorkoutsIfNeeded();
   }
 
-  void _openTemplateWorkout(
+  void _openProgramBuilder(BuildContext context, {WorkoutProgram? program}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ProgramBuilderScreen(program: program)),
+    );
+  }
+
+  void _showProgramDetail(BuildContext context, WorkoutProgram program) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF131318),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _ProgramDetailSheet(
+        program: program,
+        onStartDay: (day) {
+          Navigator.pop(context);
+          _startProgramDay(context, program, day);
+        },
+        onEdit: () {
+          Navigator.pop(context);
+          _openProgramBuilder(context, program: program);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          context.read<WorkoutProgramProvider>().deleteProgram(program.id);
+        },
+      ),
+    );
+  }
+
+  void _startProgramDay(
     BuildContext context,
-    _TemplateData template,
+    WorkoutProgram program,
+    ProgramDay day,
   ) {
+    if (day.exercises.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bu günde egzersiz bulunmuyor'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final firstEx = day.exercises.first;
     final messenger = ScaffoldMessenger.of(context);
-    final firstEx = template.exercises.isNotEmpty ? template.exercises.first : null;
+    Navigator.of(context)
+        .push<String>(
+          MaterialPageRoute(
+            builder: (_) => AddWorkoutPage(
+              templateData: (
+                exerciseName: firstEx.name,
+                sets: firstEx.sets,
+                reps: firstEx.reps,
+                workoutName: '${program.name} – ${day.name}',
+                duration: day.exercises.length * 10,
+                muscleGroup: firstEx.muscleGroup,
+                difficulty: 'Orta',
+              ),
+            ),
+          ),
+        )
+        .then((message) {
+          if (!mounted) return;
+          _loadWorkoutsIfNeeded();
+          if (message != null && message.isNotEmpty) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(message),
+                backgroundColor: message.contains('Kişisel Rekor')
+                    ? Colors.amber.shade700
+                    : const Color(0xFF2E7D32),
+              ),
+            );
+          }
+        });
+  }
+
+  void _openTemplateWorkout(BuildContext context, _TemplateData template) {
+    final messenger = ScaffoldMessenger.of(context);
+    final firstEx = template.exercises.isNotEmpty
+        ? template.exercises.first
+        : null;
     int sets = 3, reps = 10;
     if (firstEx != null) {
       final parts = firstEx.volume.split('×');
@@ -2154,17 +2430,21 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         .push<String>(
           MaterialPageRoute<String>(
             builder: (_) => AddWorkoutPage(
-              templateData: firstEx == null ? null : (
-                exerciseName: firstEx.name,
-                sets: sets,
-                reps: reps,
-                workoutName: template.name,
-                duration: template.estimatedMinutes,
-                muscleGroup: template.muscles.isNotEmpty
-                    ? _normalizedTemplateMuscleGroup(template.muscles.first)
-                    : null,
-                difficulty: template.difficulty,
-              ),
+              templateData: firstEx == null
+                  ? null
+                  : (
+                      exerciseName: firstEx.name,
+                      sets: sets,
+                      reps: reps,
+                      workoutName: template.name,
+                      duration: template.estimatedMinutes,
+                      muscleGroup: template.muscles.isNotEmpty
+                          ? _normalizedTemplateMuscleGroup(
+                              template.muscles.first,
+                            )
+                          : null,
+                      difficulty: template.difficulty,
+                    ),
             ),
           ),
         )
@@ -2228,9 +2508,8 @@ class _RegionCard extends StatelessWidget {
                   : CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) => Container(
-                        color: color.withValues(alpha: 0.3),
-                      ),
+                      placeholder: (_, _) =>
+                          Container(color: color.withValues(alpha: 0.3)),
                       errorWidget: (_, _, _) => Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -2386,7 +2665,9 @@ class _ExerciseCard extends StatelessWidget {
                           if (subRegionLabel != null) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: accentColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
@@ -2554,7 +2835,10 @@ class _HistoryCard extends StatelessWidget {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Text('🏆', style: TextStyle(fontSize: 10)),
+                                    const Text(
+                                      '🏆',
+                                      style: TextStyle(fontSize: 10),
+                                    ),
                                     const SizedBox(width: 3),
                                     Text(
                                       '${workout.oneRepMax!.toStringAsFixed(1)} kg',
@@ -2586,14 +2870,18 @@ class _HistoryCard extends StatelessWidget {
                               Icon(
                                 Icons.link_rounded,
                                 size: 12,
-                                color: Colors.purpleAccent.withValues(alpha: 0.8),
+                                color: Colors.purpleAccent.withValues(
+                                  alpha: 0.8,
+                                ),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 'Superset: ${workout.supersetPartner}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.purpleAccent.withValues(alpha: 0.8),
+                                  color: Colors.purpleAccent.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -2714,9 +3002,18 @@ class _HistoryCard extends StatelessWidget {
                   final durInfo = workout.durationMinutes != null
                       ? '\n⏱ ${workout.durationMinutes} dk'
                       : '';
-                  Share.share(
-                    '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nFitness App ile kaydedildi.',
-                  );
+                  final text =
+                      '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nFitness App ile kaydedildi.';
+                  final box = context.findRenderObject() as RenderBox?;
+                  if (box != null) {
+                    Share.share(
+                      text,
+                      sharePositionOrigin:
+                          box.localToGlobal(Offset.zero) & box.size,
+                    );
+                  } else {
+                    Share.share(text);
+                  }
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -2828,11 +3125,7 @@ class _MuscleGroupChart extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.bar_chart_rounded,
-                color: accent,
-                size: 18,
-              ),
+              const Icon(Icons.bar_chart_rounded, color: accent, size: 18),
               const SizedBox(width: 8),
               const Text(
                 'Kas Grubu Dağılımı',
@@ -2873,8 +3166,9 @@ class _MuscleGroupChart extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: pct,
                             minHeight: 8,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.07),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.07,
+                            ),
                             valueColor: AlwaysStoppedAnimation<Color>(color),
                           ),
                         ),
@@ -2965,10 +3259,7 @@ typedef _TemplateData = ({
   String description,
 });
 
-typedef _QuickStartPreset = ({
-  String label,
-  TemplateData templateData,
-});
+typedef _QuickStartPreset = ({String label, TemplateData templateData});
 
 const List<_QuickStartPreset> _kQuickStartPresets = [
   (
@@ -3033,15 +3324,40 @@ const List<_TemplateData> _kWorkoutTemplates = [
     estimatedMinutes: 65,
     muscles: ['Göğüs', 'Triceps', 'Ön Omuz'],
     exercises: [
-      (name: 'Bench Press', volume: '4×8', tip: 'Kürek kemiklerini birbirine yaklaştır'),
-      (name: 'Incline Dumbbell Press', volume: '3×10', tip: '30-45° açı, göğüs üstünü hedefler'),
-      (name: 'Decline Dumbbell Press', volume: '3×10', tip: 'Alt göğüs dolgunluğu için'),
+      (
+        name: 'Bench Press',
+        volume: '4×8',
+        tip: 'Kürek kemiklerini birbirine yaklaştır',
+      ),
+      (
+        name: 'Incline Dumbbell Press',
+        volume: '3×10',
+        tip: '30-45° açı, göğüs üstünü hedefler',
+      ),
+      (
+        name: 'Decline Dumbbell Press',
+        volume: '3×10',
+        tip: 'Alt göğüs dolgunluğu için',
+      ),
       (name: 'Cable Fly', volume: '3×12', tip: 'Hareketin sonunda göğsü sık'),
-      (name: 'Dips (Triceps)', volume: '3×12', tip: 'Gövdeyi dik tut, dirseklere odaklan'),
-      (name: 'Tricep Pushdown', volume: '3×15', tip: 'Dirsekler sabit, tam açılım yap'),
-      (name: 'Overhead Tricep Extension', volume: '3×12', tip: 'Yavaş indir, yukarıda kilitle'),
+      (
+        name: 'Dips (Triceps)',
+        volume: '3×12',
+        tip: 'Gövdeyi dik tut, dirseklere odaklan',
+      ),
+      (
+        name: 'Tricep Pushdown',
+        volume: '3×15',
+        tip: 'Dirsekler sabit, tam açılım yap',
+      ),
+      (
+        name: 'Overhead Tricep Extension',
+        volume: '3×12',
+        tip: 'Yavaş indir, yukarıda kilitle',
+      ),
     ],
-    description: 'Göğsün tüm bölgelerini (üst, orta, alt) ve triceps\'i derin çalıştıran itme günü antrenmanı. Her setten sonra 60-90 sn dinlen.',
+    description:
+        'Göğsün tüm bölgelerini (üst, orta, alt) ve triceps\'i derin çalıştıran itme günü antrenmanı. Her setten sonra 60-90 sn dinlen.',
   ),
   (
     name: 'Sırt & Biceps',
@@ -3054,15 +3370,44 @@ const List<_TemplateData> _kWorkoutTemplates = [
     estimatedMinutes: 65,
     muscles: ['Sırt', 'Biseps', 'Arka Omuz'],
     exercises: [
-      (name: 'Deadlift', volume: '4×5', tip: 'Sırt düz, nefes alıp tut, kalçadan it'),
-      (name: 'Wide Grip Lat Pulldown', volume: '4×10', tip: 'Göğüs üstüne çek, lat gerilimi hisset'),
-      (name: 'Barbell Row', volume: '4×8', tip: '45° öne eğil, göbeğe doğru çek'),
-      (name: 'Seated Cable Row', volume: '3×12', tip: 'Omuzları geri-aşağı al, sıkıştır'),
-      (name: 'Face Pull', volume: '3×15', tip: 'Arka omuz ve rotator cuff için kritik'),
-      (name: 'Barbell Curl', volume: '4×10', tip: 'Dirsek öne gelmesin, tam ROM'),
-      (name: 'Hammer Curl', volume: '3×12', tip: 'Önkol ve brachialis geliştirir'),
+      (
+        name: 'Deadlift',
+        volume: '4×5',
+        tip: 'Sırt düz, nefes alıp tut, kalçadan it',
+      ),
+      (
+        name: 'Wide Grip Lat Pulldown',
+        volume: '4×10',
+        tip: 'Göğüs üstüne çek, lat gerilimi hisset',
+      ),
+      (
+        name: 'Barbell Row',
+        volume: '4×8',
+        tip: '45° öne eğil, göbeğe doğru çek',
+      ),
+      (
+        name: 'Seated Cable Row',
+        volume: '3×12',
+        tip: 'Omuzları geri-aşağı al, sıkıştır',
+      ),
+      (
+        name: 'Face Pull',
+        volume: '3×15',
+        tip: 'Arka omuz ve rotator cuff için kritik',
+      ),
+      (
+        name: 'Barbell Curl',
+        volume: '4×10',
+        tip: 'Dirsek öne gelmesin, tam ROM',
+      ),
+      (
+        name: 'Hammer Curl',
+        volume: '3×12',
+        tip: 'Önkol ve brachialis geliştirir',
+      ),
     ],
-    description: 'Lat genişliği, sırt kalınlığı ve güçlü biseps için eksiksiz çekme günü. Deadlift\'i ısındıktan sonra yap.',
+    description:
+        'Lat genişliği, sırt kalınlığı ve güçlü biseps için eksiksiz çekme günü. Deadlift\'i ısındıktan sonra yap.',
   ),
   (
     name: 'Bacak',
@@ -3075,15 +3420,40 @@ const List<_TemplateData> _kWorkoutTemplates = [
     estimatedMinutes: 75,
     muscles: ['Quads', 'Hamstring', 'Kalça', 'Baldır'],
     exercises: [
-      (name: 'Back Squat', volume: '5×5', tip: 'Diz-ayak aynı yönde, kalça paralele kadar'),
-      (name: 'Romanian Deadlift', volume: '4×8', tip: 'Hamstring gerilimini hisset, sırt düz'),
-      (name: 'Leg Press', volume: '4×12', tip: 'Diz 90°\'de kilitleme, ayak pozisyonu değiştir'),
-      (name: 'Walking Lunge', volume: '3×12 (her bacak)', tip: 'Öne diz ayak parmağını geçmesin'),
+      (
+        name: 'Back Squat',
+        volume: '5×5',
+        tip: 'Diz-ayak aynı yönde, kalça paralele kadar',
+      ),
+      (
+        name: 'Romanian Deadlift',
+        volume: '4×8',
+        tip: 'Hamstring gerilimini hisset, sırt düz',
+      ),
+      (
+        name: 'Leg Press',
+        volume: '4×12',
+        tip: 'Diz 90°\'de kilitleme, ayak pozisyonu değiştir',
+      ),
+      (
+        name: 'Walking Lunge',
+        volume: '3×12 (her bacak)',
+        tip: 'Öne diz ayak parmağını geçmesin',
+      ),
       (name: 'Leg Curl', volume: '3×12', tip: 'Kontrollü indir, iki kat yavaş'),
-      (name: 'Bulgarian Split Squat', volume: '3×10 (her bacak)', tip: 'Arka ayak yüksekte, denge önemli'),
-      (name: 'Standing Calf Raise', volume: '4×20', tip: 'Tepede 1-2 sn tut, tam ROM'),
+      (
+        name: 'Bulgarian Split Squat',
+        volume: '3×10 (her bacak)',
+        tip: 'Arka ayak yüksekte, denge önemli',
+      ),
+      (
+        name: 'Standing Calf Raise',
+        volume: '4×20',
+        tip: 'Tepede 1-2 sn tut, tam ROM',
+      ),
     ],
-    description: 'Bacakların en zorlu ama en etkili antrenmanı. Squat öncelikli, ağırlıkları kademeli artır. Antrenman sonrası germeyi atla.',
+    description:
+        'Bacakların en zorlu ama en etkili antrenmanı. Squat öncelikli, ağırlıkları kademeli artır. Antrenman sonrası germeyi atla.',
   ),
   (
     name: 'Karın & Core',
@@ -3096,15 +3466,44 @@ const List<_TemplateData> _kWorkoutTemplates = [
     estimatedMinutes: 35,
     muscles: ['Üst Karın', 'Alt Karın', 'Oblikler', 'Core'],
     exercises: [
-      (name: 'Plank', volume: '3×60 sn', tip: 'Kalça ne yukarı ne aşağı, gövde düz'),
-      (name: 'Hanging Leg Raise', volume: '3×12', tip: 'Sallanma, yavaş kaldır-indir'),
-      (name: 'Cable Crunch', volume: '4×15', tip: 'Alnı dize götür, bel esnesin'),
-      (name: 'Russian Twist', volume: '3×20 (her yön)', tip: 'Ayaklar yerden kalkık, omuz döndür'),
-      (name: 'Ab Wheel Rollout', volume: '3×10', tip: 'Geri dönerken yavaş, core sıkı'),
-      (name: 'Side Plank', volume: '3×40 sn (her yan)', tip: 'Kalça yükselsin, vücut düz'),
-      (name: 'Reverse Crunch', volume: '3×15', tip: 'Alt karnı yuvarla, ivme kullanma'),
+      (
+        name: 'Plank',
+        volume: '3×60 sn',
+        tip: 'Kalça ne yukarı ne aşağı, gövde düz',
+      ),
+      (
+        name: 'Hanging Leg Raise',
+        volume: '3×12',
+        tip: 'Sallanma, yavaş kaldır-indir',
+      ),
+      (
+        name: 'Cable Crunch',
+        volume: '4×15',
+        tip: 'Alnı dize götür, bel esnesin',
+      ),
+      (
+        name: 'Russian Twist',
+        volume: '3×20 (her yön)',
+        tip: 'Ayaklar yerden kalkık, omuz döndür',
+      ),
+      (
+        name: 'Ab Wheel Rollout',
+        volume: '3×10',
+        tip: 'Geri dönerken yavaş, core sıkı',
+      ),
+      (
+        name: 'Side Plank',
+        volume: '3×40 sn (her yan)',
+        tip: 'Kalça yükselsin, vücut düz',
+      ),
+      (
+        name: 'Reverse Crunch',
+        volume: '3×15',
+        tip: 'Alt karnı yuvarla, ivme kullanma',
+      ),
     ],
-    description: 'Üst-alt karın ve oblik kasları ayrı ayrı çalıştıran kapsamlı core antrenmanı. Haftada 3 kez uygulanabilir.',
+    description:
+        'Üst-alt karın ve oblik kasları ayrı ayrı çalıştıran kapsamlı core antrenmanı. Haftada 3 kez uygulanabilir.',
   ),
   (
     name: 'Omuz',
@@ -3117,15 +3516,90 @@ const List<_TemplateData> _kWorkoutTemplates = [
     estimatedMinutes: 55,
     muscles: ['Ön Omuz', 'Yan Omuz', 'Arka Omuz', 'Trapezius'],
     exercises: [
-      (name: 'Overhead Press (Barbell)', volume: '4×8', tip: 'Bel hafif öne eğilsin, core sıkı'),
-      (name: 'Dumbbell Lateral Raise', volume: '4×15', tip: 'Dirsek hafif bükük, kontrollü indir'),
-      (name: 'Arnold Press', volume: '3×10', tip: 'Tüm delt başlarını çalıştırır'),
-      (name: 'Rear Delt Fly (Dumbbell)', volume: '4×15', tip: 'Öne eğil, dirsek hafif bükük'),
+      (
+        name: 'Overhead Press (Barbell)',
+        volume: '4×8',
+        tip: 'Bel hafif öne eğilsin, core sıkı',
+      ),
+      (
+        name: 'Dumbbell Lateral Raise',
+        volume: '4×15',
+        tip: 'Dirsek hafif bükük, kontrollü indir',
+      ),
+      (
+        name: 'Arnold Press',
+        volume: '3×10',
+        tip: 'Tüm delt başlarını çalıştırır',
+      ),
+      (
+        name: 'Rear Delt Fly (Dumbbell)',
+        volume: '4×15',
+        tip: 'Öne eğil, dirsek hafif bükük',
+      ),
       (name: 'Face Pull', volume: '3×15', tip: 'İp yüz hizasına, dışa döndür'),
-      (name: 'Upright Row', volume: '3×12', tip: 'Dirsekler omuz hizasına kadar'),
-      (name: 'Barbell Shrug', volume: '4×15', tip: 'Trapezi yukarı sık, döndürme'),
+      (
+        name: 'Upright Row',
+        volume: '3×12',
+        tip: 'Dirsekler omuz hizasına kadar',
+      ),
+      (
+        name: 'Barbell Shrug',
+        volume: '4×15',
+        tip: 'Trapezi yukarı sık, döndürme',
+      ),
     ],
-    description: '3D omuz gelişimi için ön, yan ve arka delt\'i eşit çalıştıran program. Trapezius da dahil, tam omuz antrenmanı.',
+    description:
+        '3D omuz gelişimi için ön, yan ve arka delt\'i eşit çalıştıran program. Trapezius da dahil, tam omuz antrenmanı.',
+  ),
+  (
+    name: 'Full Body',
+    subtitle: 'Tüm Vücut Günü',
+    difficulty: 'Orta',
+    difficultyColor: Color(0xFFF9A825),
+    color: Color(0xFF546E7A),
+    colorDark: Color(0xFF263238),
+    icon: Icons.accessibility_new_rounded,
+    estimatedMinutes: 70,
+    muscles: ['Göğüs', 'Sırt', 'Bacak', 'Omuz', 'Core'],
+    exercises: [
+      (
+        name: 'Back Squat',
+        volume: '4×6',
+        tip: 'Tüm vücudu ısıtır, ağırlığı kademeli artır',
+      ),
+      (
+        name: 'Bench Press',
+        volume: '4×8',
+        tip: 'Kürek kemiklerini birleştir, kontrollü indir',
+      ),
+      (
+        name: 'Deadlift',
+        volume: '3×5',
+        tip: 'Sırt düz, nefes alıp tut, kalçadan it',
+      ),
+      (
+        name: 'Overhead Press (Barbell)',
+        volume: '3×10',
+        tip: 'Core sıkı, bel hafif öne eğilsin',
+      ),
+      (
+        name: 'Wide Grip Lat Pulldown',
+        volume: '3×10',
+        tip: 'Göğüs üstüne çek, lat gerilimini hisset',
+      ),
+      (
+        name: 'Walking Lunge',
+        volume: '3×10 (her bacak)',
+        tip: 'Öne diz ayak parmağını geçmesin',
+      ),
+      (
+        name: 'Plank',
+        volume: '3×45 sn',
+        tip: 'Kalça sabit, gövde düz bir çizgide kalsın',
+      ),
+    ],
+    description:
+        'Tüm büyük kas gruplarını tek seansta çalıştıran dengeli full body programı. Haftada 3 kez uygulamak için idealdir; squat ile başla, core ile bitir.',
   ),
 ];
 
@@ -3161,7 +3635,9 @@ class _WorkoutTemplatesSection extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                isPremium ? '${_kWorkoutTemplates.length} program' : 'Premium',
+                isPremium
+                    ? '${_kWorkoutTemplates.length} program'
+                    : 'Önizleme açık',
                 style: TextStyle(
                   fontSize: 12,
                   color: isPremium
@@ -3184,8 +3660,22 @@ class _WorkoutTemplatesSection extends StatelessWidget {
                 template: t,
                 locked: !isPremium,
                 onTap: () => isPremium
-                    ? _showTemplateDetail(context, t, () => onStartPressed(t), () => onSavePressed(t))
-                    : onUpgradePressed(),
+                    ? _showTemplateDetail(
+                        context,
+                        t,
+                        locked: false,
+                        onStartPressed: () => onStartPressed(t),
+                        onSavePressed: () => onSavePressed(t),
+                        onUpgradePressed: onUpgradePressed,
+                      )
+                    : _showTemplateDetail(
+                        context,
+                        t,
+                        locked: true,
+                        onStartPressed: () => onStartPressed(t),
+                        onSavePressed: () => onSavePressed(t),
+                        onUpgradePressed: onUpgradePressed,
+                      ),
               );
             },
           ),
@@ -3194,7 +3684,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
             child: Text(
-              'Hazır split ve hedef bazlı workout programları Premium üyeliğe dahildir.',
+              'Kartları inceleyebilirsin. Başlatmak ve kaydetmek için Premium açılır; böylece sana uygun spliti seçmeden önce ne alacağını görürsün.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.52),
                 fontSize: 12,
@@ -3208,18 +3698,22 @@ class _WorkoutTemplatesSection extends StatelessWidget {
 
   static void _showTemplateDetail(
     BuildContext context,
-    _TemplateData t,
-    VoidCallback onStartPressed,
-    VoidCallback onSavePressed,
-  ) {
+    _TemplateData t, {
+    required bool locked,
+    required VoidCallback onStartPressed,
+    required VoidCallback onSavePressed,
+    required VoidCallback onUpgradePressed,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _TemplateDetailSheet(
         template: t,
+        locked: locked,
         onStart: onStartPressed,
         onSave: onSavePressed,
+        onUpgrade: onUpgradePressed,
       ),
     );
   }
@@ -3282,11 +3776,16 @@ class _TemplateCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: t.difficultyColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: t.difficultyColor.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: t.difficultyColor.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Text(
                       t.difficulty,
@@ -3320,18 +3819,32 @@ class _TemplateCard extends StatelessWidget {
               const Spacer(),
               Row(
                 children: [
-                  Icon(Icons.timer_outlined, size: 12, color: Colors.white.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${t.estimatedMinutes} dk',
-                    style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5)),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                   const Spacer(),
-                  Icon(Icons.fitness_center, size: 12, color: Colors.white.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.fitness_center,
+                    size: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${t.exercises.length} egz.',
-                    style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5)),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                 ],
               ),
@@ -3349,7 +3862,7 @@ class _TemplateCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        locked ? 'Premium ile Aç' : 'Detay Gör',
+                        locked ? 'Önizle' : 'Detay Gör',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -3357,7 +3870,11 @@ class _TemplateCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 10, color: t.color),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 10,
+                        color: t.color,
+                      ),
                     ],
                   ),
                 ),
@@ -3372,13 +3889,17 @@ class _TemplateCard extends StatelessWidget {
 
 class _TemplateDetailSheet extends StatelessWidget {
   final _TemplateData template;
+  final bool locked;
   final VoidCallback onStart;
   final VoidCallback onSave;
+  final VoidCallback onUpgrade;
 
   const _TemplateDetailSheet({
     required this.template,
+    required this.locked,
     required this.onStart,
     required this.onSave,
+    required this.onUpgrade,
   });
 
   @override
@@ -3416,7 +3937,10 @@ class _TemplateDetailSheet extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [t.color.withValues(alpha: 0.3), t.colorDark.withValues(alpha: 0.6)],
+                    colors: [
+                      t.color.withValues(alpha: 0.3),
+                      t.colorDark.withValues(alpha: 0.6),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: t.color.withValues(alpha: 0.4)),
@@ -3491,21 +4015,69 @@ class _TemplateDetailSheet extends StatelessWidget {
                 child: Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: t.muscles.map((m) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: t.color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: t.color.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      m,
-                      style: TextStyle(fontSize: 12, color: t.color, fontWeight: FontWeight.w600),
-                    ),
-                  )).toList(),
+                  children: t.muscles
+                      .map(
+                        (m) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: t.color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: t.color.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            m,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: t.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
               const SizedBox(height: 12),
+              if (locked)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFBBF24).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.visibility_rounded,
+                          color: Color(0xFFFBBF24),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Bu bir önizleme. Programın içeriğini inceleyebilirsin; kaydetmek ve antrenmanı tek dokunuşla başlatmak Premium ile açılır.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              height: 1.45,
+                              color: Colors.white.withValues(alpha: 0.72),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               // Description
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -3568,91 +4140,103 @@ class _TemplateDetailSheet extends StatelessWidget {
                       }
                       return partial;
                     }
+
                     return GestureDetector(
                       onTap: () {
                         final found = findExercise();
                         if (found == null) return;
-                        final muscleLabel = t.muscles.isNotEmpty ? t.muscles.first : null;
-                        Navigator.of(context).push(MaterialPageRoute<void>(
-                          builder: (_) => ExerciseGuideScreen(
-                            exercise: found,
-                            accentColor: t.color,
-                            muscleGroupLabel: muscleLabel,
+                        final muscleLabel = t.muscles.isNotEmpty
+                            ? t.muscles.first
+                            : null;
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ExerciseGuideScreen(
+                              exercise: found,
+                              accentColor: t.color,
+                              muscleGroupLabel: muscleLabel,
+                            ),
                           ),
-                        ));
+                        );
                       },
                       child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: t.color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: t.color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.color,
+                                  ),
+                                ),
+                              ),
                             ),
-                            child: Center(
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    ex.name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  if (ex.tip.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '💡 ${ex.tip}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: t.color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: Text(
-                                '${i + 1}',
+                                ex.volume,
                                 style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
                                   color: t.color,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  ex.name,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                if (ex.tip.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '💡 ${ex.tip}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white.withValues(alpha: 0.45),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: t.color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              ex.volume,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                color: t.color,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                     ); // GestureDetector
                   },
                 ),
@@ -3660,57 +4244,98 @@ class _TemplateDetailSheet extends StatelessWidget {
               // Start button
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onSave();
-                        },
-                        icon: const Icon(Icons.bookmark_add_rounded, size: 18),
-                        label: const Text(
-                          'Programı Kaydet',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                child: locked
+                    ? SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            onUpgrade();
+                          },
+                          icon: const Icon(
+                            Icons.workspace_premium_rounded,
+                            size: 20,
+                          ),
+                          label: const Text(
+                            'Premium ile Bu Programı Aç',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: t.color,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
                           ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: t.color,
-                          side: BorderSide(color: t.color.withValues(alpha: 0.45)),
-                          minimumSize: const Size.fromHeight(54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                onSave();
+                              },
+                              icon: const Icon(
+                                Icons.bookmark_add_rounded,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                'Programı Kaydet',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: t.color,
+                                side: BorderSide(
+                                  color: t.color.withValues(alpha: 0.45),
+                                ),
+                                minimumSize: const Size.fromHeight(54),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                onStart();
+                              },
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 22,
+                              ),
+                              label: const Text(
+                                'Başlat',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: t.color,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(54),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onStart();
-                        },
-                        icon: const Icon(Icons.play_arrow_rounded, size: 22),
-                        label: const Text(
-                          'Başlat',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: t.color,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.fromHeight(54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -3725,7 +4350,11 @@ class _StatChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _StatChip({required this.icon, required this.label, required this.color});
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -3743,7 +4372,11 @@ class _StatChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -3786,10 +4419,7 @@ class _RecoveryInsightsCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.18),
-            const Color(0xFF121212),
-          ],
+          colors: [accent.withValues(alpha: 0.18), const Color(0xFF121212)],
         ),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: accent.withValues(alpha: 0.25)),
@@ -3870,8 +4500,8 @@ class _RecoveryInsightsCard extends StatelessWidget {
               final chipColor = isFresh
                   ? accent
                   : status.level == FatigueLevel.recovering
-                      ? Colors.amber
-                      : Colors.redAccent;
+                  ? Colors.amber
+                  : Colors.redAccent;
               return GestureDetector(
                 onTap: () => onSelectGroup(entry.key),
                 child: Container(
@@ -3882,7 +4512,9 @@ class _RecoveryInsightsCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: chipColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: chipColor.withValues(alpha: 0.35)),
+                    border: Border.all(
+                      color: chipColor.withValues(alpha: 0.35),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -4030,7 +4662,9 @@ class _WeeklyVolumeChart extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isToday
                                 ? const Color(0xFF2E7D32)
-                                : const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                                : const Color(
+                                    0xFF2E7D32,
+                                  ).withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -4044,7 +4678,9 @@ class _WeeklyVolumeChart extends StatelessWidget {
                             color: isToday
                                 ? Colors.white
                                 : Colors.white.withValues(alpha: 0.4),
-                            fontWeight: isToday ? FontWeight.w700 : FontWeight.w400,
+                            fontWeight: isToday
+                                ? FontWeight.w700
+                                : FontWeight.w400,
                           ),
                         ),
                       ],
@@ -4084,11 +4720,13 @@ class _WeeklyStreakRow extends StatelessWidget {
     const dayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
     final workedDays = workouts
-        .where((w) =>
-            !w.workoutDate
-                .isBefore(weekStart.subtract(const Duration(seconds: 1))) &&
-            w.workoutDate
-                .isBefore(weekStart.add(const Duration(days: 7))))
+        .where(
+          (w) =>
+              !w.workoutDate.isBefore(
+                weekStart.subtract(const Duration(seconds: 1)),
+              ) &&
+              w.workoutDate.isBefore(weekStart.add(const Duration(days: 7))),
+        )
         .map((w) => w.workoutDate.weekday)
         .toSet();
 
@@ -4107,7 +4745,8 @@ class _WeeklyStreakRow extends StatelessWidget {
               final dayNum = i + 1;
               final date = weekStart.add(Duration(days: i));
               final hasWorkout = workedDays.contains(dayNum);
-              final isToday = date.year == now.year &&
+              final isToday =
+                  date.year == now.year &&
                   date.month == now.month &&
                   date.day == now.day;
               final isFuture = date.isAfter(now);
@@ -4134,36 +4773,46 @@ class _WeeklyStreakRow extends StatelessWidget {
                       color: hasWorkout
                           ? accent
                           : isToday
-                              ? accent.withValues(alpha: 0.12)
-                              : Colors.white.withValues(alpha: isFuture ? 0.0 : 0.04),
+                          ? accent.withValues(alpha: 0.12)
+                          : Colors.white.withValues(
+                              alpha: isFuture ? 0.0 : 0.04,
+                            ),
                       border: Border.all(
                         color: isToday
                             ? accentLight
                             : hasWorkout
-                                ? accent
-                                : Colors.white.withValues(alpha: isFuture ? 0.06 : 0.1),
+                            ? accent
+                            : Colors.white.withValues(
+                                alpha: isFuture ? 0.06 : 0.1,
+                              ),
                         width: isToday ? 2 : 1,
                       ),
                     ),
                     child: hasWorkout
-                        ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          )
                         : isToday
-                            ? Container(
-                                width: 6,
-                                height: 6,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: accentLight,
-                                ),
-                              )
-                            : Text(
-                                '${date.day}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white.withValues(alpha: isFuture ? 0.2 : 0.35),
-                                ),
+                        ? Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: accentLight,
+                            ),
+                          )
+                        : Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withValues(
+                                alpha: isFuture ? 0.2 : 0.35,
                               ),
+                            ),
+                          ),
                   ),
                 ],
               );
@@ -4325,12 +4974,34 @@ class _QuickStartTypeCard extends StatelessWidget {
 
 class _DailyTipCard extends StatelessWidget {
   static const _tips = [
-    (icon: '💧', text: 'Antrenman öncesi 500 ml su iç — performansını %10 artırır.'),
-    (icon: '😴', text: 'Kas gelişimi antrenman sırasında değil, uyurken olur. 7-9 saat uyu.'),
-    (icon: '🥩', text: 'Her öğün bir avuç protein al — tokluk ve kas için idealdir.'),
-    (icon: '⏱️', text: 'Setler arası 60-90 sn dinlenme hipertrofi için en verimli aralıktır.'),
-    (icon: '📈', text: 'Her haftada bir ağırlık veya tekrar artır — lineer ilerleme şarttır.'),
-    (icon: '🔥', text: 'Isınmayı atlama. 5 dk dinamik ısınma sakatlık riskini %50 azaltır.'),
+    (
+      icon: '💧',
+      text: 'Antrenman öncesi 500 ml su iç — performansını %10 artırır.',
+    ),
+    (
+      icon: '😴',
+      text:
+          'Kas gelişimi antrenman sırasında değil, uyurken olur. 7-9 saat uyu.',
+    ),
+    (
+      icon: '🥩',
+      text: 'Her öğün bir avuç protein al — tokluk ve kas için idealdir.',
+    ),
+    (
+      icon: '⏱️',
+      text:
+          'Setler arası 60-90 sn dinlenme hipertrofi için en verimli aralıktır.',
+    ),
+    (
+      icon: '📈',
+      text:
+          'Her haftada bir ağırlık veya tekrar artır — lineer ilerleme şarttır.',
+    ),
+    (
+      icon: '🔥',
+      text:
+          'Isınmayı atlama. 5 dk dinamik ısınma sakatlık riskini %50 azaltır.',
+    ),
     (icon: '🧘', text: 'Germe egzersizleri antrenman sonrası yap, önce değil.'),
   ];
 
@@ -4390,10 +5061,7 @@ class _FavoritesQuickStrip extends StatelessWidget {
   final List<FavoriteExerciseEntry> favorites;
   final void Function(FavoriteExerciseEntry favorite) onTap;
 
-  const _FavoritesQuickStrip({
-    required this.favorites,
-    required this.onTap,
-  });
+  const _FavoritesQuickStrip({required this.favorites, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -4438,7 +5106,9 @@ class _FavoritesQuickStrip extends StatelessWidget {
                 child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -4449,8 +5119,11 @@ class _FavoritesQuickStrip extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.star_rounded,
-                          size: 12, color: Colors.amber),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 12,
+                        color: Colors.amber,
+                      ),
                       const SizedBox(width: 5),
                       Text(
                         favorite.name,
@@ -4469,6 +5142,554 @@ class _FavoritesQuickStrip extends StatelessWidget {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+// ── Programlarım section ──────────────────────────────────────────────────────
+
+class _MyProgramsSection extends StatelessWidget {
+  final List<WorkoutProgram> programs;
+  final VoidCallback onCreateTap;
+  final void Function(WorkoutProgram) onProgramTap;
+
+  const _MyProgramsSection({
+    required this.programs,
+    required this.onCreateTap,
+    required this.onProgramTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
+          child: Row(
+            children: [
+              const Text(
+                'Programlarım',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onCreateTap,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, size: 14, color: Color(0xFF4CAF50)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Oluştur',
+                        style: TextStyle(
+                          color: Color(0xFF4CAF50),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (programs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: GestureDetector(
+              onTap: onCreateTap,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.post_add_rounded,
+                        color: Color(0xFF4CAF50),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Kendi programını oluştur',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Günlere göre egzersiz planla',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white24,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 130,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: programs.length + 1,
+              itemBuilder: (context, i) {
+                if (i == programs.length) {
+                  return _AddProgramCard(onTap: onCreateTap);
+                }
+                return _ProgramCard(
+                  program: programs[i],
+                  onTap: () => onProgramTap(programs[i]),
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+}
+
+class _AddProgramCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddProgramCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+          ),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, color: Color(0xFF4CAF50), size: 28),
+            SizedBox(height: 8),
+            Text(
+              'Yeni\nProgram',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF4CAF50), fontSize: 11),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgramCard extends StatelessWidget {
+  final WorkoutProgram program;
+  final VoidCallback onTap;
+
+  const _ProgramCard({required this.program, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final uniqueMuscles = program.days
+        .expand((d) => d.exercises.map((e) => e.muscleGroup))
+        .toSet()
+        .take(3)
+        .toList();
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 170,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A2C1A), Color(0xFF0E1614)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.fitness_center_rounded,
+                  size: 14,
+                  color: Color(0xFF4CAF50),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${program.days.length} Gün',
+                  style: const TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              program.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: uniqueMuscles.map((g) {
+                final color = kMuscleGroupInfo[g]?.color ?? Colors.grey;
+                final label = kMuscleGroupInfo[g]?.label ?? g;
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Program detail sheet ──────────────────────────────────────────────────────
+
+class _ProgramDetailSheet extends StatelessWidget {
+  final WorkoutProgram program;
+  final void Function(ProgramDay) onStartDay;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ProgramDetailSheet({
+    required this.program,
+    required this.onStartDay,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, controller) => Column(
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 12, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        program.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (program.description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          program.description,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: onEdit,
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: Colors.white54,
+                    size: 20,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _confirmDelete(context),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 12,
+                  color: Colors.white38,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${program.days.length} antrenman günü',
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1, color: Colors.white10),
+          Expanded(
+            child: ListView.builder(
+              controller: controller,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: program.days.length,
+              itemBuilder: (context, i) => _DayListTile(
+                day: program.days[i],
+                number: i + 1,
+                onStart: () => onStartDay(program.days[i]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2E),
+        title: const Text(
+          'Programı Sil',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '"${program.name}" programını silmek istediğine emin misin?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onDelete();
+            },
+            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayListTile extends StatelessWidget {
+  final ProgramDay day;
+  final int number;
+  final VoidCallback onStart;
+
+  const _DayListTile({
+    required this.day,
+    required this.number,
+    required this.onStart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final muscleTags = day.exercises
+        .map((e) => e.muscleGroup)
+        .toSet()
+        .take(3)
+        .toList();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        leading: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              '$number',
+              style: const TextStyle(
+                color: Color(0xFF4CAF50),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+        title: Text(
+          day.name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: day.exercises.isEmpty
+            ? const Text(
+                'Egzersiz eklenmemiş',
+                style: TextStyle(color: Colors.white30, fontSize: 11),
+              )
+            : Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Wrap(
+                  spacing: 4,
+                  children: [
+                    Text(
+                      '${day.exercises.length} egzersiz',
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 11,
+                      ),
+                    ),
+                    ...muscleTags.map((g) {
+                      final color = kMuscleGroupInfo[g]?.color ?? Colors.grey;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          kMuscleGroupInfo[g]?.label ?? g,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+        trailing: ElevatedButton(
+          onPressed: onStart,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF4CAF50),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            minimumSize: Size.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          child: const Text('Başlat', style: TextStyle(fontSize: 12)),
+        ),
+      ),
     );
   }
 }

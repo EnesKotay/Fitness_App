@@ -19,6 +19,9 @@ import '../../weight/presentation/providers/weight_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../../core/services/app_review_service.dart';
+import '../../../core/services/page_guide_service.dart';
+import '../../../core/widgets/page_guide_overlay.dart';
+import '../../../core/widgets/page_guide_button.dart';
 import 'dart:async';
 
 const Color _warmAccent = Color(0xFFFFA56E);
@@ -49,10 +52,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
   TodayWorkoutSuggestion? _todayWorkoutSuggestion;
   bool _didTryShowOnboardingSummary = false;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🏠',
+      title: 'Ana Sayfa — Günlük Özet',
+      description:
+          'Bu sayfada bugünkü kalori, protein, karbonhidrat ve yağ tüketimini tek bakışta görürsün. Üstteki renkli kart hedef modunu (Hacim / Definasyon vb.) ve kalan kaloriyi gösterir.',
+      tip: 'Karta dokunarak beslenme detaylarına ve makro dağılımına geçebilirsin.',
+    ),
+    GuideStep(
+      emoji: '💧',
+      title: 'Su Takibi',
+      description:
+          'Sayfayı aşağı kaydır → Su Takibi kartını bul → bardak ikonlarına veya "+" butonuna dokun → günlük tüketimini kaydet. Hedef sağ üstte gösterilir.',
+      tip: '8 bardak su ≈ 2000 ml. Hedefini Profil → Ayarlar\'dan değiştirebilirsin.',
+    ),
+    GuideStep(
+      emoji: '🚀',
+      title: 'Hızlı Erişim Kartları',
+      description:
+          'Ortadaki "Seri", "Antrenman" ve "Kilo" kartlarına dokunarak:\n• Antrenman kaydedebilir\n• Kilo girdisi yapabilir\n• Günlük serinizi görebilirsin.',
+      tip: 'Antrenman kartı seni direkt Antrenman sekmesine götürür.',
+    ),
+    GuideStep(
+      emoji: '✅',
+      title: 'Günlük Görevler',
+      description:
+          'Her gün sana özel küçük fitness hedefleri hazırlanır: su içmek, adım atmak, öğün kaydetmek gibi. Görevleri tamamladıkça başarı rozeti kazanırsın.',
+      tip: 'Görevlerin tamamını görmek için Asistan butonu → Günlük Görevler\'e git.',
+    ),
+    GuideStep(
+      emoji: '✨',
+      title: 'Asistan Butonu',
+      description:
+          'Ekrandaki kayan "Asistan" butonuna dokun → AI Koç, Günlük Görevler ve Premium özelliklere anında eriş. Butonu sürükleyerek istediğin köşeye taşıyabilirsin.',
+      tip: 'Sağ üstteki ampul ikonu rehberi her zaman yeniden açar — hiçbir şeyi ezberlemeye gerek yok!',
+    ),
+  ];
+
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('dashboard')) return;
+    await PageGuideService.markGuideSeen('dashboard');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHomeData());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadHomeData();
+      await _checkFirstVisitGuide();
+    });
   }
 
   Future<void> _loadHomeData() async {
@@ -182,6 +238,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_didTryShowOnboardingSummary) return;
     _didTryShowOnboardingSummary = true;
     if (!StorageHelper.getPendingOnboardingSummary()) return;
+    // Tur henüz gösterilmediyse, summary'yi bu seferlik atla.
+    // Bayrak temizlenmez — tur tamamlandıktan sonraki açılışta gösterilir.
+    if (StorageHelper.getPendingAppTour() && !StorageHelper.getAppTourSeen()) return;
+    if (!mounted) return;
+    // Tur overlay'i tam yerleşsin diye kısa bekleme
+    await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -213,6 +275,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return text;
     return trimmed[0].toUpperCase() + trimmed.substring(1);
+  }
+
+  String _todayDateString() {
+    final now = DateTime.now();
+    const months = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
+    const weekdays = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+    return '${now.day} ${months[now.month - 1]}, ${weekdays[now.weekday - 1]}';
   }
 
   String _goalLabel(Goal? goal) {
@@ -358,7 +430,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Bugün ritmini takip et ve hedefte kal.',
+                _todayDateString(),
                 style: AppTextStyles.bodyMedium.copyWith(
                   color: Colors.white.withValues(alpha: 0.72),
                 ),
@@ -366,7 +438,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
+        PageGuideButton(onTap: _showGuide),
+        const SizedBox(width: 8),
         // PRO Badge / Premium Button
         InkWell(
           onTap: () {
@@ -567,6 +641,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _macroMini(
+    String label,
+    int current,
+    int target,
+    Color color, {
+    IconData? icon,
+  }) {
+    final pct = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.14)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 10, color: color),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$current / $target g',
+                    style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                value: pct,
+                strokeWidth: 3,
+                backgroundColor: Colors.white.withValues(alpha: 0.15),
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeroCard({
     required Goal? goal,
     required Color calorieAccent,
@@ -577,6 +714,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required double proteinProgress,
     required int dailyProtein,
     required int targetProtein,
+    required int dailyCarb,
+    required int targetCarb,
+    required int dailyFat,
+    required int targetFat,
     VoidCallback? onTapCalories,
     VoidCallback? onTapProtein,
     VoidCallback? onTapCard,
@@ -714,7 +855,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 4,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation(calorieAccent),
                 ),
               ),
@@ -780,10 +921,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: CircularProgressIndicator(
                   value: proteinProgress,
                   strokeWidth: 4,
-                  backgroundColor: Colors.white.withValues(alpha: 0.05),
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation(proteinAccent),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _macroMini('KARB', dailyCarb, targetCarb, const Color(0xFF5FD8B7), icon: Icons.grass_rounded),
+              const SizedBox(width: 8),
+              _macroMini('YAĞ', dailyFat, targetFat, const Color(0xFFFFA56E), icon: Icons.water_drop_rounded),
             ],
           ),
           const SizedBox(height: 24),
@@ -936,9 +1085,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final workoutValue = hasWorkoutToday ? '${workoutCount}x Kayıt' : 'Başla!';
 
     final weightColor = weightKg != null ? secondaryAccent : Colors.white38;
-    final weightValue = weightKg != null
-        ? '${weightKg.toStringAsFixed(1)} kg'
-        : 'Kilo Ekle';
+    String weightValue;
+    if (weightKg != null) {
+      final delta = weeklyWeightChange;
+      final deltaStr = delta == 0
+          ? ''
+          : delta > 0
+              ? ' ▲${delta.abs().toStringAsFixed(1)}'
+              : ' ▼${delta.abs().toStringAsFixed(1)}';
+      weightValue = '${weightKg.toStringAsFixed(1)}$deltaStr';
+    } else {
+      weightValue = 'Kilo Ekle';
+    }
 
     return Row(
       children: [
@@ -1113,6 +1271,174 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTodayWorkoutCard({
+    required bool hasWorkouts,
+    required int workoutCount,
+    required List<String> workoutNames,
+    required Color accent,
+    VoidCallback? onTap,
+  }) {
+    return _glassCard(
+      accentColor: accent,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: 22,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.fitness_center_rounded, color: accent, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasWorkouts ? 'Bugünün Antrenmanı' : 'Bugün antrenman yok',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  hasWorkouts
+                      ? workoutNames.take(3).join(' · ')
+                      : 'Hedefine uygun bir antrenman başlat.',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _buildActionPill(
+            icon: hasWorkouts ? Icons.open_in_new_rounded : Icons.add_rounded,
+            label: hasWorkouts ? 'Gör' : 'Başla',
+            onTap: onTap,
+            accent: accent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiSuggestionCard({
+    required SuggestedFoodInsight? mealSuggestion,
+    required TodayWorkoutSuggestion? workoutSuggestion,
+    required Color accent,
+    VoidCallback? onMealTap,
+  }) {
+    if (mealSuggestion == null && workoutSuggestion == null) {
+      return const SizedBox.shrink();
+    }
+    return _glassCard(
+      accentColor: accent,
+      radius: 22,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: accent, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'AI Günlük Öneri',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          if (mealSuggestion != null) ...[
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: onMealTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.restaurant_rounded, color: accent, size: 16),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            mealSuggestion.item.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (mealSuggestion.reasons.isNotEmpty)
+                            Text(
+                              '${mealSuggestion.suggestedPortionG.round()} g · ${mealSuggestion.reasons.first}',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontSize: 11.5,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (workoutSuggestion != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              ),
+              child: Row(
+                children: [
+                  Icon(workoutSuggestion.icon, color: workoutSuggestion.color, size: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      workoutSuggestion.detail,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1340,6 +1666,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final proteinProgress = targetProtein > 0
                           ? (dailyProtein / targetProtein).clamp(0.0, 1.0)
                           : 0.0;
+                      final dailyCarb = dietProvider.totals.totalCarb.round();
+                      final targetCarb = macroTargets.carb.round();
+                      final dailyFat = dietProvider.totals.totalFat.round();
+                      final targetFat = macroTargets.fat.round();
                       final now = DateTime.now();
                       final todayWorkouts = workoutProvider.workouts
                           .where((w) => _isSameDay(w.workoutDate, now))
@@ -1350,7 +1680,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       final displayName = _capitalizeFirst(
                         dietProvider.profile?.name ??
                             authProvider.user?.name ??
-                            'Kullanici',
+                            'Kullanıcı',
                       );
                       final goal = dietProvider.profile?.goal;
                       final hasWorkoutToday = firstWorkout != null;
@@ -1379,7 +1709,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                       return SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 120),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -1424,6 +1754,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         proteinProgress: proteinProgress,
                                         dailyProtein: dailyProtein,
                                         targetProtein: targetProtein,
+                                        dailyCarb: dailyCarb,
+                                        targetCarb: targetCarb,
+                                        dailyFat: dailyFat,
+                                        targetFat: targetFat,
                                         onTapCalories: () =>
                                             widget.onNavigateToTab?.call(3),
                                         onTapProtein: () =>
@@ -1475,7 +1809,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                             const SizedBox(height: 12),
 
-                            // ── 4. Günlük görevler ──
+                            // ── 4. Bugünkü antrenman ──
+                            _buildTodayWorkoutCard(
+                                  hasWorkouts: hasWorkoutToday,
+                                  workoutCount: todayWorkouts.length,
+                                  workoutNames: todayWorkouts
+                                      .map((w) => w.name)
+                                      .toList(),
+                                  accent: primaryAccent,
+                                  onTap: () =>
+                                      widget.onNavigateToTab?.call(1),
+                                )
+                                .animate()
+                                .fadeIn(delay: 50.ms, duration: 240.ms)
+                                .slideY(
+                                  begin: 0.04,
+                                  end: 0,
+                                  duration: 240.ms,
+                                  curve: Curves.easeOut,
+                                ),
+                            const SizedBox(height: 12),
+
+                            // ── 5. Günlük görevler ──
                             Consumer<DailyTasksController>(
                               builder: (ctx, tasksCtrl, _) =>
                                   _buildDailyTasksCard(
@@ -1511,6 +1866,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   duration: 240.ms,
                                   curve: Curves.easeOut,
                                 ),
+
+                            // ── 8. AI Öneri ──
+                            if (_todayMealSuggestion != null || _todayWorkoutSuggestion != null) ...[
+                              const SizedBox(height: 12),
+                              _buildAiSuggestionCard(
+                                    mealSuggestion: _todayMealSuggestion,
+                                    workoutSuggestion: _todayWorkoutSuggestion,
+                                    accent: primaryAccent,
+                                    onMealTap: () =>
+                                        widget.onNavigateToTab?.call(3),
+                                  )
+                                  .animate()
+                                  .fadeIn(delay: 110.ms, duration: 240.ms)
+                                  .slideY(
+                                    begin: 0.04,
+                                    end: 0,
+                                    duration: 240.ms,
+                                    curve: Curves.easeOut,
+                                  ),
+                            ],
 
                             // ── Premium hub (yalnızca premium değilse ve kullanıcı en az bir aksiyon aldıysa) ──
                             if (!isPremium && (dietProvider.currentStreak > 0 || workoutProvider.workouts.isNotEmpty || todayEntries.isNotEmpty)) ...[

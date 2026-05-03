@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/repositories/diary_repository.dart';
 
@@ -14,13 +15,20 @@ class MicroNutrientsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
       child: Container(
         padding: const EdgeInsets.only(top: 12, left: 24, right: 24, bottom: 40),
         decoration: BoxDecoration(
-          color: const Color(0xFF0A0A1A).withValues(alpha: 0.85),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF15171B).withValues(alpha: 0.90),
+              const Color(0xFF0A0A1A).withValues(alpha: 0.95),
+            ],
+          ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12), width: 1.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -28,12 +36,12 @@ class MicroNutrientsSheet extends StatelessWidget {
           children: [
             Center(
               child: Container(
-                width: 48,
-                height: 4,
+                width: 40,
+                height: 5,
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
@@ -42,8 +50,9 @@ class MicroNutrientsSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
+                    color: AppColors.secondary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
                   ),
                   child: Icon(
                     Icons.science_rounded,
@@ -52,9 +61,9 @@ class MicroNutrientsSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Text(
+                Text(
                   'Detaylı Mikro Besinler',
-                  style: TextStyle(
+                  style: GoogleFonts.dmSans(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
@@ -63,7 +72,7 @@ class MicroNutrientsSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             _buildDetailRow(
               'Lif',
               totals.totalFiber,
@@ -119,14 +128,21 @@ class MicroNutrientsSheet extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color.withValues(alpha: 0.5), size: 20),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color.withValues(alpha: 0.8), size: 18),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,25 +151,27 @@ class MicroNutrientsSheet extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: GoogleFonts.dmSans(
                         color: Colors.white,
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(6),
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                       ),
                       child: Text(
-                        'takip edilmiyor',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                        'Takip edilmiyor',
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
                     ),
@@ -162,9 +180,9 @@ class MicroNutrientsSheet extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   desc,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 12,
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12.5,
                     height: 1.4,
                   ),
                 ),
@@ -192,54 +210,76 @@ class MicroNutrientsSheet extends StatelessWidget {
     final displayColor = isInverse && isOver ? AppColors.error : color;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: displayColor, size: 20),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: displayColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: displayColor, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 name,
-                style: const TextStyle(
+                style: GoogleFonts.dmSans(
                   color: Colors.white,
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const Spacer(),
               Text(
-                '${value.round()}$unit / ${target.round()}$unit',
-                style: TextStyle(
-                  color: displayColor,
+                '${value.round()}$unit ',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              Text(
+                '/ ${target.round()}$unit',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: displayColor.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation<Color>(displayColor),
-              minHeight: 8,
+            borderRadius: BorderRadius.circular(8),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: progress),
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeOutCubic,
+              builder: (context, val, _) {
+                return LinearProgressIndicator(
+                  value: val,
+                  backgroundColor: displayColor.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(displayColor),
+                  minHeight: 10,
+                );
+              },
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             desc,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 12,
+            style: GoogleFonts.dmSans(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 12.5,
               height: 1.4,
             ),
           ),

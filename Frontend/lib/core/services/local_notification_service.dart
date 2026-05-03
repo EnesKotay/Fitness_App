@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 
@@ -35,6 +36,8 @@ class LocalNotificationService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
+    final String tzName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(tzName));
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -115,43 +118,51 @@ class LocalNotificationService {
   // ── Öğün hatırlatıcıları ──────────────────────────────────────────────────
 
   Future<void> scheduleMealReminders({
-    required TimeOfDay breakfast,
-    required TimeOfDay lunch,
-    required TimeOfDay dinner,
-    required TimeOfDay snack,
+    TimeOfDay? breakfast,
+    TimeOfDay? lunch,
+    TimeOfDay? dinner,
+    TimeOfDay? snack,
   }) async {
     await cancelMealReminders();
     await init();
 
-    await _scheduleDaily(
-      id: _mealBreakfastId,
-      title: '🍳 Kahvaltı vakti!',
-      body: 'Güne sağlıklı bir başlangıç için kahvaltını yapma zamanı.',
-      hour: breakfast.hour,
-      minute: breakfast.minute,
-    );
-    await _scheduleDaily(
-      id: _mealLunchId,
-      title: '🥗 Öğle yemeği vakti!',
-      body: 'Enerjini korumak için öğle yemeğini atlamayı unutma.',
-      hour: lunch.hour,
-      minute: lunch.minute,
-    );
-    await _scheduleDaily(
-      id: _mealDinnerId,
-      title: '🍽️ Akşam yemeği vakti!',
-      body: 'Günün son öğününü sağlıklı tut.',
-      hour: dinner.hour,
-      minute: dinner.minute,
-    );
-    await _scheduleDaily(
-      id: _mealSnackId,
-      title: '🍎 Atıştırmalık vakti!',
-      body: 'Kan şekerini dengelemek için hafif bir atıştırma yap.',
-      hour: snack.hour,
-      minute: snack.minute,
-    );
-    debugPrint('LocalNotificationService: 4 öğün hatırlatıcısı planlandı');
+    if (breakfast != null) {
+      await _scheduleDaily(
+        id: _mealBreakfastId,
+        title: '🍳 Kahvaltı vakti!',
+        body: 'Güne sağlıklı bir başlangıç için kahvaltını yapma zamanı.',
+        hour: breakfast.hour,
+        minute: breakfast.minute,
+      );
+    }
+    if (lunch != null) {
+      await _scheduleDaily(
+        id: _mealLunchId,
+        title: '🥗 Öğle yemeği vakti!',
+        body: 'Enerjini korumak için öğle yemeğini atlamayı unutma.',
+        hour: lunch.hour,
+        minute: lunch.minute,
+      );
+    }
+    if (dinner != null) {
+      await _scheduleDaily(
+        id: _mealDinnerId,
+        title: '🍽️ Akşam yemeği vakti!',
+        body: 'Günün son öğününü sağlıklı tut.',
+        hour: dinner.hour,
+        minute: dinner.minute,
+      );
+    }
+    if (snack != null) {
+      await _scheduleDaily(
+        id: _mealSnackId,
+        title: '🍎 Atıştırmalık vakti!',
+        body: 'Kan şekerini dengelemek için hafif bir atıştırma yap.',
+        hour: snack.hour,
+        minute: snack.minute,
+      );
+    }
+    debugPrint('LocalNotificationService: Aktif öğün hatırlatıcıları planlandı');
   }
 
   Future<void> cancelMealReminders() async {

@@ -10,6 +10,7 @@ import '../../domain/repositories/recipe_repository.dart';
 const _recipeFavoritesKey = 'recipe_favorites';
 const _recipeRecentKey = 'recipe_recently_viewed';
 const _recipeCookCountsKey = 'recipe_cook_counts';
+const _recipeCustomKey = 'recipe_custom_recipes';
 
 const Map<String, List<String>> _searchSynonyms = {
   'snack': ['atistirmalik', 'ara ogun'],
@@ -160,6 +161,7 @@ class RecipeProvider extends ChangeNotifier {
   RecipeFilter _filter = const RecipeFilter();
   List<String> _recentlyViewedIds = [];
   Map<String, int> _cookCounts = {};
+  List<Recipe> _customRecipes = [];
 
   bool get loading => _loading;
   String get searchQuery => _searchQuery;
@@ -470,6 +472,13 @@ class RecipeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addCustomRecipe(Recipe recipe) async {
+    _customRecipes.add(recipe);
+    _all = [..._all, recipe];
+    await _saveCustomRecipes();
+    notifyListeners();
+  }
+
   void markCooked(String recipeId) {
     _cookCounts[recipeId] = (_cookCounts[recipeId] ?? 0) + 1;
     _saveCookCounts();
@@ -508,8 +517,9 @@ class RecipeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.wait([_loadFavorites(), _loadRecent(), _loadCookCounts()]);
-      _all = await _repository.getAllRecipes();
+      await Future.wait([_loadFavorites(), _loadRecent(), _loadCookCounts(), _loadCustomRecipes()]);
+      final repoRecipes = await _repository.getAllRecipes();
+      _all = [...repoRecipes, ..._customRecipes];
     } catch (e) {
       debugPrint('RecipeProvider init error: $e');
       _all = [];
@@ -585,6 +595,25 @@ class RecipeProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('RecipeProvider cook count decode error: $e');
       _cookCounts = {};
+    }
+  }
+
+  Future<void> _saveCustomRecipes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = _customRecipes.map((r) => r.toJson()).toList();
+    await prefs.setString(_recipeCustomKey, jsonEncode(jsonList));
+  }
+
+  Future<void> _loadCustomRecipes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_recipeCustomKey);
+    if (raw == null || raw.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(raw) as List;
+      _customRecipes = decoded.map((e) => Recipe.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('RecipeProvider custom recipe decode error: $e');
+      _customRecipes = [];
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/services/meal_reminder_service.dart';
 import '../../../core/services/water_reminder_service.dart';
+import '../../../core/services/local_notification_service.dart';
 import '../../../core/utils/storage_helper.dart';
 
 class SettingsNotificationsScreen extends StatefulWidget {
@@ -13,6 +14,12 @@ class SettingsNotificationsScreen extends StatefulWidget {
 
 class _SettingsNotificationsScreenState
     extends State<SettingsNotificationsScreen> {
+  static const _bg = Color(0xFF121212);
+  static const _card = Color(0xFF1E1E1E);
+  static const _accent = Color(0xFFCC7A4A);
+  static const _textPrimary = Colors.white;
+  static const _textSecondary = Color(0xFF9E9E9E);
+
   bool _enabled = true;
   bool _water = true;
   bool _workout = true;
@@ -22,6 +29,10 @@ class _SettingsNotificationsScreenState
 
   // Meal reminder state
   bool _mealEnabled = false;
+  bool _breakfastEnabled = true;
+  bool _lunchEnabled = true;
+  bool _dinnerEnabled = true;
+  bool _snackEnabled = true;
   TimeOfDay _breakfastTime = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _lunchTime = const TimeOfDay(hour: 12, minute: 30);
   TimeOfDay _dinnerTime = const TimeOfDay(hour: 19, minute: 0);
@@ -44,6 +55,11 @@ class _SettingsNotificationsScreenState
     if (!mounted) return;
     setState(() {
       _mealEnabled = mealSettings.enabled;
+      _breakfastEnabled = mealSettings.breakfastEnabled;
+      _lunchEnabled = mealSettings.lunchEnabled;
+      _dinnerEnabled = mealSettings.dinnerEnabled;
+      _snackEnabled = mealSettings.snackEnabled;
+      
       _breakfastTime = mealSettings.breakfastTime;
       _lunchTime = mealSettings.lunchTime;
       _dinnerTime = mealSettings.dinnerTime;
@@ -62,36 +78,33 @@ class _SettingsNotificationsScreenState
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Bildirim ayarlari kaydedildi.'),
-        duration: Duration(milliseconds: 900),
+        content: Text('Bildirim ayarları kaydedildi'),
+        backgroundColor: Color(0xFF388E3C),
+        duration: Duration(milliseconds: 1500),
       ),
     );
   }
 
   Future<void> _persistMeal() async {
     await MealReminderService.instance.setEnabled(_mealEnabled);
+    await MealReminderService.instance.setMealEnabled('breakfast', _breakfastEnabled);
+    await MealReminderService.instance.setMealEnabled('lunch', _lunchEnabled);
+    await MealReminderService.instance.setMealEnabled('dinner', _dinnerEnabled);
+    await MealReminderService.instance.setMealEnabled('snack', _snackEnabled);
+    
     await MealReminderService.instance.setMealTime('breakfast', _breakfastTime);
     await MealReminderService.instance.setMealTime('lunch', _lunchTime);
     await MealReminderService.instance.setMealTime('dinner', _dinnerTime);
     await MealReminderService.instance.setMealTime('snack', _snackTime);
+    
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Öğün hatırlatıcı ayarları kaydedildi.'),
-        duration: Duration(milliseconds: 900),
+        content: Text('Öğün hatırlatıcı ayarları güncellendi'),
+        backgroundColor: Color(0xFF388E3C),
+        duration: Duration(milliseconds: 1500),
       ),
     );
-  }
-
-  Future<void> _resetDefaults() async {
-    setState(() {
-      _enabled = true;
-      _water = true;
-      _workout = true;
-      _dailySummary = true;
-      _waterIntervalHours = 2;
-    });
-    await _persist();
   }
 
   Future<void> _pickMealTime(String meal) async {
@@ -113,6 +126,19 @@ class _SettingsNotificationsScreenState
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: _accent,
+              onPrimary: Colors.white,
+              surface: _card,
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked == null || !mounted) return;
 
@@ -140,134 +166,349 @@ class _SettingsNotificationsScreenState
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: _bg,
+        body: Center(child: CircularProgressIndicator(color: _accent)),
+      );
     }
     return Scaffold(
-      appBar: AppBar(title: const Text('Bildirimler')),
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        elevation: 0,
+        title: const Text(
+          'Bildirimler',
+          style: TextStyle(color: _textPrimary, fontWeight: FontWeight.w700),
+        ),
+        iconTheme: const IconThemeData(color: _textPrimary),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SwitchListTile(
-            value: _enabled,
-            onChanged: (v) async {
-              setState(() => _enabled = v);
-              await _persist();
-            },
-            title: const Text('Bildirimleri etkinlestir'),
-            subtitle: const Text(
-              'Uygulama bildirimlerini genel olarak ac/kapat',
-            ),
-          ),
-          const Divider(height: 1),
-          SwitchListTile(
-            value: _water,
-            onChanged: _enabled
-                ? (v) async {
-                    setState(() => _water = v);
-                    await _persist();
+          _buildCard([
+            _prefTile(
+              icon: Icons.notifications_active_rounded,
+              iconColor: _accent,
+              title: 'Bildirimleri Etkinleştir',
+              subtitle: 'Uygulama bildirimlerini genel olarak aç/kapat',
+              value: _enabled,
+              onChanged: (v) async {
+                if (v) {
+                  final granted = await LocalNotificationService.instance
+                      .requestPermission();
+                  if (!granted) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cihaz ayarlarından bildirim izni vermelisiniz.'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                    return;
                   }
-                : null,
-            title: const Text('Su hatirlaticilari'),
-            subtitle: const Text('Gun icinde su icme hatirlatmasi'),
-          ),
-          ListTile(
-            enabled: _enabled && _water,
-            title: const Text('Su hatirlatma araligi'),
-            subtitle: Text('Her $_waterIntervalHours saatte bir'),
-          ),
-          Slider(
-            value: _waterIntervalHours.toDouble(),
-            min: 1,
-            max: 6,
-            divisions: 5,
-            label: '$_waterIntervalHours saat',
-            onChanged: (_enabled && _water)
-                ? (v) => setState(() => _waterIntervalHours = v.round())
-                : null,
-            onChangeEnd: (_enabled && _water) ? (_) async => _persist() : null,
-          ),
-          const Divider(height: 1),
-          SwitchListTile(
-            value: _workout,
-            onChanged: _enabled
-                ? (v) async {
-                    setState(() => _workout = v);
-                    await _persist();
-                  }
-                : null,
-            title: const Text('Antrenman hatirlatmalari'),
-            subtitle: const Text('Planli antrenmanlar icin hatirlatma'),
-          ),
-          SwitchListTile(
-            value: _dailySummary,
-            onChanged: _enabled
-                ? (v) async {
-                    setState(() => _dailySummary = v);
-                    await _persist();
-                  }
-                : null,
-            title: const Text('Gun sonu ozeti'),
-            subtitle: const Text('Kalori ve ilerleme ozet bildirimi'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _resetDefaults,
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Varsayilanlara Don'),
-          ),
-
-          // ── Öğün Hatırlatıcıları ──────────────────────────────────────
-          const SizedBox(height: 24),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Öğün Hatırlatıcıları',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                }
+                setState(() => _enabled = v);
+                await _persist();
+                if (!_enabled) {
+                  await LocalNotificationService.instance.cancelAll();
+                }
+              },
             ),
-          ),
-          SwitchListTile(
-            value: _mealEnabled,
-            onChanged: _enabled
-                ? (v) async {
-                    setState(() => _mealEnabled = v);
-                    await _persistMeal();
-                  }
-                : null,
-            title: const Text('Öğün hatırlatıcılarını etkinleştir'),
-            subtitle: const Text('Her öğün için belirlenen saatte hatırlat'),
-          ),
-          if (_mealEnabled && _enabled) ...[
-            const Divider(height: 1),
-            ListTile(
-              title: const Text('Kahvaltı'),
-              subtitle: Text(_formatTime(_breakfastTime)),
-              trailing: const Icon(Icons.access_time_rounded),
-              onTap: () => _pickMealTime('breakfast'),
+          ]),
+          const SizedBox(height: 16),
+          _sectionHeader('GENEL'),
+          _buildCard([
+            _prefTile(
+              icon: Icons.water_drop_rounded,
+              iconColor: const Color(0xFF42A5F5),
+              title: 'Su Hatırlatıcıları',
+              subtitle: 'Gün içinde su içme hatırlatması',
+              value: _water,
+              enabled: _enabled,
+              onChanged: (v) async {
+                setState(() => _water = v);
+                await _persist();
+              },
             ),
-            ListTile(
-              title: const Text('Öğle'),
-              subtitle: Text(_formatTime(_lunchTime)),
-              trailing: const Icon(Icons.access_time_rounded),
-              onTap: () => _pickMealTime('lunch'),
+            if (_water && _enabled) ...[
+              _divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Hatırlatma Aralığı',
+                          style: TextStyle(
+                            color: _textPrimary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'Her $_waterIntervalHours saatte bir',
+                          style: const TextStyle(
+                            color: _accent,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    SliderTheme(
+                      data: SliderThemeData(
+                        activeTrackColor: _accent,
+                        inactiveTrackColor: _accent.withValues(alpha: 0.2),
+                        thumbColor: _accent,
+                        overlayColor: _accent.withValues(alpha: 0.1),
+                        trackHeight: 4,
+                      ),
+                      child: Slider(
+                        value: _waterIntervalHours.toDouble(),
+                        min: 1,
+                        max: 6,
+                        divisions: 5,
+                        onChanged: (v) =>
+                            setState(() => _waterIntervalHours = v.round()),
+                        onChangeEnd: (_) async => _persist(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            _divider(),
+            _prefTile(
+              icon: Icons.fitness_center_rounded,
+              iconColor: const Color(0xFFEF5350),
+              title: 'Antrenman Hatırlatmaları',
+              subtitle: 'Planlı antrenmanlar için hatırlatma',
+              value: _workout,
+              enabled: _enabled,
+              onChanged: (v) async {
+                setState(() => _workout = v);
+                await _persist();
+              },
             ),
-            ListTile(
-              title: const Text('Akşam'),
-              subtitle: Text(_formatTime(_dinnerTime)),
-              trailing: const Icon(Icons.access_time_rounded),
-              onTap: () => _pickMealTime('dinner'),
+            _divider(),
+            _prefTile(
+              icon: Icons.insights_rounded,
+              iconColor: const Color(0xFFAB47BC),
+              title: 'Gün Sonu Özeti',
+              subtitle: 'Kalori ve ilerleme özet bildirimi',
+              value: _dailySummary,
+              enabled: _enabled,
+              onChanged: (v) async {
+                setState(() => _dailySummary = v);
+                await _persist();
+              },
             ),
-            ListTile(
-              title: const Text('Atıştırma'),
-              subtitle: Text(_formatTime(_snackTime)),
-              trailing: const Icon(Icons.access_time_rounded),
-              onTap: () => _pickMealTime('snack'),
+          ]),
+          const SizedBox(height: 16),
+          _sectionHeader('ÖĞÜN HATIRLATICILARI'),
+          _buildCard([
+            _prefTile(
+              icon: Icons.restaurant_menu_rounded,
+              iconColor: const Color(0xFF4CAF50),
+              title: 'Öğünleri Hatırlat',
+              subtitle: 'Beslenme programına sadık kalman için hatırlatmalar',
+              value: _mealEnabled,
+              enabled: _enabled,
+              onChanged: (v) async {
+                setState(() => _mealEnabled = v);
+                await _persistMeal();
+              },
             ),
-          ],
+            if (_mealEnabled && _enabled) ...[
+              _divider(),
+              _mealTimeTile(
+                title: 'Kahvaltı',
+                enabled: _breakfastEnabled,
+                time: _breakfastTime,
+                onToggle: (v) async {
+                  setState(() => _breakfastEnabled = v);
+                  await _persistMeal();
+                },
+                onTimeTap: () => _pickMealTime('breakfast'),
+              ),
+              _divider(),
+              _mealTimeTile(
+                title: 'Öğle Yemeği',
+                enabled: _lunchEnabled,
+                time: _lunchTime,
+                onToggle: (v) async {
+                  setState(() => _lunchEnabled = v);
+                  await _persistMeal();
+                },
+                onTimeTap: () => _pickMealTime('lunch'),
+              ),
+              _divider(),
+              _mealTimeTile(
+                title: 'Akşam Yemeği',
+                enabled: _dinnerEnabled,
+                time: _dinnerTime,
+                onToggle: (v) async {
+                  setState(() => _dinnerEnabled = v);
+                  await _persistMeal();
+                },
+                onTimeTap: () => _pickMealTime('dinner'),
+              ),
+              _divider(),
+              _mealTimeTile(
+                title: 'Atıştırmalık',
+                enabled: _snackEnabled,
+                time: _snackTime,
+                onToggle: (v) async {
+                  setState(() => _snackEnabled = v);
+                  await _persistMeal();
+                },
+                onTimeTap: () => _pickMealTime('snack'),
+              ),
+            ]
+          ]),
+          const SizedBox(height: 40),
         ],
       ),
     );
   }
+
+  Widget _sectionHeader(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _prefTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    bool enabled = true,
+  }) {
+    return ListTile(
+      enabled: enabled,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: enabled ? iconColor.withValues(alpha: 0.15) : Colors.white10,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: enabled ? iconColor : Colors.white38, size: 22),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: enabled ? _textPrimary : Colors.white38,
+          fontWeight: FontWeight.w600,
+          fontSize: 15,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: enabled ? _textSecondary : Colors.white24, fontSize: 12),
+      ),
+      trailing: Switch(
+        value: value,
+        onChanged: enabled ? onChanged : null,
+        activeThumbColor: _accent,
+        activeTrackColor: _accent.withValues(alpha: 0.5),
+        inactiveTrackColor: Colors.white12,
+      ),
+    );
+  }
+
+  Widget _mealTimeTile({
+    required String title,
+    required bool enabled,
+    required TimeOfDay time,
+    required ValueChanged<bool> onToggle,
+    required VoidCallback onTimeTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: enabled ? _textPrimary : Colors.white38,
+                fontWeight: FontWeight.w500,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          if (enabled)
+            GestureDetector(
+              onTap: onTimeTap,
+              child: Container(
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatTime(time),
+                      style: const TextStyle(
+                        color: _accent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.edit_rounded, color: _textSecondary, size: 14),
+                  ],
+                ),
+              ),
+            ),
+          Switch(
+            value: enabled,
+            onChanged: onToggle,
+            activeThumbColor: _accent,
+            activeTrackColor: _accent.withValues(alpha: 0.5),
+            inactiveTrackColor: Colors.white12,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => const Divider(
+        height: 1,
+        indent: 16,
+        endIndent: 16,
+        color: Colors.white10,
+      );
 }

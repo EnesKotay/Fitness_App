@@ -31,112 +31,171 @@ class PremiumFeatureGate {
 
     if (!context.mounted) return false;
 
-    // Güzel bir Premium Popup gösterimi (Bottom Sheet)
+    // Premium Paywall Bottom Sheet
     final goPremium = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (sheetContext) => Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2C),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0xFFFFB74D).withValues(alpha: 0.3),
-            width: 1,
+      builder: (sheetContext) {
+        const gold = Color(0xFFFFB74D);
+        const darkGold = Color(0xFFD97706);
+        const bg = Color(0xFF111318);
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: gold.withValues(alpha: 0.28), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: gold.withValues(alpha: 0.14),
+                blurRadius: 40,
+                spreadRadius: -8,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFFFB74D).withValues(alpha: 0.1),
-              blurRadius: 20,
-              spreadRadius: 5,
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFB74D).withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.workspace_premium_rounded,
-                color: Color(0xFFFFB74D),
-                size: 48,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Premium Özellik',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$featureName özelliği sadece Premium kullanıcılara özeldir. Hemen Premium\'a geç ve tüm özelliklerin kilidini aç!',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(false),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Başlık satırı
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: gold.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: gold.withValues(alpha: 0.28)),
                     ),
-                    child: Text(
-                      'Vazgeç',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontWeight: FontWeight.w600,
+                    child: const Icon(
+                      Icons.lock_rounded,
+                      color: gold,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Premium Özellik',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          featureName,
+                          style: TextStyle(
+                            color: gold.withValues(alpha: 0.85),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Ücretsiz planda temel takip açık kalır. Premium bu işi senin yerine daha hızlı ve akıllı hale getirir:',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _GateFeatureRow(
+                icon: Icons.smart_toy_rounded,
+                label: 'Claude ile sınırsız ve daha derin AI koçluğu',
+                color: gold,
+              ),
+              const SizedBox(height: 8),
+              _GateFeatureRow(
+                icon: Icons.restaurant_menu_rounded,
+                label: 'Hazır öğün planı ve otomatik alışveriş listesi',
+                color: const Color(0xFF81C784),
+              ),
+              const SizedBox(height: 8),
+              _GateFeatureRow(
+                icon: Icons.insights_rounded,
+                label: 'Veriyi içgörüye çeviren gelişmiş trend analizleri',
+                color: const Color(0xFF64B5F6),
+              ),
+              const SizedBox(height: 8),
+              _GateFeatureRow(
+                icon: Icons.fitness_center_rounded,
+                label: 'Hazır antrenman programları',
+                color: const Color(0xFFF06292),
+              ),
+              const SizedBox(height: 22),
+              // CTA butonu
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFBBF24), darkGold],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gold.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => Navigator.of(sheetContext).pop(true),
+                      child: const Center(
+                        child: Text(
+                          'Premium\'u Aç',
+                          style: TextStyle(
+                            color: Color(0xFF1A0F00),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFB74D),
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const Text(
-                      'Premium Ol',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: Text(
+                    'Şimdi değil',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.32),
+                      fontSize: 13,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
 
     if (goPremium == true && context.mounted) {
@@ -167,5 +226,50 @@ class PremiumFeatureGate {
     } catch (_) {
       return false;
     }
+  }
+}
+
+class _GateFeatureRow extends StatelessWidget {
+  const _GateFeatureRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          child: Icon(icon, color: color, size: 17),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Icon(
+          Icons.check_rounded,
+          size: 15,
+          color: color.withValues(alpha: 0.65),
+        ),
+      ],
+    );
   }
 }

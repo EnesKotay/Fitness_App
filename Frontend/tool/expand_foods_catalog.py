@@ -534,6 +534,60 @@ EXTRA_SINGLES_2 = [
     ("Reçel (1 Yemek Kaşığı)", "Kahvaltılık", 55, 0, 14, 0),
 ]
 
+# Kullanıcı tarafından istenilen yüksek ve orta öncelikli eksik yiyecekler
+EXTRA_USER_REQUESTS = [
+    # Yağlar
+    ("Zeytinyağı", "Diğer", 884, 0, 0, 100),
+    ("Ayçiçek Yağı", "Diğer", 884, 0, 0, 100),
+    ("Hindistan Cevizi Yağı", "Diğer", 862, 0, 0, 100),
+    
+    # Kuruyemiş / Tohum
+    ("Kaju", "Atıştırmalık", 553, 18, 30, 44),
+    ("Kabak Çekirdeği", "Atıştırmalık", 574, 30, 15, 49),
+    ("Chia Tohumu", "Atıştırmalık", 486, 17, 42, 31),
+    ("Keten Tohumu", "Atıştırmalık", 534, 18, 29, 42),
+    
+    # Balık / Deniz Ürünleri
+    ("Hamsi", "Et / Tavuk", 131, 20, 0, 4.8),
+    ("Palamut", "Et / Tavuk", 170, 24, 0, 8),
+    ("Sardalya", "Et / Tavuk", 208, 25, 0, 11),
+    ("Uskumru", "Et / Tavuk", 305, 19, 0, 25),
+    ("Çupra", "Et / Tavuk", 115, 21, 0, 3),
+    ("Karides", "Et / Tavuk", 99, 24, 0, 0.3),
+    ("Kalamar", "Et / Tavuk", 92, 16, 3, 1.5),
+    
+    # Ekmekler
+    ("Çavdar Ekmeği", "Tahıl & Bakliyat", 259, 9, 48, 3),
+    ("Tam Buğday Ekmeği", "Tahıl & Bakliyat", 252, 12, 43, 3),
+    ("Bazlama", "Tahıl & Bakliyat", 254, 8, 50, 2),
+    ("Yufka", "Tahıl & Bakliyat", 299, 8, 60, 1.5),
+    
+    # Peynirler
+    ("Tulum Peyniri", "Kahvaltılık", 350, 25, 2, 28),
+    ("Çeçil Peyniri", "Kahvaltılık", 320, 26, 2, 23),
+    ("Dil Peyniri", "Kahvaltılık", 300, 24, 2, 22),
+    ("Labne", "Kahvaltılık", 226, 5, 4, 21),
+    ("Ricotta", "Kahvaltılık", 174, 11, 3, 13),
+    
+    # İçecekler
+    ("Enerji İçeceği", "İçecek", 45, 0.3, 11, 0),
+    ("Boza", "İçecek", 85, 1.5, 18, 0.5),
+    ("Şalgam Suyu", "İçecek", 10, 1, 2, 0),
+    ("Espresso", "İçecek", 9, 0.1, 1.7, 0.2),
+    
+    # Tatlılar
+    ("Tahin Helvası", "Tatlı", 469, 13, 50, 24),
+    ("Muhallebi", "Tatlı", 135, 3, 22, 4),
+    
+    # Baklagil / Konserve / Şarküteri
+    ("Bakla", "Tahıl & Bakliyat", 88, 8, 18, 0.7),
+    ("Edamame", "Tahıl & Bakliyat", 121, 12, 9, 5),
+    ("Fasulye Konservesi", "Tahıl & Bakliyat", 95, 6, 16, 0.5),
+    ("Jambon", "Et / Tavuk", 104, 17, 3, 2.5),
+    ("Pastırma", "Et / Tavuk", 245, 30, 0, 14),
+    ("Kavurma", "Et / Tavuk", 345, 20, 0, 29),
+]
+
 # Pişirme yöntemleri: (ek ad, kcal çarpanı, yağ ekleme yaklaşık)
 COOKING = [
     ("Haşlanmış", 1.0, 0),
@@ -686,6 +740,15 @@ def main():
 
     # 8) İkinci blok tekil yemekler
     for (name, category, kcal, protein, carb, fat) in EXTRA_SINGLES_2:
+        item = v2_food(
+            next_tr_id(), name, category, kcal, protein, carb, fat,
+            tags=semantic_tags(name, category, [name]),
+            servings=infer_servings(name, category),
+        )
+        add_food_unique(foods, seen_keys, item)
+
+    # 9) Kullanıcı istekleri
+    for (name, category, kcal, protein, carb, fat) in EXTRA_USER_REQUESTS:
         item = v2_food(
             next_tr_id(), name, category, kcal, protein, carb, fat,
             tags=semantic_tags(name, category, [name]),

@@ -2,7 +2,6 @@ import '../../domain/entities/food_item.dart';
 import '../../domain/repositories/food_repository.dart';
 import '../datasources/asset_food_loader.dart';
 import '../datasources/hive_diet_storage.dart';
-import '../datasources/open_food_facts_client.dart';
 import '../../../recipes/data/recipe_loader.dart';
 import '../../../recipes/domain/entities/recipe.dart';
 
@@ -1057,7 +1056,6 @@ class LocalFoodRepository implements FoodRepository {
   Future<FoodItem?> getFoodByBarcode(String barcode) async {
     await _ensureLoaded();
     try {
-      // Önce custom (kullanıcı eklediği barkodlu besinler), sonra lokal JSON
       final customMatch = _customCache
           ?.where((f) => f.barcode == barcode)
           .firstOrNull;
@@ -1066,12 +1064,7 @@ class LocalFoodRepository implements FoodRepository {
       final localMatch = _assetCache
           ?.where((f) => f.barcode == barcode)
           .firstOrNull;
-      if (localMatch != null) return localMatch;
-
-      // Eğer lokalde bulamadıysa OpenFoodFacts API üzerinden sorgula
-      final offClient = OpenFoodFactsClient();
-      final offMatch = await offClient.searchByBarcode(barcode);
-      return offMatch;
+      return localMatch;
     } catch (_) {
       return null;
     }

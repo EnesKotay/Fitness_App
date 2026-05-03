@@ -86,10 +86,19 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
       final file = File('${dir.path}/fitness_privacy_export_$now.json');
       await file.writeAsString(pretty);
       if (!mounted) return;
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Fitness hesap verisi dışa aktarma',
-      );
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Fitness hesap verisi dışa aktarma',
+          sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+        );
+      } else {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Fitness hesap verisi dışa aktarma',
+        );
+      }
     } catch (_) {
       final fallback = const JsonEncoder.withIndent(
         '  ',
@@ -403,7 +412,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => launchUrl(
               Uri.parse(
-                'mailto:privacy@fitmentor.app?subject=KVKK%20Madde%2011%20Ba%C5%9Fvurusu',
+                'mailto:eneskotay23@gmail.com?subject=KVKK%20Madde%2011%20Ba%C5%9Fvurusu',
               ),
               mode: LaunchMode.externalApplication,
             ),

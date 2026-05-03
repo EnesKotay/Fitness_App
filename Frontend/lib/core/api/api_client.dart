@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' show NavigatorState, GlobalKey;
+import 'package:flutter/material.dart' show GlobalKey, NavigatorState, ScaffoldMessenger, SnackBar, Text;
 import '../constants/api_constants.dart';
 import '../utils/storage_helper.dart';
 import 'api_exception.dart';
@@ -20,8 +20,8 @@ class ApiClient {
     _dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -253,7 +253,7 @@ class _LoggingInterceptor extends Interceptor {
   }
 }
 
-// Error interceptor — 401 alındığında token temizle ve anında login'e yönlendir.
+// Error interceptor — 401 alındığında token temizle ve login'e yönlendir.
 class _ErrorInterceptor extends Interceptor {
   // Auth endpoint'leri 401 dönebilir (yanlış şifre vb.), oturum temizlenmemeli.
   static const _authPaths = {'/api/auth/login', '/api/auth/register'};
@@ -266,7 +266,15 @@ class _ErrorInterceptor extends Interceptor {
       if (!isAuthEndpoint) {
         // Token süresi dolmuş veya geçersiz → oturumu kapat.
         StorageHelper.clearUserData();
-        // Global navigator key üzerinden anında login ekranına yönlendir.
+        final ctx = ApiClient.navigatorKey?.currentContext;
+        if (ctx != null) {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            const SnackBar(
+              content: Text('Oturumunuz sona erdi. Lütfen tekrar giriş yapın.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
         ApiClient.navigatorKey?.currentState?.pushNamedAndRemoveUntil(
           '/login',
           (route) => false,

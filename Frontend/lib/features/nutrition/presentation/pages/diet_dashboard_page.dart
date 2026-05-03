@@ -21,6 +21,9 @@ import '../widgets/scan_options_sheet.dart';
 import '../widgets/weekly_summary_card.dart';
 import '../widgets/micro_nutrients_sheet.dart';
 import '../../domain/repositories/diary_repository.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
+import '../../../../core/widgets/page_guide_button.dart';
 
 class DietDashboardPage extends StatefulWidget {
   const DietDashboardPage({super.key});
@@ -37,13 +40,62 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   Map<String, DiaryTotals> _weeklyData = {};
   bool _profileBannerDismissed = false;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🍽️',
+      title: 'Öğün Ekleme',
+      description:
+          'Kahvaltı, öğle, akşam ve ara öğün eklemek için her öğünün sağ tarafındaki "+" butonuna dokun. Yemek ara, miktarı gir ve kaydet.',
+      tip: 'Sık yediğin yemekler "Son Yenenler" listesinde otomatik çıkar — hızlıca ekleyebilirsin.',
+    ),
+    GuideStep(
+      emoji: '🔢',
+      title: 'Kalori & Makro Halkaları',
+      description:
+          'Üstteki renkli halkalar günlük kalori, protein, karb ve yağ tüketimini gösterir. Halka tam dolunca o makro hedefine ulaştın demektir.',
+      tip: 'Bir halkaya dokununca detaylı gram ve yüzde bilgisini görebilirsin.',
+    ),
+    GuideStep(
+      emoji: '📷',
+      title: 'Kamera ile Tara',
+      description:
+          'Sağ alttaki kamera butonuna dokun:\n• Barkod — paketli ürünler için\n• Fotoğraf — tabaktaki yemeği AI analiz eder\n• Etiket OCR — besin tablosunu kameraya tut\nHepsi otomatik beslenmeye eklenir.',
+      tip: 'Barkod tarama en hızlı ve en doğru yöntem — süpermarket ürünlerinin büyük çoğunluğu veritabanında mevcut.',
+    ),
+    GuideStep(
+      emoji: '💧',
+      title: 'Su Takibi',
+      description:
+          'Sayfayı aşağı kaydır → Su Takibi kartını bul → bardak ikonlarına dokun veya "+" ile ml ekle. Günlük su hedefin sağ üstte gösterilir.',
+      tip: 'Günde 8 bardak (≈2000 ml) hedefle. Hedefini Profil → Ayarlar\'dan değiştirebilirsin.',
+    ),
+    GuideStep(
+      emoji: '📅',
+      title: 'Geçmiş Günlere Bak',
+      description:
+          'Üstteki tarih şeridini sola kaydır → istediğin güne git → o günkü öğün ve makroları gör. Beslenme geçmişini dilediğin zaman inceleyebilirsin.',
+      tip: 'Haftalık trendler için Araçlar sekmesi → Beslenme Trendi\'ne git.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('nutrition')) return;
+    await PageGuideService.markGuideSeen('nutrition');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     final rawWaterGoal = StorageHelper.getWaterGoalML();
     final waterGoalML = (rawWaterGoal > 0) ? rawWaterGoal : 2000;
     _waterGoalGlasses = (waterGoalML / 250).round().clamp(6, 20);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         try {
           if (_didInitialLoadAttempt) return;
@@ -57,6 +109,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           debugPrint('DietDashboardPage init hatası: $e');
         }
       }
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -167,6 +220,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
         ],
       ),
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Center(child: PageGuideButton(onTap: _showGuide)),
+        ),
         GestureDetector(
           onTap: () {
             try {
@@ -707,13 +764,13 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                   child: Row(
                     children: [
                       _miniMacro('Protein', t.totalProtein, targets.protein,
-                          const Color(0xFF5B9BFF)),
+                          const Color(0xFF5B9BFF), icon: Icons.fitness_center_rounded),
                       _macroSeparator(),
                       _miniMacro('Karb', t.totalCarb, targets.carb,
-                          const Color(0xFF4CD1A3)),
+                          const Color(0xFF4CD1A3), icon: Icons.grass_rounded),
                       _macroSeparator(),
                       _miniMacro('Yağ', t.totalFat, targets.fat,
-                          const Color(0xFFFFB74D)),
+                          const Color(0xFFFFB74D), icon: Icons.water_drop_rounded),
                       _macroSeparator(),
                       // "Detay" butonu
                       Column(
@@ -807,7 +864,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     );
   }
 
-  Widget _miniMacro(String label, double value, double target, Color color) {
+  Widget _miniMacro(String label, double value, double target, Color color, {IconData? icon}) {
     final progress = target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0;
     final remaining = (target - value).clamp(0, double.infinity);
     final isComplete = value >= target && target > 0;
@@ -863,14 +920,23 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           ),
           const SizedBox(height: 6),
           // Label
-          Text(
-            label,
-            style: GoogleFonts.dmSans(
-              fontSize: 10.5,
-              color: color,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 10, color: color),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: GoogleFonts.dmSans(
+                  fontSize: 10.5,
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 2),
           // Target info
@@ -1142,6 +1208,14 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           delay: 120,
         ),
         const SizedBox(height: 10),
+        bigCard(
+          label: 'Beslenme Rehberi',
+          sublabel: 'Hedef bazlı makro & öğün planı',
+          icon: Icons.menu_book_rounded,
+          color: const Color(0xFFFF9F0A),
+          onTap: () => navigate('nutrition_guide'),
+          delay: 150,
+        ),
         const SizedBox(height: 10),
 
         // Alt: 4 küçük araç (2x2 satır)
@@ -1202,6 +1276,15 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               color: const Color(0xFFB467FF),
               onTap: () => navigate('recipes'),
               delay: 260,
+            ),
+            const SizedBox(width: 10),
+            smallCard(
+              label: 'Diyet Sohbeti',
+              sublabel: 'AI beslenme asistanı',
+              icon: Icons.chat_bubble_outline_rounded,
+              color: const Color(0xFF5AC8FA),
+              onTap: () => navigate('diet_chat'),
+              delay: 280,
             ),
           ],
         ),

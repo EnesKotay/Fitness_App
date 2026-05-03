@@ -1,5 +1,6 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/streak_provider.dart';
 
 /// Antrenman tamamlandığında ekranda gösterilen kutlama overlay'i.
@@ -8,11 +9,18 @@ class AchievementOverlay extends StatefulWidget {
   final Color accentColor;
   final VoidCallback onDismiss;
 
+  /// Non-premium kullanıcılar için soft-upsell göstermek amacıyla.
+  /// null ise banner hiç gösterilmez.
+  final bool isPremium;
+  final VoidCallback? onUpgradeTap;
+
   const AchievementOverlay({
     super.key,
     required this.badge,
     required this.accentColor,
     required this.onDismiss,
+    this.isPremium = true,
+    this.onUpgradeTap,
   });
 
   @override
@@ -166,6 +174,11 @@ class _AchievementOverlayState extends State<AchievementOverlay>
                     ),
                     const SizedBox(height: 28),
 
+                    // ── Soft-upsell banner (sadece non-premium streak rozeti) ──
+                    if (!widget.isPremium &&
+                        widget.badge.isStreak &&
+                        widget.onUpgradeTap != null) ..._buildStreakUpsell(),
+
                     // Kapat butonu
                     SizedBox(
                       width: double.infinity,
@@ -205,6 +218,87 @@ class _AchievementOverlayState extends State<AchievementOverlay>
         ),
       ),
     );
+  }
+
+  /// Streak milestone'u kutlamasının altında gösterilen premium soft-upsell satırları.
+  List<Widget> _buildStreakUpsell() {
+    const gold = Color(0xFFEBC374);
+    final streakLabel = widget.badge.id == 'streak_30'
+        ? '30 günlük'
+        : widget.badge.id == 'streak_7'
+        ? '7 günlük'
+        : '3 günlük';
+    return [
+      const SizedBox(height: 14),
+      GestureDetector(
+        onTap: widget.onUpgradeTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                gold.withValues(alpha: 0.13),
+                gold.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: gold.withValues(alpha: 0.32)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.insights_rounded, color: gold, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$streakLabel serinle ciddi adım attın!',
+                      style: GoogleFonts.dmSans(
+                        color: gold,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Bu haftanın tam besin trend analizini\/haftalık programını Premium ile gör.',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: gold.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: gold.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'PRO',
+                  style: GoogleFonts.dmSans(
+                    color: gold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 6),
+    ];
   }
 }
 

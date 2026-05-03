@@ -1,8 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/premium_features.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/ambient_glow_background.dart';
+import '../../../../core/widgets/app_gradient_background.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/screens/premium_screen.dart';
 import '../../data/datasources/weekly_meal_plan_storage.dart';
@@ -54,6 +59,51 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
   _WeekPlan _plan = {};
   bool _loading = true;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '📅',
+      title: 'Haftalık Öğün Planın',
+      description:
+          'Bu sayfa hedefe, vücut tipine ve kalori ihtiyacına göre haftanın 7 günü için sabah, öğle ve akşam öğünlerini otomatik planlar. Kaydırarak tüm haftayı görebilirsin.',
+      tip:
+          'Plan profil bilgilerine göre oluşturulur — profili güncel tutarsan plan daha isabetli olur.',
+    ),
+    GuideStep(
+      emoji: '🔄',
+      title: 'Yeni Plan Oluştur',
+      description:
+          'Sağ üstteki yenile (↻) butonuna dokun → AI yeni bir haftalık plan oluşturur. Mevcut planı beğenmezsen istediğin zaman yenileyebilirsin.',
+      tip:
+          'Her yenilemede farklı yemekler önerilir — çeşitli beslenme için haftada 1-2 kez yenile.',
+    ),
+    GuideStep(
+      emoji: '🍽️',
+      title: 'Yemeği Takibine Ekle',
+      description:
+          'Herhangi bir öğüne dokun → detay sayfası açılır → "Ekle" butonuna bas → o yemek otomatik olarak günlük beslenme takibine eklenir.',
+      tip: 'Planı sabahları aç ve gün içindeki öğünleri buradan kolayca ekle.',
+    ),
+    GuideStep(
+      emoji: '📤',
+      title: 'Planı Paylaş',
+      description:
+          'Sağ üstteki paylaş ikonuna dokun → haftalık menüyü görsel olarak paylaşabilirsin. Diyetisyen veya arkadaşlarınla paylaşmak için kullanışlı.',
+      tip:
+          'Planı yazdırıp buzdolabına yapıştırmak alışkanlık oluşturmada çok etkili!',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('weekly_meal_plan')) return;
+    await PageGuideService.markGuideSeen('weekly_meal_plan');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +112,9 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
     _weekStart = now.subtract(Duration(days: now.weekday - 1));
     _weekStart = DateTime(_weekStart.year, _weekStart.month, _weekStart.day);
     _loadPlan();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkFirstVisitGuide();
+    });
   }
 
   Future<void> _loadPlan() async {
@@ -163,9 +216,8 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
                   onPressed: () async {
                     final picked = await _showFoodPickerSheet(ctx);
                     if (picked != null) {
-                      final defaultGrams = DietProvider.getDefaultPortionForFood(
-                        picked,
-                      );
+                      final defaultGrams =
+                          DietProvider.getDefaultPortionForFood(picked);
                       pickedFood = picked;
                       nameCtrl.text = picked.name;
                       kcalCtrl.text = picked.kcalPer100g.round().toString();
@@ -489,9 +541,8 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
                   onPressed: () async {
                     final picked = await _showFoodPickerSheet(ctx);
                     if (picked != null) {
-                      final defaultGrams = DietProvider.getDefaultPortionForFood(
-                        picked,
-                      );
+                      final defaultGrams =
+                          DietProvider.getDefaultPortionForFood(picked);
                       pickedFood = picked;
                       nameCtrl.text = picked.name;
                       kcalCtrl.text = picked.kcalPer100g.round().toString();
@@ -618,6 +669,278 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
     ),
   );
 
+  Widget _buildLockedPreviewDay({
+    required String day,
+    required List<String> meals,
+    required String calories,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                day,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF81C784).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: const Color(0xFF81C784).withValues(alpha: 0.24),
+                  ),
+                ),
+                child: Text(
+                  calories,
+                  style: const TextStyle(
+                    color: Color(0xFF81C784),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...meals.map((meal) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    margin: const EdgeInsets.only(top: 6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFBBF24),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      meal,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockedState(BuildContext context) {
+    return AppGradientBackground(
+      imagePath: 'assets/images/nutrition_bg_dark.png',
+      child: Stack(
+        children: [
+          const AmbientGlowBackground(),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 54,
+                              height: 54,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(
+                                  0xFFD97706,
+                                ).withValues(alpha: 0.14),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_month_rounded,
+                                color: Color(0xFFFBBF24),
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Haftayı senin yerine planlar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Ücretsiz planda öğünlerini tek tek takip etmeye devam edersin. Premium ise haftanın tamamını sana hazırlar.',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.62,
+                                      ),
+                                      fontSize: 12.5,
+                                      height: 1.45,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.06),
+                            ),
+                          ),
+                          child: Text(
+                            'Önizleme: AI hedef kalorini, makro dengenini ve çeşit ihtiyacını okuyup günü düşünmeden takip edebileceğin bir haftaya çevirir.',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.76),
+                              fontSize: 12.5,
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PremiumScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFBBF24),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text(
+                              'Premium ile Haftalık Planı Aç',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Örnek plan akışı',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLockedPreviewDay(
+                    day: 'Pazartesi',
+                    calories: '~1880 kcal',
+                    meals: const [
+                      'Kahvaltı: Yulaf + yoğurt + çilek',
+                      'Öğle: Tavuklu bowl + pirinç',
+                      'Akşam: Izgara köfte + salata',
+                      'Ara öğün: Kefir + badem',
+                    ],
+                  ),
+                  _buildLockedPreviewDay(
+                    day: 'Salı',
+                    calories: '~1810 kcal',
+                    meals: const [
+                      'Kahvaltı: Omlet + tam buğday ekmeği',
+                      'Öğle: Ton balıklı sandviç',
+                      'Akşam: Sebzeli makarna + yoğurt',
+                      'Ara öğün: Muz + fıstık ezmesi',
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF81C784).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFF81C784).withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Premium ile gelen fark',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          '• Her gün için hazır öğün akışı\n• Kaloriye yakın toplamlar\n• Tek dokunuşla alışveriş listesine dönüşüm',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            fontSize: 12.5,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isPremium = isPremiumTier(
@@ -631,84 +954,16 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
           backgroundColor: Colors.transparent,
           title: const Text('Haftalık Öğün Planı'),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFD97706).withValues(alpha: 0.14),
-                    ),
-                    child: const Icon(
-                      Icons.calendar_month_rounded,
-                      color: Color(0xFFFBBF24),
-                      size: 34,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Haftalık öğün planı Premium\'a özel',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Kişisel beslenme planını haftalık takvime yerleştirmek ve alışveriş listesini otomatik oluşturmak için Premium\'a geç.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.64),
-                      fontSize: 13,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBBF24),
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Premium ile Aç',
-                        style: TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        body: _buildLockedState(context),
       );
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
           'Haftalık Öğün Planı',
@@ -719,61 +974,164 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.chartGreen),
-            )
-          : CustomScrollView(
-              slivers: [
-                // ── Local-only uyarı banner'ı ──────────────────────────────
-                SliverToBoxAdapter(
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD97706).withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFFD97706).withValues(alpha: 0.30),
+      body: AppGradientBackground(
+        imagePath: 'assets/images/nutrition_bg_dark.png',
+        child: Stack(
+          children: [
+            const AmbientGlowBackground(),
+            SafeArea(
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.chartGreen,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.device_hub_rounded,
-                          color: Color(0xFFD97706),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Plan yalnızca bu cihazda saklanır, hesabınızla senkronize edilmez.',
-                            style: TextStyle(
+                    )
+                  : CustomScrollView(
+                      slivers: [
+                        // ── Local-only uyarı banner'ı ──────────────────────────────
+                        SliverToBoxAdapter(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
                               color: const Color(
                                 0xFFD97706,
-                              ).withValues(alpha: 0.9),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              ).withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFFD97706,
+                                ).withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.device_hub_rounded,
+                                  color: Color(0xFFD97706),
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Plan yalnızca bu cihazda saklanır, hesabınızla senkronize edilmez.',
+                                    style: TextStyle(
+                                      color: const Color(
+                                        0xFFD97706,
+                                      ).withValues(alpha: 0.9),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
+                        SliverToBoxAdapter(
+                          child: _buildWeeklySummaryHeader()
+                              .animate()
+                              .fadeIn(duration: 400.ms)
+                              .slideY(begin: 0.05, end: 0),
+                        ),
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => _buildDaySection(index)
+                                .animate()
+                                .fadeIn(
+                                  delay: (index * 60).ms,
+                                  duration: 400.ms,
+                                )
+                                .slideX(begin: 0.03, end: 0),
+                            childCount: 7,
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 32)),
                       ],
                     ),
-                  ),
-                ),
-                SliverToBoxAdapter(child: _buildWeeklySummaryHeader()),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildDaySection(index),
-                    childCount: 7,
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-              ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _clearDay(int dayIndex) {
+    setState(() {
+      _plan[dayIndex] = {};
+    });
+    _savePlan();
+  }
+
+  void _showCopyDayDialog(int sourceIndex) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        title: const Text(
+          'Günü Kopyala',
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Hangi güne kopyalamak istersiniz?',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(7, (targetIndex) {
+              if (targetIndex == sourceIndex) return const SizedBox.shrink();
+              return ListTile(
+                title: Text(
+                  _dayLabels[targetIndex],
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+                trailing: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.chartGreen,
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  setState(() {
+                    _plan[targetIndex] = {};
+                    _plan[sourceIndex]?.forEach((k, v) {
+                      if (v != null) {
+                        _plan[targetIndex]![k] = v.copyWith();
+                      }
+                    });
+                  });
+                  _savePlan();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${_dayLabels[sourceIndex]} planı, ${_dayLabels[targetIndex]} gününe kopyalandı.',
+                      ),
+                      backgroundColor: AppColors.chartGreen,
+                      duration: const Duration(milliseconds: 1500),
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('İptal'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -902,6 +1260,60 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
                       ),
                     ),
                   ),
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white54,
+                    size: 20,
+                  ),
+                  color: AppColors.surfaceElevated,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'copy') {
+                      _showCopyDayDialog(dayIndex);
+                    } else if (value == 'clear') {
+                      _clearDay(dayIndex);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'copy',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.copy_rounded,
+                            color: AppColors.chartGreen,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Bu günü kopyala',
+                            style: TextStyle(color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'clear',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.chartRed,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Günü temizle',
+                            style: TextStyle(color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

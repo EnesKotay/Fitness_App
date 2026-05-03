@@ -16,11 +16,15 @@ import '../../../auth/providers/auth_provider.dart';
 class ScanOptionsSheet extends StatelessWidget {
   final MealType defaultMealType;
   final VoidCallback onSearchTap;
+  // Sheet kapatıldıktan sonra kullanmak için parent context saklanır.
+  // Sheet'in kendi context'i pop sonrası unmount olur.
+  final BuildContext parentContext;
 
   const ScanOptionsSheet({
     super.key,
     required this.defaultMealType,
     required this.onSearchTap,
+    required this.parentContext,
   });
 
   static Future<void> show(
@@ -35,6 +39,7 @@ class ScanOptionsSheet extends StatelessWidget {
       builder: (_) => ScanOptionsSheet(
         defaultMealType: defaultMealType,
         onSearchTap: onSearchTap,
+        parentContext: context,
       ),
     );
   }
@@ -113,7 +118,7 @@ class ScanOptionsSheet extends StatelessWidget {
                 color: const Color(0xFF5B9BFF),
                 onTap: () {
                   Navigator.pop(context);
-                  _openBarcodeScan(context);
+                  _openBarcodeScan(parentContext);
                 },
               ),
               const SizedBox(height: 12),
@@ -129,7 +134,7 @@ class ScanOptionsSheet extends StatelessWidget {
                 isUnlocked: isPremiumUser,
                 onTap: () {
                   Navigator.pop(context);
-                  _openLabelScan(context);
+                  _openLabelScan(parentContext);
                 },
               ),
               const SizedBox(height: 12),
@@ -145,7 +150,7 @@ class ScanOptionsSheet extends StatelessWidget {
                 color: const Color(0xFFFF8A65),
                 onTap: () {
                   Navigator.pop(context);
-                  _openMealVisionScan(context);
+                  _openMealVisionScan(parentContext);
                 },
               ),
             ],

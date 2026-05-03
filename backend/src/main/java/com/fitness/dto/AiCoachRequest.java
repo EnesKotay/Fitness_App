@@ -8,8 +8,12 @@ public class AiCoachRequest {
     public String question;
     /** Optional: motivator | scientist | supportive – affects coach tone in prompt */
     public String personality;
-    /** Optional: instruction for the chosen personality (e.g. "Sen sert, disiplinli bir fitness antrenörüsün...") */
+    /** Optional: instruction for the chosen personality */
     public String personalityInstruction;
+    /** Optional: plan | nutrition | workout | recovery | analysis */
+    public String taskMode;
+    /** Optional: human-readable prompt lead for the task mode */
+    public String taskModeInstruction;
     /** Optional: last N turns of the conversation for context */
     public List<ConversationTurn> conversationHistory;
 

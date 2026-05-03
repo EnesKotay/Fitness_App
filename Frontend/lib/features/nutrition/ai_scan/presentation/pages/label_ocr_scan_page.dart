@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../../../core/services/page_guide_service.dart';
+import '../../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/services/ai_service.dart';
 import '../../../domain/entities/food_item.dart';
 import '../../../domain/entities/meal_type.dart';
+import '../../../presentation/pages/portion_add_page.dart';
 import '../../../presentation/state/diet_provider.dart';
 import '../../../services/premium_feature_gate.dart';
 import '../../domain/models/scanned_nutrition_result.dart';
@@ -36,17 +39,48 @@ class _LabelOcrScanPageState extends State<LabelOcrScanPage> {
   final _carbController = TextEditingController();
   final _fatController = TextEditingController();
 
+
+
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '📸',
+      title: 'Besin Etiketini Tara',
+      description:
+          'Ürün paketinin arkasındaki "Besin Değerleri" tablosunu kamera çerçevesine getir, tam ve net kadraja al, sonra çek butonuna dokun.',
+      tip: 'Parıltı veya gölge varsa ürünü hafifçe döndür — AI tablo sütunlarını net görüntüyle daha doğru okur.',
+    ),
+    GuideStep(
+      emoji: '✏️',
+      title: 'Değerleri Kontrol Et',
+      description:
+          'OCR ile okunan kalori, protein, karb ve yağ değerleri ekrana gelir. Hatalı okunan alanları düzeltebilirsin — sonra öğünü seç ve kaydet.',
+      tip: 'Gramaj genellikle "100 g başına" yazılır — tükettiğin miktara göre porsiyon gir.',
+    ),
+    GuideStep(
+      emoji: '💡',
+      title: 'Ne Zaman Kullanmalısın?',
+      description:
+          'Barkod veritabanında bulunmayan ürünlerde etiket tarama en iyi yöntem. Özellikle ev yapımı, yerel marka veya ithal ürünler için idealdir.',
+      tip: 'Sık tükettiğin ve barkodu olmayan ürünü kaydettikten sonra bir dahaki sefere arama ile bulabilirsin.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('label_ocr')) return;
+    await PageGuideService.markGuideSeen('label_ocr');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final allowed = await PremiumFeatureGate.ensureAccess(
-        context,
-        featureName: 'Besin etiketi tara',
-      );
-      if (!allowed && mounted) {
-        Navigator.of(context).pop();
-      }
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -140,8 +174,13 @@ class _LabelOcrScanPageState extends State<LabelOcrScanPage> {
             ? [
                 ServingUnit(
                   id: 's_label',
-                  label:
-                      '1 ${(_result?.servingUnit?.trim().isNotEmpty ?? false) ? _result!.servingUnit!.trim() : 'Porsiyon'}',
+                  label: () {
+                    final unit = _result?.servingUnit?.trim() ?? 'Porsiyon';
+                    if (unit.toLowerCase() == 'g' || unit.toLowerCase() == 'ml') {
+                      return '${_result!.servingSize!.round()} $unit';
+                    }
+                    return '1 ${unit.isNotEmpty ? unit : 'Porsiyon'}';
+                  }(),
                   grams: _result!.servingSize!,
                   isDefault: true,
                 ),
@@ -152,7 +191,17 @@ class _LabelOcrScanPageState extends State<LabelOcrScanPage> {
       final provider = context.read<DietProvider>();
       await provider.addCustomFood(food);
 
-      if (mounted) Navigator.pop(context, food);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PortionAddPage(
+            food: food,
+            selectedMealType: widget.initialMealType,
+            initialGrams: _result?.servingSize,
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

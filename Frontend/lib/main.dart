@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart' show Options;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -68,6 +69,26 @@ void main() async {
       debugPrint('IapService init hatası: $e');
     }),
   );
+
+  // Backend'i sessizce uyandır (Render cold start için).
+  // Splash ekranı gösterilirken arka planda çalışır, kullanıcıyı bekletmez.
+  unawaited(_warmUpBackend());
+}
+
+Future<void> _warmUpBackend() async {
+  try {
+    // Render free tier cold start için backend'i sessizce uyandır.
+    // ApiClient'ın varsayılan timeout'u kısa olduğundan Dio'yu doğrudan kullanıyoruz.
+    await ApiClient().dio.get(
+      '/api/auth/test',
+      options: Options(
+        sendTimeout: const Duration(seconds: 90),
+        receiveTimeout: const Duration(seconds: 90),
+      ),
+    );
+  } catch (_) {
+    // Hata sessizce yutulur — warmup başarısız olsa bile uygulama çalışır.
+  }
 }
 
 /// 401 / global navigate için kullanılan key. ApiClient'tan erişilebilir.
@@ -223,26 +244,29 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 80));
     if (!mounted) return;
 
-    // Onboarding kontrolü — giriş yapılmışsa atla (yeniden kurulum senaryosu)
-    final onboardingDone =
-        StorageHelper.getOnboardingDone() || authProvider.isAuthenticated;
-    if (onboardingDone) await StorageHelper.saveOnboardingDone(true);
-
-    if (!mounted) return;
-
-    if (!onboardingDone) {
-      Navigator.of(context).pushReplacementNamed('/onboarding');
+    if (!authProvider.isAuthenticated) {
+      Navigator.of(context).pushReplacementNamed('/login');
       return;
     }
+
+    // Eski kurulumlardan gelen onboarding durumunu authenticated kullanıcı için
+    // korunmuş kabul ediyoruz; yeni rehber artık kayıt tamamlandıktan sonra gösteriliyor.
+    if (!StorageHelper.getOnboardingDone()) {
+      await StorageHelper.saveOnboardingDone(true);
+    }
+    if (!context.mounted) return;
 
     final shouldShowProfileSetup =
         authProvider.isAuthenticated &&
         dietProvider.error == null &&
         dietProvider.profile == null;
+    final nextRoute = shouldShowProfileSetup
+        ? '/profile-setup'
+        : AppRoutes.home;
+    final navigator = appNavigatorKey.currentState;
+    if (navigator == null) return;
 
-    Navigator.of(context).pushReplacementNamed(
-      shouldShowProfileSetup ? '/profile-setup' : AppRoutes.home,
-    );
+    navigator.pushReplacementNamed(nextRoute);
   }
 
   @override

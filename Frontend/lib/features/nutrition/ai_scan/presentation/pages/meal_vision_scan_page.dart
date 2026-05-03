@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../../../../core/services/page_guide_service.dart';
+import '../../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/services/ai_service.dart';
 import '../../../domain/entities/food_item.dart';
 import '../../../domain/entities/meal_type.dart';
+import '../../../presentation/pages/portion_add_page.dart';
 import '../../../presentation/state/diet_provider.dart';
 import '../../../services/premium_feature_gate.dart';
 import '../../domain/models/scanned_meal_result.dart';
@@ -35,17 +38,48 @@ class _MealVisionScanPageState extends State<MealVisionScanPage> {
   final _carbController = TextEditingController();
   final _fatController = TextEditingController();
 
+
+
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '📸',
+      title: 'Yemeği Fotoğrafla',
+      description:
+          'Tabağındaki veya kasendeki yemeğin fotoğrafını çek ya da galeriden seç. AI yemeği tanıyıp içindeki malzemeleri ve kalori değerini tahmin eder.',
+      tip: 'Fotoğrafı yukarıdan çek, yemek net görünsün. Karanlıkta flaş kullan — doğruluk artar.',
+    ),
+    GuideStep(
+      emoji: '⚖️',
+      title: 'Porsiyon & Değerleri Düzenle',
+      description:
+          'AI\'ın tahmin ettiği besin değerlerini ve porsiyon miktarını göreceksin. Gram veya adet olarak porsiyon miktarını gerçeğe göre ayarlayabilirsin.',
+      tip: 'Tabak büyük görünüyorsa yapay zeka miktarı abartmış olabilir — elle düzelt.',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Öğüne Ekle',
+      description:
+          'Değerleri onayladıktan sonra hangi öğüne ait olduğunu seç (Kahvaltı, Öğle, Akşam, Ara Öğün) ve "Ekle" butonuna dokun. Günlük takibine anında yansır.',
+      tip: 'Bu özellik PRO üyelere açık. Ücretsiz denemelerden yararlanabilirsin.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('meal_vision')) return;
+    await PageGuideService.markGuideSeen('meal_vision');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final allowed = await PremiumFeatureGate.ensureAccess(
-        context,
-        featureName: 'Yemek fotoğrafı analizi',
-      );
-      if (!allowed && mounted) {
-        Navigator.of(context).pop();
-      }
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -150,7 +184,16 @@ class _MealVisionScanPageState extends State<MealVisionScanPage> {
       final provider = context.read<DietProvider>();
       await provider.addCustomFood(food);
 
-      if (mounted) Navigator.pop(context, food);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PortionAddPage(
+            food: food,
+            selectedMealType: widget.initialMealType,
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

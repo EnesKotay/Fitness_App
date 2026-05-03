@@ -4,32 +4,27 @@ import '../../../core/theme/app_colors.dart';
 
 const _kSupportUrl = String.fromEnvironment(
   'APP_SUPPORT_URL',
-  defaultValue: 'mailto:support@fitmentor.app?subject=FitMentor%20Destek',
+  defaultValue: 'mailto:eneskotay23@gmail.com?subject=FitMentor%20Destek',
 );
 const _kPrivacyEmail = String.fromEnvironment(
   'APP_PRIVACY_EMAIL',
-  defaultValue: 'privacy@fitmentor.app',
+  defaultValue: 'eneskotay23@gmail.com',
 );
 const _kLegalEmail = String.fromEnvironment(
   'APP_LEGAL_EMAIL',
-  defaultValue: 'legal@fitmentor.app',
+  defaultValue: 'eneskotay23@gmail.com',
 );
-// Veri sorumlusu bilgileri — Production build'de --dart-define ile override edin:
-//   --dart-define=APP_DATA_CONTROLLER_NAME="Şirket Ünvanı A.Ş."
-//   --dart-define=APP_DATA_CONTROLLER_ADDRESS="Örnek Mah. ... İstanbul"
-//   --dart-define=APP_DATA_CONTROLLER_TAX_ID="1234567890"
-// Bu sabitler App Store review sırasında UI'da görünür olmalıdır.
 const _kDataControllerName = String.fromEnvironment(
   'APP_DATA_CONTROLLER_NAME',
-  defaultValue: 'FitMentor',
+  defaultValue: 'Enes Kotay',
 );
 const _kDataControllerAddress = String.fromEnvironment(
   'APP_DATA_CONTROLLER_ADDRESS',
-  defaultValue: 'Türkiye — Tam adres için: privacy@fitmentor.app',
+  defaultValue: 'Türkiye',
 );
 const _kDataControllerTaxId = String.fromEnvironment(
   'APP_DATA_CONTROLLER_TAX_ID',
-  defaultValue: 'Tescil bilgisi için iletişim: privacy@fitmentor.app',
+  defaultValue: 'eneskotay23@gmail.com',
 );
 
 enum LegalTab { privacy, terms, kvkk }
@@ -125,7 +120,7 @@ FitMentor uygulaması ("Uygulama") aşağıdaki verileri toplar:
 Toplanan veriler yalnızca aşağıdaki amaçlarla kullanılır:
 
 • Kişiselleştirilmiş fitness ve beslenme takibi sağlamak
-• AI koç özelliğini çalıştırmak (Gemini/Claude AI)
+• AI koç özelliğini çalıştırmak (ücretsiz plan: Google Gemini; premium plan: Anthropic Claude)
 • Uygulama performansını iyileştirmek
 • Hesap güvenliğini sağlamak
 • Premium üyelik yönetimi
@@ -133,7 +128,8 @@ Toplanan veriler yalnızca aşağıdaki amaçlarla kullanılır:
           const _LegalSection('3. Veri Paylaşımı ve Yurt Dışına Aktarım (KVKK Madde 9)', """
 Verileriniz yalnızca aşağıdaki alıcılarla ve belirtilen amaçlarla paylaşılabilir:
 
-• Google LLC (ABD) — AI koç: Beslenme ve fitness analizi. Açık rıza (Md.9). Rıza geri alınırsa AI özelliği devre dışı kalır.
+• Google LLC (ABD) — AI koç (ücretsiz plan): Beslenme ve fitness analizi için Gemini API kullanılır. Açık rıza (Md.9). Rıza geri alınırsa AI özelliği devre dışı kalır.
+• Anthropic PBC (ABD) — AI koç (premium plan): Kişiselleştirilmiş koçluk için Claude API kullanılır. Açık rıza (Md.9). Yalnızca aktif premium üyeliği olan kullanıcıların verileri aktarılır.
 • Apple Inc. / Google Inc. (ABD) — Ödeme: Abonelik doğrulaması. Açık rıza (Md.9). Kart bilgisi FitMentor'da saklanmaz.
 • Open Food Facts (Fransa/AB) — Gıda DB: Yalnızca barkod numarası gönderilir; kişisel veri iletilmez.
 • Sentry (ABD) — Hata raporlama: Kilitlenme izleri ve teknik log. Meşru menfaat (Md.5/2-f). Ayarlar → Gizlilik → Hata raporları seçeneğiyle kapatılabilir.
@@ -329,7 +325,8 @@ Analitik ve hata raporlama verisi
 Yurt İçi: Veriler doğrudan FitMentor sunucu altyapısında saklanır; üçüncü taraf reklam amaçlı aktarım yapılmaz.
 
 Yurt Dışı Aktarım (KVKK Madde 9 — Açık Rıza):
-• Google LLC (ABD) — Google Gemini API: Beslenme ve fitness AI analizi için sağlık verisi aktarılır. Kayıt sırasında kullanıcının açık rızası alınmaktadır. Rıza geri alındığında AI koç özelliği devre dışı kalır.
+• Google LLC (ABD) — Google Gemini API: Ücretsiz plan kullanıcılarının beslenme ve fitness AI analizi için sağlık verisi aktarılır. Kayıt sırasında kullanıcının açık rızası alınmaktadır. Rıza geri alındığında AI koç özelliği devre dışı kalır.
+• Anthropic PBC (ABD) — Claude API: Premium plan kullanıcılarının kişiselleştirilmiş AI koçluk hizmeti için sağlık ve fitness verisi aktarılır. Yalnızca aktif premium aboneliği olan kullanıcılar için geçerlidir. Kayıt sırasında kullanıcının açık rızası alınmaktadır.
 • Apple Inc. / Google Inc. (ABD) — App Store / Google Play: Abonelik durumu ve satın alma doğrulaması. Kart veya ödeme bilgisi FitMentor tarafından işlenmez ya da saklanmaz. Kayıt sırasında kullanıcının açık rızası alınmaktadır.
 • Open Food Facts (Fransa/AB): Barkod sorgularında yalnızca ürün barkod numarası iletilmekte olup ad, e-posta veya sağlık verisi gibi kişisel veri gönderilmemektedir.
 • Sentry (ABD) — Hata raporlama: Uygulama kilitlenme izleri ve teknik log verisi. Hukuki sebep: Meşru menfaat (Md. 5/2-f). Ayarlar → Gizlilik → Hata raporları seçeneğiyle devre dışı bırakılabilir.'''),
@@ -338,7 +335,7 @@ Yurt Dışı Aktarım (KVKK Madde 9 — Açık Rıza):
 • Otomatik yöntem: Uygulama kullanımı sırasında kaydedilen teknik log verileri
 • Üçüncü taraf: App Store / Google Play abonelik durum bildirimleri'''),
           const _LegalSection('6. Otomatik Karar Verme ve Profilleme', '''
-AI koç önerileri (antrenman planı, beslenme tavsiyesi) Google Gemini tarafından otomatik olarak üretilmektedir. Bu öneriler:
+AI koç önerileri (antrenman planı, beslenme tavsiyesi) ücretsiz planda Google Gemini, premium planda Anthropic Claude tarafından otomatik olarak üretilmektedir. Bu öneriler:
 
 • Kullanıcı tarafından kabul ya da reddedilebilir
 • Hukuki sonuç veya benzer önemde bir etki doğurmaz

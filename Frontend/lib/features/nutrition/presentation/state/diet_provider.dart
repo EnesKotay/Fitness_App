@@ -684,6 +684,18 @@ class DietProvider with ChangeNotifier {
       context['mealType'] = mealType.trim();
     }
 
+    final prefs = _nutritionPreferences;
+    final activePrefs = <String>[];
+    if (prefs.vegetarian) activePrefs.add('Vegetarian');
+    if (prefs.vegan) activePrefs.add('Vegan');
+    if (prefs.lactoseFree) activePrefs.add('Lactose-Free');
+    if (prefs.glutenFree) activePrefs.add('Gluten-Free');
+    if (prefs.excludePork) activePrefs.add('Pork-Free');
+    
+    if (activePrefs.isNotEmpty) {
+      context['dietaryRestrictions'] = activePrefs;
+    }
+
     final availableIngredients = _entries
         .map((entry) => entry.foodName.trim())
         .where((name) => name.isNotEmpty)
@@ -1614,6 +1626,27 @@ class DietProvider with ChangeNotifier {
         final reasons = <String>[];
         final isRecipeSuggestion = item.id.startsWith('recipe_');
 
+        // 0. Arama sorgusu alaka düzeyi bonusu — isim eşleşmesi önce gelir
+        if (useQuery) {
+          final qn = _norm(searchQuery);
+          final nameNorm = _norm(item.name);
+          final tagNorm = _norm(item.tags.join(' '));
+          final catNorm = _norm(item.category);
+          if (nameNorm == qn) {
+            score += 350;
+            reasons.add('Aradığın yiyecekle tam eşleşme');
+          } else if (nameNorm.startsWith(qn)) {
+            score += 220;
+            reasons.add('Aradığın isimle başlıyor');
+          } else if (nameNorm.contains(qn)) {
+            score += 130;
+          } else if (tagNorm.contains(qn)) {
+            score += 75;
+          } else if (catNorm.contains(qn)) {
+            score += 45;
+          }
+        }
+
         // 1. Kategori uyumu — birincil kategorideyse büyük bonus
         final isPrimary = cats.primary.contains(item.category);
         final isExcluded = cats.excluded.contains(item.category);
@@ -1761,13 +1794,20 @@ class DietProvider with ChangeNotifier {
             break;
         }
 
-        // 9. Öğün tipine göre uyum bonusu
+        // 9. Öğün tipine göre uyum bonusu + saat bazlı ağırlık
+        final hour = DateTime.now().hour;
         switch (mealType) {
           case MealType.breakfast:
             if (item.carbPer100g >= 20) { score += 12; }
             if (item.category.contains('Süt') ||
                 item.category.contains('Kahvaltı')) { score += 10; }
             if (item.proteinPer100g >= 15) { score += 8; }
+            // Sabah saati (07-10) kahvaltı kategorisi boost
+            if (hour >= 7 && hour <= 10) {
+              if (item.category.contains('Kahvaltı') || item.category.contains('Süt')) {
+                score += 15;
+              }
+            }
             break;
           case MealType.dinner:
             if (item.kcalPer100g > 350) { score -= 18; }
@@ -1775,6 +1815,14 @@ class DietProvider with ChangeNotifier {
             if (item.category.contains('Çorba') ||
                 item.category.contains('Sebze')) { score += 8; }
             if (item.fatPer100g <= 10 && item.proteinPer100g >= 10) { score += 8; }
+            // Geç akşam (21+) ağır yiyeceklere ek ceza, hafife bonus
+            if (hour >= 21) {
+              if (item.kcalPer100g > 400) { score -= 20; }
+              if (item.kcalPer100g <= 150 && item.proteinPer100g >= 10) {
+                score += 18;
+                if (reasons.length < 3) reasons.add('Geç saatte hafif ve doyurucu');
+              }
+            }
             break;
           case MealType.snack:
             if (item.kcalPer100g > 300) { score -= 20; }
@@ -1783,7 +1831,40 @@ class DietProvider with ChangeNotifier {
                 item.category.contains('Kuruyemiş')) { score += 12; }
             break;
           case MealType.lunch:
+            // Öğle için sebze ve bakliyat bonusu
+            if (item.category.contains('Sebze') || item.category.contains('Salata')) {
+              score += 8;
+            }
             break;
+        }
+
+        // 10. Protein verimi bonusu (protein / kalori oranı)
+        if (item.kcalPer100g > 0) {
+          final proteinEfficiency = item.proteinPer100g / item.kcalPer100g * 100;
+          if (proteinEfficiency >= 40) {
+            score += 32;
+            if (reasons.length < 3) reasons.add('Kaloriye göre protein verimi çok yüksek');
+          } else if (proteinEfficiency >= 25) {
+            score += 16;
+            if (reasons.length < 3) reasons.add('Verimli protein kaynağı');
+          }
+        }
+
+        // 11. Sebze / bakliyat mikro besin bonusu (dengeli modda)
+        if (_suggestionMode == SuggestionMode.balanced) {
+          final isVeg = item.category.contains('Sebze') || item.category.contains('Salata');
+          final nameNorm = _norm(item.name);
+          final isLegume = item.category.contains('Bakliyat') ||
+              nameNorm.contains('mercimek') ||
+              nameNorm.contains('nohut') ||
+              nameNorm.contains('fasulye') ||
+              nameNorm.contains('bulgur');
+          if (isVeg || isLegume) {
+            score += 14;
+            if (reasons.length < 3 && reasons.isEmpty) {
+              reasons.add('Lif ve mikro besin açısından zengin');
+            }
+          }
         }
 
         // Snack porsiyon üst sınırını düşür
@@ -1916,86 +1997,41 @@ class DietProvider with ChangeNotifier {
   };
 
   static const Set<String> _meatTokens = {
-    'et',
-    'beef',
-    'veal',
-    'lamb',
-    'kuzu',
-    'tavuk',
-    'chicken',
-    'hindi',
-    'turkey',
-    'balik',
-    'fish',
-    'somon',
-    'ton baligi',
-    'tuna',
-    'shrimp',
-    'karides',
-    'anchovy',
-    'hamsi',
-    'meat',
+    'et', 'etli', 'kirmizi et', 'beef', 'veal', 'lamb', 'kuzu', 'kuzulu', 'dana', 'danali',
+    'tavuk', 'tavuklu', 'chicken', 'hindi', 'turkey', 'balik', 'balikli', 'fish',
+    'somon', 'ton baligi', 'tuna', 'shrimp', 'karides', 'anchovy', 'hamsi',
+    'meat', 'kofte', 'kebap', 'kavurma', 'sosis', 'sucuk', 'salam', 'pastirma', 'biftek', 'antrikot'
   };
 
   static const Set<String> _veganExtraTokens = {
-    'yumurta',
-    'egg',
-    'sut',
-    'milk',
-    'peynir',
-    'cheese',
-    'yogurt',
-    'ayran',
-    'kefir',
-    'butter',
-    'tereyagi',
-    'cream',
-    'krema',
-    'whey',
-    'bal',
-    'honey',
+    'yumurta', 'yumurtali', 'egg', 'sut', 'sutlu', 'milk', 'peynir', 'peynirli', 
+    'cheese', 'yogurt', 'yogurtlu', 'ayran', 'kefir', 'butter', 'tereyagi', 
+    'tereyagli', 'cream', 'krema', 'kremali', 'whey', 'bal', 'balli', 'honey', 
+    'sutlac', 'kasein', 'casein'
   };
 
   static const Set<String> _lactoseTokens = {
-    'sut',
-    'milk',
-    'peynir',
-    'cheese',
-    'yogurt',
-    'ayran',
-    'kefir',
-    'whey',
-    'cream',
-    'krema',
-    'tereyagi',
-    'butter',
+    'sut', 'sutlu', 'milk', 'peynir', 'peynirli', 'cheese', 'yogurt', 'yogurtlu',
+    'ayran', 'kefir', 'whey', 'cream', 'krema', 'kremali', 'tereyagi', 'tereyagli', 
+    'butter', 'sutlac', 'kasein', 'casein'
   };
 
   static const Set<String> _glutenTokens = {
-    'bugday',
-    'wheat',
-    'arpa',
-    'barley',
-    'cavdar',
-    'rye',
-    'bulgur',
-    'makarna',
-    'pasta',
-    'bread',
-    'ekmek',
-    'lavas',
-    'lavash',
-    'durum',
-    'wrap',
-    'noodle',
-    'sehriye',
+    'bugday', 'wheat', 'arpa', 'barley', 'cavdar', 'rye', 'bulgur', 'makarna',
+    'pasta', 'bread', 'ekmek', 'lavas', 'lavash', 'durum', 'wrap', 'noodle',
+    'sehriye', 'un', 'unlu', 'borek', 'pogaca', 'simit', 'kraker', 'biskuvi',
+    'kek', 'kurabiye', 'pizza', 'pide', 'lahmacun', 'waffle', 'krep', 'pancake',
+    'kruvasan', 'tart', 'gevrek', 'galeta', 'manti', 'eriste'
   };
 
   bool _matchesNutritionPreferences(FoodItem item) {
     final prefs = _nutritionPreferences;
-    if (!prefs.hasAnyFilter) return true;
+    if (!prefs.hasAnyFilter && !prefs.excludePork) return true;
     final haystack =
         ' ${_norm([item.name, item.category, ...item.aliases, ...item.tags].join(' '))} ';
+
+    // Etsiz veya vegan/bitkisel olarak isimlendirilmiş ürünler için basit bayrak
+    final isEtsizOrVegan = haystack.contains(' etsiz ') || haystack.contains(' vegan ') || haystack.contains(' bitkisel ');
 
     bool containsAny(Set<String> tokens) {
       for (final token in tokens) {
@@ -2007,15 +2043,24 @@ class DietProvider with ChangeNotifier {
     }
 
     if (prefs.excludePork && containsAny(_porkTokens)) return false;
-    if (prefs.vegetarian && containsAny(_meatTokens.union(_porkTokens))) {
+    
+    if (prefs.vegetarian && !isEtsizOrVegan && containsAny(_meatTokens.union(_porkTokens))) {
       return false;
     }
-    if (prefs.vegan &&
+    
+    if (prefs.vegan && !isEtsizOrVegan &&
         containsAny(_meatTokens.union(_porkTokens).union(_veganExtraTokens))) {
       return false;
     }
-    if (prefs.lactoseFree && containsAny(_lactoseTokens)) return false;
-    if (prefs.glutenFree && containsAny(_glutenTokens)) return false;
+    
+    if (prefs.lactoseFree && !haystack.contains(' laktozsuz ') && containsAny(_lactoseTokens)) {
+      return false;
+    }
+    
+    if (prefs.glutenFree && !haystack.contains(' glutensiz ') && containsAny(_glutenTokens)) {
+      return false;
+    }
+    
     return true;
   }
 

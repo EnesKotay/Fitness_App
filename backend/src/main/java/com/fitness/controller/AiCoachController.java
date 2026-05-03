@@ -92,6 +92,10 @@ public class AiCoachController {
             }
 
             AiCoachResponse response = geminiCoachService.generateCoachResponse(userId, request);
+            // Populate server-side quota so frontend stays in sync
+            if (!isPremium) {
+                response.remainingFreeRequests = entitlementService.remainingFreeCoachRequests(userId);
+            }
             logResult("ok", userId, startNs);
             return Response.ok(response).build();
         } catch (ForbiddenException e) {
@@ -163,8 +167,11 @@ public class AiCoachController {
                           @RestForm("image") FileUpload image,
                           @RestForm("question") String question,
                           @RestForm("goal") String goal,
+                          @RestForm("taskMode") String taskMode,
+                          @RestForm("taskModeInstruction") String taskModeInstruction,
                           @RestForm("personality") String personality,
                           @RestForm("personalityInstruction") String personalityInstruction,
+                          @RestForm("conversationHistory") String conversationHistoryJson,
                           @RestForm("dailySummary") String dailySummaryJson) {
         long startNs = System.nanoTime();
         Long userId = null;
@@ -196,8 +203,21 @@ public class AiCoachController {
             AiCoachRequest request = new AiCoachRequest();
             request.question = question;
             request.goal = goal;
+            request.taskMode = taskMode;
+            request.taskModeInstruction = taskModeInstruction;
             request.personality = personality;
             request.personalityInstruction = personalityInstruction;
+
+            if (conversationHistoryJson != null && !conversationHistoryJson.isBlank()) {
+                try {
+                    request.conversationHistory = objectMapper.readValue(
+                        conversationHistoryJson,
+                        objectMapper.getTypeFactory().constructCollectionType(
+                            java.util.List.class, AiCoachRequest.ConversationTurn.class));
+                } catch (JsonProcessingException e) {
+                    LOG.warnf("Vision: invalid conversationHistory JSON userId=%s", userId);
+                }
+            }
 
             if (dailySummaryJson != null && !dailySummaryJson.isBlank()) {
                 try {

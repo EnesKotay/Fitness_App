@@ -23,6 +23,9 @@ import '../../workout/providers/workout_provider.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../auth/screens/legal_screen.dart';
+import '../../../core/services/page_guide_service.dart';
+import '../../../core/widgets/page_guide_overlay.dart';
+import '../../../core/widgets/page_guide_button.dart';
 
 class AiCoachScreen extends StatelessWidget {
   const AiCoachScreen({super.key, this.initialSummary});
@@ -30,8 +33,10 @@ class AiCoachScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userId = context.read<AuthProvider?>()?.user?.id;
     return ChangeNotifierProvider<AiCoachController>(
-      create: (_) => AiCoachController(initialSummary: initialSummary),
+      create: (_) =>
+          AiCoachController(initialSummary: initialSummary, userId: userId),
       child: const AiCoachScreenBody(),
     );
   }
@@ -55,18 +60,75 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   int _remainingFreePrompts = AiCoachUsageService.freeDailyPromptLimit;
   AiCoachController? _aiController;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🤖',
+      title: 'AI Antrenörüne Hoş Geldin',
+      description:
+          'Bu ekranda Gemini tabanlı kişisel AI antrenörünle sohbet edebilirsin. Beslenme, antrenman, kilo yönetimi ve günlük plan konularında uzman rehberlik alırsın.',
+      tip:
+          'Alt kısımdaki yazı kutusuna yaz ve gönder — AI hem Türkçe hem İngilizce anlıyor.',
+    ),
+    GuideStep(
+      emoji: '💬',
+      title: 'Ne Sorabilirsin?',
+      description:
+          'Örnek sorular:\n• "Bugün ne yemem gerekiyor?"\n• "Göbek yağını eritecek antrenman planı ver"\n• "2000 kaloride yüksek protein menü öner"\n• "Motivasyonum düştü, ne yapayım?"',
+      tip:
+          'Ne kadar özel soru sorarsan o kadar kişisel cevap alırsın — boy, kilo ve hedefini de belirt.',
+    ),
+    GuideStep(
+      emoji: '📊',
+      title: 'Günlük Analizini Al',
+      description:
+          '"Bugünkü özetimi ver" veya "Bugün nasılım?" yaz → AI kalori, protein, su ve antrenman verilerini analiz edip değerlendirme yapar.',
+      tip:
+          'Sabah ve akşam birer kez özet alarak günü kapatmak iyi bir rutin oluşturur.',
+    ),
+    GuideStep(
+      emoji: '📷',
+      title: 'Fotoğraf Gönder',
+      description:
+          'Kamera ikonuna dokun → yemek tabağının fotoğrafını çek veya gönder → AI içindekileri tahmin edip kalori ve makro değerlerini verir.',
+      tip:
+          'Fotoğraf net ve iyi aydınlatılmış olsun — tahmin doğruluğu dramatik şekilde artar.',
+    ),
+    GuideStep(
+      emoji: '🔁',
+      title: 'Sohbet Bağlamı',
+      description:
+          'Önceki mesajlardan bağımsız olarak devam edebilirsin — "az önce verdiğin planda kaloriyi düşür" gibi bağlamlı cümleler kullanabilirsin.',
+      tip:
+          'Günlük ücretsiz kullanım hakkın var. Premium ile sınırsız sohbet ve gelişmiş analizler açılır.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('ai_coach')) return;
+    await PageGuideService.markGuideSeen('ai_coach');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadAccessState();
       if (mounted) {
         _aiController = context.read<AiCoachController>();
         _aiController!.addListener(_onAiControllerUpdate);
+        // Restore previous session messages
+        await _aiController!.restoreSession();
       }
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -116,6 +178,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
 
     _syncUserData();
 
+    // Use local count only as a bootstrap; server count takes over after first response.
     final remaining = isPremium
         ? AiCoachUsageService.freeDailyPromptLimit
         : (user != null
@@ -125,7 +188,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     if (mounted) {
       setState(() {
         _isPremium = isPremium;
-        _remainingFreePrompts = remaining;
+        // Prefer controller's server-backed count if already available
+        final serverCount = context
+            .read<AiCoachController?>()
+            ?.serverRemainingFreePrompts;
+        _remainingFreePrompts = serverCount ?? remaining;
       });
     }
   }
@@ -197,16 +264,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
 
     controller.setDailySummary(
       DailySummary(
-        steps: 0,
+        steps: null, // app does not track steps
         calories: calories,
         waterLiters: diet.waterLiters,
-        sleepHours: 0.0,
+        sleepHours: null, // app does not track sleep
         workouts: todayWorkouts.length,
         workoutMinutes: workoutMinutes,
         workoutHighlights: highlights,
         avgCaloriesLast7Days: avgCalories,
         avgWaterLast7Days: avgWater,
-        avgStepsLast7Days: 0,
+        avgStepsLast7Days: null, // app does not track steps
         targetCalories: diet.dailyTargetKcal?.round(),
         currentWeightKg: diet.profile?.weight,
         targetWeightKg: diet.profile?.targetWeight,
@@ -229,6 +296,287 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     if (diet.profile != null) {
       controller.setGoal(diet.profile!.goal);
     }
+  }
+
+  void _showFreeLimitSheet() {
+    final controller = context.read<AiCoachController>();
+    final teaser = _buildLimitTeaser(controller);
+    final nextStep = _buildLimitNextStep(controller);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111318),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: _brandGold.withValues(alpha: 0.25),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _brandGold.withValues(alpha: 0.12),
+                blurRadius: 40,
+                spreadRadius: -8,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // İkon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _brandGold.withValues(alpha: 0.12),
+                  border: Border.all(
+                    color: _brandGold.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.hourglass_bottom_rounded,
+                  color: _brandGold,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Günlük hakkın doldu',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Ücretsiz planda bugünkü 2 sorunu kullandın.\nYarın Gemini hakkın sıfırlanır, Premium\'da ise Claude ile sınırsız devam edersin.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF151B24),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.insights_rounded,
+                          color: Color(0xFF73D4FF),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Şu anki verin ne söylüyor?',
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      teaser,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.74),
+                        fontSize: 12.5,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      nextStep,
+                      style: GoogleFonts.dmSans(
+                        color: _brandGold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              // Premium avantajları
+              _LimitSheetFeature(
+                icon: Icons.smart_toy_rounded,
+                label: 'Claude ile daha derin ve sınırsız koçluk',
+                color: _brandGold,
+              ),
+              const SizedBox(height: 10),
+              _LimitSheetFeature(
+                icon: Icons.insights_rounded,
+                label: 'Verilerini plana dönüştüren gelişmiş analiz',
+                color: const Color(0xFF64B5F6),
+              ),
+              const SizedBox(height: 10),
+              _LimitSheetFeature(
+                icon: Icons.restaurant_menu_rounded,
+                label: 'Hazır öğün planı ve otomatik alışveriş listesi',
+                color: const Color(0xFF81C784),
+              ),
+              const SizedBox(height: 24),
+              // Premium butonu
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFBBF24), Color(0xFFD97706)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _brandGold.withValues(alpha: 0.35),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const PremiumScreen(),
+                          ),
+                        );
+                      },
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.lock_open_rounded,
+                              size: 17,
+                              color: Color(0xFF1A0F00),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Premium\'a Geç — Sınırsız Kullan',
+                              style: GoogleFonts.dmSans(
+                                color: const Color(0xFF1A0F00),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // Yarın devam et butonu
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  'Yarın devam edeceğim',
+                  style: GoogleFonts.dmSans(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _buildLimitTeaser(AiCoachController controller) {
+    final s = controller.dailySummary;
+    final parts = <String>[];
+
+    if (s.targetCalories != null && s.calories > 0) {
+      final diff = s.targetCalories! - s.calories;
+      if (diff > 150) {
+        parts.add('Bugün kalori hedefinin yaklaşık $diff kcal altındasın.');
+      } else if (diff < -150) {
+        parts.add('Bugün hedefini yaklaşık ${diff.abs()} kcal aşmış görünüyorsun.');
+      } else {
+        parts.add('Bugün kalori hedefine oldukça yakınsın.');
+      }
+    } else if (s.calories > 0) {
+      parts.add('Bugün ${s.calories} kcal kayıt girdin.');
+    }
+
+    if (s.proteinGrams != null && s.proteinGrams! > 0) {
+      parts.add('Protein alımın ${s.proteinGrams} g seviyesinde.');
+    }
+
+    if (s.waterLiters > 0) {
+      parts.add('${s.waterLiters.toStringAsFixed(1)} L su içtin.');
+    }
+
+    if (s.workouts > 0) {
+      parts.add('${s.workouts} antrenman kaydın var.');
+    }
+
+    if (parts.isEmpty) {
+      return 'Bugün henüz pek veri girmemişsin. Premium ile Claude, hedefin olan ${controller.goal.label.toLowerCase()} için doğrudan bir adım planı çizebilirdi.';
+    }
+
+    return parts.take(2).join(' ');
+  }
+
+  String _buildLimitNextStep(AiCoachController controller) {
+    final s = controller.dailySummary;
+    String claudeQuote = '';
+
+    if (s.targetCalories != null && s.calories > 0) {
+      final diff = s.targetCalories! - s.calories;
+      if (diff > 150) {
+        claudeQuote = '«Kalori açığın güzel ama kas kaybını önlemek için şu an ${diff} kalorilik yüksek proteinli şu öğünü eklemelisin...»';
+      } else if (diff < -150) {
+        claudeQuote = '«Hedefi biraz aştık. Yarınki kardiyoyu 15 dk uzatıp ilk öğünde karbonhidratı kısarak bunu hızla dengeleyelim...»';
+      } else {
+        claudeQuote = '«Tam hedeftesin. Yarın bu dengeyi korumak için sana şu 3 öğünlük makro planını hazırladım...»';
+      }
+    } else if (s.workouts > 0) {
+      claudeQuote = '«Bugünkü idman yüküne göre yarınki dinlenme stratejin böyle olmalı. Toparlanmayı hızlandıracak rutinin şudur...»';
+    } else if (s.mealNames.isNotEmpty) {
+      claudeQuote = '«Bugün yediklerine baktığımda protein dağılımında şu eksik var, yarınki öğününe doğrudan şunu ekleyelim...»';
+    } else {
+      claudeQuote = '«Hedefine ulaşman için yarın sabah kalktığında uygulaman gereken ilk 3 adım şunlar...»';
+    }
+
+    return 'Premium açık olsaydı, Claude sana şu an muhtemelen şunu derdi:\n\n$claudeQuote';
   }
 
   void _scrollToBottom() {
@@ -280,9 +628,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     }
 
     if (!_isPremium && _remainingFreePrompts <= 0) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()));
+      _showFreeLimitSheet();
       return;
     }
 
@@ -551,6 +897,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
         },
       ),
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Center(child: PageGuideButton(onTap: _showGuide)),
+        ),
         IconButton(
           icon: Consumer<NotificationService>(
             builder: (context, ns, _) => Badge(
@@ -949,7 +1299,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   }
 
   Widget _buildIntroCard(AiCoachController controller) {
-    final modelLabel = _isPremium ? 'Claude Sonnet' : 'Gemini Flash';
+    final modelLabel = _isPremium ? 'Claude' : 'Gemini Flash';
     final modelColor = _isPremium
         ? const Color(0xFFEBC374)
         : const Color(0xFF73D4FF);
@@ -1446,7 +1796,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Son ücretsiz hakkın kaldı. PRO\'ya geç — sınırsız kullan.',
+                              'Son ücretsiz Gemini hakkın kaldı. Premium ile Claude tarafında sınırsız ve daha derin devam edersin.',
                               style: GoogleFonts.dmSans(
                                 color: const Color(0xFFEBC374),
                                 fontSize: 11,
@@ -2207,4 +2557,49 @@ class _CoachBackdropPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _LimitSheetFeature extends StatelessWidget {
+  const _LimitSheetFeature({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Icon(
+          Icons.check_circle_rounded,
+          size: 16,
+          color: color.withValues(alpha: 0.7),
+        ),
+      ],
+    );
+  }
 }

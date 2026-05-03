@@ -29,6 +29,9 @@ import '../widgets/add_measurement_sheet.dart';
 import '../widgets/ai_coach_insight_sheet.dart';
 import '../widgets/measurement_trend_chart.dart';
 import '../../../core/models/body_measurement.dart';
+import '../../../core/services/page_guide_service.dart';
+import '../../../core/widgets/page_guide_overlay.dart';
+import '../../../core/widgets/page_guide_button.dart';
 
 /// Takip sayfası: kilo girişi, özet, grafik, ısı haritası, geçmiş. Baştan tasarlandı.
 class TrackingScreen extends StatefulWidget {
@@ -51,10 +54,52 @@ class _TrackingScreenState extends State<TrackingScreen> {
     super.dispose();
   }
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '📊',
+      title: 'Kilo Grafiği',
+      description:
+          'Kilonun zaman içindeki değişimini grafik üzerinde takip edersin. Üstteki butonlardan 7G, 1A, 3A, 1Y ve Tümü arasında geçiş yap.',
+      tip: 'Grafik çizgisi düz → istikrar, inen → yağ kaybı, çıkan → hacim dönemi.',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Kilo Girdisi Ekle',
+      description:
+          'Sağ üstteki "+" butonuna dokun → kilonu gir → Kaydet. Sabah aç karnına ölçüm en tutarlı sonucu verir.',
+      tip: 'Her gün aynı saatte ölç. Günlük dalgalanmalar normal — haftalık ortalamaya bak.',
+    ),
+    GuideStep(
+      emoji: '📏',
+      title: 'Vücut Ölçüleri',
+      description:
+          'Sayfayı aşağı kaydır → "Vücut Ölçüleri" bölümüne ulaş → bel, kalça, göğüs, kol ölçülerini gir. Sadece kiloya bakma!',
+      tip: 'Özellikle antrenman yapıyorsan kas gelişimini ölçülerle takip etmek daha doğru.',
+    ),
+    GuideStep(
+      emoji: '🔥',
+      title: 'Aktivite Isı Haritası',
+      description:
+          'Alt kısımda gün başına aktivite haritası var. Koyu yeşil = aktif gün. Tutarlı kaldıkça harita renklenir!',
+      tip: 'Haftada en az 3 aktif gün hedefle. Renklenen kutular motivasyonunu artırır.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('tracking')) return;
+    await PageGuideService.markGuideSeen('tracking');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final dietProvider = Provider.of<DietProvider>(context, listen: false);
       final weightProvider = Provider.of<WeightProvider>(
@@ -77,6 +122,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       } else {
         context.read<TrackingProvider>().reset();
       }
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -110,6 +156,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
       elevation: 0,
       centerTitle: false,
       actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Center(child: PageGuideButton(onTap: _showGuide)),
+        ),
         Selector<WeightProvider, WeightEntry?>(
           selector: (_, p) => p.latestEntry,
           builder: (_, latest, child) {
@@ -2005,9 +2055,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/fitmentor_progress.png');
       await file.writeAsBytes(image);
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'FitMentor ile ilerleme kaydediyorum! 💪 #FitMentor #Fitness');
+      final box = currentContext.findRenderObject() as RenderBox?;
+      if (box != null) {
+        await Share.shareXFiles([
+          XFile(file.path),
+        ], text: 'FitMentor ile ilerleme kaydediyorum! 💪 #FitMentor #Fitness', sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size);
+      } else {
+        await Share.shareXFiles([
+          XFile(file.path),
+        ], text: 'FitMentor ile ilerleme kaydediyorum! 💪 #FitMentor #Fitness');
+      }
     } catch (e) {
       debugPrint('Share error: $e');
       if (currentContext.mounted) {

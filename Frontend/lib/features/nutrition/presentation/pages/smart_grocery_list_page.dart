@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -51,6 +53,7 @@ class SmartGroceryListPage extends StatefulWidget {
   });
 
   final List<String> seedItems;
+
   /// Structured grocery items passed directly (e.g. from a recipe).
   /// When non-empty, takes precedence over [seedItems].
   final List<GroceryItem> seedGroceryItems;
@@ -90,12 +93,57 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     return localTier == 'premium' || _isPremium;
   }
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🛒',
+      title: 'Akıllı Market Listesi',
+      description:
+          'Bu sayfa haftalık beslenme planına göre ihtiyaç duyduğun malzemeleri otomatik listeler. Markete gitmeden önce listeyi aç, alışverişi listeye göre yap.',
+      tip: 'Liste haftalık plan güncellendiğinde otomatik yenilenir.',
+    ),
+    GuideStep(
+      emoji: '✅',
+      title: 'Öğeleri İşaretle',
+      description:
+          'Aldığın ürünün üzerine dokun veya yanındaki çembere bas → yeşil çentik ile "alındı" olarak işaretlenir. İşaretliler listenin altına kayar, alınmayanlar üstte kalır.',
+      tip: 'Alışveriş bitmeden listeyi kapatsan bile işaretler kaybolmaz.',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Manuel Ürün Ekle',
+      description:
+          'Listede olmayan bir ürüne ihtiyaç duyarsan alt kısımdaki arama kutusuna yaz ve "Ekle" butonuna bas. Spor takviyesi veya baharat gibi plan dışı ürünler için kullan.',
+      tip:
+          'Kendi alışveriş rutinini oluşturmak için sık aldığın ürünleri listeye ekleyebilirsin.',
+    ),
+    GuideStep(
+      emoji: '📤',
+      title: 'Listeyi Paylaş',
+      description:
+          'Sağ üstteki paylaş butonuna dokun → listeyi metin olarak kopyala veya mesaj uygulamasıyla gönder. Birini markete gönderirken veya evde liste hazırlarken idealdir.',
+      tip:
+          'Paylaşılan liste sade metin formatındadır — WhatsApp ve not uygulamalarında çalışır.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('grocery_list')) return;
+    await PageGuideService.markGuideSeen('grocery_list');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadInitialList();
       _checkPremiumAndFetch();
+      await _checkFirstVisitGuide();
     });
   }
 
@@ -148,6 +196,8 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         );
         _reason = StorageHelper.getSmartGroceryReason();
         _lastUpdatedLabel = StorageHelper.getSmartGroceryUpdatedAt();
+        _checkedItems.clear();
+        _checkedItems.addAll(StorageHelper.getSmartGroceryCheckedItems());
         _loadedFromCache = true;
       });
       return;
@@ -163,6 +213,8 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
       );
       _reason = StorageHelper.getSmartGroceryReason();
       _lastUpdatedLabel = StorageHelper.getSmartGroceryUpdatedAt();
+      _checkedItems.clear();
+      _checkedItems.addAll(StorageHelper.getSmartGroceryCheckedItems());
       _loadedFromCache = true;
     });
   }
@@ -192,6 +244,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
       if (mounted) setState(() => _isCheckingPremium = false);
       if (mounted &&
           !_isLoading &&
+          !_loadedFromCache &&
           widget.seedItems.isEmpty &&
           widget.seedGroceryItems.isEmpty &&
           _hasPremiumAccess) {
@@ -606,7 +659,15 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
 
   Future<void> _shareList() async {
     try {
-      await Share.share(_buildShareText());
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null) {
+        await Share.share(
+          _buildShareText(),
+          sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+        );
+      } else {
+        await Share.share(_buildShareText());
+      }
     } catch (_) {
       await _copyList();
     }
@@ -1086,6 +1147,9 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
                           } else {
                             _checkedItems.remove(item.normalizedName);
                           }
+                          StorageHelper.saveSmartGroceryCheckedItems(
+                            _checkedItems.toList(),
+                          );
                         });
                       },
                     ),
@@ -1187,7 +1251,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
   Widget _buildLockedState() {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Center(
+      child: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -1196,40 +1260,141 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFD97706).withValues(alpha: 0.14),
-                ),
-                child: const Icon(
-                  Icons.shopping_cart_rounded,
-                  color: Color(0xFFFBBF24),
-                  size: 34,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFD97706).withValues(alpha: 0.14),
+                    ),
+                    child: const Icon(
+                      Icons.shopping_cart_rounded,
+                      color: Color(0xFFFBBF24),
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Alışverişi otomatik toparlar',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ücretsiz planda öğünlerini takip etmeye devam edersin. Premium, o kayıtları market listesine ve yeni yemek fikirlerine dönüştürür.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.64),
+                            fontSize: 12.5,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Akıllı alışveriş listesi Premium\'a özel',
-                textAlign: TextAlign.center,
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Önizleme: Otomatik market listesi',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLockedPreviewGroup(
+                      title: 'Protein',
+                      icon: Icons.set_meal_rounded,
+                      items: const ['Tavuk göğsü', 'Yumurta', 'Süzme yoğurt'],
+                    ),
+                    const SizedBox(height: 10),
+                    _buildLockedPreviewGroup(
+                      title: 'Sebze & Karbonhidrat',
+                      icon: Icons.eco_rounded,
+                      items: const ['Brokoli', 'Pirinç', 'Tam buğday tortilla'],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF81C784).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: const Color(0xFF81C784).withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFF81C784),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Premium ile liste haftalık plana göre kendiliğinden dolar, eksik kalan ürünler fark edilir ve yanına uygun yemek fikirleri gelir.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.74),
+                          fontSize: 12.5,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Ne kazanırsın?',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withValues(alpha: 0.88),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
-                'Haftalık öğün planından otomatik liste üretmek ve AI yemek fikirleri görmek için Premium\'a geç.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.64),
-                  fontSize: 13,
-                  height: 1.5,
-                ),
+              const _LockedBenefitPoint(
+                icon: Icons.timer_rounded,
+                text: 'Tek tek düşünmeden haftalık marketini hazır görürsün.',
+              ),
+              const SizedBox(height: 8),
+              const _LockedBenefitPoint(
+                icon: Icons.restaurant_menu_rounded,
+                text: 'Planındaki yemeklerden otomatik ürün çıkarılır.',
+              ),
+              const SizedBox(height: 8),
+              const _LockedBenefitPoint(
+                icon: Icons.lightbulb_outline_rounded,
+                text: 'Aynı malzemeyle yeni öğün fikirleri alırsın.',
               ),
               const SizedBox(height: 18),
               SizedBox(
@@ -1246,7 +1411,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text(
-                    'Premium ile Aç',
+                    'Premium ile Listeyi Aç',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -1254,6 +1419,68 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
             ],
           ),
         ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.05),
+      ),
+    );
+  }
+
+  Widget _buildLockedPreviewGroup({
+    required String title,
+    required IconData icon,
+    required List<String> items,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: const Color(0xFFFBBF24), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: items.map((item) {
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: const Color(0xFFFBBF24).withValues(alpha: 0.16),
+                  ),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.74),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
@@ -1291,7 +1518,9 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: _isLoading || !isPremiumAccess ? null : _fetchGroceryList,
+            onPressed: _isLoading || !isPremiumAccess
+                ? null
+                : _fetchGroceryList,
           ),
         ],
       ),
@@ -1438,6 +1667,129 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddCustomItemDialog,
+        backgroundColor: AppColors.secondary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Ürün Ekle',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAddCustomItemDialog() async {
+    final ctrl = TextEditingController();
+    final added = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        title: const Text(
+          'Yeni Ürün Ekle',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Örn: Süt, Yumurta...',
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.secondary),
+            ),
+          ),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('Ekle'),
+          ),
+        ],
+      ),
+    );
+
+    if (added != null && added.trim().isNotEmpty && mounted) {
+      final name = added.trim();
+      final newItem = GroceryItem(
+        name: name,
+        normalizedName: name.toLowerCase(),
+        category: 'Ekstra ve Atistirmaliklar',
+        totalGrams: 0,
+        quantityLabel: null,
+        linkedMeals: const ['Kendi eklediğim'],
+        source: 'manual',
+      );
+      setState(() {
+        _groceryList.add(newItem);
+      });
+      await _persistGroceryState(_groceryList, _reason, _mealIdeas);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name listeye eklendi.'),
+          backgroundColor: AppColors.chartGreen,
+        ),
+      );
+    }
+  }
+}
+
+class _LockedBenefitPoint extends StatelessWidget {
+  const _LockedBenefitPoint({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Icon(icon, color: const Color(0xFFFBBF24), size: 15),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

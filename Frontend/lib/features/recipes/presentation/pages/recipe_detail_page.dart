@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/ambient_glow_background.dart';
+import '../../../../core/widgets/app_gradient_background.dart';
 import '../../domain/entities/recipe.dart';
 import '../state/recipe_provider.dart';
 import '../../../nutrition/presentation/state/diet_provider.dart';
@@ -275,11 +277,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         final similar = recipeProvider.similarTo(recipe);
 
         return Scaffold(
-          backgroundColor: const Color(0xFF08090C),
-          body: Stack(
-            children: [
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
+          backgroundColor: AppColors.background,
+          extendBodyBehindAppBar: true,
+          body: AppGradientBackground(
+            imagePath: 'assets/images/nutrition_bg_dark.png',
+            child: Stack(
+              children: [
+                const AmbientGlowBackground(),
+                CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
                 slivers: [
                   _buildHeroSliver(
                     context,
@@ -350,6 +356,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: _buildBottomBar(color, bottomPad),
               ),
             ],
+          ),
           ),
         );
       },
@@ -493,7 +500,12 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   final text = 'Harika bir tarif buldum: ${recipe.name}! 🍲\n\n'
                       'Sadece ${recipe.kcalPerServing.toInt()} kcal ve ${recipe.proteinPerServing.toInt()}g protein içeriyor.\n\n'
                       'Hemen FitMentor\'da dene!';
-                  Share.share(text);
+                  final box = context.findRenderObject() as RenderBox?;
+                  if (box != null) {
+                    Share.share(text, sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size);
+                  } else {
+                    Share.share(text);
+                  }
                 },
                 child: _GlassButton(
                   child: const Icon(

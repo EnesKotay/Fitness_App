@@ -9,7 +9,8 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/constants/premium_features.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../features/nutrition/ai_scan/presentation/pages/meal_vision_scan_page.dart';
-import '../../../features/nutrition/domain/entities/meal_type.dart' show MealType;
+import '../../../features/nutrition/domain/entities/meal_type.dart'
+    show MealType;
 import '../../../features/nutrition/presentation/pages/nutrition_trends_page.dart';
 import '../../../features/nutrition/presentation/pages/smart_grocery_list_page.dart';
 import '../../../features/nutrition/presentation/pages/weekly_meal_plan_page.dart';
@@ -44,7 +45,9 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF111827),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             'Aboneliği İptal Et',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
@@ -54,18 +57,26 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
             'İptal etmek için:\n'
             'Ayarlar → Apple ID adın → Abonelikler → FitMentor\n\n'
             'İptal edene kadar mevcut dönem sonunda otomatik yenilenir.',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.75), height: 1.5),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.75),
+              height: 1.5,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Tamam', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Tamam',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD97706),
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: () {
                 Navigator.pop(ctx);
@@ -92,18 +103,27 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
         content: Text(
           'Otomatik yenileme kapatılacak. Premium erişimin mevcut dönem sonuna kadar devam eder. '
           'Google Play faturalamasını durdurmak için Play Store abonelikler sayfasından da iptal et.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), height: 1.45),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            height: 1.45,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Vazgeç', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Vazgeç',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text(
               'Devam Et',
-              style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -124,7 +144,12 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
         );
       }
     } catch (_) {
-      if (mounted) _showSnack('İptal işlemi başarısız oldu. Lütfen tekrar dene.', isError: true);
+      if (mounted) {
+        _showSnack(
+          'İptal işlemi başarısız oldu. Lütfen tekrar dene.',
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _cancelLoading = false);
     }
@@ -132,9 +157,11 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
 
   Future<void> _openManageSubscriptions() async {
     final isIos = Platform.isIOS;
-    final uri = Uri.parse(isIos
-        ? 'https://apps.apple.com/account/subscriptions'
-        : 'https://play.google.com/store/account/subscriptions');
+    final uri = Uri.parse(
+      isIos
+          ? 'https://apps.apple.com/account/subscriptions'
+          : 'https://play.google.com/store/account/subscriptions',
+    );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -178,11 +205,19 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.workspace_premium_rounded, color: _goldLight, size: 18),
+            const Icon(
+              Icons.workspace_premium_rounded,
+              color: _goldLight,
+              size: 18,
+            ),
             const SizedBox(width: 6),
             const Text(
               'PRO Menü',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 17,
+              ),
             ),
           ],
         ),
@@ -191,12 +226,17 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
       body: Stack(
         children: [
           Positioned(
-            top: -80, left: -60,
+            top: -80,
+            left: -60,
             child: _GlowOrb(color: _gold.withValues(alpha: 0.18), size: 280),
           ),
           Positioned(
-            bottom: 80, right: -80,
-            child: _GlowOrb(color: const Color(0xFF7C3AED).withValues(alpha: 0.13), size: 240),
+            bottom: 80,
+            right: -80,
+            child: _GlowOrb(
+              color: const Color(0xFF7C3AED).withValues(alpha: 0.13),
+              size: 240,
+            ),
           ),
           SafeArea(
             child: CustomScrollView(
@@ -211,21 +251,26 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                         // ── Üyelik Kartı (Yönet) ───────────────────────────
                         if (isPremium) ...[
                           _MembershipCard(
-                            plan: plan,
-                            expiresAt: expiresAt,
-                            daysLeft: daysLeft,
-                            cancelAtEnd: cancelAtEnd,
-                            isMonthly: isMonthly,
-                            cancelLoading: _cancelLoading,
-                            onCancel: _cancelMembership,
-                            onManage: _openManageSubscriptions,
-                            onUpgrade: () {
-                              Navigator.of(context).pop();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const PremiumScreen()),
-                              );
-                            },
-                          ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.04),
+                                plan: plan,
+                                expiresAt: expiresAt,
+                                daysLeft: daysLeft,
+                                cancelAtEnd: cancelAtEnd,
+                                isMonthly: isMonthly,
+                                cancelLoading: _cancelLoading,
+                                onCancel: _cancelMembership,
+                                onManage: _openManageSubscriptions,
+                                onUpgrade: () {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PremiumScreen(),
+                                    ),
+                                  );
+                                },
+                              )
+                              .animate()
+                              .fadeIn(duration: 350.ms)
+                              .slideY(begin: -0.04),
                           const SizedBox(height: 28),
                         ] else ...[
                           _buildFreeHeader(context),
@@ -242,11 +287,13 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                         _AiCard(
                           icon: Icons.smart_toy_rounded,
                           label: 'AI Koç',
-                          sublabel: 'Yapay zeka ile kişisel koçluk',
-                          description: 'Antrenman, beslenme ve motivasyon hakkında sınırsız soru sor.',
+                          sublabel:
+                              'Ücretsiz dene, Premium\'da Claude ile derinleş',
+                          description:
+                              'Ücretsiz planda günlük 2 soru sor. Premium\'da sınırsız devam et, daha net analiz ve plan çıktıları al.',
                           accentColor: const Color(0xFFFFB74D),
-                          tag: 'AI',
-                          locked: !isPremium,
+                          tag: isPremium ? 'CLAUDE' : '2 ÜCRETSİZ SORU',
+                          locked: false,
                           onTap: () {
                             Navigator.of(context).pop();
                             Navigator.pushNamed(context, AppRoutes.aiCoach);
@@ -257,7 +304,8 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                           icon: Icons.camera_alt_rounded,
                           label: 'Yemek Fotoğrafı Analizi',
                           sublabel: 'Fotoğraftan kalori & makro',
-                          description: 'Yemeğin fotoğrafını çek, AI anında besin değerlerini tespit etsin.',
+                          description:
+                              'Yemeğin fotoğrafını çek, AI anında besin değerlerini tespit etsin.',
                           accentColor: const Color(0xFFB388FF),
                           tag: 'VİZYON AI',
                           locked: !isPremium,
@@ -265,7 +313,9 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                             Navigator.of(context).pop();
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const MealVisionScanPage(initialMealType: MealType.lunch),
+                                builder: (_) => const MealVisionScanPage(
+                                  initialMealType: MealType.lunch,
+                                ),
                               ),
                             );
                           },
@@ -282,33 +332,47 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _SmallCard(
-                                icon: Icons.show_chart_rounded,
-                                label: 'Beslenme\nTrendleri',
-                                accentColor: const Color(0xFF4FC3F7),
-                                locked: !isPremium,
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const NutritionTrendsPage()),
-                                  );
-                                },
-                              ).animate().fadeIn(delay: 140.ms).slideY(begin: 0.08),
+                              child:
+                                  _SmallCard(
+                                        icon: Icons.show_chart_rounded,
+                                        label: 'Beslenme\nTrendleri',
+                                        accentColor: const Color(0xFF4FC3F7),
+                                        locked: !isPremium,
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const NutritionTrendsPage(),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 140.ms)
+                                      .slideY(begin: 0.08),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _SmallCard(
-                                icon: Icons.shopping_cart_rounded,
-                                label: 'Akıllı Alışveriş\nListesi',
-                                accentColor: const Color(0xFF69F0AE),
-                                locked: !isPremium,
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const SmartGroceryListPage()),
-                                  );
-                                },
-                              ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.08),
+                              child:
+                                  _SmallCard(
+                                        icon: Icons.shopping_cart_rounded,
+                                        label: 'Akıllı Alışveriş\nListesi',
+                                        accentColor: const Color(0xFF69F0AE),
+                                        locked: !isPremium,
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const SmartGroceryListPage(),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 180.ms)
+                                      .slideY(begin: 0.08),
                             ),
                           ],
                         ),
@@ -316,31 +380,45 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _SmallCard(
-                                icon: Icons.calendar_month_rounded,
-                                label: 'Haftalık Öğün\nPlanı',
-                                accentColor: const Color(0xFFFFB74D),
-                                locked: !isPremium,
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const WeeklyMealPlanPage()),
-                                  );
-                                },
-                              ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.08),
+                              child:
+                                  _SmallCard(
+                                        icon: Icons.calendar_month_rounded,
+                                        label: 'Haftalık Öğün\nPlanı',
+                                        accentColor: const Color(0xFFFFB74D),
+                                        locked: !isPremium,
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const WeeklyMealPlanPage(),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 220.ms)
+                                      .slideY(begin: 0.08),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: _SmallCard(
-                                icon: Icons.fitness_center_rounded,
-                                label: 'Hazır Workout\nProgramları',
-                                accentColor: const Color(0xFFF06292),
-                                locked: !isPremium,
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  Navigator.pushNamed(context, AppRoutes.weeklyPlan);
-                                },
-                              ).animate().fadeIn(delay: 260.ms).slideY(begin: 0.08),
+                              child:
+                                  _SmallCard(
+                                        icon: Icons.fitness_center_rounded,
+                                        label: 'Hazır Workout\nProgramları',
+                                        accentColor: const Color(0xFFF06292),
+                                        locked: !isPremium,
+                                        onTap: () {
+                                          Navigator.of(context).pop();
+                                          Navigator.pushNamed(
+                                            context,
+                                            AppRoutes.weeklyPlan,
+                                          );
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 260.ms)
+                                      .slideY(begin: 0.08),
                             ),
                           ],
                         ),
@@ -370,7 +448,9 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                             onTap: () {
                               Navigator.of(context).pop();
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const PremiumScreen(),
+                                ),
                               );
                             },
                           ).animate().fadeIn(delay: 320.ms),
@@ -418,7 +498,11 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                   color: _gold.withValues(alpha: 0.1),
                   border: Border.all(color: _gold.withValues(alpha: 0.22)),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: _goldLight, size: 20),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: _goldLight,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -426,7 +510,9 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name != null ? 'Merhaba, $name 👋' : 'PRO Özellikleri Keşfet',
+                      name != null
+                          ? 'Merhaba, $name 👋'
+                          : 'PRO Özellikleri Keşfet',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 15,
@@ -435,7 +521,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Ücretsiz planda devam ediyorsun.',
+                      'Ücretsiz planda temel takip araçların açık.',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 12,
@@ -451,16 +537,28 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
           const SizedBox(height: 14),
           Row(
             children: [
-              _FreeStatPill(icon: Icons.smart_toy_rounded, label: 'AI Koç', color: const Color(0xFFFFB74D)),
+              _FreeStatPill(
+                icon: Icons.smart_toy_rounded,
+                label: '2 AI soru',
+                color: const Color(0xFFFFB74D),
+              ),
               const SizedBox(width: 8),
-              _FreeStatPill(icon: Icons.restaurant_menu_rounded, label: 'Öğün Planı', color: const Color(0xFF69F0AE)),
+              _FreeStatPill(
+                icon: Icons.restaurant_menu_rounded,
+                label: 'Takip açık',
+                color: const Color(0xFF69F0AE),
+              ),
               const SizedBox(width: 8),
-              _FreeStatPill(icon: Icons.insights_rounded, label: 'Trendler', color: const Color(0xFF4FC3F7)),
+              _FreeStatPill(
+                icon: Icons.insights_rounded,
+                label: 'Preview var',
+                color: const Color(0xFF4FC3F7),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            'Bunların hepsi seni bekliyor. Premium\'a geç ve kilidi aç.',
+            'Ücretsiz plan seni takipte tutar. Premium ise yorumlama, planlama ve karar verme yükünü üstlenir.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
@@ -502,7 +600,9 @@ class _MembershipCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
     final planPrice = plan == 'yearly' ? '1.199₺ / yıl' : '149₺ / ay';
-    final statusColor = cancelAtEnd ? Colors.orangeAccent : const Color(0xFF69F0AE);
+    final statusColor = cancelAtEnd
+        ? Colors.orangeAccent
+        : const Color(0xFF69F0AE);
     final statusLabel = cancelAtEnd ? 'İptal Planlandı' : 'Aktif';
     final totalDays = plan == 'yearly' ? 365 : 30;
     final progress = (daysLeft / totalDays).clamp(0.0, 1.0);
@@ -542,11 +642,18 @@ class _MembershipCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [_gold.withValues(alpha: 0.45), _gold.withValues(alpha: 0.15)],
+                      colors: [
+                        _gold.withValues(alpha: 0.45),
+                        _gold.withValues(alpha: 0.15),
+                      ],
                     ),
                     border: Border.all(color: _gold.withValues(alpha: 0.5)),
                   ),
-                  child: const Icon(Icons.workspace_premium_rounded, color: _goldLight, size: 22),
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: _goldLight,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -575,11 +682,16 @@ class _MembershipCard extends StatelessWidget {
                 ),
                 // Durum chip
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.35)),
+                    border: Border.all(
+                      color: statusColor.withValues(alpha: 0.35),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -611,7 +723,10 @@ class _MembershipCard extends StatelessWidget {
           // ── Ayıraç ─────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-            child: Divider(color: Colors.white.withValues(alpha: 0.07), height: 1),
+            child: Divider(
+              color: Colors.white.withValues(alpha: 0.07),
+              height: 1,
+            ),
           ),
 
           // ── Kalan süre ─────────────────────────────────────────────────
@@ -688,11 +803,17 @@ class _MembershipCard extends StatelessWidget {
                   children: [
                     Text(
                       '${(progress * 100).round()}% kaldı',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
                     ),
                     Text(
                       plan == 'yearly' ? '365 günlük dönem' : '30 günlük dönem',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -717,20 +838,33 @@ class _MembershipCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.orange.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Colors.orangeAccent.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: Colors.orangeAccent, size: 16),
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.orangeAccent,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Otomatik yenileme kapalı. Erişimin ${_fmtDate(expiresAt!)} tarihine kadar devam eder.',
-                        style: const TextStyle(color: Colors.orangeAccent, fontSize: 12, height: 1.35),
+                        style: const TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
                       ),
                     ),
                   ],
@@ -780,16 +914,26 @@ class _MembershipCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.check_circle_outline_rounded, color: Colors.white38, size: 16),
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Colors.white38,
+                            size: 16,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             'İptal Planlandı',
-                            style: TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
@@ -828,11 +972,18 @@ class _DaysArc extends StatelessWidget {
             children: [
               Text(
                 '$daysLeft',
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               Text(
                 'gün',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 10),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 10,
+                ),
               ),
             ],
           ),
@@ -911,7 +1062,10 @@ class _ActionButton extends StatelessWidget {
             gradient: outlined
                 ? null
                 : LinearGradient(
-                    colors: [color.withValues(alpha: 0.9), color.withValues(alpha: 0.6)],
+                    colors: [
+                      color.withValues(alpha: 0.9),
+                      color.withValues(alpha: 0.6),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -996,7 +1150,11 @@ class _FreeStatPill extends StatelessWidget {
 // ─── Section Title ─────────────────────────────────────────────────────────────
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.label, required this.icon, required this.color});
+  const _SectionTitle({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
 
   final String label;
   final IconData icon;
@@ -1058,7 +1216,9 @@ class _AiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: locked
-          ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PremiumScreen()))
+          ? () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()))
           : onTap,
       child: Container(
         width: double.infinity,
@@ -1073,7 +1233,9 @@ class _AiCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: accentColor.withValues(alpha: locked ? 0.08 : 0.22)),
+          border: Border.all(
+            color: accentColor.withValues(alpha: locked ? 0.08 : 0.22),
+          ),
         ),
         child: Row(
           children: [
@@ -1088,9 +1250,15 @@ class _AiCard extends StatelessWidget {
                     accentColor.withValues(alpha: locked ? 0.03 : 0.08),
                   ],
                 ),
-                border: Border.all(color: accentColor.withValues(alpha: locked ? 0.1 : 0.32)),
+                border: Border.all(
+                  color: accentColor.withValues(alpha: locked ? 0.1 : 0.32),
+                ),
               ),
-              child: Icon(icon, color: locked ? Colors.white24 : Colors.white, size: 24),
+              child: Icon(
+                icon,
+                color: locked ? Colors.white24 : Colors.white,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1109,11 +1277,20 @@ class _AiCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 7),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: locked ? 0.05 : 0.14),
+                          color: accentColor.withValues(
+                            alpha: locked ? 0.05 : 0.14,
+                          ),
                           borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: accentColor.withValues(alpha: locked ? 0.08 : 0.28)),
+                          border: Border.all(
+                            color: accentColor.withValues(
+                              alpha: locked ? 0.08 : 0.28,
+                            ),
+                          ),
                         ),
                         child: Text(
                           tag,
@@ -1131,7 +1308,9 @@ class _AiCard extends StatelessWidget {
                   Text(
                     sublabel,
                     style: TextStyle(
-                      color: locked ? Colors.white24 : accentColor.withValues(alpha: 0.8),
+                      color: locked
+                          ? Colors.white24
+                          : accentColor.withValues(alpha: 0.8),
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1140,7 +1319,9 @@ class _AiCard extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: locked ? 0.18 : 0.55),
+                      color: Colors.white.withValues(
+                        alpha: locked ? 0.18 : 0.55,
+                      ),
                       fontSize: 12,
                       height: 1.35,
                     ),
@@ -1151,7 +1332,9 @@ class _AiCard extends StatelessWidget {
             const SizedBox(width: 8),
             Icon(
               locked ? Icons.lock_rounded : Icons.chevron_right_rounded,
-              color: locked ? Colors.white.withValues(alpha: 0.18) : accentColor.withValues(alpha: 0.65),
+              color: locked
+                  ? Colors.white.withValues(alpha: 0.18)
+                  : accentColor.withValues(alpha: 0.65),
               size: 18,
             ),
           ],
@@ -1181,9 +1364,7 @@ class _SmallCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: locked
-          ? () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PremiumScreen()))
-          : onTap,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
@@ -1196,7 +1377,9 @@ class _SmallCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor.withValues(alpha: locked ? 0.07 : 0.18)),
+          border: Border.all(
+            color: accentColor.withValues(alpha: locked ? 0.07 : 0.18),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1210,13 +1393,25 @@ class _SmallCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(11),
                     color: accentColor.withValues(alpha: locked ? 0.05 : 0.18),
-                    border: Border.all(color: accentColor.withValues(alpha: locked ? 0.07 : 0.25)),
+                    border: Border.all(
+                      color: accentColor.withValues(
+                        alpha: locked ? 0.07 : 0.25,
+                      ),
+                    ),
                   ),
-                  child: Icon(icon, color: locked ? Colors.white24 : Colors.white, size: 18),
+                  child: Icon(
+                    icon,
+                    color: locked ? Colors.white24 : Colors.white,
+                    size: 18,
+                  ),
                 ),
                 Icon(
-                  locked ? Icons.lock_rounded : Icons.arrow_forward_rounded,
-                  color: locked ? Colors.white.withValues(alpha: 0.15) : accentColor.withValues(alpha: 0.65),
+                  locked
+                      ? Icons.visibility_rounded
+                      : Icons.arrow_forward_rounded,
+                  color: locked
+                      ? accentColor.withValues(alpha: 0.58)
+                      : accentColor.withValues(alpha: 0.65),
                   size: 15,
                 ),
               ],
@@ -1241,7 +1436,12 @@ class _SmallCard extends StatelessWidget {
 // ─── Benefit Row ─────────────────────────────────────────────────────────────
 
 class _BenefitRow extends StatelessWidget {
-  const _BenefitRow({required this.icon, required this.color, required this.title, required this.sub});
+  const _BenefitRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.sub,
+  });
 
   final IconData icon;
   final Color color;
@@ -1269,8 +1469,21 @@ class _BenefitRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                Text(sub, style: TextStyle(color: Colors.white.withValues(alpha: 0.42), fontSize: 11)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  sub,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.42),
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1316,7 +1529,11 @@ class _UpgradeBanner extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock_open_rounded, color: Color(0xFF1A0F00), size: 20),
+            const Icon(
+              Icons.lock_open_rounded,
+              color: Color(0xFF1A0F00),
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Text(
               "Premium'u Aç — $priceLabel",

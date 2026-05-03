@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../core/services/page_guide_service.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _kSupportEmail = String.fromEnvironment(
   'APP_SUPPORT_EMAIL',
-  defaultValue: 'support@fitmentor.app',
+  defaultValue: 'eneskotay23@gmail.com',
 );
 
 class SettingsHelpScreen extends StatelessWidget {
@@ -101,6 +102,20 @@ class SettingsHelpScreen extends StatelessWidget {
               Uri.parse('mailto:$_kSupportEmail?subject=FitMentor%20Destek'),
               mode: LaunchMode.externalApplication,
             ),
+          ),
+          const SizedBox(height: 18),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.restart_alt_rounded),
+            title: const Text('Rehberleri Sıfırla'),
+            subtitle: const Text('Tüm sayfa rehberlerini baştan göster'),
+            onTap: () async {
+              await PageGuideService.resetAllGuides();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Rehberler sıfırlandı — sayfalara girince tekrar gösterilecek')),
+              );
+            },
           ),
         ],
       ),

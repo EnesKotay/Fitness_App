@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../api_client.dart';
 import '../api_exception.dart';
@@ -48,6 +49,10 @@ class AuthService {
       final response = await _apiClient.post(
         ApiConstants.login,
         data: request.toJson(),
+        options: Options(
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
       );
 
       final authResponse = AuthResponse.fromJson(

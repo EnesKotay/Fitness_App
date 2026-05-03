@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/ambient_glow_background.dart';
+import '../../../../core/widgets/app_gradient_background.dart';
 import '../../../nutrition/presentation/state/diet_provider.dart';
 import '../../domain/entities/recipe.dart';
 import '../state/recipe_provider.dart';
+import 'add_custom_recipe_page.dart';
 import 'recipe_detail_page.dart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -60,11 +65,54 @@ class _RecipeListPageState extends State<RecipeListPage> {
   final _scrollCtrl = ScrollController();
   String? _initialLoadIssue;
 
+  static const List<GuideStep> _guideSteps = [
+    GuideStep(
+      emoji: '🍳',
+      title: 'Tarif Keşfet',
+      description:
+          'Sağlıklı Türk ve dünya mutfağından yüzlerce tarif var. Her tarifte malzeme listesi, pişirme adımları ve porsiyon başına kalori/makro değerleri görünür.',
+      tip: 'Üstteki kategorilerden (Kahvaltı, Öğle, Akşam, Atıştırmalık) filtreleyerek hızlı bul.',
+    ),
+    GuideStep(
+      emoji: '🔍',
+      title: 'Ara ve Filtrele',
+      description:
+          'Arama çubuğuna malzeme ismi veya yemek adı yaz. Filtrele butonuyla kalori aralığı, pişirme süresi veya diyet tipine (vejetaryen, protein ağırlıklı vb.) göre daralt.',
+      tip: 'Evdeki malzemeye göre ara — "yoğurt ile" yazarsan yoğurtlu tarifler gelir.',
+    ),
+    GuideStep(
+      emoji: '❤️',
+      title: 'Favorile',
+      description:
+          'Tarif detayını aç → sağ üstteki kalp ❤️ ikonuna dokun → Favorilere ekle. Favori tariflerine Tarifler → Favoriler sekmesinden hızlıca ulaşabilirsin.',
+      tip: 'Haftalık menüne aldığın tarifleri favorile — bir dahaki plan oluşturmada ön plana çıkarılır.',
+    ),
+    GuideStep(
+      emoji: '➕',
+      title: 'Kendi Tarifini Ekle',
+      description:
+          'Sağ üstteki "+" butonuna dokun → tarif adı, malzemeler ve besin değerlerini gir → Kaydet. Aileden gelen özel bir tarif veya kendi geliştirdiğin menü olabilir.',
+      tip: 'Tarif oluştururken AI Koç\'a malzemeleri söyle, kalorisini hesaplatabilirsin.',
+    ),
+  ];
+
+  Future<void> _showGuide() async {
+    if (!mounted) return;
+    await showPageGuide(context, steps: _guideSteps);
+  }
+
+  Future<void> _checkFirstVisitGuide() async {
+    if (await PageGuideService.hasSeenGuide('recipes')) return;
+    await PageGuideService.markGuideSeen('recipes');
+    if (mounted) await _showGuide();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _initRecipes();
+      await _checkFirstVisitGuide();
     });
     _searchCtrl.addListener(() => setState(() {}));
   }
@@ -465,138 +513,158 @@ class _RecipeListPageState extends State<RecipeListPage> {
             .toList();
 
         return Scaffold(
-          backgroundColor: const Color(0xFF08090C),
-          body: CustomScrollView(
-            controller: _scrollCtrl,
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildSliverHeader(
-                context,
-                provider,
-                remainingKcal: remainingKcal,
-                featuredRecipe: featured,
-              ),
-              SliverToBoxAdapter(child: _buildSearchBar(provider)),
-              const SliverToBoxAdapter(child: SizedBox(height: 4)),
-              SliverToBoxAdapter(child: _buildFilterRow(context, provider)),
-              if (provider.searchQuery.isNotEmpty ||
-                  provider.showOnlyFavorites ||
-                  provider.selectedCategory != 'tümü' ||
-                  provider.sortMode != SortMode.none ||
-                  provider.filter.isActive)
-                SliverToBoxAdapter(child: _buildActiveStateBar(provider)),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+          backgroundColor: AppColors.background,
+          extendBodyBehindAppBar: true,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AddCustomRecipePage()),
+              );
+            },
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Özel Tarif Ekle', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          body: AppGradientBackground(
+            imagePath: 'assets/images/nutrition_bg_dark.png',
+            child: Stack(
+              children: [
+                const AmbientGlowBackground(),
+                CustomScrollView(
+                  controller: _scrollCtrl,
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    _buildSliverHeader(
+                      context,
+                      provider,
+                      remainingKcal: remainingKcal,
+                      featuredRecipe: featured,
+                    ),
+                    SliverToBoxAdapter(child: _buildSearchBar(provider)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 4)),
+                    SliverToBoxAdapter(child: _buildFilterRow(context, provider)),
+                    if (provider.searchQuery.isNotEmpty ||
+                        provider.showOnlyFavorites ||
+                        provider.selectedCategory != 'tümü' ||
+                        provider.sortMode != SortMode.none ||
+                        provider.filter.isActive)
+                      SliverToBoxAdapter(child: _buildActiveStateBar(provider)),
+                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-              if (isDefault && provider.recentlyViewed.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _buildSectionLabel('SON BAKTIKLARIM'),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                SliverToBoxAdapter(
-                  child: _buildRecentlyViewed(context, provider),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-              ],
+                    if (isDefault && provider.recentlyViewed.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: _buildSectionLabel('SON BAKTIKLARIM'),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                      SliverToBoxAdapter(
+                        child: _buildRecentlyViewed(context, provider),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                    ],
 
-              if (_initialLoadIssue != null)
-                SliverFillRemaining(
-                  child: _buildErrorState(
-                    message: _initialLoadIssue!,
-                    onRetry: () => _initRecipes(force: true),
-                  ),
-                )
-              else if (provider.loading)
-                const SliverFillRemaining(
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.secondary,
-                      strokeWidth: 2,
-                    ),
-                  ),
-                )
-              else if (provider.errorMessage != null)
-                SliverFillRemaining(
-                  child: _buildErrorState(
-                    message: provider.errorMessage ?? '',
-                    onRetry: () => _initRecipes(force: true),
-                  ),
-                )
-              else if (recipes.isEmpty)
-                SliverFillRemaining(child: _buildEmpty(provider))
-              else ...[
-                if (featured != null) ...[
-                  SliverToBoxAdapter(
-                    child: _buildFeaturedLabel(
-                      hasPersonalization: remainingKcal != null,
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildFeaturedCard(context, featured, provider),
-                  ),
-                  if (recentRecipes.isNotEmpty) ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                    SliverToBoxAdapter(
-                      child: _buildHorizontalSection(
-                        title: 'Tekrar Göz At',
-                        subtitle: 'Son baktığın tarifler burada.',
-                        recipes: recentRecipes,
-                      ),
-                    ),
-                  ],
-                  if (personalizedRecipes.isNotEmpty) ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                    SliverToBoxAdapter(
-                      child: _buildHorizontalSection(
-                        title: 'Senin İçin Seçildi',
-                        subtitle: remainingKcal != null
-                            ? 'Kalan hedefin ve alışkanlıkların dikkate alındı.'
-                            : 'Favorilerin ve geçmiş seçimlerin baz alındı.',
-                        recipes: personalizedRecipes,
-                      ),
-                    ),
-                  ],
-                  if (quickRecipes.isNotEmpty) ...[
-                    const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                    SliverToBoxAdapter(
-                      child: _buildHorizontalSection(
-                        title: 'Hızlı Seçimler',
-                        subtitle:
-                            'Kısa sürede hazırlanabilecek güçlü tarifler.',
-                        recipes: quickRecipes,
-                      ),
-                    ),
-                  ],
-                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                  if (gridItems.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _buildSectionLabel('Tüm Tarifler'),
-                    ),
-                ],
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 240,
-                          childAspectRatio: 0.71,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                    if (_initialLoadIssue != null)
+                      SliverFillRemaining(
+                        child: _buildErrorState(
+                          message: _initialLoadIssue!,
+                          onRetry: () => _initRecipes(force: true),
                         ),
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => _RecipeCard(
-                        recipe: gridItems[i],
-                        index: i,
-                        isFavorite: provider.isFavorite(gridItems[i].id),
-                        onTap: () => _navigateTo(context, gridItems[i]),
-                        onFavoriteTap: () =>
-                            provider.toggleFavorite(gridItems[i].id),
+                      )
+                    else if (provider.loading)
+                      const SliverFillRemaining(
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.secondary,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      )
+                    else if (provider.errorMessage != null)
+                      SliverFillRemaining(
+                        child: _buildErrorState(
+                          message: provider.errorMessage ?? '',
+                          onRetry: () => _initRecipes(force: true),
+                        ),
+                      )
+                    else if (recipes.isEmpty)
+                      SliverFillRemaining(child: _buildEmpty(provider))
+                    else ...[
+                      if (featured != null) ...[
+                        SliverToBoxAdapter(
+                          child: _buildFeaturedLabel(
+                            hasPersonalization: remainingKcal != null,
+                          ),
+                        ),
+                        SliverToBoxAdapter(
+                          child: _buildFeaturedCard(context, featured, provider),
+                        ),
+                        if (recentRecipes.isNotEmpty) ...[
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(
+                            child: _buildHorizontalSection(
+                              title: 'Tekrar Göz At',
+                              subtitle: 'Son baktığın tarifler burada.',
+                              recipes: recentRecipes,
+                            ),
+                          ),
+                        ],
+                        if (personalizedRecipes.isNotEmpty) ...[
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(
+                            child: _buildHorizontalSection(
+                              title: 'Senin İçin Seçildi',
+                              subtitle: remainingKcal != null
+                                  ? 'Kalan hedefin ve alışkanlıkların dikkate alındı.'
+                                  : 'Favorilerin ve geçmiş seçimlerin baz alındı.',
+                              recipes: personalizedRecipes,
+                            ),
+                          ),
+                        ],
+                        if (quickRecipes.isNotEmpty) ...[
+                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                          SliverToBoxAdapter(
+                            child: _buildHorizontalSection(
+                              title: 'Hızlı Seçimler',
+                              subtitle:
+                                  'Kısa sürede hazırlanabilecek güçlü tarifler.',
+                              recipes: quickRecipes,
+                            ),
+                          ),
+                        ],
+                        const SliverToBoxAdapter(child: SizedBox(height: 20)),
+                        if (gridItems.isNotEmpty)
+                          SliverToBoxAdapter(
+                            child: _buildSectionLabel('Tüm Tarifler'),
+                          ),
+                      ],
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 240,
+                            childAspectRatio: 0.71,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (ctx, i) => _RecipeCard(
+                              recipe: gridItems[i],
+                              index: i,
+                              isFavorite: provider.isFavorite(gridItems[i].id),
+                              onTap: () => _navigateTo(context, gridItems[i]),
+                              onFavoriteTap: () =>
+                                  provider.toggleFavorite(gridItems[i].id),
+                            ),
+                            childCount: gridItems.length,
+                          ),
+                        ),
                       ),
-                      childCount: gridItems.length,
-                    ),
-                  ),
+                    ],
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
         );
       },
@@ -637,11 +705,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
           bottom: 20,
         ),
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0F1015), Color(0xFF08090C)],
-          ),
+          color: Colors.transparent,
         ),
         child: Stack(
           children: [

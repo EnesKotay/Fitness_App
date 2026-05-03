@@ -101,6 +101,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       if (widget.navigateToHomeOnSave) {
         await StorageHelper.saveOnboardingDone(true);
         await StorageHelper.savePendingOnboardingSummary(true);
+        await StorageHelper.savePendingAppTour(true);
         try {
           await LocalNotificationService.instance.requestPermission();
         } catch (e) {
@@ -119,13 +120,15 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
             note: 'Başlangıç Kilosu',
           );
           // Timeout: backend yanıt vermezse navigation'ı bloklamasın
-          await wp.addEntry(firstEntry).timeout(
-            const Duration(seconds: 8),
-            onTimeout: () {
-              debugPrint('İlk kilo ekleme timeout');
-              return false;
-            },
-          );
+          await wp
+              .addEntry(firstEntry)
+              .timeout(
+                const Duration(seconds: 8),
+                onTimeout: () {
+                  debugPrint('İlk kilo ekleme timeout');
+                  return false;
+                },
+              );
         }
       }
 
@@ -375,7 +378,9 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                 onChanged: (value) => setState(() => _name = value),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) return 'İsim gerekli';
-                  if (val.trim().length < 2) return 'İsim en az 2 karakter olmalı';
+                  if (val.trim().length < 2) {
+                    return 'İsim en az 2 karakter olmalı';
+                  }
                   return null;
                 },
               ),

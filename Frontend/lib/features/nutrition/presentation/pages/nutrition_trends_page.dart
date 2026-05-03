@@ -46,7 +46,10 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
 
   Future<void> _loadData() async {
     if (!mounted) return;
-    setState(() { _loading = true; _hasError = false; });
+    setState(() {
+      _loading = true;
+      _hasError = false;
+    });
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
       final isPremium = isPremiumTier(
@@ -73,7 +76,12 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
       }
     } catch (e) {
       debugPrint('NutritionTrendsPage._loadData error: $e');
-      if (mounted) setState(() { _loading = false; _hasError = true; });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _hasError = true;
+        });
+      }
     }
   }
 
@@ -82,18 +90,17 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
   List<String> get _sortedKeys => _trendData.keys.toList()..sort();
 
   List<double> _valuesFor(int tab) => _sortedKeys.map((k) {
-        final t = _trendData[k]!;
-        return switch (tab) {
-          0 => t.totalKcal,
-          1 => t.totalProtein,
-          2 => t.totalCarb,
-          3 => t.totalFat,
-          _ => t.totalKcal,
-        };
-      }).toList();
+    final t = _trendData[k]!;
+    return switch (tab) {
+      0 => t.totalKcal,
+      1 => t.totalProtein,
+      2 => t.totalCarb,
+      3 => t.totalFat,
+      _ => t.totalKcal,
+    };
+  }).toList();
 
-  bool get _hasAnyData =>
-      _trendData.values.any((t) => t.totalKcal > 0);
+  bool get _hasAnyData => _trendData.values.any((t) => t.totalKcal > 0);
 
   int get _streakDays {
     final keys = _sortedKeys.reversed.toList();
@@ -139,45 +146,47 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
                     ? const Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.secondary),
+                            AppColors.secondary,
+                          ),
                         ),
                       )
                     : _hasError
-                        ? _buildErrorState()
-                        : RefreshIndicator(
-                            onRefresh: _loadData,
-                            color: AppColors.secondary,
-                            child: SingleChildScrollView(
-                              physics: const AlwaysScrollableScrollPhysics(
-                                  parent: BouncingScrollPhysics()),
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (_isPremium) ...[
-                                    _buildPremiumBadge(),
-                                    const SizedBox(height: 12),
-                                    _buildDaySelector(),
-                                    const SizedBox(height: 16),
-                                    if (!_hasAnyData)
-                                      _buildEmptyState()
-                                    else ...[
-                                      _buildSummaryRow(),
-                                      const SizedBox(height: 14),
-                                      _buildTrendCard(),
-                                      const SizedBox(height: 14),
-                                      _buildTargetHitRateCard(),
-                                      const SizedBox(height: 14),
-                                      _buildMacroDistributionCard(),
-                                      const SizedBox(height: 14),
-                                      _buildStatsCard(),
-                                    ],
-                                  ] else
-                                    _buildLockedState(),
-                                ],
-                              ),
-                            ),
+                    ? _buildErrorState()
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: AppColors.secondary,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
                           ),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_isPremium) ...[
+                                _buildPremiumBadge(),
+                                const SizedBox(height: 12),
+                                _buildDaySelector(),
+                                const SizedBox(height: 16),
+                                if (!_hasAnyData)
+                                  _buildEmptyState()
+                                else ...[
+                                  _buildSummaryRow(),
+                                  const SizedBox(height: 14),
+                                  _buildTrendCard(),
+                                  const SizedBox(height: 14),
+                                  _buildTargetHitRateCard(),
+                                  const SizedBox(height: 14),
+                                  _buildMacroDistributionCard(),
+                                  const SizedBox(height: 14),
+                                  _buildStatsCard(),
+                                ],
+                              ] else
+                                _buildLockedState(),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ),
           ],
@@ -199,8 +208,11 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
       ),
       child: Column(
         children: [
-          Icon(Icons.restaurant_rounded,
-              size: 52, color: Colors.white.withValues(alpha: 0.2)),
+          Icon(
+            Icons.restaurant_rounded,
+            size: 52,
+            color: Colors.white.withValues(alpha: 0.2),
+          ),
           const SizedBox(height: 16),
           Text(
             'Henüz veri yok',
@@ -230,14 +242,20 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.wifi_off_rounded,
-              size: 56, color: Colors.white.withValues(alpha: 0.25)),
+          Icon(
+            Icons.wifi_off_rounded,
+            size: 56,
+            color: Colors.white.withValues(alpha: 0.25),
+          ),
           const SizedBox(height: 16),
-          const Text('Veriler yüklenemedi',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600)),
+          const Text(
+            'Veriler yüklenemedi',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: _loadData,
@@ -250,72 +268,245 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
   }
 
   Widget _buildLockedState() {
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 24),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFD97706).withValues(alpha: 0.14),
+                    ),
+                    child: const Icon(
+                      Icons.insights_rounded,
+                      color: Color(0xFFFBBF24),
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Trendler Premium\'da derinleşir',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ücretsiz planda kayıt tutmaya devam edersin. Premium, o kayıtları yoruma ve yön duygusuna çevirir.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.62),
+                            fontSize: 12.5,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              _buildLockedPreviewCard(),
+              const SizedBox(height: 14),
+              Row(
+                children: const [
+                  Expanded(
+                    child: _LockedStatChip(
+                      value: '7 gün',
+                      label: 'Grafik aralığı',
+                      color: Color(0xFF4FC3F7),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _LockedStatChip(
+                      value: '%86',
+                      label: 'Hedef vurma',
+                      color: Color(0xFF81C784),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: _LockedStatChip(
+                      value: '4 içgörü',
+                      label: 'Otomatik yorum',
+                      color: Color(0xFFFFB74D),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Premium ile açılacaklar',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.86),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const _LockedBenefitRow(
+                icon: Icons.show_chart_rounded,
+                text: 'Kalori ve makro trendlerini haftalık ve aylık gör.',
+                color: Color(0xFF4FC3F7),
+              ),
+              const SizedBox(height: 8),
+              const _LockedBenefitRow(
+                icon: Icons.track_changes_rounded,
+                text: 'Hangi günlerde hedefine yaklaştığını anında fark et.',
+                color: Color(0xFF81C784),
+              ),
+              const SizedBox(height: 8),
+              const _LockedBenefitRow(
+                icon: Icons.lightbulb_outline_rounded,
+                text:
+                    'Verilerin üzerinden otomatik güçlü ve zayıf noktaları öğren.',
+                color: Color(0xFFFFB74D),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFBBF24),
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    'Premium ile Analizleri Aç',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.06),
+      ],
+    );
+  }
+
+  Widget _buildLockedPreviewCard() {
+    const bars = [0.38, 0.72, 0.56, 0.84, 0.65, 0.9, 0.76];
+
     return Container(
-      margin: const EdgeInsets.only(top: 24),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        color: Colors.black.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFFD97706).withValues(alpha: 0.14),
-            ),
-            child: const Icon(
-              Icons.insights_rounded,
-              color: Color(0xFFFBBF24),
-              size: 34,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Gelişmiş analizler Premium\'a özel',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
           Text(
-            'Haftalık ve aylık grafikler, hedef vurma oranı ve detaylı makro istatistikleri için Premium\'a geç.',
-            textAlign: TextAlign.center,
+            'Önizleme: Son 7 gün',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
+              color: Colors.white.withValues(alpha: 0.86),
               fontSize: 13,
-              height: 1.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PremiumScreen()),
+            height: 86,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(bars.length, (index) {
+                final bar = bars[index];
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          height: 62 * bar,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                _tabColors[index % _tabColors.length],
+                                _tabColors[index % _tabColors.length]
+                                    .withValues(alpha: 0.35),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'G${index + 1}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFBBF24),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+              }),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4FC3F7).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF4FC3F7).withValues(alpha: 0.18),
               ),
-              child: const Text(
-                'Premium ile Aç',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.auto_graph_rounded,
+                  color: Color(0xFF4FC3F7),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Örnek içgörü: Kayıt ritmin hafta ortasında yükseliyor. Premium bunu gerçek verinle otomatik yorumlar.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.74),
+                      fontSize: 11.5,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.06);
+    );
   }
 
   // ─── Premium banner ──────────────────────────────────────────────────────
@@ -327,7 +518,8 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: const Color(0xFFD97706).withValues(alpha: 0.22)),
+          color: const Color(0xFFD97706).withValues(alpha: 0.22),
+        ),
       ),
       child: Row(
         children: [
@@ -396,7 +588,9 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
+              color: isSelected
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.5),
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
@@ -412,36 +606,37 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     final nonZero = _trendData.values.where((t) => t.totalKcal > 0).length;
     final streak = _streakDays;
     final avgKcal = nonZero > 0
-        ? _trendData.values
-                .map((t) => t.totalKcal)
-                .reduce((a, b) => a + b) /
-            nonZero
+        ? _trendData.values.map((t) => t.totalKcal).reduce((a, b) => a + b) /
+              nonZero
         : 0.0;
 
     return Row(
-      children: [
-        _summaryTile(
-          icon: Icons.local_fire_department_rounded,
-          color: const Color(0xFFFF6B35),
-          label: 'Seri',
-          value: '$streak gün',
-        ),
-        const SizedBox(width: 10),
-        _summaryTile(
-          icon: Icons.calendar_today_rounded,
-          color: const Color(0xFF4CD1A3),
-          label: 'Aktif Gün',
-          value: '$nonZero / $_selectedDays',
-        ),
-        const SizedBox(width: 10),
-        _summaryTile(
-          icon: Icons.analytics_rounded,
-          color: AppColors.secondary,
-          label: 'Günlük Ort.',
-          value: '${avgKcal.round()} kcal',
-        ),
-      ],
-    ).animate().fadeIn(delay: 50.ms, duration: 350.ms).slideY(begin: 0.05, end: 0);
+          children: [
+            _summaryTile(
+              icon: Icons.local_fire_department_rounded,
+              color: const Color(0xFFFF6B35),
+              label: 'Seri',
+              value: '$streak gün',
+            ),
+            const SizedBox(width: 10),
+            _summaryTile(
+              icon: Icons.calendar_today_rounded,
+              color: const Color(0xFF4CD1A3),
+              label: 'Aktif Gün',
+              value: '$nonZero / $_selectedDays',
+            ),
+            const SizedBox(width: 10),
+            _summaryTile(
+              icon: Icons.analytics_rounded,
+              color: AppColors.secondary,
+              label: 'Günlük Ort.',
+              value: '${avgKcal.round()} kcal',
+            ),
+          ],
+        )
+        .animate()
+        .fadeIn(delay: 50.ms, duration: 350.ms)
+        .slideY(begin: 0.05, end: 0);
   }
 
   Widget _summaryTile({
@@ -498,250 +693,263 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     final unit = _activeTab == 0 ? 'kcal' : 'g';
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Başlık + hedef
-              Row(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Trend Grafiği',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (targetKcal != null) ...[
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Container(
-                          width: 16,
-                          height: 2,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: AppColors.chartRed.withValues(alpha: 0.7),
-                                width: 2,
-                                style: BorderStyle.solid,
+                  // Başlık + hedef
+                  Row(
+                    children: [
+                      Text(
+                        'Trend Grafiği',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (targetKcal != null) ...[
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Container(
+                              width: 16,
+                              height: 2,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: AppColors.chartRed.withValues(
+                                      alpha: 0.7,
+                                    ),
+                                    width: 2,
+                                    style: BorderStyle.solid,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          'Hedef ${targetKcal.round()} kcal',
-                          style: TextStyle(
-                            color: AppColors.chartRed.withValues(alpha: 0.7),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Hedef ${targetKcal.round()} kcal',
+                              style: TextStyle(
+                                color: AppColors.chartRed.withValues(
+                                  alpha: 0.7,
+                                ),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
 
-              // Makro sekmeleri
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(_tabs.length, (i) {
-                    final isActive = _activeTab == i;
-                    return GestureDetector(
-                      onTap: () => setState(() => _activeTab = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? _tabColors[i].withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isActive
-                                ? _tabColors[i].withValues(alpha: 0.5)
-                                : Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: Text(
-                          _tabs[i],
-                          style: TextStyle(
-                            color: isActive
-                                ? _tabColors[i]
-                                : Colors.white.withValues(alpha: 0.45),
-                            fontSize: 12,
-                            fontWeight: isActive
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Grafik
-              SizedBox(
-                height: 190,
-                child: LineChart(
-                  duration: const Duration(milliseconds: 300),
-                  LineChartData(
-                    minY: 0,
-                    maxY: maxVal > 0 ? maxVal * 1.25 : 100,
-                    extraLinesData: targetKcal != null
-                        ? ExtraLinesData(
-                            horizontalLines: [
-                              HorizontalLine(
-                                y: targetKcal,
-                                color: AppColors.chartRed.withValues(alpha: 0.55),
-                                strokeWidth: 1.5,
-                                dashArray: [6, 4],
-                                label: HorizontalLineLabel(show: false),
+                  // Makro sekmeleri
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: List.generate(_tabs.length, (i) {
+                        final isActive = _activeTab == i;
+                        return GestureDetector(
+                          onTap: () => setState(() => _activeTab = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? _tabColors[i].withValues(alpha: 0.2)
+                                  : Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isActive
+                                    ? _tabColors[i].withValues(alpha: 0.5)
+                                    : Colors.white.withValues(alpha: 0.08),
                               ),
-                            ],
-                          )
-                        : const ExtraLinesData(),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 38,
-                          interval: maxVal > 0 ? maxVal / 3 : 33,
-                          getTitlesWidget: (v, m) => Text(
-                            v.round().toString(),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              fontSize: 9,
+                            ),
+                            child: Text(
+                              _tabs[i],
+                              style: TextStyle(
+                                color: isActive
+                                    ? _tabColors[i]
+                                    : Colors.white.withValues(alpha: 0.45),
+                                fontSize: 12,
+                                fontWeight: isActive
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 24,
-                          interval: _selectedDays <= 7
-                              ? 1
-                              : _selectedDays <= 14
-                                  ? 2
-                                  : 5,
-                          getTitlesWidget: (value, meta) {
-                            final idx = value.toInt();
-                            final keys = _sortedKeys;
-                            if (idx < 0 || idx >= keys.length) {
-                              return const SizedBox.shrink();
-                            }
-                            final parts = keys[idx].split('-');
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                parts.length >= 3
-                                    ? '${parts[2]}/${parts[1]}'
-                                    : '',
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Grafik
+                  SizedBox(
+                    height: 190,
+                    child: LineChart(
+                      duration: const Duration(milliseconds: 300),
+                      LineChartData(
+                        minY: 0,
+                        maxY: maxVal > 0 ? maxVal * 1.25 : 100,
+                        extraLinesData: targetKcal != null
+                            ? ExtraLinesData(
+                                horizontalLines: [
+                                  HorizontalLine(
+                                    y: targetKcal,
+                                    color: AppColors.chartRed.withValues(
+                                      alpha: 0.55,
+                                    ),
+                                    strokeWidth: 1.5,
+                                    dashArray: [6, 4],
+                                    label: HorizontalLineLabel(show: false),
+                                  ),
+                                ],
+                              )
+                            : const ExtraLinesData(),
+                        titlesData: FlTitlesData(
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 38,
+                              interval: maxVal > 0 ? maxVal / 3 : 33,
+                              getTitlesWidget: (v, m) => Text(
+                                v.round().toString(),
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.4),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   fontSize: 9,
                                 ),
                               ),
-                            );
-                          },
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 24,
+                              interval: _selectedDays <= 7
+                                  ? 1
+                                  : _selectedDays <= 14
+                                  ? 2
+                                  : 5,
+                              getTitlesWidget: (value, meta) {
+                                final idx = value.toInt();
+                                final keys = _sortedKeys;
+                                if (idx < 0 || idx >= keys.length) {
+                                  return const SizedBox.shrink();
+                                }
+                                final parts = keys[idx].split('-');
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Text(
+                                    parts.length >= 3
+                                        ? '${parts[2]}/${parts[1]}'
+                                        : '',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      fontSize: 9,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      horizontalInterval: maxVal > 0 ? maxVal / 4 : 25,
-                      getDrawingHorizontalLine: (_) => FlLine(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        strokeWidth: 1,
-                      ),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: List.generate(
-                          _sortedKeys.length,
-                          (i) => FlSpot(i.toDouble(), values[i]),
-                        ),
-                        isCurved: true,
-                        curveSmoothness: 0.3,
-                        color: color,
-                        barWidth: 2.5,
-                        dotData: FlDotData(
-                          show: _selectedDays <= 14,
-                          getDotPainter: (spot, percent, bar, index) =>
-                              FlDotCirclePainter(
-                                radius: spot.y > 0 ? 4 : 2,
-                                color: spot.y > 0 ? color : Colors.white24,
-                                strokeWidth: 2,
-                                strokeColor: AppColors.surface,
-                              ),
-                        ),
-                        belowBarData: BarAreaData(
+                        gridData: FlGridData(
                           show: true,
-                          gradient: LinearGradient(
-                            colors: [
-                              color.withValues(alpha: 0.25),
-                              color.withValues(alpha: 0.0),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                          drawVerticalLine: false,
+                          horizontalInterval: maxVal > 0 ? maxVal / 4 : 25,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: List.generate(
+                              _sortedKeys.length,
+                              (i) => FlSpot(i.toDouble(), values[i]),
+                            ),
+                            isCurved: true,
+                            curveSmoothness: 0.3,
+                            color: color,
+                            barWidth: 2.5,
+                            dotData: FlDotData(
+                              show: _selectedDays <= 14,
+                              getDotPainter: (spot, percent, bar, index) =>
+                                  FlDotCirclePainter(
+                                    radius: spot.y > 0 ? 4 : 2,
+                                    color: spot.y > 0 ? color : Colors.white24,
+                                    strokeWidth: 2,
+                                    strokeColor: AppColors.surface,
+                                  ),
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              gradient: LinearGradient(
+                                colors: [
+                                  color.withValues(alpha: 0.25),
+                                  color.withValues(alpha: 0.0),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
+                        ],
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            tooltipRoundedRadius: 10,
+                            tooltipBgColor: AppColors.surface.withValues(
+                              alpha: 0.92,
+                            ),
+                            getTooltipItems: (spots) => spots
+                                .map(
+                                  (s) => LineTooltipItem(
+                                    s.y > 0
+                                        ? '${s.y.round()} $unit'
+                                        : 'Veri yok',
+                                    TextStyle(
+                                      color: s.y > 0 ? color : Colors.white38,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                           ),
                         ),
                       ),
-                    ],
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        tooltipRoundedRadius: 10,
-                        tooltipBgColor:
-                            AppColors.surface.withValues(alpha: 0.92),
-                        getTooltipItems: (spots) => spots
-                            .map(
-                              (s) => LineTooltipItem(
-                                s.y > 0
-                                    ? '${s.y.round()} $unit'
-                                    : 'Veri yok',
-                                TextStyle(
-                                  color: s.y > 0 ? color : Colors.white38,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate()
         .fadeIn(delay: 100.ms, duration: 400.ms)
         .slideY(begin: 0.04, end: 0);
@@ -750,13 +958,16 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
   // ─── Hedef isabet oranı ─────────────────────────────────────────────────
 
   Widget _buildTargetHitRateCard() {
-    final targetKcal =
-        Provider.of<DietProvider>(context, listen: false).dailyTargetKcal;
+    final targetKcal = Provider.of<DietProvider>(
+      context,
+      listen: false,
+    ).dailyTargetKcal;
     if (targetKcal == null || targetKcal <= 0) return const SizedBox.shrink();
 
     final sortedKeys = _sortedKeys;
-    final activeDays =
-        sortedKeys.where((k) => _trendData[k]!.totalKcal > 0).toList();
+    final activeDays = sortedKeys
+        .where((k) => _trendData[k]!.totalKcal > 0)
+        .toList();
     if (activeDays.isEmpty) return const SizedBox.shrink();
 
     int hitCount = 0;
@@ -795,145 +1006,162 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(9),
-                    decoration: BoxDecoration(
-                      color: rateColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.track_changes_rounded,
-                        color: rateColor, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Row(
                     children: [
-                      const Text(
-                        'Hedef İsabet Oranı',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700),
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: rateColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.track_changes_rounded,
+                          color: rateColor,
+                          size: 18,
+                        ),
                       ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hedef İsabet Oranı',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            '±%20 aralığında hedef: ${targetKcal.round()} kcal',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontSize: 10.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                       Text(
-                        '±%20 aralığında hedef: ${targetKcal.round()} kcal',
+                        '%$hitRate',
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 10.5),
+                          color: rateColor,
+                          fontSize: 42,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
                       ),
+                      const SizedBox(width: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              rateLabel,
+                              style: TextStyle(
+                                color: rateColor.withValues(alpha: 0.85),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '$hitCount / ${activeDays.length} aktif gün',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: dotData.map((d) {
+                      return Tooltip(
+                        message: d.kcal > 0
+                            ? '${d.date.substring(5)}: ${d.kcal.round()} kcal'
+                            : d.date.substring(5),
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: d.color.withValues(alpha: 0.25),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: d.color.withValues(alpha: 0.6),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _dotLegend(AppColors.chartGreen, '±%20 içinde'),
+                      const SizedBox(width: 14),
+                      _dotLegend(AppColors.secondary, '±%35 içinde'),
+                      const SizedBox(width: 14),
+                      _dotLegend(AppColors.chartRed, 'Uzak'),
+                      const SizedBox(width: 14),
+                      _dotLegend(Colors.white12, 'Veri yok'),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '%$hitRate',
-                    style: TextStyle(
-                      color: rateColor,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(rateLabel,
-                            style: TextStyle(
-                                color: rateColor.withValues(alpha: 0.85),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700)),
-                        Text('$hitCount / ${activeDays.length} aktif gün',
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.4),
-                                fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: dotData.map((d) {
-                  return Tooltip(
-                    message: d.kcal > 0
-                        ? '${d.date.substring(5)}: ${d.kcal.round()} kcal'
-                        : d.date.substring(5),
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        color: d.color.withValues(alpha: 0.25),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: d.color.withValues(alpha: 0.6), width: 1.5),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _dotLegend(AppColors.chartGreen, '±%20 içinde'),
-                  const SizedBox(width: 14),
-                  _dotLegend(AppColors.secondary, '±%35 içinde'),
-                  const SizedBox(width: 14),
-                  _dotLegend(AppColors.chartRed, 'Uzak'),
-                  const SizedBox(width: 14),
-                  _dotLegend(Colors.white12, 'Veri yok'),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate()
         .fadeIn(delay: 150.ms, duration: 400.ms)
         .slideY(begin: 0.04, end: 0);
   }
 
   Widget _dotLegend(Color color, String label) => Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.25),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45), fontSize: 10)),
-        ],
-      );
+    children: [
+      Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.25),
+          shape: BoxShape.circle,
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
+        ),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        label,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.45),
+          fontSize: 10,
+        ),
+      ),
+    ],
+  );
 
   // ─── Makro dağılımı pasta ────────────────────────────────────────────────
 
@@ -947,104 +1175,140 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     final total = totalP + totalC + totalF;
     if (total <= 0) return const SizedBox.shrink();
 
-    final activeDays =
-        _trendData.values.where((t) => t.totalKcal > 0).length.clamp(1, 999);
+    final activeDays = _trendData.values
+        .where((t) => t.totalKcal > 0)
+        .length
+        .clamp(1, 999);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Makro Dağılımı (Ortalama)',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 160,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: PieChart(
-                        PieChartData(
-                          sectionsSpace: 3,
-                          centerSpaceRadius: 30,
-                          sections: [
-                            _pieSection(totalP, total, 'P',
-                                const Color(0xFF5B9BFF)),
-                            _pieSection(totalC, total, 'K',
-                                const Color(0xFF4CD1A3)),
-                            _pieSection(totalF, total, 'Y',
-                                const Color(0xFFFFB74D)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Makro Dağılımı (Ortalama)',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 160,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 3,
+                              centerSpaceRadius: 30,
+                              sections: [
+                                _pieSection(
+                                  totalP,
+                                  total,
+                                  'P',
+                                  const Color(0xFF5B9BFF),
+                                ),
+                                _pieSection(
+                                  totalC,
+                                  total,
+                                  'K',
+                                  const Color(0xFF4CD1A3),
+                                ),
+                                _pieSection(
+                                  totalF,
+                                  total,
+                                  'Y',
+                                  const Color(0xFFFFB74D),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _macroLegend(
+                              'Protein',
+                              const Color(0xFF5B9BFF),
+                              '${(totalP / activeDays).round()}g/gün',
+                              '${(totalP / total * 100).round()}%',
+                            ),
+                            const SizedBox(height: 12),
+                            _macroLegend(
+                              'Karbonhidrat',
+                              const Color(0xFF4CD1A3),
+                              '${(totalC / activeDays).round()}g/gün',
+                              '${(totalC / total * 100).round()}%',
+                            ),
+                            const SizedBox(height: 12),
+                            _macroLegend(
+                              'Yağ',
+                              const Color(0xFFFFB74D),
+                              '${(totalF / activeDays).round()}g/gün',
+                              '${(totalF / total * 100).round()}%',
+                            ),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _macroLegend('Protein', const Color(0xFF5B9BFF),
-                            '${(totalP / activeDays).round()}g/gün',
-                            '${(totalP / total * 100).round()}%'),
-                        const SizedBox(height: 12),
-                        _macroLegend('Karbonhidrat', const Color(0xFF4CD1A3),
-                            '${(totalC / activeDays).round()}g/gün',
-                            '${(totalC / total * 100).round()}%'),
-                        const SizedBox(height: 12),
-                        _macroLegend('Yağ', const Color(0xFFFFB74D),
-                            '${(totalF / activeDays).round()}g/gün',
-                            '${(totalF / total * 100).round()}%'),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate()
         .fadeIn(delay: 200.ms, duration: 400.ms)
         .slideY(begin: 0.04, end: 0);
   }
 
   PieChartSectionData _pieSection(
-      double value, double total, String label, Color color) {
+    double value,
+    double total,
+    String label,
+    Color color,
+  ) {
     return PieChartSectionData(
       value: value,
       title: '${(value / total * 100).round()}%',
       color: color,
       radius: 40,
       titleStyle: const TextStyle(
-          color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 
   Widget _macroLegend(
-      String label, Color color, String perDay, String percent) {
+    String label,
+    Color color,
+    String perDay,
+    String percent,
+  ) {
     return Row(
       children: [
         Container(
           width: 12,
           height: 12,
-          decoration:
-              BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
         ),
         const SizedBox(width: 8),
         Column(
@@ -1052,30 +1316,42 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
           children: [
             Row(
               children: [
-                Text(label,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(width: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(percent,
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700)),
+                  child: Text(
+                    percent,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
-            Text(perDay,
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45), fontSize: 11)),
+            Text(
+              perDay,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ],
@@ -1095,51 +1371,68 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
     final totalKcal = nonZero.reduce((a, b) => a + b);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'İstatistikler',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700),
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _statItem('Ortalama', '${avg.round()} kcal',
-                      Icons.analytics_rounded, AppColors.secondary),
-                  const SizedBox(width: 12),
-                  _statItem('En Yüksek', '${max.round()} kcal',
-                      Icons.arrow_upward_rounded, const Color(0xFFFF6B6B)),
+                  Text(
+                    'İstatistikler',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _statItem(
+                        'Ortalama',
+                        '${avg.round()} kcal',
+                        Icons.analytics_rounded,
+                        AppColors.secondary,
+                      ),
+                      const SizedBox(width: 12),
+                      _statItem(
+                        'En Yüksek',
+                        '${max.round()} kcal',
+                        Icons.arrow_upward_rounded,
+                        const Color(0xFFFF6B6B),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _statItem(
+                        'En Düşük',
+                        '${min.round()} kcal',
+                        Icons.arrow_downward_rounded,
+                        const Color(0xFF5B9BFF),
+                      ),
+                      const SizedBox(width: 12),
+                      _statItem(
+                        'Toplam',
+                        '${totalKcal.round()} kcal',
+                        Icons.summarize_rounded,
+                        const Color(0xFF4CD1A3),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _statItem('En Düşük', '${min.round()} kcal',
-                      Icons.arrow_downward_rounded, const Color(0xFF5B9BFF)),
-                  const SizedBox(width: 12),
-                  _statItem('Toplam', '${totalKcal.round()} kcal',
-                      Icons.summarize_rounded, const Color(0xFF4CD1A3)),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate()
         .fadeIn(delay: 300.ms, duration: 400.ms)
         .slideY(begin: 0.04, end: 0);
@@ -1162,21 +1455,115 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11)),
-                  Text(value,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LockedStatChip extends StatelessWidget {
+  const _LockedStatChip({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 11,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LockedBenefitRow extends StatelessWidget {
+  const _LockedBenefitRow({
+    required this.icon,
+    required this.text,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

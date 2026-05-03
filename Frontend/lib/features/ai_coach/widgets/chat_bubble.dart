@@ -28,6 +28,36 @@ class _ChatBubbleState extends State<ChatBubble> {
   Widget build(BuildContext context) {
     final isAssistant = widget.message.role == ChatRole.assistant;
     final isError = widget.message.isError;
+    final isSystemNote = widget.message.isSystemNote;
+
+    // System notes (personality changes) render as a subtle centered pill
+    if (isSystemNote) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A2540),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: const Color(0xFFEBC374).withValues(alpha: 0.2),
+              ),
+            ),
+            child: Text(
+              widget.message.content,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withValues(alpha: 0.65),
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ).animate().fadeIn(duration: 400.ms).scale(begin: const Offset(0.95, 0.95)),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: isAssistant

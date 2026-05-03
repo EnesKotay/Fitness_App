@@ -149,13 +149,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await StorageHelper.savePrivacyHealthConsent(true);
         await StorageHelper.savePrivacyTransferConsent(true);
         await StorageHelper.savePrivacyPaymentTransferConsent(true);
+        await StorageHelper.savePendingAppTour(true);
+        await StorageHelper.saveAppTourSeen(false);
 
         if (!mounted) return;
         final shouldShowProfileSetup =
             dietProvider.error == null && dietProvider.profile == null;
-
         final nextRoute = shouldShowProfileSetup ? '/profile-setup' : '/home';
-
         Navigator.of(context).pushReplacementNamed(nextRoute);
       } else {
         // Hata mesajını göster
@@ -590,7 +590,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: (authProvider.isLoading ||
+                    onPressed:
+                        (authProvider.isLoading ||
                             !_tosAccepted ||
                             !_healthDataAccepted ||
                             !_aiTransferAccepted ||

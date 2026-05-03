@@ -381,6 +381,25 @@ class StorageHelper {
     }
   }
 
+  static Future<bool> saveSmartGroceryCheckedItems(List<String> items) async {
+    return await _prefs?.setStringList(
+          _userKey(StorageKeys.smartGroceryCheckedItems),
+          items,
+        ) ??
+        false;
+  }
+
+  static List<String> getSmartGroceryCheckedItems() {
+    try {
+      return _prefs?.getStringList(
+            _userKey(StorageKeys.smartGroceryCheckedItems),
+          ) ??
+          [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   // Son yenenler - kullanıcıya göre ayrı
   static Future<bool> addRecentFoodEntry(
     String foodId,
@@ -547,6 +566,25 @@ class StorageHelper {
 
   static bool getQuickAccessHintSeen() {
     return _prefs?.getBool(_userKey(StorageKeys.quickAccessHintSeen)) ?? false;
+  }
+
+  /// Yeni kayıt olan kullanıcıya 1 kere gösterilen uygulama tur rehberi.
+  static Future<bool> saveAppTourSeen(bool value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setBool(_userKey(StorageKeys.appTourSeen), value);
+  }
+
+  static bool getAppTourSeen() {
+    return _prefs?.getBool(_userKey(StorageKeys.appTourSeen)) ?? false;
+  }
+
+  static Future<bool> savePendingAppTour(bool value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setBool(_userKey(StorageKeys.pendingAppTour), value);
+  }
+
+  static bool getPendingAppTour() {
+    return _prefs?.getBool(_userKey(StorageKeys.pendingAppTour)) ?? false;
   }
 
   /// Sadece oturum bilgilerini temizler (çıkış yapınca). Cache sıfırlanır; guest suffix kullanılır.
@@ -732,7 +770,8 @@ class StorageHelper {
 
   static bool getPrivacyPaymentTransferConsent() =>
       _prefs?.getBool(
-          _userKey(StorageKeys.settingsPrivacyPaymentTransferConsent)) ??
+        _userKey(StorageKeys.settingsPrivacyPaymentTransferConsent),
+      ) ??
       false;
 
   // Favori egzersizler

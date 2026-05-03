@@ -45,9 +45,9 @@ class AppGradientBackground extends StatelessWidget {
       ];
     } else {
       overlayColors = [
-        Colors.black.withValues(alpha: 0.6),
-        Colors.black.withValues(alpha: 0.75),
-        Colors.black.withValues(alpha: 0.9),
+        Colors.black.withValues(alpha: 0.65),
+        Colors.black.withValues(alpha: 0.8),
+        Colors.black.withValues(alpha: 0.92),
       ];
     }
 
@@ -60,6 +60,7 @@ class AppGradientBackground extends StatelessWidget {
                 image: AssetImage(imagePath!),
                 fit: imageFit,
                 alignment: imageAlignment,
+                opacity: 0.5,
               )
             : null,
         gradient: LinearGradient(
