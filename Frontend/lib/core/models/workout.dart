@@ -97,6 +97,7 @@ class Workout {
     'notes': notes,
     'createdAt': createdAt?.toIso8601String(),
     'updatedAt': updatedAt?.toIso8601String(),
+    'setDetails': setDetails?.map((item) => item.toJson()).toList(),
     'muscleGroup': muscleGroup,
     'isSuperset': isSuperset,
     'supersetPartner': supersetPartner,

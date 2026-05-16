@@ -256,4 +256,31 @@ class DailyTaskStorage {
       templates.where((t) => t.id != id).toList(),
     );
   }
+
+  Future<Map<String, List<DailyTask>>> exportAllTasks() async {
+    final prefs = await _getPrefs();
+    final suffix = StorageHelper.getUserStorageSuffix();
+    final prefix = '$_keyPrefix${suffix}_';
+    final result = <String, List<DailyTask>>{};
+
+    for (final key in prefs.getKeys()) {
+      if (!key.startsWith(prefix)) continue;
+      final raw = prefs.getString(key);
+      if (raw == null || raw.trim().isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! List) continue;
+        final tasks = decoded
+            .whereType<Map>()
+            .map((item) => DailyTask.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+        final dateKey = key.substring(prefix.length);
+        result[dateKey] = tasks;
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return result;
+  }
 }

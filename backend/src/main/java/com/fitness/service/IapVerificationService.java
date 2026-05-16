@@ -28,10 +28,10 @@ import jakarta.inject.Inject;
  *     strict → platforma göre zorunlu doğrulama
  *
  *   iap.apple.shared-secret    = App Store Connect → Subscriptions → Shared Secret
- *   iap.apple.bundle-id        = ör. com.fitnessapp
+ *   iap.apple.bundle-id        = ör. com.eneskotay.pusulafit
  *   iap.apple.sandbox          = true (TestFlight) | false (production)
  *
- *   iap.google.package-name    = ör. com.fitnessapp
+ *   iap.google.package-name    = ör. com.pusulafit.tracker
  *   iap.google.service-account-json = Google Play service account JSON (tek satır)
  * ──────────────────────────────────────────────────────────────
  */
@@ -58,13 +58,13 @@ public class IapVerificationService {
     @ConfigProperty(name = "iap.apple.shared-secret", defaultValue = "__MISSING__")
     String appleSharedSecret;
 
-    @ConfigProperty(name = "iap.apple.bundle-id", defaultValue = "com.fitnessapp")
+    @ConfigProperty(name = "iap.apple.bundle-id", defaultValue = "com.eneskotay.pusulafit")
     String appleBundleId;
 
     @ConfigProperty(name = "iap.apple.sandbox", defaultValue = "false")
     boolean appleSandbox;
 
-    @ConfigProperty(name = "iap.google.package-name", defaultValue = "com.fitnessapp")
+    @ConfigProperty(name = "iap.google.package-name", defaultValue = "com.pusulafit.tracker")
     String googlePackageName;
 
     @ConfigProperty(name = "iap.google.service-account-json", defaultValue = "__MISSING__")
@@ -105,8 +105,8 @@ public class IapVerificationService {
             return IapVerifyResult.fail("Desteklenmeyen platform.");
         }
         if (isProd() && !"strict".equalsIgnoreCase(verifyMode)) {
-            LOG.error("Production ortaminda strict olmayan IAP verify mode reddedildi.");
-            return IapVerifyResult.fail("Sunucu IAP dogrulama modu guvenli degil.");
+            LOG.warnf("Production ortamında '%s' IAP modu; güvenlik için platform doğrulamasına yükseltiliyor.", verifyMode);
+            return "ios".equalsIgnoreCase(req.platform()) ? verifyApple(req) : verifyGoogle(req);
         }
         LOG.infof("IAP doğrulama — platform=%s plan=%s mode=%s txId=%s",
                 req.platform(), req.planId(), verifyMode, req.transactionId());
@@ -188,7 +188,11 @@ public class IapVerificationService {
             }
 
             String bundleId = root.path("receipt").path("bundle_id").asText("");
-            if (!appleBundleId.isBlank() && !appleBundleId.equals(bundleId)) {
+            if (appleBundleId.isBlank()) {
+                LOG.error("appleBundleId yapilandirilmamis — receipt dogrulamasi atlanamaz.");
+                return IapVerifyResult.fail("Sunucu yapilandirmasi eksik.");
+            }
+            if (!appleBundleId.equals(bundleId)) {
                 LOG.warnf("Apple bundle_id uyusmuyor expected=%s actual=%s", appleBundleId, bundleId);
                 return IapVerifyResult.fail("Receipt uygulama kimligi eslesmiyor.");
             }
@@ -322,7 +326,12 @@ public class IapVerificationService {
      * JSON Web Token (JWT) ile Google OAuth2 token endpoint'ini çağırır.
      */
     private String getGoogleAccessToken() throws Exception {
-        JsonNode sa = objectMapper.readTree(googleServiceAccountJson);
+        JsonNode sa;
+        try {
+            sa = objectMapper.readTree(googleServiceAccountJson);
+        } catch (Exception e) {
+            throw new Exception("Google service account JSON parse hatasi (private key loglanmadi)");
+        }
         String clientEmail = sa.path("client_email").asText();
         String privateKeyPem = sa.path("private_key").asText();
 
@@ -418,7 +427,9 @@ public class IapVerificationService {
     }
 
     private boolean isProd() {
-        return "prod".equals(System.getProperty("quarkus.profile"))
-                || "prod".equals(System.getenv("QUARKUS_PROFILE"));
+        String sysProp = System.getProperty("quarkus.profile");
+        String envVar  = System.getenv("QUARKUS_PROFILE");
+        String profile = sysProp != null ? sysProp : (envVar != null ? envVar : "");
+        return "prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile);
     }
 }

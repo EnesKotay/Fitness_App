@@ -1,7 +1,7 @@
-import 'package:fitness/features/ai_coach/models/ai_coach_models.dart';
-import 'package:fitness/features/ai_coach/widgets/suggestion_list.dart';
-import 'package:fitness/features/tasks/controllers/daily_tasks_controller.dart';
-import 'package:fitness/features/tasks/storage/daily_task_storage.dart';
+import 'package:pusulafit/features/ai_coach/models/ai_coach_models.dart';
+import 'package:pusulafit/features/ai_coach/widgets/suggestion_list.dart';
+import 'package:pusulafit/features/tasks/controllers/daily_tasks_controller.dart';
+import 'package:pusulafit/features/tasks/storage/daily_task_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

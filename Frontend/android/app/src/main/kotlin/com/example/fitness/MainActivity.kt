@@ -1,4 +1,4 @@
-package com.example.fitness
+package com.pusulafit.tracker
 
 import io.flutter.embedding.android.FlutterActivity
 

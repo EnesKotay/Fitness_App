@@ -5,6 +5,7 @@ import com.fitness.dto.ChangePasswordRequest;
 import com.fitness.dto.LoginRequest;
 import com.fitness.dto.ProfileUpdateRequest;
 import com.fitness.dto.RegisterRequest;
+import com.fitness.dto.SocialLoginRequest;
 import com.fitness.dto.UserResponse;
 import com.fitness.dto.ForgotPasswordRequest;
 import com.fitness.dto.VerifyResetCodeRequest;
@@ -79,6 +80,26 @@ public class AuthController {
                     .build();
         }
         AuthResponse response = authService.login(request);
+        return Response.ok()
+                .entity(response)
+                .build();
+    }
+
+    /**
+     * Google / Apple ile sosyal giriş.
+     * POST /api/auth/social
+     */
+    @POST
+    @Path("/social")
+    public Response socialLogin(@Valid SocialLoginRequest request, @Context HttpHeaders headers) {
+        String ip = resolveIp(headers);
+        if (!rateLimiter.allowLogin(ip)) {
+            return Response.status(429)
+                    .header("Retry-After", rateLimiter.loginRetryAfter(ip))
+                    .entity("{\"error\": \"Çok fazla giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin.\"}")
+                    .build();
+        }
+        AuthResponse response = authService.socialLogin(request);
         return Response.ok()
                 .entity(response)
                 .build();

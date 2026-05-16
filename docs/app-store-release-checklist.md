@@ -40,3 +40,60 @@ flutter build ipa \
 - In-App Purchase urunleri onayli ve build'e bagli mi
 - Review notes icinde demo hesap ve premium test adimlari yazildi mi
 
+## App Store Metadata - PusulaFit
+
+App Store Connect > Distribution > iOS App Version ekraninda kullanilacak metinler:
+
+### Promotional Text
+
+```text
+PusulaFit ile antrenmanını planla, beslenmeni takip et ve hedeflerine akıllı koç desteğiyle ilerle.
+```
+
+### Description
+
+```text
+PusulaFit, antrenman, beslenme ve gelişim takibini tek yerde birleştiren yapay zeka destekli fitness asistanıdır. Hedefine uygun planlar oluştur, günlük kalorini ve makrolarını takip et, antrenmanlarını kaydet ve ilerlemeni anlaşılır grafiklerle gör.
+
+ANTRENMAN
+- Hedefine göre kişiselleştirilmiş haftalık planlar
+- Egzersiz ve set takibi
+- Antrenman geçmişi ve gelişim kayıtları
+
+BESLENME
+- Kalori, protein, karbonhidrat ve yağ takibi
+- Türk mutfağına uygun yemek kayıtları
+- Barkod, etiket ve yemek fotoğrafı ile pratik kayıt
+- Su ve öğün takibi
+
+AI KOÇ
+- Hedeflerine göre öneriler
+- Antrenman ve beslenme sorularına kişisel yanıtlar
+- Premium kullanıcılar için gelişmiş analizler ve haftalık planlar
+
+GELİŞİM
+- Kilo, vücut ölçüsü ve ilerleme takibi
+- Haftalık raporlar
+- Motivasyon görevleri ve seri takibi
+
+PusulaFit tıbbi tavsiye sunmaz; sağlıklı yaşam ve fitness takibi için destek aracıdır. Sağlık durumunla ilgili kararlar için bir uzmana danış.
+```
+
+### Keywords
+
+```text
+fitness,antrenman,beslenme,diyet,kalori,makro,egzersiz,spor,kilo,sağlık,ai koç,pusulafit
+```
+
+### URLs
+
+```text
+Support URL: https://pusulafit-landing.onrender.com
+Marketing URL: https://pusulafit-landing.onrender.com
+```
+
+### Copyright
+
+```text
+© 2026 PusulaFit
+```

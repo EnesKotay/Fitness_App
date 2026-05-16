@@ -1,0 +1,45 @@
+default_platform(:ios)
+
+SIMULATOR_NAME = "iPhone 16e"
+SIMULATOR_UDID = "85AC467C-6DC6-4116-A119-422D6B55992B"
+BUNDLE_ID = "com.eneskotay.fitnessapp"
+SCREENSHOT_DIR = File.expand_path("../screenshots", __dir__)
+
+platform :ios do
+
+  desc "Take screenshots on iOS Simulator"
+  lane :screenshots do
+    # Boot simulator if not running
+    sh("xcrun simctl boot '#{SIMULATOR_UDID}' 2>/dev/null || true")
+    sh("open -a Simulator")
+    sleep(3)
+
+    # Build and run the app
+    sh("cd .. && flutter run -d '#{SIMULATOR_UDID}' --dart-define=FLUTTER_TEST_MODE=true &")
+    puts "App starting... waiting 30s for launch"
+    sleep(30)
+
+    # Create output dir
+    FileUtils.mkdir_p(SCREENSHOT_DIR)
+
+    # Take screenshots of key screens
+    capture_screen("01_login")
+
+    puts "Screenshots saved to: #{SCREENSHOT_DIR}"
+  end
+
+  desc "Take a single screenshot with given name"
+  lane :snap do |options|
+    name = options[:name] || "screen"
+    FileUtils.mkdir_p(SCREENSHOT_DIR)
+    capture_screen(name)
+  end
+
+end
+
+# Helper: capture current simulator screen
+def capture_screen(name)
+  path = "#{SCREENSHOT_DIR}/#{name}.png"
+  sh("xcrun simctl io booted screenshot '#{path}'")
+  puts "Captured: #{path}"
+end

@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
-import 'dart:ui';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_exception.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/iap_service.dart';
+import '../../../../core/utils/storage_helper.dart';
 import '../../../core/widgets/premium_state_badge.dart';
 import '../providers/auth_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -49,10 +50,10 @@ const _plans = [
   _Plan(
     id: IapProductIds.yearly,
     title: 'Yıllık',
-    subtitle: '1199₺ / yıl',
-    price: '1199',
-    priceLabel: '1199₺ / yıl',
-    badge: '%33 indirim',
+    subtitle: '₺799,99 / yıl',
+    price: '799.99',
+    priceLabel: '₺799,99 / yıl',
+    badge: '%55 tasarruf',
     months: 12,
   ),
 ];
@@ -244,15 +245,19 @@ class _PremiumScreenState extends State<PremiumScreen>
     } catch (e) {
       debugPrint('PremiumScreen: backend doğrulama hatası: $e');
       if (mounted) {
+        final backendMessage = e is ApiException && e.statusCode != null
+            ? e.message
+            : null;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Ödemen alındı fakat sistemimizle doğrulama şu an tamamlanamadı. '
-              'Uygulamayı kapatıp açarsan premium genellikle birkaç dakika içinde aktif olur.',
+              backendMessage ??
+                  'Ödemen alındı fakat sistemimizle doğrulama şu an tamamlanamadı. '
+                  'Uygulamayı kapatıp açarsan premium genellikle birkaç dakika içinde aktif olur.',
             ),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 7),
+            duration: const Duration(seconds: 7),
           ),
         );
       }
@@ -261,7 +266,66 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
   }
 
+  String _yearlyBadge() {
+    try {
+      final products = _iap.products;
+      final monthly = products.firstWhere((p) => p.id == IapProductIds.monthly);
+      final yearly = products.firstWhere((p) => p.id == IapProductIds.yearly);
+      final annualizedMonthly = monthly.rawPrice * 12;
+      if (annualizedMonthly > yearly.rawPrice) {
+        final pct = ((annualizedMonthly - yearly.rawPrice) / annualizedMonthly * 100).round();
+        return '%$pct indirim';
+      }
+    } catch (_) {}
+    return '%33 indirim';
+  }
+
+  Future<bool> _ensurePaymentTransferConsent() async {
+    if (StorageHelper.getPrivacyPaymentTransferConsent()) {
+      return true;
+    }
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Ödeme Aktarımı Rızası Gerekli',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Premium satın alma ve geri yükleme için abonelik verisinin '
+          'Apple veya Google ile doğrulanmasına izin vermen gerekiyor. '
+          'Ayarlar > Gizlilik bölümünden bu izni açabilirsin.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.74),
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Kapat'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Gizlilik Ayarlarına Git'),
+          ),
+        ],
+      ),
+    );
+
+    if (approved == true && mounted) {
+      Navigator.of(context).pushNamed('/settings-privacy');
+    }
+    return false;
+  }
+
   Future<void> _startIapPurchase() async {
+    if (!await _ensurePaymentTransferConsent()) {
+      return;
+    }
     _startPurchasingGuard();
     final started = await _iap.purchase(_selectedPlan.id);
     if (!started && mounted) {
@@ -271,6 +335,9 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   Future<void> _restorePurchases() async {
+    if (!await _ensurePaymentTransferConsent()) {
+      return;
+    }
     _startPurchasingGuard();
     try {
       await _iap.restorePurchases();
@@ -577,7 +644,7 @@ class _PremiumScreenState extends State<PremiumScreen>
           ),
           const SizedBox(height: 22),
           const Text(
-            'FitMentor Premium',
+            'PusulaFit Premium',
             style: TextStyle(
               color: Colors.white,
               fontSize: 27,
@@ -793,7 +860,6 @@ class _PremiumScreenState extends State<PremiumScreen>
   Widget _buildStickyBottomCta(double bottomPadding) {
     final storePrice = _iap.priceFor(_selectedPlan.id);
     final priceLabel = storePrice ?? _selectedPlan.priceLabel;
-    final isYearly = _selectedPlan.months == 12;
     final canBuy = !_purchasing;
 
     return Container(
@@ -864,7 +930,9 @@ class _PremiumScreenState extends State<PremiumScreen>
                                 borderRadius: BorderRadius.circular(99),
                               ),
                               child: Text(
-                                plan.badge!,
+                                plan.id == IapProductIds.yearly
+                                    ? _yearlyBadge()
+                                    : plan.badge!,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
@@ -884,7 +952,7 @@ class _PremiumScreenState extends State<PremiumScreen>
           const SizedBox(height: 12),
           // ── Price hint ──
           Text(
-            isYearly ? '1 hafta ücretsiz, sonra $priceLabel' : priceLabel,
+            priceLabel,
             style: const TextStyle(
               color: Color(0xFFA1A1AA),
               fontSize: 13,
@@ -933,7 +1001,7 @@ class _PremiumScreenState extends State<PremiumScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            isYearly ? 'Ücretsiz Dene' : 'Başla — $priceLabel',
+                            'Başla — $priceLabel',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -941,15 +1009,6 @@ class _PremiumScreenState extends State<PremiumScreen>
                               letterSpacing: -0.2,
                             ),
                           ),
-                          if (isYearly)
-                            const Text(
-                              'İstediğin zaman iptal',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
                         ],
                       ),
               ),

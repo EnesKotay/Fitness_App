@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 
+import '../../../../core/theme/app_theme.dart';
+
 class DateStrip extends StatelessWidget {
   final DateTime selectedDate;
   final Function(DateTime) onDateSelected;
@@ -25,13 +27,55 @@ class DateStrip extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            monthLabel,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withValues(alpha: 0.5),
-              letterSpacing: 0.3,
+          child: InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2035),
+                initialDatePickerMode: DatePickerMode.year,
+                builder: (context, child) {
+                  return Theme(
+                    data: AppTheme.darkTheme.copyWith(
+                      colorScheme: ColorScheme.dark(
+                        primary: AppColors.primary,
+                        onPrimary: Colors.black,
+                        surface: AppColors.surface,
+                        onSurface: Colors.white,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null) {
+                onDateSelected(picked);
+              }
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    monthLabel,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

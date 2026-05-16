@@ -160,6 +160,21 @@ class DailyTasksController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Belirtilen kategorideki ilk tamamlanmamış görevi otomatik tamamlar.
+  /// Görev bulunup tamamlandıysa true, bulunamazsa false döner.
+  Future<bool> autoCompleteFirstUndoneByCategory(TaskCategory category) async {
+    DailyTask? target;
+    for (final t in _tasks) {
+      if (t.category == category && !t.isDone) {
+        target = t;
+        break;
+      }
+    }
+    if (target == null) return false;
+    await toggleTaskDone(target.id);
+    return true;
+  }
+
   Future<void> removeRecurringTemplate(String id) async {
     await _storage.removeRecurringTemplate(id);
     _recurringTemplates =

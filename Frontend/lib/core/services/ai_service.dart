@@ -165,6 +165,7 @@ class AIService {
     required String message,
     String? contextSummary,
     Map<String, dynamic>? nutritionContext,
+    List<Map<String, String>>? conversationHistory,
   }) async {
     final payload = <String, dynamic>{'task': task, 'message': message};
     final context = <String, dynamic>{...?nutritionContext};
@@ -176,6 +177,9 @@ class AIService {
     }
     if (context.isNotEmpty) {
       payload['context'] = context;
+    }
+    if (conversationHistory != null && conversationHistory.isNotEmpty) {
+      payload['conversationHistory'] = conversationHistory;
     }
 
     final response = await _apiClient.post(
@@ -197,13 +201,10 @@ class AIService {
 
   int? _extractRetryAfterFromMessage(String message) {
     final match = RegExp(r'(\d+)').firstMatch(message);
-    if (match == null) {
-      return null;
-    }
+    if (match == null) return null;
     final parsed = int.tryParse(match.group(1)!);
-    if (parsed == null || parsed <= 0) {
-      return null;
-    }
+    // Sanity check: reject values like HTTP status codes (429) or unreasonably large numbers.
+    if (parsed == null || parsed <= 0 || parsed > 3600) return null;
     return parsed;
   }
 

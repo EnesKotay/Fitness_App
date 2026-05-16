@@ -13,6 +13,30 @@ class LoginRequest {
   }
 }
 
+class SocialLoginRequest {
+  final String provider;
+  final String idToken;
+  final String? name;
+  final String? authorizationCode;
+
+  SocialLoginRequest({
+    required this.provider,
+    required this.idToken,
+    this.name,
+    this.authorizationCode,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'provider': provider,
+      'idToken': idToken,
+      if (name != null && name!.trim().isNotEmpty) 'name': name!.trim(),
+      if (authorizationCode != null && authorizationCode!.trim().isNotEmpty)
+        'authorizationCode': authorizationCode!.trim(),
+    };
+  }
+}
+
 // Register Request
 class RegisterRequest {
   final String email;

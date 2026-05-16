@@ -9,9 +9,11 @@ import com.fitness.dto.AiCoachRequest;
 import com.fitness.entity.BodyMeasurement;
 import com.fitness.entity.User;
 import com.fitness.entity.WeightRecord;
+import com.fitness.entity.Workout;
 import com.fitness.repository.BodyMeasurementRepository;
 import com.fitness.repository.UserRepository;
 import com.fitness.repository.WeightRecordRepository;
+import com.fitness.repository.WorkoutRepository;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,13 +30,21 @@ public class AiCoachContextBuilder {
     @Inject
     BodyMeasurementRepository bodyMeasurementRepository;
 
+    @Inject
+    WorkoutRepository workoutRepository;
+
+    @Inject
+    AiFeedbackService feedbackService;
+
     public CoachPromptContext build(Long userId, AiCoachRequest.DailySummaryDto summary) {
         User user = userId == null ? null : userRepository.findById(userId);
         String profileSnapshot = buildProfileSnapshot(user);
         String recoverySnapshot = buildRecoverySnapshot(summary);
         String progressSnapshot = buildProgressSnapshot(userId);
         String coachingSignals = buildCoachingSignals(user, summary, progressSnapshot);
-        return new CoachPromptContext(profileSnapshot, recoverySnapshot, progressSnapshot, coachingSignals);
+        String feedbackMemory = feedbackService.buildFeedbackMemory(userId);
+        String workoutHistory = buildWorkoutHistorySnapshot(userId);
+        return new CoachPromptContext(profileSnapshot, recoverySnapshot, progressSnapshot, coachingSignals, feedbackMemory, workoutHistory, userId);
     }
 
     private String buildProfileSnapshot(User user) {
@@ -186,6 +196,25 @@ public class AiCoachContextBuilder {
             return "No extra coaching signals.";
         }
         return signals.toString().trim();
+    }
+
+    private String buildWorkoutHistorySnapshot(Long userId) {
+        if (userId == null) return "";
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        List<Workout> recent = workoutRepository
+                .find("user.id = ?1 AND workoutDate >= ?2 ORDER BY workoutDate DESC", userId, sevenDaysAgo)
+                .list();
+        if (recent.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("Last 7-day workout log:\n");
+        for (Workout w : recent) {
+            sb.append(String.format(Locale.US, "- %s: %s%s (%s min%s)\n",
+                    w.workoutDate.toLocalDate(),
+                    w.name != null ? w.name : "Workout",
+                    w.muscleGroup != null ? " [" + w.muscleGroup + "]" : "",
+                    w.durationMinutes != null ? w.durationMinutes : "?",
+                    w.difficulty != null ? ", " + w.difficulty : ""));
+        }
+        return sb.toString().trim();
     }
 
     private String safeText(String value, String fallback) {

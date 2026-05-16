@@ -44,6 +44,14 @@ public class StartupValidator {
     @ConfigProperty(name = "iap.google.service-account-json", defaultValue = "__MISSING__")
     String googleServiceAccount;
 
+    @Inject
+    @ConfigProperty(name = "app.auth.google.allowed-client-ids", defaultValue = "")
+    String googleAuthClientIds;
+
+    @Inject
+    @ConfigProperty(name = "app.auth.apple.allowed-audiences", defaultValue = "")
+    String appleAuthAudiences;
+
     void onStart(@Observes StartupEvent event) {
         boolean isProd = "prod".equals(System.getProperty("quarkus.profile"))
                 || "prod".equals(System.getenv("QUARKUS_PROFILE"));
@@ -81,6 +89,13 @@ public class StartupValidator {
             if ("__MISSING__".equals(googleServiceAccount) || googleServiceAccount.isBlank()) {
                 warnings.add("IAP_GOOGLE_SERVICE_ACCOUNT_JSON tanımlı değil. Android satın almaları doğrulanamaz.");
             }
+        }
+
+        if (googleAuthClientIds.isBlank()) {
+            warnings.add("AUTH_GOOGLE_ALLOWED_CLIENT_IDS tanımlı değil. Google ile giriş reddedilir.");
+        }
+        if (appleAuthAudiences.isBlank()) {
+            warnings.add("AUTH_APPLE_ALLOWED_AUDIENCES tanımlı değil. Apple ile giriş reddedilir.");
         }
 
         if (!warnings.isEmpty()) {

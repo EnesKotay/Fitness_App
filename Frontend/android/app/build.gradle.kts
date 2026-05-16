@@ -25,7 +25,7 @@ kotlin {
 }
 
 android {
-    namespace = "com.fitnessapp.tracker"
+    namespace = "com.pusulafit.tracker"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.fitnessapp.tracker"
+        applicationId = "com.pusulafit.tracker"
         minSdk = flutter.minSdkVersion              // Android 6.0+ (güvenli alt sınır)
         targetSdk = 35           // Google Play 2025 zorunluluğu
         versionCode = flutter.versionCode

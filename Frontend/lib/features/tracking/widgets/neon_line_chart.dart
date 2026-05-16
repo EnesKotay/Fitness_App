@@ -7,14 +7,30 @@ import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 
+class TrackingChartEvent {
+  const TrackingChartEvent({
+    required this.date,
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  final DateTime date;
+  final String label;
+  final Color color;
+  final IconData icon;
+}
+
 class NeonLineChart extends StatelessWidget {
   final WeightProvider provider;
   final int selectedFilterIndex;
+  final List<TrackingChartEvent> events;
 
   const NeonLineChart({
     super.key,
     required this.provider,
     required this.selectedFilterIndex,
+    this.events = const [],
   });
 
   static double _chartHeight(BuildContext context) {
@@ -111,6 +127,20 @@ class NeonLineChart extends StatelessWidget {
     final maxY = allY.isEmpty
         ? 100.0
         : (allY.reduce((a, b) => a > b ? a : b) + 2).ceilToDouble();
+    final firstChartDay = DateTime(
+      chartEntries.first.date.year,
+      chartEntries.first.date.month,
+      chartEntries.first.date.day,
+    );
+    final lastChartDay = DateTime(
+      chartEntries.last.date.year,
+      chartEntries.last.date.month,
+      chartEntries.last.date.day,
+    );
+    final visibleEvents = events.where((event) {
+      final day = DateTime(event.date.year, event.date.month, event.date.day);
+      return !day.isBefore(firstChartDay) && !day.isAfter(lastChartDay);
+    }).toList();
 
     return SizedBox(
       height: chartHeight,
@@ -132,6 +162,20 @@ class NeonLineChart extends StatelessWidget {
                   ),
                 ),
                 extraLinesData: ExtraLinesData(
+                  verticalLines: visibleEvents
+                      .map(
+                        (event) => VerticalLine(
+                          x: DateTime(
+                            event.date.year,
+                            event.date.month,
+                            event.date.day,
+                          ).millisecondsSinceEpoch.toDouble(),
+                          color: event.color.withValues(alpha: 0.28),
+                          strokeWidth: 1,
+                          dashArray: [3, 5],
+                        ),
+                      )
+                      .toList(),
                   horizontalLines: [
                     if (targetWeight != null)
                       HorizontalLine(
@@ -261,7 +305,7 @@ class NeonLineChart extends StatelessWidget {
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor: const Color(0xFF2E3236),
+                    getTooltipColor: (_) => const Color(0xFF2E3236),
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
                         final date = DateTime.fromMillisecondsSinceEpoch(

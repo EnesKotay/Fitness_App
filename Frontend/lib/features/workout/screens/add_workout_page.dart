@@ -15,6 +15,8 @@ import '../providers/workout_provider.dart';
 import '../services/progression_engine.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
+import '../../tasks/controllers/daily_tasks_controller.dart';
+import '../../tasks/models/daily_task.dart';
 import '../widgets/workout_set_row_widget.dart';
 import '../widgets/rest_timer_panel.dart';
 import '../widgets/exercise_selection_list.dart';
@@ -999,6 +1001,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     });
 
     if (ok) {
+      unawaited(
+        context.read<DailyTasksController>().autoCompleteFirstUndoneByCategory(TaskCategory.sport),
+      );
       FocusManager.instance.primaryFocus?.unfocus();
       _swTimer?.cancel();
       _restTimer?.cancel();

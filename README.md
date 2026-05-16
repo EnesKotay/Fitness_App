@@ -1,4 +1,4 @@
-# Fitness App
+# PusulaFit
 
 Kullanicinin antrenmanini, beslenmesini ve fiziksel ilerlemesini tek bir uygulama icinden yonetebilmesi icin gelistirilmis modern bir mobil fitness platformu.
 
@@ -9,7 +9,7 @@ Bu repo iki ana parcadan olusur:
 
 ## Proje Ozeti
 
-Fitness App; gunluk kalori takibi, makro yonetimi, antrenman planlama, kilo ve vucut olcusu takibi, AI destekli koçluk ve premium deneyim akislarini tek bir urunde birlestirir.
+PusulaFit; gunluk kalori takibi, makro yonetimi, antrenman planlama, kilo ve vucut olcusu takibi, AI destekli koçluk ve premium deneyim akislarini tek bir urunde birlestirir.
 
 Uygulama, sadece veri kaydi tutan klasik bir fitness takip araci olmak yerine kullaniciyi gun icinde yonlendiren, hedeflerine gore yorum yapan ve sureklilik olusturmaya yardim eden daha butunsel bir deneyim sunmayi hedefler.
 

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fitness/core/models/exercise.dart';
-import 'package:fitness/features/workout/models/exercise_guide_data.dart';
+import 'package:pusulafit/core/models/exercise.dart';
+import 'package:pusulafit/features/workout/models/exercise_guide_data.dart';
 
 void main() {
   test('instruction parser strips escaped newlines and numbering', () {

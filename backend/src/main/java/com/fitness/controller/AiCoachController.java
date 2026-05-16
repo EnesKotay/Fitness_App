@@ -1,6 +1,7 @@
 package com.fitness.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.jboss.logging.Logger;
@@ -9,15 +10,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitness.dto.AiCoachRequest;
 import com.fitness.dto.AiCoachResponse;
+import com.fitness.dto.AiFeedbackRequest;
 import com.fitness.service.AiCoachRateLimiter;
 import com.fitness.service.AiCoachServiceException;
 import com.fitness.service.AiEntitlementService;
+import com.fitness.service.AiFeedbackService;
 import com.fitness.service.AuthService;
+import com.fitness.service.GeminiClient;
 import com.fitness.service.GeminiCoachService;
+import com.fitness.service.GeminiClientResult;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -41,6 +48,9 @@ public class AiCoachController {
     GeminiCoachService geminiCoachService;
 
     @Inject
+    GeminiClient geminiClient;
+
+    @Inject
     AiCoachRateLimiter rateLimiter;
 
     @Inject
@@ -51,6 +61,9 @@ public class AiCoachController {
 
     @Inject
     AiEntitlementService entitlementService;
+
+    @Inject
+    AiFeedbackService feedbackService;
 
     @POST
     @Path("/coach")
@@ -164,6 +177,7 @@ public class AiCoachController {
     @Path("/vision")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response vision(@Context HttpHeaders headers,
+                          @RestForm("media") FileUpload media,
                           @RestForm("image") FileUpload image,
                           @RestForm("question") String question,
                           @RestForm("goal") String goal,
@@ -193,12 +207,13 @@ public class AiCoachController {
                         .build();
             }
 
-            if (image == null || image.uploadedFile() == null) {
-                return Response.status(Response.Status.BAD_REQUEST).entity("{\"error\": \"Image is required\"}").build();
+            FileUpload file = media != null ? media : image;
+            if (file == null || file.uploadedFile() == null) {
+                return Response.status(Response.Status.BAD_REQUEST).entity("{\"error\": \"Media file is required\"}").build();
             }
 
-            byte[] imageBytes = java.nio.file.Files.readAllBytes(image.uploadedFile());
-            String mimeType = image.contentType();
+            byte[] mediaBytes = java.nio.file.Files.readAllBytes(file.uploadedFile());
+            String mimeType = file.contentType();
 
             AiCoachRequest request = new AiCoachRequest();
             request.question = question;
@@ -232,7 +247,7 @@ public class AiCoachController {
                 request.dailySummary = new AiCoachRequest.DailySummaryDto();
             }
 
-            AiCoachResponse response = geminiCoachService.generateVisionResponse(userId, request, imageBytes, mimeType);
+            AiCoachResponse response = geminiCoachService.generateVisionResponse(userId, request, mediaBytes, mimeType);
 
             logResult("vision_ok", userId, startNs);
             return Response.ok(response).build();
@@ -264,6 +279,77 @@ public class AiCoachController {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("{\"error\": \"Görüntü işlenemedi. Lütfen tekrar deneyin.\"}")
                     .build();
+        }
+    }
+
+    @POST
+    @Path("/summarize")
+    public Response summarizeConversation(@Context HttpHeaders headers, java.util.Map<String, Object> body) {
+        try {
+            Long userId = resolveUserId(headers);
+            @SuppressWarnings("unchecked")
+            java.util.List<String> messages = (java.util.List<String>) body.get("messages");
+            if (messages == null || messages.isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\":\"messages required\"}").build();
+            }
+            String joined = String.join("\n", messages);
+            String prompt = "Aşağıdaki fitness koçluk konuşmasını 3-5 cümleyle özetle. " +
+                    "Sadece kullanıcının hedefleri, aldığı tavsiyeler ve önemli bilgileri tut. " +
+                    "Türkçe yaz. Tekrar veya selamlama ekleme.\n\n---\n" + joined;
+            GeminiClientResult result = geminiClient.generateText(
+                    "summarize", userId, "gemini-2.5-flash", "gemini-2.0-flash", prompt, false);
+            if (!result.isSuccess()) {
+                return Response.status(Response.Status.BAD_GATEWAY)
+                        .entity("{\"error\":\"Summarization failed\"}").build();
+            }
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("summary", result.getOutputText().trim());
+            return Response.ok(resp).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+    }
+
+    @GET
+    @Path("/insights")
+    public Response getInsights(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            List<com.fitness.entity.AiInsight> insights =
+                    com.fitness.entity.AiInsight.findRecentByUser(userId, 20);
+            List<Map<String, Object>> result = insights.stream().map(i -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("id", i.id);
+                m.put("type", i.type);
+                m.put("summary", i.summary);
+                m.put("createdAt", i.createdAt != null ? i.createdAt.toString() : null);
+                return m;
+            }).toList();
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        } catch (Exception e) {
+            LOG.warnf("Get insights failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @POST
+    @Path("/feedback")
+    @Transactional
+    public Response feedback(@Context HttpHeaders headers, AiFeedbackRequest request) {
+        try {
+            Long userId = resolveUserId(headers);
+            feedbackService.save(userId, request);
+            return Response.noContent().build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.warnf("Feedback save failed: %s", e.getMessage());
+            return Response.noContent().build(); // non-critical, never fail the client
         }
     }
 

@@ -38,7 +38,9 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(() => setState(() => _name = _nameController.text));
+    _nameController.addListener(
+      () => setState(() => _name = _nameController.text),
+    );
     _kcalController.addListener(_updateValues);
     _proteinController.addListener(_updateValues);
     _carbController.addListener(_updateValues);
@@ -73,8 +75,8 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     setState(() => _estimating = true);
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
-      final NutritionAiResponseModel? result =
-          await provider.getStructuredNutritionResponse(
+      final NutritionAiResponseModel?
+      result = await provider.getStructuredNutritionResponse(
         '100g $name için besin değerlerini tahmin et: kalori (kcal), protein (g), karbonhidrat (g), yağ (g).',
         task: 'estimate',
       );
@@ -83,14 +85,16 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
           ? result!.meals.first.macros
           : null;
       if (macros != null) {
-        _kcalController.text =
-            macros.kcal != null ? macros.kcal.toString() : '';
-        _proteinController.text =
-            macros.proteinG != null ? macros.proteinG.toString() : '';
-        _carbController.text =
-            macros.carbsG != null ? macros.carbsG.toString() : '';
-        _fatController.text =
-            macros.fatG != null ? macros.fatG.toString() : '';
+        _kcalController.text = macros.kcal != null
+            ? macros.kcal.toString()
+            : '';
+        _proteinController.text = macros.proteinG != null
+            ? macros.proteinG.toString()
+            : '';
+        _carbController.text = macros.carbsG != null
+            ? macros.carbsG.toString()
+            : '';
+        _fatController.text = macros.fatG != null ? macros.fatG.toString() : '';
         _updateValues();
         AppSnack.showSuccess(context, 'AI makro tahmini uygulandı!');
       } else {
@@ -104,14 +108,22 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
+
     final nameVal = _nameController.text.trim();
     if (nameVal.isEmpty) {
       AppSnack.showError(context, 'Lütfen yemek adı girin.');
       return;
     }
 
+    final validationError = _nutritionValidationError();
+    if (validationError != null) {
+      AppSnack.showError(context, validationError);
+      return;
+    }
+
     setState(() => _saving = true);
-    
+
     // Auto calculate calories if not provided
     double? finalKcal = _kcal > 0 ? _kcal : (4 * _p + 4 * _c + 9 * _f);
     if (finalKcal == 0 && _kcalController.text.isEmpty) finalKcal = null;
@@ -130,7 +142,10 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     );
 
     try {
-      await Provider.of<DietProvider>(context, listen: false).addCustomFood(food);
+      await Provider.of<DietProvider>(
+        context,
+        listen: false,
+      ).addCustomFood(food);
       if (!mounted) return;
       setState(() => _saving = false);
       try {
@@ -144,9 +159,39 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        AppSnack.showError(context, 'Kaydedilirken hata oluştu: ${e.toString()}');
+        AppSnack.showError(
+          context,
+          'Kaydedilirken hata oluştu: ${e.toString()}',
+        );
       }
     }
+  }
+
+  String? _nutritionValidationError() {
+    final values = [_kcal, _p, _c, _f];
+    if (values.any((value) => value < 0)) {
+      return 'Besin değerleri negatif olamaz.';
+    }
+    if (values.every((value) => value == 0)) {
+      return 'Kalori veya makro değerlerinden en az birini girin.';
+    }
+    if (_kcal > 950) {
+      return '100g için kalori değeri çok yüksek görünüyor.';
+    }
+    if (_p > 100 || _c > 100 || _f > 100 || (_p + _c + _f) > 105) {
+      return '100g için makro toplamı 100g civarını aşmamalı.';
+    }
+
+    final macroKcal = 4 * _p + 4 * _c + 9 * _f;
+    final hasExplicitKcal = _kcalController.text.trim().isNotEmpty && _kcal > 0;
+    if (hasExplicitKcal && macroKcal > 80) {
+      final difference = (_kcal - macroKcal).abs();
+      final ratio = difference / _kcal;
+      if (difference > 80 && ratio > 0.35) {
+        return 'Kalori ile makrolar uyuşmuyor. Makrolara göre yaklaşık ${macroKcal.round()} kcal olmalı.';
+      }
+    }
+    return null;
   }
 
   @override
@@ -167,7 +212,10 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                      ),
                       onPressed: () {
                         try {
                           Navigator.of(context, rootNavigator: false).pop();
@@ -176,7 +224,14 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                         }
                       },
                     ),
-                    const Text('Özel Yemek Ekle', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    const Text(
+                      'Özel Yemek Ekle',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -189,21 +244,38 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                     children: [
                       // 1. Live Preview Card
                       Center(
-                        child: Text('CANLI ÖNİZLEME', style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10, letterSpacing: 1.5, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'CANLI ÖNİZLEME',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 10,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.surfaceLight, AppColors.surface.withValues(alpha: 0.5)],
+                            colors: [
+                              AppColors.surfaceLight,
+                              AppColors.surface.withValues(alpha: 0.5),
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                          ),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 8)),
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
                           ],
                         ),
                         child: Row(
@@ -215,7 +287,11 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                                 color: AppColors.primary.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Icon(Icons.restaurant, color: AppColors.primary, size: 30),
+                              child: const Icon(
+                                Icons.restaurant,
+                                color: AppColors.primary,
+                                size: 30,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -227,19 +303,37 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: _name.isEmpty ? Colors.white.withValues(alpha: 0.3) : Colors.white,
+                                      color: _name.isEmpty
+                                          ? Colors.white.withValues(alpha: 0.3)
+                                          : Colors.white,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      _previewBadge('Kcal', '${displayKcal.round()}', AppColors.textPrimary),
+                                      _previewBadge(
+                                        'Kcal',
+                                        '${displayKcal.round()}',
+                                        AppColors.textPrimary,
+                                      ),
                                       const SizedBox(width: 8),
-                                      _previewBadge('P', '${_p.round()}', const Color(0xFF4CAF50)),
+                                      _previewBadge(
+                                        'P',
+                                        '${_p.round()}',
+                                        const Color(0xFF4CAF50),
+                                      ),
                                       const SizedBox(width: 4),
-                                      _previewBadge('K', '${_c.round()}', const Color(0xFF2196F3)),
+                                      _previewBadge(
+                                        'K',
+                                        '${_c.round()}',
+                                        const Color(0xFF2196F3),
+                                      ),
                                       const SizedBox(width: 4),
-                                      _previewBadge('Y', '${_f.round()}', const Color(0xFFE91E63)),
+                                      _previewBadge(
+                                        'Y',
+                                        '${_f.round()}',
+                                        const Color(0xFFE91E63),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -247,7 +341,11 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                             ),
                           ],
                         ),
-                      ).animate().fadeIn().slideY(begin: 0.1, end: 0, duration: 400.ms),
+                      ).animate().fadeIn().slideY(
+                        begin: 0.1,
+                        end: 0,
+                        duration: 400.ms,
+                      ),
 
                       const SizedBox(height: 32),
 
@@ -281,27 +379,39 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary),
+                                    AppColors.primary,
+                                  ),
                                 ),
                               )
-                            : const Icon(Icons.auto_awesome_rounded,
-                                size: 16, color: AppColors.primary),
+                            : const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
                         label: Text(
-                          _estimating ? 'Tahmin ediliyor...' : 'AI ile Tahmin Et',
+                          _estimating
+                              ? 'Tahmin ediliyor...'
+                              : 'AI ile Tahmin Et',
                           style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13),
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
                         ),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(
-                              color: AppColors.primary.withValues(alpha: 0.5)),
-                          backgroundColor:
-                              AppColors.primary.withValues(alpha: 0.07),
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                          backgroundColor: AppColors.primary.withValues(
+                            alpha: 0.07,
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 16),
+                            vertical: 10,
+                            horizontal: 16,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -374,7 +484,14 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(title, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13, fontWeight: FontWeight.bold)),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         ...children,
       ],
@@ -391,7 +508,11 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }
@@ -429,7 +550,9 @@ class _GlassInput extends StatelessWidget {
           ),
           child: TextField(
             controller: controller,
-            keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+            keyboardType: isNumber
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.text,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               border: InputBorder.none,

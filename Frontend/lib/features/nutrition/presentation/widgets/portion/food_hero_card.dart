@@ -32,7 +32,11 @@ class FoodHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badges = <(String, Color)>[];
-    if (food.proteinPer100g >= 20) badges.add(('Yüksek Protein', _proteinColor));
+    final confidence = _confidenceBadge(food);
+    badges.add(confidence);
+    if (food.proteinPer100g >= 20) {
+      badges.add(('Yüksek Protein', _proteinColor));
+    }
     if (food.carbPer100g < 5) badges.add(('Düşük Karb', _carbColor));
     if (food.fatPer100g < 3) badges.add(('Düşük Yağ', const Color(0xFF8BC34A)));
     if (food.kcalPer100g < 50) badges.add(('Hafif', Colors.white70));
@@ -40,7 +44,7 @@ class FoodHeroCard extends StatelessWidget {
     final total = calculatedProtein + calculatedCarb + calculatedFat;
     final protPct = total > 0 ? (calculatedProtein / total * 100).round() : 0;
     final carbPct = total > 0 ? (calculatedCarb / total * 100).round() : 0;
-    final fatPct  = total > 0 ? (calculatedFat  / total * 100).round() : 0;
+    final fatPct = total > 0 ? (calculatedFat / total * 100).round() : 0;
 
     return PortionUtils.buildGlassCard(
       radius: 22,
@@ -78,7 +82,9 @@ class FoodHeroCard extends StatelessWidget {
                             food.category.isEmpty ? 'Besin' : food.category,
                             Colors.white.withValues(alpha: 0.45),
                           ),
-                          ...badges.map((b) => PortionUtils.buildBadge(b.$1, b.$2)),
+                          ...badges.map(
+                            (b) => PortionUtils.buildBadge(b.$1, b.$2),
+                          ),
                         ],
                       ),
                     ],
@@ -113,7 +119,9 @@ class FoodHeroCard extends StatelessWidget {
                             Text(
                               'kcal',
                               style: TextStyle(
-                                color: AppColors.secondary.withValues(alpha: 0.8),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.8,
+                                ),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -166,11 +174,32 @@ class FoodHeroCard extends StatelessWidget {
 
             Row(
               children: [
-                Expanded(child: _detailedMacroChip('Protein', calculatedProtein, protPct, _proteinColor)),
+                Expanded(
+                  child: _detailedMacroChip(
+                    'Protein',
+                    calculatedProtein,
+                    protPct,
+                    _proteinColor,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _detailedMacroChip('Karb', calculatedCarb, carbPct, _carbColor)),
+                Expanded(
+                  child: _detailedMacroChip(
+                    'Karb',
+                    calculatedCarb,
+                    carbPct,
+                    _carbColor,
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _detailedMacroChip('Yağ', calculatedFat, fatPct, _fatColor)),
+                Expanded(
+                  child: _detailedMacroChip(
+                    'Yağ',
+                    calculatedFat,
+                    fatPct,
+                    _fatColor,
+                  ),
+                ),
               ],
             ),
           ],
@@ -218,4 +247,20 @@ class FoodHeroCard extends StatelessWidget {
           ],
         ),
       );
+
+  (String, Color) _confidenceBadge(FoodItem food) {
+    if (food.tags.contains('barcode-verified') ||
+        food.tags.contains('user-corrected') ||
+        food.category.toLowerCase().contains('barkodlu')) {
+      return ('Doğrulandı', AppColors.success);
+    }
+    if (food.tags.contains('open-food-facts') ||
+        food.tags.contains('etiket-verisi')) {
+      return ('Dış veri - kontrol et', AppColors.warning);
+    }
+    if (food.tags.contains('ai-estimate')) {
+      return ('Tahmini', AppColors.secondary);
+    }
+    return ('Uygulama verisi', Colors.white70);
+  }
 }

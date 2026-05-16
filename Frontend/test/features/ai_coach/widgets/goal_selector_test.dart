@@ -1,5 +1,5 @@
-import 'package:fitness/features/ai_coach/widgets/goal_selector.dart';
-import 'package:fitness/features/nutrition/domain/entities/user_profile.dart';
+import 'package:pusulafit/features/ai_coach/widgets/goal_selector.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/user_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

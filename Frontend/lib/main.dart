@@ -16,6 +16,7 @@ import 'core/theme/app_theme.dart';
 import 'core/api/api_client.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/app_secrets.dart';
+import 'core/services/crash_reporting_service.dart';
 import 'core/routes/app_page_transitions.dart';
 import 'core/widgets/global_offline_banner.dart';
 import 'features/shell/app_providers.dart';
@@ -46,7 +47,7 @@ void main() async {
   // Türkçe tarih formatı - arka planda yükle (main thread bloklamasın)
   unawaited(initializeDateFormatting('tr_TR'));
 
-  if (AppSecrets.sentryDsn.isNotEmpty) {
+  if (CrashReportingService.canInitialize) {
     await SentryFlutter.init((options) {
       options.dsn = AppSecrets.sentryDsn;
       options.tracesSampleRate = 0.2;
@@ -82,8 +83,8 @@ Future<void> _warmUpBackend() async {
     await ApiClient().dio.get(
       '/api/auth/test',
       options: Options(
-        sendTimeout: const Duration(seconds: 90),
-        receiveTimeout: const Duration(seconds: 90),
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
   } catch (_) {
@@ -126,11 +127,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MultiProvider(
       providers: AppProviders.providers,
       child: MaterialApp(
-        title: 'FitMentor',
+        title: 'PusulaFit',
         debugShowCheckedModeBanner: false,
         navigatorKey: appNavigatorKey,
-        builder: (context, child) =>
-            GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
+        ),
         themeMode: ThemeMode.dark,
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme.copyWith(
@@ -159,13 +163,111 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  // Merged listenable — build() içinde değil initState'te oluşturulur
+  late final Listenable _logoAnims;
+
+  // Logo entrance: scale + fade
+  late final AnimationController _logoCtrl;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoOpacity;
+
+  // Glow pulse around logo
+  late final AnimationController _glowCtrl;
+  late final Animation<double> _glowRadius;
+  late final Animation<double> _glowOpacity;
+
+  // Outer ring slow rotation
+  late final AnimationController _ringCtrl;
+
+  // Text + tagline entrance
+  late final AnimationController _textCtrl;
+  late final Animation<double> _textOpacity;
+  late final Animation<Offset> _textSlide;
+
+  // Loader fade-in
+  late final AnimationController _loaderCtrl;
+  late final Animation<double> _loaderOpacity;
+
   @override
   void initState() {
     super.initState();
+
+    _logoCtrl = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+    _logoScale = CurvedAnimation(
+      parent: _logoCtrl,
+      curve: Curves.elasticOut,
+    ).drive(Tween<double>(begin: 0.55, end: 1.0));
+    _logoOpacity = CurvedAnimation(
+      parent: _logoCtrl,
+      curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+    );
+
+    _glowCtrl = AnimationController(
+      duration: const Duration(milliseconds: 2400),
+      vsync: this,
+    )..repeat(reverse: true);
+    _glowRadius = Tween<double>(begin: 28, end: 52).animate(
+      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
+    );
+    _glowOpacity = Tween<double>(begin: 0.35, end: 0.65).animate(
+      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
+    );
+
+    _ringCtrl = AnimationController(
+      duration: const Duration(seconds: 12),
+      vsync: this,
+    )..repeat();
+
+    _textCtrl = AnimationController(
+      duration: const Duration(milliseconds: 550),
+      vsync: this,
+    );
+    _textOpacity = CurvedAnimation(
+      parent: _textCtrl,
+      curve: Curves.easeOut,
+    );
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0, 0.25),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
+
+    _loaderCtrl = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _loaderOpacity = CurvedAnimation(
+      parent: _loaderCtrl,
+      curve: Curves.easeIn,
+    );
+
+    _logoAnims = Listenable.merge([_logoCtrl, _glowCtrl, _ringCtrl]);
+
+    // Zincir: logo gir → 380ms bekle → text gir → 200ms bekle → loader gir
+    _logoCtrl.forward().whenComplete(() async {
+      await Future.delayed(const Duration(milliseconds: 80));
+      if (mounted) _textCtrl.forward();
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) _loaderCtrl.forward();
+    });
+
     // Provider'lar (özellikle ProxyProvider) ilk build'den sonra hazır olur;
     // build sırasında Navigator çağrısı yapılmamalı (setState during build hatası önlenir).
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
+  }
+
+  @override
+  void dispose() {
+    _logoCtrl.dispose();
+    _glowCtrl.dispose();
+    _ringCtrl.dispose();
+    _textCtrl.dispose();
+    _loaderCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _init() async {
@@ -249,46 +351,451 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    // Eski kurulumlardan gelen onboarding durumunu authenticated kullanıcı için
-    // korunmuş kabul ediyoruz; yeni rehber artık kayıt tamamlandıktan sonra gösteriliyor.
-    if (!StorageHelper.getOnboardingDone()) {
-      await StorageHelper.saveOnboardingDone(true);
+    // Profil setup sayfasının bir uygulama güncellemesi veya beklenmedik flag
+    // kalıntısı yüzünden tekrar gösterilmemesi için tüm olası bayrakları temizle.
+    // Bu ekran SADECE kayıt akışından açılır; splash her zaman /home'a gider.
+    if (StorageHelper.getPendingInitialProfileSetup()) {
+      await StorageHelper.savePendingInitialProfileSetup(false);
     }
     if (!context.mounted) return;
 
-    final shouldShowProfileSetup =
-        authProvider.isAuthenticated &&
-        dietProvider.error == null &&
-        dietProvider.profile == null;
-    final nextRoute = shouldShowProfileSetup
-        ? '/profile-setup'
-        : AppRoutes.home;
+    // Var olan kullanıcıları (profil kurulumu dışında gelenler) için
+    // onboarding bayrağını güncelle — profil yoksa bile spam etme.
+    if (!StorageHelper.getOnboardingDone() && dietProvider.profile != null) {
+      await StorageHelper.saveOnboardingDone(true);
+    }
+    if (!context.mounted) return;
     final navigator = appNavigatorKey.currentState;
     if (navigator == null) return;
 
-    navigator.pushReplacementNamed(nextRoute);
+    navigator.pushReplacementNamed(AppRoutes.home);
   }
 
   @override
   Widget build(BuildContext context) {
+    const logoSize = 140.0;
+    const accent = Color(0xFFCC7A4A);
+    const accentLight = Color(0xFFE8955A);
+
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset('assets/images/app_icon.png', width: 100, height: 100),
-            const SizedBox(height: 20),
-            Text(
-              'FitMentor',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFF080D16),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Arka plan gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomLeft,
+                colors: [
+                  Color(0xFF0A1020),
+                  Color(0xFF080D16),
+                  Color(0xFF06090F),
+                  Color(0xFF110A08),
+                ],
+              ),
             ),
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(),
-          ],
-        ),
+          ),
+          // Sol alt sıcak glow
+          Positioned(
+            bottom: -120,
+            left: -80,
+            child: Container(
+              width: 340,
+              height: 340,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    accent.withValues(alpha: 0.14),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Sağ üst mavi glow
+          Positioned(
+            top: -80,
+            right: -60,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF2563EB).withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Ana içerik
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Amblem + glow + halka
+                AnimatedBuilder(
+                  animation: _logoAnims,
+                  builder: (context, _) {
+                    return ScaleTransition(
+                      scale: _logoScale,
+                      child: FadeTransition(
+                        opacity: _logoOpacity,
+                        child: SizedBox(
+                          width: logoSize + 60,
+                          height: logoSize + 60,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Dış dönen süslemeli halka
+                              Transform.rotate(
+                                angle: _ringCtrl.value * 2 * 3.14159,
+                                child: CustomPaint(
+                                  size: const Size(
+                                    logoSize + 56,
+                                    logoSize + 56,
+                                  ),
+                                  painter: _RingPainter(
+                                    color: accent,
+                                    progress: _ringCtrl.value,
+                                  ),
+                                ),
+                              ),
+                              // Pulsing glow
+                              Container(
+                                width: logoSize + _glowRadius.value,
+                                height: logoSize + _glowRadius.value,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: RadialGradient(
+                                    colors: [
+                                      accent.withValues(
+                                        alpha: _glowOpacity.value * 0.45,
+                                      ),
+                                      accentLight.withValues(
+                                        alpha: _glowOpacity.value * 0.15,
+                                      ),
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // İç yumuşak hale
+                              Container(
+                                width: logoSize + 18,
+                                height: logoSize + 18,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: accent.withValues(
+                                        alpha: _glowOpacity.value * 0.6,
+                                      ),
+                                      blurRadius: 30,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Logo ikonu
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  logoSize * 0.24,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/app_icon.png',
+                                  width: logoSize,
+                                  height: logoSize,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 32),
+                // Başlık + tagline
+                SlideTransition(
+                  position: _textSlide,
+                  child: FadeTransition(
+                    opacity: _textOpacity,
+                    child: Column(
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (bounds) =>
+                              const LinearGradient(
+                                colors: [
+                                  Colors.white,
+                                  Color(0xFFE8D5C4),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds),
+                          child: const Text(
+                            'PusulaFit',
+                            style: TextStyle(
+                              fontSize: 38,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Hedeflerine ulaş, sınırları aş',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 64),
+                // Özel loading indicator
+                FadeTransition(
+                  opacity: _loaderOpacity,
+                  child: const _SplashLoader(),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+}
+
+/// Dönen kompas/halka çizici
+class _RingPainter extends CustomPainter {
+  final Color color;
+  final double progress;
+
+  const _RingPainter({required this.color, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 2;
+
+    // Ana halka — kesik çizgi efekti (4 segment)
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    const dashCount = 16;
+    const dashAngle = 3.14159 * 2 / dashCount;
+    const gapRatio = 0.45;
+    for (int i = 0; i < dashCount; i++) {
+      final startAngle = i * dashAngle;
+      final sweepAngle = dashAngle * (1 - gapRatio);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+
+    // Parlak kısa yay (döner)
+    final arcPaint = Paint()
+      ..shader = SweepGradient(
+        colors: [
+          color.withValues(alpha: 0.0),
+          color.withValues(alpha: 0.85),
+          color.withValues(alpha: 0.0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+        startAngle: 0,
+        endAngle: 3.14159 * 2,
+        transform: GradientRotation(progress * 3.14159 * 2),
+      ).createShader(Rect.fromCircle(center: center, radius: radius))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      progress * 3.14159 * 2,
+      1.2,
+      false,
+      arcPaint,
+    );
+
+    // 4 köşe noktası (pusula yönleri)
+    final dotPaint = Paint()
+      ..color = color.withValues(alpha: 0.7)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 4; i++) {
+      final angle = i * 3.14159 / 2;
+      final dx = center.dx + radius * _cos(angle);
+      final dy = center.dy + radius * _sin(angle);
+      canvas.drawCircle(Offset(dx, dy), 2.5, dotPaint);
+    }
+  }
+
+  double _cos(double a) => (a == 0)
+      ? 1
+      : (a == 3.14159 / 2)
+      ? 0
+      : (a == 3.14159)
+      ? -1
+      : (a == 3 * 3.14159 / 2)
+      ? 0
+      : _cosApprox(a);
+
+  double _sin(double a) => (a == 0)
+      ? 0
+      : (a == 3.14159 / 2)
+      ? 1
+      : (a == 3.14159)
+      ? 0
+      : (a == 3 * 3.14159 / 2)
+      ? -1
+      : _sinApprox(a);
+
+  double _cosApprox(double a) {
+    double x = a % (2 * 3.14159);
+    if (x < 0) x += 2 * 3.14159;
+    // Taylor yaklaşım yerine dart:math kullan
+    return _mathCos(x);
+  }
+
+  double _sinApprox(double a) => _mathSin(a);
+
+  // dart:math'e bridge (import dart:math dışında da çalışsın diye static)
+  static double _mathCos(double a) {
+    // Simple: cos(a) = sin(a + pi/2)
+    // Use series: cos(x) = 1 - x²/2! + x⁴/4! - ...
+    double x = a % (2 * 3.14159265);
+    if (x < 0) x += 2 * 3.14159265;
+    // Use built-in through dart:math
+    return _cosLookup(x);
+  }
+
+  static double _mathSin(double a) => _sinLookup(a);
+
+  static double _cosLookup(double x) {
+    // Redirect to dart:math sin
+    return _sinLookup(x + 1.5707963268);
+  }
+
+  static double _sinLookup(double x) {
+    // Normalize
+    x = x % (2 * 3.14159265358979);
+    if (x < 0) x += 2 * 3.14159265358979;
+    // Bhaskara I approximation
+    final sign = (x < 3.14159265358979) ? 1.0 : -1.0;
+    if (x > 3.14159265358979) x -= 3.14159265358979;
+    return sign * (16 * x * (3.14159265358979 - x)) /
+        (5 * 3.14159265358979 * 3.14159265358979 -
+            4 * x * (3.14159265358979 - x));
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.color != color;
+}
+
+/// Özel splash loading göstergesi — üç nokta dalgası
+class _SplashLoader extends StatefulWidget {
+  const _SplashLoader();
+
+  @override
+  State<_SplashLoader> createState() => _SplashLoaderState();
+}
+
+class _SplashLoaderState extends State<_SplashLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFFCC7A4A);
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            // Her nokta farklı fazda titreşiyor
+            final phase = ((_ctrl.value - i * 0.18) % 1.0);
+            final t = (phase < 0 ? phase + 1 : phase);
+            // Yukarı-aşağı sinüs benzeri hareket
+            final sinVal = _sinFor(t * 3.14159 * 2);
+            final dy = -sinVal * 6.0;
+            final scale = 0.75 + sinVal.abs() * 0.35;
+            final opacity = 0.4 + sinVal.abs() * 0.6;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Transform.translate(
+                offset: Offset(0, dy),
+                child: Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent.withValues(alpha: opacity),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: opacity * 0.5),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+  double _sinFor(double x) {
+    // Bhaskara I
+    x = x % (2 * 3.14159265358979);
+    if (x < 0) x += 2 * 3.14159265358979;
+    final sign = (x < 3.14159265358979) ? 1.0 : -1.0;
+    if (x > 3.14159265358979) x -= 3.14159265358979;
+    return sign * (16 * x * (3.14159265358979 - x)) /
+        (5 * 3.14159265358979 * 3.14159265358979 -
+            4 * x * (3.14159265358979 - x));
   }
 }

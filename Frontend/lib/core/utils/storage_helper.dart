@@ -4,6 +4,68 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/storage_keys.dart';
 
+// ---------------------------------------------------------------------------
+// Kayıtlı Öğün Modeli
+// ---------------------------------------------------------------------------
+class SavedMealItem {
+  final String foodId;
+  final String foodName;
+  final double grams;
+
+  const SavedMealItem({
+    required this.foodId,
+    required this.foodName,
+    required this.grams,
+  });
+
+  factory SavedMealItem.fromJson(Map<String, dynamic> json) => SavedMealItem(
+    foodId: json['foodId']?.toString() ?? '',
+    foodName: json['foodName']?.toString() ?? '',
+    grams: (json['grams'] as num?)?.toDouble() ?? 100.0,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'foodId': foodId,
+    'foodName': foodName,
+    'grams': grams,
+  };
+}
+
+class SavedMeal {
+  final String id;
+  final String name;
+  final List<SavedMealItem> items;
+  final DateTime createdAt;
+
+  const SavedMeal({
+    required this.id,
+    required this.name,
+    required this.items,
+    required this.createdAt,
+  });
+
+  double get totalKcal =>
+      0; // Kalorileri FoodItem'dan hesaplamak için provider kullanılacak
+
+  factory SavedMeal.fromJson(Map<String, dynamic> json) => SavedMeal(
+    id: json['id']?.toString() ?? '',
+    name: json['name']?.toString() ?? '',
+    items: (json['items'] as List<dynamic>? ?? [])
+        .map((e) => SavedMealItem.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList(),
+    createdAt:
+        DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+        DateTime.now(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'items': items.map((e) => e.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+  };
+}
+
 class FavoriteExerciseEntry {
   final String name;
   final String? muscleGroup;
@@ -103,18 +165,10 @@ class StorageHelper {
       _cachedToken = token;
       return true;
     } catch (_) {
-      // Bazı emulator/cihazlarda secure storage yazımı geçici olarak başarısız olabilir.
-      // Oturumu kaybetmemek için SharedPreferences'a yedek yazıyoruz.
-      if (_prefs == null) return false;
-      try {
-        final ok = await _prefs!.setString(StorageKeys.authToken, token);
-        if (ok) {
-          _cachedToken = token;
-        }
-        return ok;
-      } catch (_) {
-        return false;
-      }
+      // SecureStorage yazımı başarısız — düz metin olarak saklamak güvenlik açığı oluşturur.
+      // Oturum sadece bu uygulama açık kaldığı sürece bellekte tutulur.
+      _cachedToken = token;
+      return false;
     }
   }
 
@@ -294,6 +348,33 @@ class StorageHelper {
 
   static bool isFavorite(String foodId) =>
       getFavoriteFoodIds().contains(foodId);
+
+  // Sevilmeyen (Disliked) besinler - Damak zevki öğrenimi için
+  static Future<bool> saveDislikedFoodIds(List<String> ids) async {
+    return await _prefs?.setStringList(_userKey('disliked_food_ids'), ids) ??
+        false;
+  }
+
+  static List<String> getDislikedFoodIds() {
+    try {
+      return _prefs?.getStringList(_userKey('disliked_food_ids')) ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> toggleDislike(String foodId) async {
+    final ids = getDislikedFoodIds();
+    if (ids.contains(foodId)) {
+      ids.remove(foodId);
+    } else {
+      ids.add(foodId);
+    }
+    return saveDislikedFoodIds(ids);
+  }
+
+  static bool isDisliked(String foodId) =>
+      getDislikedFoodIds().contains(foodId);
 
   static Future<bool> saveSmartGroceryList(List<String> items) async {
     return await _prefs?.setStringList(
@@ -520,6 +601,19 @@ class StorageHelper {
         false;
   }
 
+  static Future<bool> savePendingInitialProfileSetup(bool value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setBool(
+      _userKey(StorageKeys.pendingInitialProfileSetup),
+      value,
+    );
+  }
+
+  static bool getPendingInitialProfileSetup() {
+    return _prefs?.getBool(_userKey(StorageKeys.pendingInitialProfileSetup)) ??
+        false;
+  }
+
   static Future<bool> saveNutritionPreferences(
     Map<String, dynamic> json,
   ) async {
@@ -542,6 +636,28 @@ class StorageHelper {
     } catch (_) {}
     return null;
   }
+
+  static Future<bool> saveWorkoutLocation(String location) async {
+    return await _prefs?.setString(
+          _userKey(StorageKeys.workoutLocation),
+          location,
+        ) ??
+        false;
+  }
+
+  static String getWorkoutLocation() =>
+      _prefs?.getString(_userKey(StorageKeys.workoutLocation)) ?? 'home';
+
+  static Future<bool> saveEquipmentType(String equipment) async {
+    return await _prefs?.setString(
+          _userKey(StorageKeys.equipmentType),
+          equipment,
+        ) ??
+        false;
+  }
+
+  static String getEquipmentType() =>
+      _prefs?.getString(_userKey(StorageKeys.equipmentType)) ?? 'bodyweight';
 
   static Future<bool> savePendingOnboardingSummary(bool value) async {
     if (_prefs == null) return false;
@@ -585,6 +701,19 @@ class StorageHelper {
 
   static bool getPendingAppTour() {
     return _prefs?.getBool(_userKey(StorageKeys.pendingAppTour)) ?? false;
+  }
+
+  static Future<bool> saveAssistantFabCorner(String value) async {
+    if (_prefs == null) return false;
+    return await _prefs!.setString(
+      _userKey(StorageKeys.assistantFabCorner),
+      value,
+    );
+  }
+
+  static String getAssistantFabCorner() {
+    return _prefs?.getString(_userKey(StorageKeys.assistantFabCorner)) ??
+        'bottomRight';
   }
 
   /// Sadece oturum bilgilerini temizler (çıkış yapınca). Cache sıfırlanır; guest suffix kullanılır.
@@ -852,4 +981,41 @@ class StorageHelper {
       getFavoriteExercises().any(
         (entry) => entry.matches(name, otherMuscleGroup: muscleGroup),
       );
+
+  // ── Kayıtlı Öğünler ────────────────────────────────────────────────────────
+  static const String _savedMealsKey = 'saved_meals';
+
+  static List<SavedMeal> getSavedMeals() {
+    try {
+      final raw = _prefs?.getStringList(_userKey(_savedMealsKey)) ?? [];
+      return raw.map((s) {
+        final decoded = jsonDecode(s);
+        if (decoded is Map<String, dynamic>) return SavedMeal.fromJson(decoded);
+        return SavedMeal.fromJson(Map<String, dynamic>.from(decoded as Map));
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> saveSavedMeal(SavedMeal meal) async {
+    final meals = getSavedMeals();
+    final idx = meals.indexWhere((m) => m.id == meal.id);
+    if (idx >= 0) {
+      meals[idx] = meal;
+    } else {
+      meals.insert(0, meal);
+    }
+    return _writeSavedMeals(meals);
+  }
+
+  static Future<bool> deleteSavedMeal(String id) async {
+    final meals = getSavedMeals()..removeWhere((m) => m.id == id);
+    return _writeSavedMeals(meals);
+  }
+
+  static Future<bool> _writeSavedMeals(List<SavedMeal> meals) async {
+    final raw = meals.map((m) => jsonEncode(m.toJson())).toList();
+    return await _prefs?.setStringList(_userKey(_savedMealsKey), raw) ?? false;
+  }
 }

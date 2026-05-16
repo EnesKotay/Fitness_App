@@ -9,6 +9,9 @@ class ProgressShareCard extends StatelessWidget {
   final int streak;
   final int totalCaloriesToday;
   final String? userName;
+  final bool showCurrentWeight;
+  final bool showGoal;
+  final bool showChange;
 
   const ProgressShareCard({
     super.key,
@@ -18,11 +21,15 @@ class ProgressShareCard extends StatelessWidget {
     this.streak = 0,
     this.totalCaloriesToday = 0,
     this.userName,
+    this.showCurrentWeight = true,
+    this.showGoal = true,
+    this.showChange = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final goalDiff = (currentWeightKg != null && goalWeightKg != null)
+    final goalDiff =
+        (showGoal && currentWeightKg != null && goalWeightKg != null)
         ? (currentWeightKg! - goalWeightKg!).abs()
         : null;
     final isLosing = (currentWeightKg != null && goalWeightKg != null)
@@ -92,12 +99,11 @@ class ProgressShareCard extends StatelessWidget {
                         color: const Color(0xFFCC7A4A),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text('💪',
-                          style: TextStyle(fontSize: 18)),
+                      child: const Text('💪', style: TextStyle(fontSize: 18)),
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'FitMentor',
+                      'PusulaFit',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -109,12 +115,17 @@ class ProgressShareCard extends StatelessWidget {
                     if (streak > 0)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFCC7A4A).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                              color: const Color(0xFFCC7A4A).withValues(alpha: 0.5)),
+                            color: const Color(
+                              0xFFCC7A4A,
+                            ).withValues(alpha: 0.5),
+                          ),
                         ),
                         child: Text(
                           '🔥 $streak gün',
@@ -141,7 +152,7 @@ class ProgressShareCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 // Mevcut ağırlık büyük gösterim
-                if (currentWeightKg != null) ...[
+                if (showCurrentWeight && currentWeightKg != null) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -170,7 +181,7 @@ class ProgressShareCard extends StatelessWidget {
                   const SizedBox(height: 4),
                 ],
                 // Değişim bilgisi
-                if (weightChangeSinceStart != null) ...[
+                if (showChange && weightChangeSinceStart != null) ...[
                   Row(
                     children: [
                       Icon(
@@ -210,16 +221,13 @@ class ProgressShareCard extends StatelessWidget {
                       ),
                     if (goalDiff != null) const SizedBox(width: 10),
                     if (totalCaloriesToday > 0)
-                      _infoChip(
-                        icon: '🥗',
-                        label: '$totalCaloriesToday kcal',
-                      ),
+                      _infoChip(icon: '🥗', label: '$totalCaloriesToday kcal'),
                   ],
                 ),
                 const SizedBox(height: 20),
                 // Alt etiket
                 const Text(
-                  '#FitMentor #SağlıklıYaşam #Fitness',
+                  '#PusulaFit #SağlıklıYaşam #Fitness',
                   style: TextStyle(
                     color: Colors.white30,
                     fontSize: 11,

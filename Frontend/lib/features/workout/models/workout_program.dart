@@ -5,12 +5,16 @@ class ProgramExercise {
   final String muscleGroup;
   final int sets;
   final int reps;
+  final int restSeconds;
+  final String note;
 
   const ProgramExercise({
     required this.name,
     required this.muscleGroup,
     required this.sets,
     required this.reps,
+    this.restSeconds = 60,
+    this.note = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -18,6 +22,8 @@ class ProgramExercise {
         'muscleGroup': muscleGroup,
         'sets': sets,
         'reps': reps,
+        'restSeconds': restSeconds,
+        'note': note,
       };
 
   factory ProgramExercise.fromJson(Map<String, dynamic> json) => ProgramExercise(
@@ -25,6 +31,8 @@ class ProgramExercise {
         muscleGroup: json['muscleGroup'] as String,
         sets: json['sets'] as int,
         reps: json['reps'] as int,
+        restSeconds: (json['restSeconds'] as int?) ?? 60,
+        note: (json['note'] as String?) ?? '',
       );
 }
 

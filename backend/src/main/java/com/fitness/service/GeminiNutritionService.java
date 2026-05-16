@@ -241,6 +241,7 @@ public class GeminiNutritionService {
                 nutritionModel,
                 nutritionFallbackModel,
                 prompt,
+                request.conversationHistory,
                 expectJson);
 
         if (!result.isSuccess()) {

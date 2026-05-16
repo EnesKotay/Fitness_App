@@ -1,8 +1,8 @@
-# FitMentor — Claude Code Kılavuzu
+# PusulaFit — Claude Code Kılavuzu
 
 ## Uygulama Hakkında
 
-**FitMentor** bir Flutter tabanlı fitness takip uygulaması.
+**PusulaFit** bir Flutter tabanlı fitness takip uygulaması.
 Platform: iOS + Android | Dil: Dart/Flutter | State: Provider
 
 ---
@@ -29,9 +29,9 @@ xcrun simctl launch booted com.example.fitness
 
 ```bash
 # Anlık ekran görüntüsü al
-xcrun simctl io booted screenshot /tmp/fitmentor_screen.png
+xcrun simctl io booted screenshot /tmp/pusulafit_screen.png
 ```
-Sonra bu dosyayı Read tool ile oku: `/tmp/fitmentor_screen.png`
+Sonra bu dosyayı Read tool ile oku: `/tmp/pusulafit_screen.png`
 
 ### 3. UI ile Etkileşim (Koordinat Bazlı)
 
@@ -175,7 +175,7 @@ Her ekranda şunları kontrol et:
 Claude'a şunu söyle:
 
 ```
-iOS simülatörde FitMentor uygulamasını test et. 
+iOS simülatörde PusulaFit uygulamasını test et. 
 Her adımdan önce screenshot al (/tmp/screen_NNN.png), 
 ekranı analiz et, sonraki aksiyonu belirle.
 Bulgularını yapılandırılmış bir rapor olarak sun:

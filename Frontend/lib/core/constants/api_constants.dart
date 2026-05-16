@@ -1,17 +1,19 @@
+import 'package:flutter/foundation.dart';
 
 class ApiConstants {
   /// Backend base URL - Ortama gore otomatik secim
   ///
   /// Oncelik: dart-define > platform varsayilani
-  /// - Fiziksel iPhone/Android: --dart-define=API_BASE_URL=http://MAC_IP:8080
-  /// - iOS Simulator: 127.0.0.1:8080
-  /// - Android Emulator: 10.0.2.2:8080
+  /// - Fiziksel iPhone/Android: --dart-define=API_BASE_URL=http://MAC_IP:8081
+  /// - iOS Simulator: 127.0.0.1:8081
+  /// - Android Emulator: 10.0.2.2:8081
   /// Production URL — build sırasında dart-define ile geçilir:
-  ///   flutter build ipa --dart-define=API_BASE_URL=https://api.fitnessapp.com
-  ///   flutter build appbundle --dart-define=API_BASE_URL=https://api.fitnessapp.com
+  ///   flutter build ipa --dart-define=API_BASE_URL=https://api.pusulafit.com
+  ///   flutter build appbundle --dart-define=API_BASE_URL=https://api.pusulafit.com
   ///
   /// Geliştirme ortamında dart-define verilmezse platform varsayılanları kullanılır.
-  static const String _productionUrl = 'https://fitness-backend-jrcn.onrender.com';
+  static const String _productionUrl =
+      'https://fitness-backend-jrcn.onrender.com';
 
   static String get baseUrl {
     // 1) Build-time dart-define (production build için)
@@ -25,8 +27,21 @@ class ApiConstants {
     const bool isRelease = bool.fromEnvironment('dart.vm.product');
     if (isRelease) return _productionUrl;
 
-    // 3) Local backend için: flutter run --dart-define=API_BASE_URL=http://localhost:8080
-    return _productionUrl;
+    // 3) Debug/profile modda platforma gore local backend varsayilani sec
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8081';
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'http://10.0.2.2:8081';
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+      case TargetPlatform.fuchsia:
+        return 'http://127.0.0.1:8081';
+    }
   }
 
   /// Baglanti test endpoint'i (GET /api/auth/test)
@@ -38,6 +53,7 @@ class ApiConstants {
   // Auth Endpoints
   static const String register = '$apiPrefix/auth/register';
   static const String login = '$apiPrefix/auth/login';
+  static const String socialLogin = '$apiPrefix/auth/social';
   static const String getMe = '$apiPrefix/auth/me';
   static const String deleteMeAccount = '$apiPrefix/auth/me';
   static const String updateMeProfile = '$apiPrefix/auth/me/profile';
@@ -58,9 +74,9 @@ class ApiConstants {
   static String workout(int workoutId) => '$apiPrefix/workouts/me/$workoutId';
   static String exerciseHistory(String name) =>
       '$apiPrefix/workouts/me/exercise/${Uri.encodeComponent(name)}/history';
-  static const String personalRecords = '$apiPrefix/workouts/me/personal-records';
-  static const String workoutStats    = '$apiPrefix/workouts/me/stats';
-
+  static const String personalRecords =
+      '$apiPrefix/workouts/me/personal-records';
+  static const String workoutStats = '$apiPrefix/workouts/me/stats';
 
   // Nutrition Endpoints
   static const String meals = '$apiPrefix/nutrition/me/meals';
@@ -70,6 +86,8 @@ class ApiConstants {
 
   // AI Endpoints
   static const String aiCoach = '$apiPrefix/ai/coach';
+  static const String aiInsights = '$apiPrefix/ai/insights';
+  static const String aiSummarize = '$apiPrefix/ai/summarize';
   static const String aiNutrition = '$apiPrefix/ai/nutrition';
   static const String aiScanLabel = '$apiPrefix/ai/nutrition/scan-label';
   static const String aiAnalyzeImage = '$apiPrefix/ai/nutrition/analyze-image';

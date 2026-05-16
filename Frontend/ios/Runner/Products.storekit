@@ -87,7 +87,7 @@
           "localizations" : [
             {
               "description" : "AI koç, sınırsız antrenman planı ve beslenme takibi",
-              "displayName" : "FitMentor Premium Aylık",
+              "displayName" : "PusulaFit Premium Aylık",
               "locale" : "tr_TR"
             }
           ],
@@ -112,7 +112,7 @@
           "localizations" : [
             {
               "description" : "AI koç, sınırsız antrenman planı ve beslenme takibi",
-              "displayName" : "FitMentor Premium Yıllık",
+              "displayName" : "PusulaFit Premium Yıllık",
               "locale" : "tr_TR"
             }
           ],

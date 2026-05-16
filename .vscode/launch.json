@@ -8,21 +8,35 @@
             "name": "Frontend",
             "cwd": "Frontend",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "toolArgs": [
+                "--dart-define=API_BASE_URL=http://127.0.0.1:8081",
+                "--dart-define=GOOGLE_SERVER_CLIENT_ID=976465421947-2q2ao1vogl1tfmlvkso0d7tv60b3m0e0.apps.googleusercontent.com",
+                "--dart-define=GOOGLE_IOS_CLIENT_ID=976465421947-sgglhdo3j4v30957u6j00279qteb5f36.apps.googleusercontent.com"
+            ]
         },
         {
             "name": "Frontend (profile mode)",
             "cwd": "Frontend",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "toolArgs": [
+                "--dart-define=API_BASE_URL=http://127.0.0.1:8081",
+                "--dart-define=GOOGLE_SERVER_CLIENT_ID=976465421947-2q2ao1vogl1tfmlvkso0d7tv60b3m0e0.apps.googleusercontent.com",
+                "--dart-define=GOOGLE_IOS_CLIENT_ID=976465421947-sgglhdo3j4v30957u6j00279qteb5f36.apps.googleusercontent.com"
+            ]
         },
         {
             "name": "Frontend (release mode)",
             "cwd": "Frontend",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "toolArgs": [
+                "--dart-define=GOOGLE_SERVER_CLIENT_ID=976465421947-2q2ao1vogl1tfmlvkso0d7tv60b3m0e0.apps.googleusercontent.com",
+                "--dart-define=GOOGLE_IOS_CLIENT_ID=976465421947-sgglhdo3j4v30957u6j00279qteb5f36.apps.googleusercontent.com"
+            ]
         }
     ]
 }

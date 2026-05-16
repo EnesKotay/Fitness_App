@@ -1,16 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../auth/providers/auth_provider.dart';
-import '../../../weight/domain/entities/weight_entry.dart';
-import '../../../weight/presentation/providers/weight_provider.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/nutrition_preferences.dart';
 import '../state/diet_provider.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/services/local_notification_service.dart';
+
+const _kCyan = Color(0xFF00D9F5);
+const _kGreen = Color(0xFF00F5A0);
+const _kPurple = Color(0xFF9B8CFF);
+const _kSurface = Color(0xFF10131A);
+const _kBg = Color(0xFF07080D);
 
 class ProfileSetupPage extends StatefulWidget {
   const ProfileSetupPage({
@@ -27,10 +31,15 @@ class ProfileSetupPage extends StatefulWidget {
 }
 
 class _ProfileSetupPageState extends State<ProfileSetupPage> {
-  final _pageController = PageController();
-  int _currentStep = 0;
+  static const int _totalSteps = 7;
+  static const int _lastStep = _totalSteps - 1;
 
-  // Form Data
+  final _pageController = PageController();
+  final _nameFormKey = GlobalKey<FormState>();
+  int _currentStep = 0;
+  bool _isTransitioning = false;
+  bool _saving = false;
+
   String _name = '';
   int _age = 25;
   double _weight = 70.0;
@@ -40,10 +49,31 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   ActivityLevel _activityLevel = ActivityLevel.moderatelyActive;
   Goal _goal = Goal.cut;
   NutritionPreferences _nutritionPreferences = const NutritionPreferences();
+  String _workoutLocation = 'home';
+  String _equipmentType = 'bodyweight';
+
+  static const _locationAllowed = {'home', 'gym'};
+  static const _equipmentAllowed = {'bodyweight', 'dumbbells', 'full_gym'};
 
   @override
   void initState() {
     super.initState();
+
+    if (widget.navigateToHomeOnSave) {
+      final existingProfile = context.read<DietProvider>().profile;
+      final onboardingDone = StorageHelper.getOnboardingDone();
+      if (existingProfile != null || onboardingDone) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (route) => false);
+          }
+        });
+        return;
+      }
+    }
+
     final p = widget.initial;
     if (p != null) {
       _name = p.name;
@@ -55,33 +85,104 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       _goal = p.goal;
       _targetWeight = p.targetWeight ?? p.weight;
     } else {
-      // Yeni profil oluşturuluyorsa, kayıt ekranındaki ismi AuthProvider'dan al:
       final user = context.read<AuthProvider>().user;
-      if (user != null) {
-        _name = user.name;
-      }
+      if (user != null) _name = user.name;
     }
+
     _nutritionPreferences = NutritionPreferences.fromJson(
       StorageHelper.getNutritionPreferences(),
     );
+    final loc = StorageHelper.getWorkoutLocation();
+    _workoutLocation = _locationAllowed.contains(loc) ? loc : 'home';
+    final eq = StorageHelper.getEquipmentType();
+    _equipmentType = _equipmentAllowed.contains(eq) ? eq : 'bodyweight';
   }
 
-  void _nextStep() {
-    if (_currentStep < 4) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _nextStep() async {
+    if (_saving || _isTransitioning) return;
+    if (_currentStep == 0 && !_validateNameStep()) return;
+    FocusScope.of(context).unfocus();
+
+    if (_currentStep < _lastStep) {
+      final next = _currentStep + 1;
+      setState(() => _isTransitioning = true);
+      await _pageController.nextPage(
+        duration: const Duration(milliseconds: 320),
         curve: Curves.easeInOut,
       );
-      FocusScope.of(context).unfocus(); // Klavyeyi kapat
-      setState(() => _currentStep++);
+      if (!mounted) return;
+      setState(() {
+        _currentStep = next;
+        _isTransitioning = false;
+      });
     } else {
-      _saveAndFinish();
+      await _saveAndFinish();
     }
   }
 
+  Future<void> _previousStep() async {
+    if (_saving || _isTransitioning || _currentStep <= 0) return;
+    final prev = _currentStep - 1;
+    setState(() => _isTransitioning = true);
+    await _pageController.previousPage(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOut,
+    );
+    if (!mounted) return;
+    setState(() {
+      _currentStep = prev;
+      _isTransitioning = false;
+    });
+  }
+
+  Future<void> _goToStep(int step) async {
+    final target = step.clamp(0, _lastStep);
+    if (_currentStep == target) return;
+    setState(() => _isTransitioning = true);
+    await _pageController.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOut,
+    );
+    if (!mounted) return;
+    setState(() {
+      _currentStep = target;
+      _isTransitioning = false;
+    });
+  }
+
+  bool _validateNameStep() {
+    final ok =
+        _nameFormKey.currentState?.validate() ?? _name.trim().length >= 2;
+    if (ok && _name != _name.trim()) setState(() => _name = _name.trim());
+    return ok;
+  }
+
   Future<void> _saveAndFinish() async {
+    if (_saving) return;
+    final trimmed = _name.trim();
+    if (trimmed.length < 2) {
+      await _goToStep(0);
+      if (!mounted) return;
+      _nameFormKey.currentState?.validate();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Devam etmek için profil adını tamamla.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+
     final profile = UserProfile(
-      name: _name.isEmpty ? 'Kullanıcı' : _name,
+      name: trimmed,
       age: _age,
       weight: _weight,
       height: _height,
@@ -91,13 +192,19 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       targetWeight: _targetWeight,
     );
 
-    final currentContext = context;
-    final dietProvider = currentContext.read<DietProvider>();
+    final ctx = context;
+    final dietProvider = ctx.read<DietProvider>();
 
     try {
-      // DietProvider üzerinden kaydet - await ile bekle
       await dietProvider.saveUserProfile(profile);
+      if (!identical(dietProvider.profile, profile)) {
+        throw Exception(dietProvider.error ?? 'Profil kaydedilemedi');
+      }
       await dietProvider.saveNutritionPreferences(_nutritionPreferences);
+      await StorageHelper.saveWorkoutLocation(_workoutLocation);
+      await StorageHelper.saveEquipmentType(_equipmentType);
+      await StorageHelper.savePendingInitialProfileSetup(false);
+
       if (widget.navigateToHomeOnSave) {
         await StorageHelper.saveOnboardingDone(true);
         await StorageHelper.savePendingOnboardingSummary(true);
@@ -105,76 +212,49 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         try {
           await LocalNotificationService.instance.requestPermission();
         } catch (e) {
-          debugPrint('Bildirim izni istenirken hata: $e');
+          debugPrint('Bildirim izni hatası: $e');
         }
       }
 
-      if (currentContext.mounted) {
-        // Eğer bu yeni bir profilse (ilk kurulum) veya hiç kayıt yoksa, başlangıç kilosunu takip sayfasına da ekle
-        final wp = currentContext.read<WeightProvider>();
-        if (wp.entries.isEmpty) {
-          final firstEntry = WeightEntry(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            weightKg: profile.weight,
-            date: DateTime.now(),
-            note: 'Başlangıç Kilosu',
-          );
-          // Timeout: backend yanıt vermezse navigation'ı bloklamasın
-          await wp
-              .addEntry(firstEntry)
-              .timeout(
-                const Duration(seconds: 8),
-                onTimeout: () {
-                  debugPrint('İlk kilo ekleme timeout');
-                  return false;
-                },
-              );
-        }
-      }
-
-      // Backend profile senkronizasyonu — navigation'ı bloklamasın
-      if (currentContext.mounted) {
+      if (ctx.mounted) {
         unawaited(
-          currentContext
+          ctx
               .read<AuthProvider>()
               .updateProfileFromDiet(profile)
-              .catchError((e) {
-                debugPrint('ProfileSetup backend sync hatasi: $e');
-              }),
+              .catchError((e) => debugPrint('Backend sync hatası: $e')),
         );
       }
 
-      if (currentContext.mounted) {
+      if (ctx.mounted) {
         if (widget.navigateToHomeOnSave) {
-          // Onboarding akışı: ana sayfaya git ve önceki sayfaları sil.
-          Navigator.of(
-            currentContext,
-          ).pushNamedAndRemoveUntil('/home', (route) => false);
+          Navigator.of(ctx).pushNamedAndRemoveUntil('/home', (r) => false);
         } else {
-          // Sekme içi düzenleme/ilk kurulum: mevcut akışa geri dön.
-          Navigator.of(currentContext).pop(true);
+          Navigator.of(ctx).pop(true);
         }
       }
     } catch (e) {
-      if (currentContext.mounted) {
-        ScaffoldMessenger.of(currentContext).showSnackBar(
-          SnackBar(content: Text('Profil kaydedilirken hata oluştu: $e')),
-        );
+      if (ctx.mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(
+          ctx,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     }
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF06070A),
+      backgroundColor: _kBg,
       body: Stack(
         children: [
           const Positioned.fill(child: _SetupBackground()),
           SafeArea(
             child: Column(
               children: [
-                _buildProgressBar(),
+                _buildProgressHeader(),
                 Expanded(
                   child: PageView(
                     controller: _pageController,
@@ -185,6 +265,8 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                       _buildGenderStep(),
                       _buildActivityStep(),
                       _buildGoalStep(),
+                      _buildWorkoutStep(),
+                      _buildEquipmentStep(),
                     ],
                   ),
                 ),
@@ -197,41 +279,42 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressHeader() {
+    const stepNames = [
+      'Profil',
+      'Ölçüler',
+      'Cinsiyet',
+      'Aktivite',
+      'Hedef',
+      'Ortam',
+      'Ekipman',
+    ];
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.18),
-              blurRadius: 24,
-              spreadRadius: -12,
-              offset: const Offset(0, 14),
-            ),
-          ],
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
         child: Column(
           children: [
             Row(
               children: [
                 Text(
-                  'Adım ${_currentStep + 1}/5',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.92),
+                  'Adım ${_currentStep + 1} / $_totalSteps',
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const Spacer(),
                 Text(
-                  _stepTitle(_currentStep),
+                  stepNames[_currentStep],
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withValues(alpha: 0.45),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
@@ -239,36 +322,22 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               ],
             ),
             const SizedBox(height: 10),
-            Stack(
-              children: [
-                Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(
+                  begin: _currentStep / _totalSteps,
+                  end: (_currentStep + 1) / _totalSteps,
                 ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  height: 8,
-                  width:
-                      (MediaQuery.of(context).size.width - 68) *
-                      ((_currentStep + 1) / 5),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00F5A0), Color(0xFF00D9F5)],
-                    ),
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00F5A0).withValues(alpha: 0.32),
-                        blurRadius: 16,
-                        spreadRadius: -6,
-                      ),
-                    ],
-                  ),
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOut,
+                builder: (context, value, _) => LinearProgressIndicator(
+                  value: value,
+                  minHeight: 7,
+                  backgroundColor: Colors.white.withValues(alpha: 0.10),
+                  valueColor: const AlwaysStoppedAnimation<Color>(_kGreen),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -276,68 +345,38 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
-  String _stepTitle(int step) {
-    switch (step) {
-      case 0:
-        return 'Profil';
-      case 1:
-        return 'Olculer';
-      case 2:
-        return 'Cinsiyet';
-      case 3:
-        return 'Aktivite';
-      case 4:
-        return 'Hedef';
-      default:
-        return '';
-    }
-  }
+  // ── Steps ──────────────────────────────────────────────────────────────────
 
   Widget _buildNameStep() {
-    return _StepContainer(
+    return _StepShell(
+      key: const ValueKey('name'),
       icon: Icons.waving_hand_rounded,
-      accent: const Color(0xFF00D9F5),
-      title: 'Seni tanıyalım',
+      accent: _kCyan,
+      title: 'Seni\ntanıyalım',
       subtitle:
-          'Planini kisilestirmek icin once sana nasil hitap edecegimizi belirleyelim.',
+          'Planini kişiselleştirmek için önce nasıl hitap edeceğimizi belirleyelim.',
       child: Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: const Color(0xFF10141D),
+          color: _kSurface,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 24,
-              spreadRadius: -10,
-              offset: const Offset(0, 16),
-            ),
-          ],
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
         child: Form(
+          key: _nameFormKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Profil adi',
+                'Profil adı',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: 15,
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Bu isim ozet ekranlarinda ve koç onerilerinde gorunecek.',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.56),
-                  fontSize: 13,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: _name,
                 style: const TextStyle(
@@ -345,42 +384,46 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                 ),
+                textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  hintText: 'Adin',
+                  hintText: 'Adın',
                   prefixIcon: Icon(
                     Icons.person_outline_rounded,
-                    color: Colors.white.withValues(alpha: 0.52),
+                    color: Colors.white.withValues(alpha: 0.4),
                   ),
-                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.25),
+                  ),
                   filled: true,
                   fillColor: Colors.white.withValues(alpha: 0.04),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     borderSide: BorderSide(
                       color: Colors.white.withValues(alpha: 0.08),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: Color(0xFF00D9F5)),
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(color: _kCyan, width: 1.5),
                   ),
                   errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     borderSide: const BorderSide(color: Colors.redAccent),
                   ),
                   focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(18),
                     borderSide: const BorderSide(color: Colors.redAccent),
                   ),
                   errorStyle: const TextStyle(color: Colors.redAccent),
+                  counterStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.3),
+                  ),
                 ),
                 maxLength: 50,
-                onChanged: (value) => setState(() => _name = value),
+                onChanged: (v) => setState(() => _name = v),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) return 'İsim gerekli';
-                  if (val.trim().length < 2) {
-                    return 'İsim en az 2 karakter olmalı';
-                  }
+                  if (val.trim().length < 2) return 'En az 2 karakter olmalı';
                   return null;
                 },
               ),
@@ -392,122 +435,53 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _buildBiometricsStep() {
-    return _StepContainer(
+    return _StepShell(
+      key: const ValueKey('biometrics'),
       icon: Icons.monitor_weight_outlined,
-      accent: const Color(0xFF00F5A0),
-      title: 'Vücut Ölçülerin',
+      accent: _kGreen,
+      title: 'Vücut\nÖlçülerin',
       subtitle:
-          'Sana daha isabetli kalori ve hedef önerileri verebilmemiz için temel ölçülerini ayarlayalım.',
+          'Doğru kalori ve hedef önerileri için temel ölçüleri ayarla.',
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 20),
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF00F5A0).withValues(alpha: 0.14),
-                  const Color(0xFF00D9F5).withValues(alpha: 0.08),
-                  Colors.white.withValues(alpha: 0.02),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: const Color(0xFF00F5A0).withValues(alpha: 0.18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00F5A0).withValues(alpha: 0.08),
-                  blurRadius: 28,
-                  spreadRadius: -10,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.white.withValues(alpha: 0.06),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.monitor_weight_outlined,
-                    color: Color(0xFF00F5A0),
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Temel profil ayarları',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Bu değerler günlük hedeflerini ve ilerleme analizini daha akıllı hale getirir.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.66),
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _NumberSelector(
+          _NumberTile(
             label: 'Yaş',
+            unit: 'yaş',
             value: _age.toDouble(),
             min: 10,
             max: 100,
-            onChanged: (val) => setState(() => _age = val.toInt()),
+            onChanged: (v) => setState(() => _age = v.toInt()),
           ),
-          const SizedBox(height: 20),
-          _NumberSelector(
-            label: 'Boy (cm)',
+          const SizedBox(height: 14),
+          _NumberTile(
+            label: 'Boy',
+            unit: 'cm',
             value: _height,
             min: 100,
             max: 250,
-            onChanged: (val) => setState(() => _height = val),
+            onChanged: (v) => setState(() => _height = v),
           ),
-          const SizedBox(height: 20),
-          _NumberSelector(
-            label: 'Kilo (kg)',
+          const SizedBox(height: 14),
+          _NumberTile(
+            label: 'Kilo',
+            unit: 'kg',
             value: _weight,
             min: 30,
             max: 200,
             step: 0.1,
             allowManualEntry: true,
-            onChanged: (val) => setState(() => _weight = val),
+            onChanged: (v) => setState(() => _weight = v),
           ),
-          const SizedBox(height: 20),
-          _NumberSelector(
-            label: 'Hedef Kilo (kg)',
+          const SizedBox(height: 14),
+          _NumberTile(
+            label: 'Hedef Kilo',
+            unit: 'kg',
             value: _targetWeight,
             min: 30,
             max: 200,
             step: 0.1,
             allowManualEntry: true,
-            onChanged: (val) => setState(() => _targetWeight = val),
+            onChanged: (v) => setState(() => _targetWeight = v),
           ),
         ],
       ),
@@ -515,30 +489,33 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _buildGenderStep() {
-    return _StepContainer(
+    return _StepShell(
+      key: const ValueKey('gender'),
       icon: Icons.diversity_3_rounded,
-      accent: const Color(0xFF9B8CFF),
+      accent: _kPurple,
       title: 'Cinsiyetin',
       subtitle: 'Metabolizma hızı hesaplaması için gerekli.',
       child: Row(
         children: [
           Expanded(
-            child: _SelectableCard(
+            child: _BigChoiceCard(
               selected: _gender == Gender.male,
-              icon: Icons.male,
+              emoji: '♂',
               label: 'Erkek',
-              description: 'Kas kutlesi ve enerji hesabı buna gore uyarlanir.',
+              description:
+                  'Kas kütlesi ve enerji hesabı buna göre uyarlanır.',
               accent: const Color(0xFF5DA9FF),
               onTap: () => setState(() => _gender = Gender.male),
             ),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: _SelectableCard(
+            child: _BigChoiceCard(
               selected: _gender == Gender.female,
-              icon: Icons.female,
+              emoji: '♀',
               label: 'Kadın',
-              description: 'Hedef kalori ve analizler buna gore hesaplanir.',
+              description:
+                  'Hedef kalori ve analizler buna göre hesaplanır.',
               accent: const Color(0xFFFF7EB6),
               onTap: () => setState(() => _gender = Gender.female),
             ),
@@ -549,92 +526,23 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _buildActivityStep() {
-    return _StepContainer(
+    return _StepShell(
+      key: const ValueKey('activity'),
       icon: Icons.local_fire_department_outlined,
-      accent: const Color(0xFF00D9F5),
-      title: 'Aktivite Seviyen',
+      accent: _kCyan,
+      title: 'Aktivite\nSeviyen',
       subtitle: 'Günlük hayatın ne kadar hareketli?',
       child: Column(
         children: ActivityLevel.values.map((level) {
-          final isSelected = _activityLevel == level;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: InkWell(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _ChoiceTile(
+              selected: _activityLevel == level,
+              icon: _activityIcon(level),
+              label: _activityLabel(level),
+              description: _activityHint(level),
+              accent: _kGreen,
               onTap: () => setState(() => _activityLevel = level),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                          colors: [
-                            const Color(0xFF00F5A0).withValues(alpha: 0.18),
-                            const Color(0xFF00D9F5).withValues(alpha: 0.10),
-                          ],
-                        )
-                      : null,
-                  color: isSelected ? null : const Color(0xFF111318),
-                  border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF00F5A0).withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.06),
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(
-                          alpha: isSelected ? 0.08 : 0.04,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        _getActivityIcon(level),
-                        color: isSelected
-                            ? const Color(0xFF00F5A0)
-                            : Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getActivityLabel(level),
-                            style: TextStyle(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.grey[300],
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _getActivityHint(level),
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.52),
-                              fontSize: 12,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (isSelected)
-                      const Icon(
-                        Icons.check_circle_rounded,
-                        color: Color(0xFF00F5A0),
-                        size: 20,
-                      ),
-                  ],
-                ),
-              ),
             ),
           );
         }).toList(),
@@ -643,199 +551,129 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _buildGoalStep() {
-    return _StepContainer(
+    return _StepShell(
+      key: const ValueKey('goal'),
       icon: Icons.flag_rounded,
-      accent: const Color(0xFF00D9F5),
-      title: 'Hedefin Ne?',
-      subtitle: 'Senin için en uygun planı oluşturalım.',
+      accent: _kCyan,
+      title: 'Hedefin\nNe?',
+      subtitle: 'Sana en uygun planı oluşturalım.',
       child: Column(
         children: [
           ...Goal.values.map((goal) {
-            final isSelected = _goal == goal;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: InkWell(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _ChoiceTile(
+                selected: _goal == goal,
+                icon: _goalIcon(goal),
+                label: _goalLabel(goal),
+                description: _goalHint(goal),
+                accent: _kCyan,
                 onTap: () => setState(() => _goal = goal),
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? LinearGradient(
-                            colors: [
-                              const Color(0xFF00D9F5).withValues(alpha: 0.18),
-                              const Color(0xFF00F5A0).withValues(alpha: 0.08),
-                            ],
-                          )
-                        : null,
-                    color: isSelected ? null : const Color(0xFF111318),
-                    border: Border.all(
-                      color: isSelected
-                          ? const Color(0xFF00D9F5).withValues(alpha: 0.4)
-                          : Colors.white.withValues(alpha: 0.06),
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: isSelected ? 0.08 : 0.04,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          _getGoalIcon(goal),
-                          color: isSelected
-                              ? const Color(0xFF00D9F5)
-                              : Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _getGoalLabel(goal),
-                              style: TextStyle(
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.grey[300],
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _getGoalHint(goal),
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.52),
-                                fontSize: 12,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isSelected)
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: Color(0xFF00D9F5),
-                          size: 20,
-                        ),
-                    ],
-                  ),
-                ),
               ),
             );
           }),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111318),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          const SizedBox(height: 10),
+          _buildNutritionPrefs(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionPrefs() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _kSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Beslenme Tercihlerin',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Beslenme Tercihlerin',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Önerilerde görmek istemediğin veya sana özel filtreleri seç.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.52),
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _buildPreferenceChip(
-                      label: 'Vejetaryen',
-                      selected: _nutritionPreferences.vegetarian,
-                      onTap: () => setState(() {
-                        final next = !_nutritionPreferences.vegetarian;
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          vegetarian: next,
-                          vegan: next ? false : _nutritionPreferences.vegan,
-                        );
-                      }),
-                    ),
-                    _buildPreferenceChip(
-                      label: 'Vegan',
-                      selected: _nutritionPreferences.vegan,
-                      onTap: () => setState(() {
-                        final next = !_nutritionPreferences.vegan;
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          vegan: next,
-                          vegetarian: next
-                              ? true
-                              : _nutritionPreferences.vegetarian,
-                        );
-                      }),
-                    ),
-                    _buildPreferenceChip(
-                      label: 'Laktozsuz',
-                      selected: _nutritionPreferences.lactoseFree,
-                      onTap: () => setState(() {
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          lactoseFree: !_nutritionPreferences.lactoseFree,
-                        );
-                      }),
-                    ),
-                    _buildPreferenceChip(
-                      label: 'Glutensiz',
-                      selected: _nutritionPreferences.glutenFree,
-                      onTap: () => setState(() {
-                        _nutritionPreferences = _nutritionPreferences.copyWith(
-                          glutenFree: !_nutritionPreferences.glutenFree,
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Önerilerde görmek istemediğin filtreleri seç.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 12,
+              height: 1.35,
             ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _prefChip(
+                'Vejetaryen',
+                _nutritionPreferences.vegetarian,
+                () => setState(() {
+                  final next = !_nutritionPreferences.vegetarian;
+                  _nutritionPreferences = _nutritionPreferences.copyWith(
+                    vegetarian: next,
+                    vegan: next ? false : _nutritionPreferences.vegan,
+                  );
+                }),
+              ),
+              _prefChip(
+                'Vegan',
+                _nutritionPreferences.vegan,
+                () => setState(() {
+                  final next = !_nutritionPreferences.vegan;
+                  _nutritionPreferences = _nutritionPreferences.copyWith(
+                    vegan: next,
+                    vegetarian:
+                        next ? true : _nutritionPreferences.vegetarian,
+                  );
+                }),
+              ),
+              _prefChip(
+                'Laktozsuz',
+                _nutritionPreferences.lactoseFree,
+                () => setState(() {
+                  _nutritionPreferences = _nutritionPreferences.copyWith(
+                    lactoseFree: !_nutritionPreferences.lactoseFree,
+                  );
+                }),
+              ),
+              _prefChip(
+                'Glutensiz',
+                _nutritionPreferences.glutenFree,
+                () => setState(() {
+                  _nutritionPreferences = _nutritionPreferences.copyWith(
+                    glutenFree: !_nutritionPreferences.glutenFree,
+                  );
+                }),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPreferenceChip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
+  Widget _prefChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFF00D9F5).withValues(alpha: 0.16)
+              ? _kCyan.withValues(alpha: 0.16)
               : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
-                ? const Color(0xFF00D9F5).withValues(alpha: 0.45)
+                ? _kCyan.withValues(alpha: 0.45)
                 : Colors.white.withValues(alpha: 0.08),
           ),
         ),
@@ -846,10 +684,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               selected
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked_rounded,
-              size: 16,
-              color: selected ? const Color(0xFF00D9F5) : Colors.white54,
+              size: 15,
+              color: selected ? _kCyan : Colors.white54,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 7),
             Text(
               label,
               style: TextStyle(
@@ -864,170 +702,182 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
     );
   }
 
+  Widget _buildWorkoutStep() {
+    const accent = Color(0xFF7C83F7);
+    final options = [
+      (
+        value: 'home',
+        emoji: '🏠',
+        label: 'Evde',
+        hint: 'Minimal veya ekipmansız antrenman',
+      ),
+      (
+        value: 'gym',
+        emoji: '🏋️',
+        label: 'Spor Salonunda',
+        hint: 'Tüm gym ekipmanlarına erişim',
+      ),
+    ];
+    return _StepShell(
+      key: const ValueKey('workout'),
+      icon: Icons.location_on_rounded,
+      accent: accent,
+      title: 'Nerede\nSpor Yapıyorsun?',
+      subtitle: 'Antrenman önerileri ve planların sana uygun hazırlanacak.',
+      child: Column(
+        children: options.map((opt) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ChoiceTile(
+              selected: _workoutLocation == opt.value,
+              emojiIcon: opt.emoji,
+              label: opt.label,
+              description: opt.hint,
+              accent: accent,
+              onTap: () => setState(() => _workoutLocation = opt.value),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildEquipmentStep() {
+    const accent = Color(0xFFFF8A65);
+    final options = [
+      (
+        value: 'bodyweight',
+        emoji: '🤸',
+        label: 'Sadece Vücut Ağırlığı',
+        hint: 'Ekipman gerektirmez, her yerde yapılır',
+      ),
+      (
+        value: 'dumbbells',
+        emoji: '🏋️',
+        label: 'Dambıl / Kettlebell',
+        hint: 'Hafif ekipmanla daha çeşitli hareketler',
+      ),
+      (
+        value: 'full_gym',
+        emoji: '💪',
+        label: 'Tam Spor Salonu',
+        hint: 'Barbell, makina ve tüm ekipmanlara erişim',
+      ),
+    ];
+    return _StepShell(
+      key: const ValueKey('equipment'),
+      icon: Icons.fitness_center_rounded,
+      accent: accent,
+      title: 'Hangi\nEkipmanın Var?',
+      subtitle: 'Antrenman programın mevcut ekipmanına göre oluşturulacak.',
+      child: Column(
+        children: options.map((opt) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ChoiceTile(
+              selected: _equipmentType == opt.value,
+              emojiIcon: opt.emoji,
+              label: opt.label,
+              description: opt.hint,
+              accent: accent,
+              onTap: () => setState(() => _equipmentType = opt.value),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildBottomBar() {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           if (_currentStep > 0)
-            OutlinedButton.icon(
-              onPressed: () {
-                _pageController.previousPage(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-                setState(() => _currentStep--);
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white70,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
-                backgroundColor: Colors.white.withValues(alpha: 0.03),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-              ),
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: const Text(
-                'Geri',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+            _BackBtn(
+              onTap: (_saving || _isTransitioning)
+                  ? null
+                  : () => unawaited(_previousStep()),
             )
           else
-            const SizedBox(width: 88),
-
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF00F5A0), Color(0xFF00D9F5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF00F5A0).withValues(alpha: 0.28),
-                  blurRadius: 26,
-                  spreadRadius: -8,
-                  offset: const Offset(0, 14),
-                ),
-              ],
-            ),
-            child: FloatingActionButton(
-              onPressed: _nextStep,
-              elevation: 0,
-              backgroundColor: Colors.transparent,
-              child: Icon(
-                _currentStep == 4
-                    ? Icons.check_rounded
-                    : Icons.arrow_forward_rounded,
-                color: Colors.black,
-              ),
-            ),
+            const SizedBox(width: 52),
+          const Spacer(),
+          _NextBtn(
+            isLast: _currentStep == _lastStep,
+            loading: _saving,
+            disabled: _isTransitioning,
+            onTap: () => unawaited(_nextStep()),
           ),
         ],
       ),
     );
   }
 
-  // Helpers
-  IconData _getActivityIcon(ActivityLevel level) {
-    switch (level) {
-      case ActivityLevel.sedentary:
-        return Icons.weekend;
-      case ActivityLevel.lightlyActive:
-        return Icons.directions_walk;
-      case ActivityLevel.moderatelyActive:
-        return Icons.fitness_center;
-      case ActivityLevel.veryActive:
-        return Icons.directions_run;
-      case ActivityLevel.extraActive:
-        return Icons.sports_gymnastics;
-    }
-  }
+  // ── Yardımcılar ───────────────────────────────────────────────────────────
 
-  String _getActivityLabel(ActivityLevel level) {
-    switch (level) {
-      case ActivityLevel.sedentary:
-        return 'Hareketsiz (Masa başı iş)';
-      case ActivityLevel.lightlyActive:
-        return 'Az Hareketli (Haftada 1-3 spor)';
-      case ActivityLevel.moderatelyActive:
-        return 'Orta Hareketli (Haftada 3-5 spor)';
-      case ActivityLevel.veryActive:
-        return 'Çok Hareketli (Haftada 6-7 spor)';
-      case ActivityLevel.extraActive:
-        return 'Ekstra Hareketli (Fiziksel iş + spor)';
-    }
-  }
+  IconData _activityIcon(ActivityLevel l) => switch (l) {
+        ActivityLevel.sedentary => Icons.weekend,
+        ActivityLevel.lightlyActive => Icons.directions_walk,
+        ActivityLevel.moderatelyActive => Icons.fitness_center,
+        ActivityLevel.veryActive => Icons.directions_run,
+        ActivityLevel.extraActive => Icons.sports_gymnastics,
+      };
 
-  String _getActivityHint(ActivityLevel level) {
-    switch (level) {
-      case ActivityLevel.sedentary:
-        return 'Cogunlukla oturarak gecen gunler.';
-      case ActivityLevel.lightlyActive:
-        return 'Hafif tempo, kisa yuruyusler ve ara sira spor.';
-      case ActivityLevel.moderatelyActive:
-        return 'Duzenli egzersiz ve aktif gunluk rutin.';
-      case ActivityLevel.veryActive:
-        return 'Yogun antrenman veya surekli hareketli yasam.';
-      case ActivityLevel.extraActive:
-        return 'Agir fiziksel tempo ve yuksek enerji ihtiyaci.';
-    }
-  }
+  String _activityLabel(ActivityLevel l) => switch (l) {
+        ActivityLevel.sedentary => 'Hareketsiz',
+        ActivityLevel.lightlyActive => 'Az Hareketli',
+        ActivityLevel.moderatelyActive => 'Orta Hareketli',
+        ActivityLevel.veryActive => 'Çok Hareketli',
+        ActivityLevel.extraActive => 'Ekstra Hareketli',
+      };
 
-  IconData _getGoalIcon(Goal goal) {
-    switch (goal) {
-      case Goal.cut:
-        return Icons.arrow_downward;
-      case Goal.maintain:
-        return Icons.balance;
-      case Goal.bulk:
-        return Icons.arrow_upward;
-      case Goal.strength:
-        return Icons.fitness_center;
-    }
-  }
+  String _activityHint(ActivityLevel l) => switch (l) {
+        ActivityLevel.sedentary => 'Çoğunlukla oturarak geçen günler.',
+        ActivityLevel.lightlyActive =>
+          'Hafif tempo, kısa yürüyüşler (haftada 1-3 spor).',
+        ActivityLevel.moderatelyActive =>
+          'Düzenli egzersiz ve aktif günlük rutin (haftada 3-5).',
+        ActivityLevel.veryActive =>
+          'Yoğun antrenman veya sürekli hareketli yaşam (6-7 gün).',
+        ActivityLevel.extraActive =>
+          'Ağır fiziksel tempo + yüksek enerji ihtiyacı.',
+      };
 
-  String _getGoalLabel(Goal goal) {
-    switch (goal) {
-      case Goal.cut:
-        return 'Kilo Ver (Definasyon)';
-      case Goal.maintain:
-        return 'Kilomu Koru';
-      case Goal.bulk:
-        return 'Kilo Al (Hacim)';
-      case Goal.strength:
-        return 'Güç Artışı (Kuvvet)';
-    }
-  }
+  IconData _goalIcon(Goal g) => switch (g) {
+        Goal.cut => Icons.trending_down_rounded,
+        Goal.maintain => Icons.balance_rounded,
+        Goal.bulk => Icons.trending_up_rounded,
+        Goal.strength => Icons.fitness_center_rounded,
+      };
 
-  String _getGoalHint(Goal goal) {
-    switch (goal) {
-      case Goal.cut:
-        return 'Yag oranini dusurmeye odaklanan plan.';
-      case Goal.maintain:
-        return 'Mevcut formunu dengeli sekilde koru.';
-      case Goal.bulk:
-        return 'Kas kutlesi ve toplam agirligi artir.';
-      case Goal.strength:
-        return 'Kuvvet performansini onceliklendiren yaklasim.';
-    }
-  }
+  String _goalLabel(Goal g) => switch (g) {
+        Goal.cut => 'Kilo Ver (Definasyon)',
+        Goal.maintain => 'Kilomu Koru',
+        Goal.bulk => 'Kilo Al (Hacim)',
+        Goal.strength => 'Güç Artışı (Kuvvet)',
+      };
+
+  String _goalHint(Goal g) => switch (g) {
+        Goal.cut => 'Yağ oranını düşürmeye odaklanan plan.',
+        Goal.maintain => 'Mevcut formunu dengeli şekilde koru.',
+        Goal.bulk => 'Kas kütlesi ve toplam ağırlığı artır.',
+        Goal.strength => 'Kuvvet performansını önceliklendiren yaklaşım.',
+      };
 }
 
-class _StepContainer extends StatelessWidget {
+// ══════════════════════════════════════════════════════════════════════════════
+// Yardımcı widget'lar
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _StepShell extends StatefulWidget {
   final IconData icon;
   final Color accent;
   final String title;
   final String subtitle;
   final Widget child;
 
-  const _StepContainer({
+  const _StepShell({
+    super.key,
     required this.icon,
     required this.accent,
     required this.title,
@@ -1036,61 +886,95 @@ class _StepContainer extends StatelessWidget {
   });
 
   @override
+  State<_StepShell> createState() => _StepShellState();
+}
+
+class _StepShellState extends State<_StepShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 480),
+      vsync: this,
+    );
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
           physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
           child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        colors: [
-                          accent.withValues(alpha: 0.18),
-                          accent.withValues(alpha: 0.04),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 28),
+            child: FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _slide,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        gradient: LinearGradient(
+                          colors: [
+                            widget.accent.withValues(alpha: 0.22),
+                            widget.accent.withValues(alpha: 0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(
+                          color: widget.accent.withValues(alpha: 0.22),
+                        ),
                       ),
-                      border: Border.all(color: accent.withValues(alpha: 0.18)),
+                      child: Icon(widget.icon, color: widget.accent, size: 28),
                     ),
-                    child: Icon(icon, color: accent),
-                  ).animate().fadeIn().scale(begin: const Offset(0.9, 0.9)),
-                  const SizedBox(height: 26),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 38,
-                      height: 1.04,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.4,
+                    const SizedBox(height: 22),
+                    Text(
+                      widget.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        height: 1.06,
+                        letterSpacing: -1.2,
+                      ),
                     ),
-                  ).animate().fadeIn().slideX(),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.64),
-                      fontSize: 17,
-                      height: 1.45,
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.58),
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
                     ),
-                  ).animate().fadeIn(delay: 200.ms).slideX(),
-                  const SizedBox(height: 32),
-                  child.animate().fadeIn(delay: 400.ms).moveY(begin: 20),
-                  const SizedBox(height: 12),
-                ],
+                    const SizedBox(height: 28),
+                    widget.child,
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1100,8 +984,9 @@ class _StepContainer extends StatelessWidget {
   }
 }
 
-class _NumberSelector extends StatelessWidget {
+class _NumberTile extends StatefulWidget {
   final String label;
+  final String unit;
   final double value;
   final double min;
   final double max;
@@ -1109,8 +994,9 @@ class _NumberSelector extends StatelessWidget {
   final bool allowManualEntry;
   final ValueChanged<double> onChanged;
 
-  const _NumberSelector({
+  const _NumberTile({
     required this.label,
+    required this.unit,
     required this.value,
     required this.min,
     required this.max,
@@ -1120,122 +1006,220 @@ class _NumberSelector extends StatelessWidget {
   });
 
   @override
+  State<_NumberTile> createState() => _NumberTileState();
+}
+
+class _NumberTileState extends State<_NumberTile> {
+  bool _editing = false;
+  late final TextEditingController _editCtrl;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _editCtrl = TextEditingController();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _editCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && _editing) _commit();
+  }
+
+  double _snap(double raw) {
+    final stepped =
+        ((raw - widget.min) / widget.step).round() * widget.step + widget.min;
+    return stepped.clamp(widget.min, widget.max);
+  }
+
+  // Caller must pass an already-snapped value — never calls _snap internally
+  // to avoid floating-point drift from double-snapping.
+  String _fmt(double snapped) =>
+      widget.step >= 1
+          ? snapped.round().toString()
+          : snapped.toStringAsFixed(1);
+
+  void _startEdit() {
+    final current = _snap(widget.value);
+    final text = _fmt(current);
+    _editCtrl.value = TextEditingValue(
+      text: text,
+      selection: TextSelection(baseOffset: 0, extentOffset: text.length),
+    );
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  void _commit() {
+    if (!_editing) return;
+    final raw = _editCtrl.text.replaceAll(',', '.');
+    final parsed = double.tryParse(raw);
+    if (mounted) setState(() => _editing = false);
+    if (parsed == null) return;
+    final clamped = parsed.clamp(widget.min, widget.max).toDouble();
+    if (mounted && clamped != parsed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${widget.label}: ${_fmt(widget.min)}–${_fmt(widget.max)} ${widget.unit} arasında olmalı.',
+          ),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    widget.onChanged(_snap(clamped));
+  }
+
+  // Slider sürüklenince açık inline field'ı kapat — iki input çakışmasın.
+  void _onSliderChanged(double v) {
+    if (_editing) {
+      _focusNode.unfocus();
+      if (mounted) setState(() => _editing = false);
+    }
+    widget.onChanged(_snap(v));
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final snappedValue = _snap(value);
-    final divisions = ((max - min) / step).round();
+    final snapped = _snap(widget.value);
+    final divisions = ((widget.max - widget.min) / widget.step).round();
+    final displayText = '${_fmt(snapped)} ${widget.unit}';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF12161F), Color(0xFF0E1117)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: _kSurface,
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 18,
-            spreadRadius: -8,
-            offset: const Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      label,
+                      widget.label,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 2),
                     Text(
-                      'Araligi kaydirarak belirle.',
+                      widget.allowManualEntry
+                          ? 'Kaydır veya değere dokun.'
+                          : 'Aralığı kaydırarak belirle.',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF00F5A0).withValues(alpha: 0.16),
-                      const Color(0xFF00D9F5).withValues(alpha: 0.10),
-                    ],
+              if (_editing && widget.allowManualEntry)
+                _InlineField(
+                  controller: _editCtrl,
+                  focusNode: _focusNode,
+                  unit: widget.unit,
+                  onDone: _commit,
+                )
+              else
+                GestureDetector(
+                  onTap: widget.allowManualEntry ? _startEdit : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: LinearGradient(
+                        colors: [
+                          _kGreen.withValues(alpha: 0.18),
+                          _kCyan.withValues(alpha: 0.12),
+                        ],
+                      ),
+                      border: Border.all(
+                        color: _kGreen.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayText,
+                          style: const TextStyle(
+                            color: _kGreen,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        if (widget.allowManualEntry) ...[
+                          const SizedBox(width: 5),
+                          Icon(
+                            Icons.edit_rounded,
+                            color: _kGreen.withValues(alpha: 0.55),
+                            size: 14,
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  border: Border.all(
-                    color: const Color(0xFF00F5A0).withValues(alpha: 0.24),
-                  ),
                 ),
-                child: Text(
-                  _formatValue(snappedValue),
-                  style: const TextStyle(
-                    color: Color(0xFF00F5A0),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              children: [
-                _rangeChip('Min', _formatValue(min)),
-                const SizedBox(width: 8),
-                _rangeChip('Max', _formatValue(max)),
-                const Spacer(),
-                if (step < 1) _rangeChip('Adim', step.toStringAsFixed(1)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _chip('Min ${_fmt(widget.min)} ${widget.unit}'),
+              const SizedBox(width: 6),
+              _chip('Max ${_fmt(widget.max)} ${widget.unit}'),
+              if (widget.step < 1) ...[
+                const SizedBox(width: 6),
+                _chip('±${_fmt(widget.step)} ${widget.unit}'),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: const Color(0xFF00F5A0),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
-              trackHeight: 7,
-              thumbColor: const Color(0xFF00F5A0),
-              overlayColor: const Color(0xFF00F5A0).withValues(alpha: 0.14),
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 14),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+            data: const SliderThemeData(
+              activeTrackColor: _kGreen,
+              inactiveTrackColor: Color(0x14FFFFFF),
+              trackHeight: 6,
+              thumbColor: _kGreen,
+              overlayColor: Color(0x2300F5A0),
+              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 13),
+              overlayShape: RoundSliderOverlayShape(overlayRadius: 22),
+              valueIndicatorColor: _kGreen,
+              valueIndicatorTextStyle: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             child: Slider(
-              value: snappedValue,
-              min: min,
-              max: max,
+              value: snapped,
+              min: widget.min,
+              max: widget.max,
               divisions: divisions > 0 ? divisions : null,
-              label: _formatValue(snappedValue),
-              onChanged: (nextValue) => onChanged(_snap(nextValue)),
+              label: displayText,
+              onChanged: _onSliderChanged,
             ),
           ),
         ],
@@ -1243,43 +1227,81 @@ class _NumberSelector extends StatelessWidget {
     );
   }
 
-  double _snap(double raw) {
-    final snapped = ((raw - min) / step).round() * step + min;
-    return snapped.clamp(min, max);
-  }
-
-  String _formatValue(double raw) {
-    final snapped = _snap(raw);
-    if (step >= 1) {
-      return snapped.round().toString();
-    }
-    return snapped.toStringAsFixed(1);
-  }
-
-  Widget _rangeChip(String label, String value) {
+  Widget _chip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: RichText(
-        text: TextSpan(
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.5),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String unit;
+  final VoidCallback onDone;
+
+  const _InlineField({
+    required this.controller,
+    required this.focusNode,
+    required this.unit,
+    required this.onDone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 100, maxWidth: 160),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: _kSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _kCyan.withValues(alpha: 0.55), width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            TextSpan(
-              text: '$label ',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                ],
+                style: const TextStyle(
+                  color: _kGreen,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onSubmitted: (_) => onDone(),
               ),
             ),
-            TextSpan(
-              text: value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: 4),
+            Text(
+              unit,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 13,
               ),
             ),
           ],
@@ -1289,17 +1311,20 @@ class _NumberSelector extends StatelessWidget {
   }
 }
 
-class _SelectableCard extends StatelessWidget {
+/// Seçim satırı (aktivite / hedef / konum / ekipman)
+class _ChoiceTile extends StatelessWidget {
   final bool selected;
-  final IconData icon;
+  final IconData? icon;
+  final String? emojiIcon;
   final String label;
   final String description;
   final Color accent;
   final VoidCallback onTap;
 
-  const _SelectableCard({
+  const _ChoiceTile({
     required this.selected,
-    required this.icon,
+    this.icon,
+    this.emojiIcon,
     required this.label,
     required this.description,
     required this.accent,
@@ -1310,9 +1335,116 @@ class _SelectableCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        height: 170,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
+          color: selected ? null : _kSurface,
+          gradient: selected
+              ? LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: 0.18),
+                    accent.withValues(alpha: 0.06),
+                  ],
+                )
+              : null,
+          border: Border.all(
+            color: selected
+                ? accent.withValues(alpha: 0.45)
+                : Colors.white.withValues(alpha: 0.06),
+            width: selected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(
+                  alpha: selected ? 0.08 : 0.04,
+                ),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              alignment: Alignment.center,
+              child: emojiIcon != null
+                  ? Text(emojiIcon!, style: const TextStyle(fontSize: 22))
+                  : Icon(
+                      icon,
+                      color: selected ? accent : Colors.grey,
+                      size: 22,
+                    ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: selected ? Colors.white : Colors.grey[300],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.50),
+                      fontSize: 12,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            AnimatedOpacity(
+              opacity: selected ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: accent,
+                size: 20,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Büyük seçim kartı (cinsiyet adımı)
+class _BigChoiceCard extends StatelessWidget {
+  final bool selected;
+  final String emoji;
+  final String label;
+  final String description;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _BigChoiceCard({
+    required this.selected,
+    required this.emoji,
+    required this.label,
+    required this.description,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 180,
+        decoration: BoxDecoration(
+          color: selected ? null : _kSurface,
           gradient: selected
               ? LinearGradient(
                   colors: [
@@ -1323,7 +1455,6 @@ class _SelectableCard extends StatelessWidget {
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: selected ? null : const Color(0xFF111318),
           border: Border.all(
             color: selected
                 ? accent.withValues(alpha: 0.55)
@@ -1331,34 +1462,12 @@ class _SelectableCard extends StatelessWidget {
             width: selected ? 1.8 : 1.2,
           ),
           borderRadius: BorderRadius.circular(24),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: accent.withValues(alpha: 0.12),
-                    blurRadius: 28,
-                    spreadRadius: -12,
-                    offset: const Offset(0, 16),
-                  ),
-                ]
-              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: selected ? 0.1 : 0.04),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Icon(
-                icon,
-                size: 34,
-                color: selected ? accent : Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 12),
+            Text(emoji, style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
             Text(
               label,
               style: TextStyle(
@@ -1367,20 +1476,131 @@ class _SelectableCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 7),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 description,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.56),
-                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.52),
+                  fontSize: 11.5,
                   height: 1.35,
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BackBtn extends StatelessWidget {
+  final VoidCallback? onTap;
+  const _BackBtn({this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        opacity: onTap != null ? 1.0 : 0.4,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+          ),
+          child: const Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.white70,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NextBtn extends StatelessWidget {
+  final bool isLast;
+  final bool loading;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  const _NextBtn({
+    required this.isLast,
+    required this.loading,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inactive = loading || disabled;
+    return GestureDetector(
+      onTap: inactive ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: inactive
+                ? [
+                    _kGreen.withValues(alpha: 0.4),
+                    _kCyan.withValues(alpha: 0.4),
+                  ]
+                : [_kGreen, _kCyan],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: inactive
+              ? null
+              : [
+                  BoxShadow(
+                    color: _kGreen.withValues(alpha: 0.28),
+                    blurRadius: 20,
+                    spreadRadius: -6,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: loading
+              ? [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                    ),
+                  ),
+                ]
+              : [
+                  Text(
+                    isLast ? 'Tamamla' : 'Devam',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    isLast ? Icons.check_rounded : Icons.arrow_forward_rounded,
+                    color: Colors.black,
+                    size: 18,
+                  ),
+                ],
         ),
       ),
     );
@@ -1400,32 +1620,26 @@ class _SetupBackground extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFF081018), Color(0xFF06070A), Color(0xFF0A0F12)],
+              colors: [Color(0xFF081018), _kBg, Color(0xFF0A0F12)],
             ),
           ),
         ),
         Positioned(
-          top: -120,
-          right: -90,
-          child: _BackgroundGlow(
-            size: 300,
-            color: const Color(0xFF00D9F5).withValues(alpha: 0.14),
-          ),
+          top: -100,
+          right: -80,
+          child: _Glow(size: 280, color: _kCyan.withValues(alpha: 0.12)),
         ),
         Positioned(
-          top: 180,
-          left: -100,
-          child: _BackgroundGlow(
-            size: 260,
-            color: const Color(0xFF00F5A0).withValues(alpha: 0.12),
-          ),
+          top: 200,
+          left: -90,
+          child: _Glow(size: 240, color: _kGreen.withValues(alpha: 0.10)),
         ),
         Positioned(
-          bottom: -100,
-          right: -60,
-          child: _BackgroundGlow(
-            size: 240,
-            color: const Color(0xFF1D4ED8).withValues(alpha: 0.08),
+          bottom: -80,
+          right: -50,
+          child: _Glow(
+            size: 220,
+            color: const Color(0xFF1D4ED8).withValues(alpha: 0.07),
           ),
         ),
       ],
@@ -1433,11 +1647,10 @@ class _SetupBackground extends StatelessWidget {
   }
 }
 
-class _BackgroundGlow extends StatelessWidget {
+class _Glow extends StatelessWidget {
   final double size;
   final Color color;
-
-  const _BackgroundGlow({required this.size, required this.color});
+  const _Glow({required this.size, required this.color});
 
   @override
   Widget build(BuildContext context) {

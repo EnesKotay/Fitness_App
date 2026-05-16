@@ -35,16 +35,30 @@ String _foodSourceLabel(FoodItem food) {
 
 const List<String> _preferredCategoryOrder = [
   'Kahvaltılık',
+  'Kahvaltı',
+  'Ara Öğün',
+  'Atıştırmalık',
   'Çorba',
   'Yemek',
+  'Et / Tavuk',
   'Et Yemeği',
   'Tavuk',
   'Balık',
+  'Fast Food',
   'Pilav & Makarna',
   'Meze & Salata',
+  'Salata & Meze',
+  'Salata',
   'Sebze Yemeği',
   'Hamur İşi',
+  'Sokak Yemeği',
   'Tatlı',
+  'Tatlı & Atıştırma',
+  'Meyve & Sebze',
+  'Meyve',
+  'Kuru Meyve & Kuruyemiş',
+  'İçecek',
+  'Süt Ürünleri',
 ];
 
 class _SearchFilterOption {
@@ -179,6 +193,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   bool _isSearchPending = false;
   bool _isAISearch = false;
   bool _backendReady = false;
+
+  bool _isMultiAddMode = false;
+  final Set<FoodItem> _selectedFoods = {};
 
   /// Seçili kategori (null = Tümü). Popüler Besinler bu kategoriye göre filtrelenir.
   String? _selectedCategory;
@@ -380,6 +397,8 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: _isMultiAddMode ? _buildMultiAddFab() : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: AppGradientBackground(
         imagePath: 'assets/images/nutrition_bg_dark.png',
         child: Column(
@@ -480,14 +499,107 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           return _buildSearchResultsHeader();
         }
         final food = _list[index - 1];
-        return _FoodListTile(
-          food: food,
-          selectedMealType: _effectiveMealType,
-          onTap: () => _openDetail(food),
-          onAddTap: () => _openPortion(food),
-          onQuickAdd: (grams) => _quickAdd(food, grams),
-        );
+        final isSelected = _selectedFoods.contains(food);
+        return _isMultiAddMode
+            ? _buildMultiSelectTile(food, isSelected)
+            : _FoodListTile(
+                food: food,
+                selectedMealType: _effectiveMealType,
+                onTap: () => _openDetail(food),
+                onAddTap: () => _openPortion(food),
+                onQuickAdd: (grams) => _quickAdd(food, grams),
+              );
       },
+    );
+  }
+
+  Widget _buildMultiSelectTile(FoodItem food, bool isSelected) {
+    final kcal = food.kcalPer100g;
+    final portion = DietProvider.getDefaultPortionForFood(food);
+    final kcalPortion = kcal * portion / 100;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selectedFoods.remove(food);
+          } else {
+            _selectedFoods.add(food);
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF4CD1A3).withValues(alpha: 0.18)
+              : Colors.black.withValues(alpha: 0.40),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF4CD1A3)
+                : Colors.white.withValues(alpha: 0.10),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? const Color(0xFF4CD1A3)
+                    : Colors.white.withValues(alpha: 0.08),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF4CD1A3)
+                      : Colors.white.withValues(alpha: 0.25),
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _foodDisplayName(food),
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${portion.round()}g • ${kcalPortion.round()} kcal',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '${kcal.round()} kcal/100g',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -526,6 +638,93 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       debugPrint('Quick add error: $e');
     }
   }
+
+  void _showSavedMealOptions(SavedMeal meal) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1C1C1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 16),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_rounded, color: AppColors.primary),
+              title: const Text('Bu Öğünü Ekle', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _addSavedMeal(meal);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              title: const Text('Öğünü Sil', style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteSavedMeal(meal);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteSavedMeal(SavedMeal meal) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        title: const Text('Öğünü Sil', style: TextStyle(color: Colors.white)),
+        content: Text(
+          '${meal.name} silinecek. Emin misin?',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<DietProvider>().deleteSavedMeal(meal.id);
+            },
+            child: const Text('Sil', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addSavedMeal(SavedMeal meal) async {
+    final provider = context.read<DietProvider>();
+    await provider.addSavedMealToDay(
+      meal: meal,
+      mealType: _effectiveMealType,
+      date: provider.selectedDate,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${meal.name} günlüğe eklendi.'),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
 
   // ---------------------------------------------------------------------------
   // Section header helper (dashboard-style: left accent bar + icon + text)
@@ -731,6 +930,101 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               ),
             ),
           ],
+
+          // --- Kayıtlı Öğünlerim ---
+          Consumer<DietProvider>(
+            builder: (context, diet, _) {
+              final savedMeals = diet.getSavedMeals();
+              if (savedMeals.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    'Kayıtlı Öğünlerim',
+                    Icons.bookmark_rounded,
+                    const Color(0xFFA78BFA),
+                  ),
+                  SizedBox(
+                    height: 110,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(left: 16, right: 8, bottom: 8, top: 4),
+                      itemCount: savedMeals.length,
+                      itemBuilder: (context, i) {
+                        final meal = savedMeals[i];
+                        return GestureDetector(
+                          onTap: () => _showSavedMealOptions(meal),
+                          onLongPress: () => _confirmDeleteSavedMeal(meal),
+                          child: Container(
+                            width: 160,
+                            margin: const EdgeInsets.only(right: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.42),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: const Color(0xFFA78BFA).withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 12, 8, 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.bookmark_rounded, size: 14, color: Color(0xFFA78BFA)),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          meal.name,
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    '${meal.items.length} ürün',
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.5),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFA78BFA).withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'Ekle',
+                                      style: TextStyle(
+                                        color: const Color(0xFFA78BFA),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
+          ),
 
           const SizedBox(height: 60),
         ],
@@ -1221,24 +1515,46 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   IconData _categoryIcon(String category) {
     switch (category) {
       case 'Kahvaltılık':
+      case 'Kahvaltı':
         return Icons.egg_alt_outlined;
       case 'Yemek':
       case 'Et Yemeği':
       case 'Tavuk':
+      case 'Et / Tavuk':
       case 'Balık':
         return Icons.restaurant_outlined;
       case 'Pilav & Makarna':
         return Icons.rice_bowl_outlined;
       case 'Meze & Salata':
+      case 'Salata & Meze':
+      case 'Salata':
         return Icons.eco_outlined;
       case 'Sebze Yemeği':
+      case 'Sebze & Meyve':
+      case 'Sebze':
         return Icons.spa_outlined;
       case 'Tatlı':
+      case 'Tatlı & Atıştırma':
         return Icons.cake_outlined;
       case 'Çorba':
         return Icons.soup_kitchen_outlined;
       case 'Hamur İşi':
         return Icons.bakery_dining_outlined;
+      case 'Ara Öğün':
+      case 'Atıştırmalık':
+        return Icons.cookie_outlined;
+      case 'İçecek':
+        return Icons.local_cafe_outlined;
+      case 'Meyve':
+      case 'Meyve & Sebze':
+        return Icons.apple_outlined;
+      case 'Kuru Meyve & Kuruyemiş':
+        return Icons.grain_outlined;
+      case 'Fast Food':
+      case 'Sokak Yemeği':
+        return Icons.fastfood_outlined;
+      case 'Süt Ürünleri':
+        return Icons.water_drop_outlined;
       default:
         return Icons.label_outline_rounded;
     }
@@ -1353,71 +1669,6 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               ),
 
               const Spacer(),
-
-              // Add custom food chip
-              GestureDetector(
-                onTap: () async {
-                  final currentContext = context;
-                  try {
-                    final added = await Navigator.of(
-                      currentContext,
-                      rootNavigator: false,
-                    ).pushNamed<bool>('add_custom_food');
-                    if (added == true && mounted) _search();
-                  } catch (e) {
-                    debugPrint(
-                      'FoodSearchPage add_custom_food navigation hatası: $e',
-                    );
-                    try {
-                      if (!currentContext.mounted) return;
-                      final added = await Navigator.of(currentContext)
-                          .push<bool>(
-                            MaterialPageRoute(
-                              builder: (_) => const AddCustomFoodPage(),
-                            ),
-                          );
-                      if (!mounted) return;
-                      if (added == true) _search();
-                    } catch (e2) {
-                      debugPrint(
-                        'FoodSearchPage fallback navigation hatası: $e2',
-                      );
-                    }
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        size: 14,
-                        color: AppColors.primaryLight,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Yeni',
-                        style: GoogleFonts.inter(
-                          color: AppColors.primaryLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -1478,18 +1729,6 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                       ),
                     ),
 
-                    // Barcode icon (inline)
-                    GestureDetector(
-                      onTap: () => _handleBarcodeScan(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: Colors.white.withValues(alpha: 0.55),
-                          size: 20,
-                        ),
-                      ),
-                    ),
 
                     // AI toggle
                     GestureDetector(
@@ -1578,6 +1817,8 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               );
             },
           ),
+          const SizedBox(height: 12),
+          _buildQuickActionsRow(context),
           const SizedBox(height: 10),
           ValueListenableBuilder<String>(
             valueListenable: _query,
@@ -1831,6 +2072,211 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsRow(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _buildActionChip(
+            label: 'Barkod Okut',
+            icon: Icons.qr_code_scanner_rounded,
+            color: Colors.white,
+            onTap: () => _handleBarcodeScan(context),
+          ),
+          const SizedBox(width: 8),
+          _buildActionChip(
+            label: 'Hızlı Kalori',
+            icon: Icons.bolt_rounded,
+            color: Colors.orange,
+            onTap: () => _showQuickAddDialog(context),
+          ),
+          const SizedBox(width: 8),
+          _buildActionChip(
+            label: 'Özel Besin Ekle',
+            icon: Icons.add_rounded,
+            color: AppColors.primaryLight,
+            onTap: () async {
+              try {
+                final added = await Navigator.of(context, rootNavigator: false).pushNamed<bool>('add_custom_food');
+                if (added == true && mounted) _search();
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddCustomFoodPage()));
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          _buildActionChip(
+            label: _isMultiAddMode ? 'İptal Et' : 'Çoklu Ekleme',
+            icon: _isMultiAddMode ? Icons.close_rounded : Icons.checklist_rounded,
+            color: const Color(0xFF4CD1A3),
+            onTap: () {
+              setState(() {
+                _isMultiAddMode = !_isMultiAddMode;
+                if (!_isMultiAddMode) _selectedFoods.clear();
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionChip({required String label, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showQuickAddDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final kcalController = TextEditingController();
+        final nameController = TextEditingController();
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Hızlı Kalori Ekle', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'İsim (Opsiyonel)',
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: kcalController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Kalori (kcal)',
+                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2))),
+                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
+                  suffixText: 'kcal',
+                  suffixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () {
+                if (kcalController.text.trim().isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hızlı kalori eklendi (Demo)')));
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('Ekle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      }
+    );
+  }
+
+  Widget _buildMultiAddFab() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      height: 56,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: () {
+            if (_selectedFoods.isEmpty) return;
+            setState(() {
+              _isMultiAddMode = false;
+              _selectedFoods.clear();
+            });
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seçilen öğeler eklendi (Demo)')));
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_selectedFoods.length} Ürün Seçildi',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      'Hepsini Ekle',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.check_circle_rounded, color: Colors.white),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

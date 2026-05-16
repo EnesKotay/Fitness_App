@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/storage_helper.dart';
+import '../../core/widgets/assistant_fab_visibility.dart';
 import '../../core/widgets/app_tour_overlay.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/premium_hub_screen.dart';
@@ -13,6 +14,10 @@ import '../tracking/screens/tracking_screen.dart';
 import '../workout/screens/workout_screen.dart';
 
 const Color _warmAccent = Color(0xFFD89A6A);
+const double _assistantFabWidth = 148.0;
+const double _assistantFabHeight = 58.0;
+const double _assistantFabEdgePadding = 16.0;
+const double _assistantFabBottomPadding = 72.0;
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -27,8 +32,10 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   final Set<int> _visitedTabs = {0};
 
-  double _fabRight = 16.0;
-  double _fabBottom = 72.0;
+  double _fabRight = _assistantFabEdgePadding;
+  double _fabBottom = _assistantFabBottomPadding;
+  bool _isDraggingFab = false;
+  bool _didRestoreFabCorner = false;
 
   // GlobalKey'ler — interaktif tur için her nav öğesini ve FAB'ı hedef alır
   final _navKey0 = GlobalKey();
@@ -71,14 +78,14 @@ class _MainShellState extends State<MainShell> {
         const TourStep(
           title: 'Hoş Geldin!',
           description:
-              'Sana 30 saniyede uygulamayı tanıtacağız.\n\nEkrana dokun veya "Sonraki" butonuna bas. İstediğin zaman "Turu Atla" diyebilirsin.',
+              'Uygulamayı birkaç kısa adımda tanıyalım. İstediğin zaman turu atlayabilirsin.',
           emoji: '👋',
           accentColor: Color(0xFF4CAF50),
         ),
         TourStep(
           title: 'Ana Sayfa',
           description:
-              'Günlük kalori özetini, su takibini ve hızlı erişim kartlarını buradan gör. Her sabah buradan başla!',
+              'Bugünün planını, kalori durumunu ve hızlı aksiyonları burada görürsün.',
           emoji: '🏠',
           targetKey: _navKey0,
           spotShape: TourSpotShape.rect,
@@ -88,7 +95,7 @@ class _MainShellState extends State<MainShell> {
         TourStep(
           title: 'Antrenman',
           description:
-              '500+ egzersiz rehberi ve antrenman geçmişin burada. "+" butonuyla egzersiz ekle, planını oluştur.',
+              'Bugünkü antrenmanı başlatır, programını ve egzersiz rehberini buradan açarsın.',
           emoji: '💪',
           targetKey: _navKey1,
           spotShape: TourSpotShape.rect,
@@ -98,7 +105,7 @@ class _MainShellState extends State<MainShell> {
         TourStep(
           title: 'Beslenme',
           description:
-              'Öğün kaydet, barkod okut veya fotoğrafla tara.\n\n4 alt sekme:\n• Dashboard – günlük özet\n• Öğünler – yemek ekle\n• Rehber – beslenme planın\n• Araçlar – AI tarama, tarifler',
+              'Yemek ekle, yemek analizi yap ve AI Koçtan beslenme yorumu al.',
           emoji: '🥗',
           targetKey: _navKey3,
           spotShape: TourSpotShape.rect,
@@ -107,8 +114,7 @@ class _MainShellState extends State<MainShell> {
         ),
         TourStep(
           title: 'Takip',
-          description:
-              'Kilo ve vücut ölçülerini grafik olarak izle. İlerlemenin büyüklüğünü görmek için gir.',
+          description: 'Kilo, ölçü ve hedef yönünü grafiklerle takip edersin.',
           emoji: '📈',
           targetKey: _navKey2,
           spotShape: TourSpotShape.rect,
@@ -118,7 +124,7 @@ class _MainShellState extends State<MainShell> {
         TourStep(
           title: 'Asistan Butonu',
           description:
-              'Dokun → AI Koç, Günlük Görevler ve Premium özelliklere anında ulaş.\nSürükleyerek istediğin köşeye taşıyabilirsin!',
+              'AI Koç ve günlük görevlere hızlı erişim sağlar; sürükleyince köşelere sabitlenir.',
           emoji: '✨',
           targetKey: _fabKey,
           spotShape: TourSpotShape.rect,
@@ -164,6 +170,7 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: const Color(0xFF070809),
       body: LayoutBuilder(
         builder: (context, constraints) {
+          _restoreFabCornerIfNeeded(constraints);
           return Stack(
             children: [
               IndexedStack(
@@ -185,27 +192,38 @@ class _MainShellState extends State<MainShell> {
                       : const _TabLoadingPlaceholder(),
                 ],
               ),
-              Positioned(
-                right: _fabRight,
-                bottom: _fabBottom,
-                child: GestureDetector(
-                  key: _fabKey,
-                  onPanUpdate: (details) {
-                    setState(() {
-                      _fabRight -= details.delta.dx;
-                      _fabBottom -= details.delta.dy;
-                      _fabRight = _fabRight.clamp(
-                        0.0,
-                        constraints.maxWidth - 148.0,
-                      );
-                      _fabBottom = _fabBottom.clamp(
-                        0.0,
-                        constraints.maxHeight - 58.0,
-                      );
-                    });
-                  },
-                  child: _AssistantFab(onTap: () => _showAsistanSheet(context)),
-                ),
+              ValueListenableBuilder<bool>(
+                valueListenable: AssistantFabVisibility.hidden,
+                builder: (context, hidden, _) {
+                  if (hidden) return const SizedBox.shrink();
+                  return AnimatedPositioned(
+                    duration: _isDraggingFab
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    right: _fabRight,
+                    bottom: _fabBottom,
+                    child: GestureDetector(
+                      key: _fabKey,
+                      onPanStart: (_) {
+                        setState(() => _isDraggingFab = true);
+                      },
+                      onPanUpdate: (details) {
+                        _moveFabWithDrag(details.delta, constraints);
+                      },
+                      onPanEnd: (_) {
+                        _snapFabToNearestCorner(constraints);
+                      },
+                      onPanCancel: () {
+                        _snapFabToNearestCorner(constraints);
+                      },
+                      child: _AssistantFab(
+                        onTap: () => _showAsistanSheet(context),
+                        compact: _selectedIndex == 2 || _selectedIndex == 3,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           );
@@ -236,6 +254,76 @@ class _MainShellState extends State<MainShell> {
         ),
       ),
     );
+  }
+
+  void _moveFabWithDrag(Offset delta, BoxConstraints constraints) {
+    setState(() {
+      _fabRight = (_fabRight - delta.dx).clamp(
+        _assistantFabEdgePadding,
+        _maxFabRight(constraints),
+      );
+      _fabBottom = (_fabBottom - delta.dy).clamp(
+        _assistantFabBottomPadding,
+        _maxFabBottom(constraints),
+      );
+    });
+  }
+
+  void _snapFabToNearestCorner(BoxConstraints constraints) {
+    final fabCenterX =
+        constraints.maxWidth - _fabRight - (_assistantFabWidth / 2);
+    final fabCenterY =
+        constraints.maxHeight - _fabBottom - (_assistantFabHeight / 2);
+    final shouldStayRight = fabCenterX >= constraints.maxWidth / 2;
+    final shouldStayBottom = fabCenterY >= constraints.maxHeight / 2;
+
+    setState(() {
+      _isDraggingFab = false;
+      _fabRight = shouldStayRight
+          ? _assistantFabEdgePadding
+          : _maxFabRight(constraints);
+      _fabBottom = shouldStayBottom
+          ? _assistantFabBottomPadding
+          : _maxFabBottom(constraints);
+    });
+    final horizontal = shouldStayRight ? 'Right' : 'Left';
+    final vertical = shouldStayBottom ? 'bottom' : 'top';
+    StorageHelper.saveAssistantFabCorner('$vertical$horizontal');
+  }
+
+  void _restoreFabCornerIfNeeded(BoxConstraints constraints) {
+    if (_didRestoreFabCorner) return;
+    _didRestoreFabCorner = true;
+    final savedCorner = StorageHelper.getAssistantFabCorner();
+    final shouldStayRight = savedCorner.endsWith('Right');
+    final shouldStayBottom = savedCorner.startsWith('bottom');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _fabRight = shouldStayRight
+            ? _assistantFabEdgePadding
+            : _maxFabRight(constraints);
+        _fabBottom = shouldStayBottom
+            ? _assistantFabBottomPadding
+            : _maxFabBottom(constraints);
+      });
+    });
+  }
+
+  double _maxFabRight(BoxConstraints constraints) {
+    return (constraints.maxWidth -
+            _assistantFabWidth -
+            _assistantFabEdgePadding)
+        .clamp(_assistantFabEdgePadding, constraints.maxWidth)
+        .toDouble();
+  }
+
+  double _maxFabBottom(BoxConstraints constraints) {
+    return (constraints.maxHeight -
+            _assistantFabHeight -
+            _assistantFabEdgePadding)
+        .clamp(_assistantFabBottomPadding, constraints.maxHeight)
+        .toDouble();
   }
 
   void _showAsistanSheet(BuildContext context) {
@@ -317,7 +405,7 @@ class _MainShellState extends State<MainShell> {
                 ),
                 const SizedBox(height: 14),
                 _AsistanCard(
-                  title: 'Yapay Zeka Koç',
+                  title: 'AI Koç',
                   subtitle:
                       'Beslenme, antrenman ve gün planı için net yönlendirme al',
                   icon: Icons.chat_bubble_outline_rounded,
@@ -348,7 +436,7 @@ class _MainShellState extends State<MainShell> {
                 _AsistanCard(
                   title: 'Premium Özellikler',
                   subtitle:
-                      'Daha güçlü analizler ve tüm profesyonel araçları aç',
+                      'Kilitli analiz ve otomasyon araçlarını tek yerden yönet',
                   icon: Icons.workspace_premium_rounded,
                   iconColor: const Color(0xFFD97706),
                   isPremium: true,
@@ -763,156 +851,170 @@ class _NavItem {
 }
 
 class _AssistantFab extends StatelessWidget {
-  const _AssistantFab({required this.onTap});
+  const _AssistantFab({required this.onTap, this.compact = false});
 
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final width = compact ? 124.0 : 148.0;
+    final height = compact ? 50.0 : 58.0;
+    final radius = compact ? 20.0 : 24.0;
+    final iconBox = compact ? 34.0 : 40.0;
+    final iconRadius = compact ? 12.0 : 14.0;
+
     return Material(
       color: Colors.transparent,
       child: Tooltip(
         message: 'Asistan Menüsü',
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFEBC374).withValues(alpha: 0.1),
-                blurRadius: 22,
-                spreadRadius: -12,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.24),
-                blurRadius: 18,
-                spreadRadius: -12,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(24),
-                child: Ink(
-                  width: 148,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFF1B2130).withValues(alpha: 0.76),
-                        const Color(0xFF0D1220).withValues(alpha: 0.88),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: 14,
-                        right: 14,
-                        top: 8,
-                        child: Container(
-                          height: 1,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white.withValues(alpha: 0.0),
-                                Colors.white.withValues(alpha: 0.18),
-                                Colors.white.withValues(alpha: 0.0),
-                              ],
-                            ),
-                          ),
-                        ),
+        child: Opacity(
+          opacity: compact ? 0.9 : 1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEBC374).withValues(alpha: 0.1),
+                  blurRadius: 22,
+                  spreadRadius: -12,
+                  offset: const Offset(0, 10),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.24),
+                  blurRadius: 18,
+                  spreadRadius: -12,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(radius),
+                  child: Ink(
+                    width: width,
+                    height: height,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF1B2130).withValues(alpha: 0.66),
+                          const Color(0xFF0D1220).withValues(alpha: 0.8),
+                        ],
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFEBC374,
-                                ).withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: const Color(
-                                    0xFFEBC374,
-                                  ).withValues(alpha: 0.1),
-                                ),
-                              ),
-                              child: const Center(
-                                child: _AssistantSparkleGlyph(
-                                  color: Color(0xFFEBC374),
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Asistan',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.dmSans(
-                                      color: Colors.white,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    'Koç ve araçlar',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.dmSans(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.56,
-                                      ),
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                      borderRadius: BorderRadius.circular(radius),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          left: 14,
+                          right: 14,
+                          top: 8,
+                          child: Container(
+                            height: 1,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.18),
+                                  Colors.white.withValues(alpha: 0.0),
                                 ],
                               ),
                             ),
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.04),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.chevron_right_rounded,
-                                color: Colors.white.withValues(alpha: 0.48),
-                                size: 18,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: iconBox,
+                                height: iconBox,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFEBC374,
+                                  ).withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(
+                                    iconRadius,
+                                  ),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFFEBC374,
+                                    ).withValues(alpha: 0.1),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: _AssistantSparkleGlyph(
+                                    color: const Color(0xFFEBC374),
+                                    size: compact ? 17 : 20,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: compact ? 8 : 10),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Asistan',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.dmSans(
+                                        color: Colors.white,
+                                        fontSize: compact ? 12.5 : 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    if (!compact) ...[
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        'Koç ve araçlar',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.dmSans(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.56,
+                                          ),
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                width: compact ? 24 : 28,
+                                height: compact ? 24 : 28,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.04),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Colors.white.withValues(alpha: 0.48),
+                                  size: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -262,7 +262,15 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
                 ),
                 const SizedBox(height: 14),
                 _buildYouTubeButton(),
-                const SizedBox(height: 22),
+                const SizedBox(height: 14),
+                Consumer<WorkoutProvider>(
+                  builder: (context, provider, _) =>
+                      _ExercisePerformanceMiniChart(
+                        exerciseName: widget.exercise.name,
+                        workouts: provider.workouts,
+                        accentColor: widget.accentColor,
+                      ),
+                ),
                 const SizedBox(height: 28),
                 _SectionTitle(label: 'Kurulum', color: widget.accentColor),
                 const SizedBox(height: 14),
@@ -607,7 +615,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
         // Rozet kazanıldı — overlay göster
         final isPremiumUser =
             authProvider.user?.premiumTier?.toLowerCase().trim() == 'premium';
-        
+
         showDialog<void>(
           context: nav.context, // Root/aktif navigator context'ini kullan
           barrierDismissible: true,
@@ -621,9 +629,9 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
                 : () {
                     streakProvider.clearJustUnlocked();
                     Navigator.of(dialogCtx).pop(); // dialog'u kapat
-                    nav.push(MaterialPageRoute(
-                      builder: (_) => const PremiumScreen(),
-                    ));
+                    nav.push(
+                      MaterialPageRoute(builder: (_) => const PremiumScreen()),
+                    );
                   },
             onDismiss: () {
               streakProvider.clearJustUnlocked();
@@ -1704,6 +1712,167 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
 
   bool _containsAnyToken(String text, List<String> tokens) {
     return tokens.any(text.contains);
+  }
+}
+
+class _ExercisePerformanceMiniChart extends StatelessWidget {
+  final String exerciseName;
+  final List<Workout> workouts;
+  final Color accentColor;
+
+  const _ExercisePerformanceMiniChart({
+    required this.exerciseName,
+    required this.workouts,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final entries =
+        workouts
+            .where(
+              (workout) =>
+                  workout.name.trim().toLowerCase() ==
+                  exerciseName.trim().toLowerCase(),
+            )
+            .toList()
+          ..sort((a, b) => a.workoutDate.compareTo(b.workoutDate));
+    final recent = entries.length > 6
+        ? entries.sublist(entries.length - 6)
+        : entries;
+
+    if (recent.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.035),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.show_chart_rounded, color: accentColor, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Bu hareket için kayıt oluşunca son 6 performans burada görünecek.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.56),
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    double metric(Workout workout) {
+      if (workout.oneRepMax != null && workout.oneRepMax! > 0) {
+        return workout.oneRepMax!;
+      }
+      if (workout.setDetails != null && workout.setDetails!.isNotEmpty) {
+        return workout.setDetails!
+            .map((set) => set.weight ?? 0.0)
+            .fold<double>(0, (a, b) => a > b ? a : b);
+      }
+      return workout.weight ?? 0;
+    }
+
+    final maxMetric = recent
+        .map(metric)
+        .fold<double>(0, (a, b) => a > b ? a : b)
+        .clamp(1, 500);
+    final latest = recent.last;
+    final latestMetric = metric(latest);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accentColor.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.analytics_rounded, color: accentColor, size: 18),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Performans geçmişi',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                latestMetric > 0
+                    ? '${latestMetric.toStringAsFixed(latestMetric % 1 == 0 ? 0 : 1)} kg'
+                    : '${latest.reps ?? 0} tekrar',
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 76,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: recent.map((workout) {
+                final value = metric(workout);
+                final barHeight = value > 0 ? (value / maxMetric) * 50 : 8.0;
+                final isLatest = workout == latest;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          height: barHeight.clamp(6.0, 52.0),
+                          decoration: BoxDecoration(
+                            color: isLatest
+                                ? accentColor
+                                : accentColor.withValues(alpha: 0.38),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          DateFormat('d/M').format(workout.workoutDate),
+                          style: TextStyle(
+                            color: isLatest
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.38),
+                            fontSize: 9,
+                            fontWeight: isLatest
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

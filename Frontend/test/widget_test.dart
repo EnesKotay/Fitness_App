@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fitness/features/auth/screens/login_screen.dart';
-import 'package:fitness/features/auth/screens/settings_help_screen.dart';
+import 'package:pusulafit/features/auth/screens/login_screen.dart';
+import 'package:pusulafit/features/auth/screens/settings_help_screen.dart';
 import 'test_helpers/app_test_wrappers.dart';
 
 /// Temel ekran smoke testleri — widget ağacının hatasız render edildiğini doğrular.
@@ -10,7 +10,7 @@ void main() {
     testWidgets('renders without error', (tester) async {
       await tester.pumpWidget(buildTestApp(const LoginScreen()));
       // Login ekranında temel alanlar görünmeli
-      expect(find.text('FitMentor'), findsOneWidget);
+      expect(find.text('PusulaFit'), findsOneWidget);
       expect(find.text('Giriş Yap'), findsOneWidget);
     });
   });

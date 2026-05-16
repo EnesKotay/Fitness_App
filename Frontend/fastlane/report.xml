@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000472">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="1: xcrun simctl io booted screenshot &apos;/Users/eneskotay/Development/Fitness_App-main/frontend/screenshots/test_screenshot.png&apos;" time="0.425116">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>

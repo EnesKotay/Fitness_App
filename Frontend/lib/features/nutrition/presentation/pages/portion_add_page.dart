@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,8 @@ import 'package:provider/provider.dart';
 import '../../domain/entities/food_item.dart';
 import '../../domain/entities/meal_type.dart';
 import '../state/diet_provider.dart';
+import '../../../tasks/controllers/daily_tasks_controller.dart';
+import '../../../tasks/models/daily_task.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_gradient_background.dart';
 import '../../../../core/utils/app_snack.dart';
@@ -43,6 +46,7 @@ class _PortionAddPageState extends State<PortionAddPage>
   double _carb = 0;
   double _fat = 0;
   double _sliderValue = 100;
+  bool _isAdding = false;
 
   late AnimationController _ringCtrl;
   late Animation<double> _ringAnim;
@@ -291,8 +295,11 @@ class _PortionAddPageState extends State<PortionAddPage>
         ),
       ),
       child: GestureDetector(
-        onTap: _addToDiary,
-        child: Container(
+        onTap: _isAdding ? null : _addToDiary,
+        child: AnimatedOpacity(
+          opacity: _isAdding ? 0.7 : 1.0,
+          duration: const Duration(milliseconds: 150),
+          child: Container(
           height: 60,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -309,49 +316,59 @@ class _PortionAddPageState extends State<PortionAddPage>
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.add_circle_outline_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Günlüğe Ekle',
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
+          child: _isAdding
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '$amountTitle • ${_calculatedKcal.round()} kcal',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: Colors.white,
+                      size: 22,
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Günlüğe Ekle',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$amountTitle • ${_calculatedKcal.round()} kcal',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
           ),
         ),
       ),
@@ -359,11 +376,13 @@ class _PortionAddPageState extends State<PortionAddPage>
   }
 
   Future<void> _addToDiary() async {
+    if (_isAdding) return;
     final grams = double.tryParse(_gramController.text.replaceAll(',', '.'));
     if (grams == null || grams <= 0 || grams.isNaN || grams.isInfinite) {
       AppSnack.showError(context, 'Lütfen bir porsiyon veya miktar seç.');
       return;
     }
+    setState(() => _isAdding = true);
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
       await provider.addEntry(
@@ -373,6 +392,9 @@ class _PortionAddPageState extends State<PortionAddPage>
         date: provider.selectedDate,
       );
       if (mounted) {
+        unawaited(
+          context.read<DailyTasksController>().autoCompleteFirstUndoneByCategory(TaskCategory.nutrition),
+        );
         AppSnack.showSuccess(context, 'Günlüğe eklendi.');
         try {
           Navigator.of(context, rootNavigator: false).pop();
@@ -382,6 +404,7 @@ class _PortionAddPageState extends State<PortionAddPage>
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isAdding = false);
         AppSnack.showError(context, 'Eklenirken hata oluştu: ${e.toString()}');
       }
     }

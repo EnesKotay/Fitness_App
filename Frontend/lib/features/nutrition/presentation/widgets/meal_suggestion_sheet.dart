@@ -7,6 +7,7 @@ import '../../domain/entities/meal_type.dart';
 import '../state/diet_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/assistant_fab_visibility.dart';
 
 void showMealSuggestionSheet(BuildContext context) {
   NavigatorState? tabNav;
@@ -78,13 +79,10 @@ class MealSuggestionPage extends StatelessWidget {
                     const SizedBox(width: 2),
                     ShaderMask(
                       shaderCallback: (bounds) => LinearGradient(
-                        colors: [
-                          AppColors.primaryLight,
-                          AppColors.chartGreen,
-                        ],
+                        colors: [AppColors.primaryLight, AppColors.chartGreen],
                       ).createShader(bounds),
                       child: const Text(
-                        'AI Öğün Önerisi',
+                        'AI Koç Önerisi',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -184,6 +182,15 @@ class _MealSuggestionHeuristics {
     'çorba',
     'corba',
     'simit',
+    'sandviç',
+    'tost',
+    'kefir',
+    'badem',
+    'ceviz',
+    'fıstık',
+    'kraker',
+    'galeta',
+    'ton balığı',
   };
 
   static final Set<String> _budgetTokens = {
@@ -200,6 +207,15 @@ class _MealSuggestionHeuristics {
     'yogurt',
     'peynir',
     'bulgur',
+    'patates',
+    'ekmek',
+    'sebze',
+    'tavuk',
+    'salata',
+    'ayran',
+    'meyve',
+    'pide',
+    'simit',
   };
 
   static final Set<String> _premiumTokens = {
@@ -225,19 +241,26 @@ class _MealSuggestionHeuristics {
     if (_contains(food, _quickTokens)) {
       return 5;
     }
-    if (food.category.contains('Çorba') || food.category.contains('Kahvaltı')) {
+    if (food.category.contains('Çorba') ||
+        food.category.contains('Kahvaltı') ||
+        food.category.contains('Atıştırmalık')) {
       return 10;
     }
-    if (food.category.contains('Pilav') || food.category.contains('Makarna')) {
-      return 18;
+    if (food.category.contains('Pilav') ||
+        food.category.contains('Makarna') ||
+        food.category.contains('Salata')) {
+      return 15;
     }
     if (food.category.contains('Et') ||
         food.category.contains('Tavuk') ||
-        food.category.contains('Balık')) {
-      return 20;
+        food.category.contains('Balık') ||
+        food.category.contains('Yemek')) {
+      return 25;
     }
-    if (food.category.contains('Hamur')) return 22;
-    return 12;
+    if (food.category.contains('Hamur') || food.category.contains('Fırın')) {
+      return 30;
+    }
+    return 15;
   }
 
   static String prepLabel(FoodItem food) {
@@ -270,17 +293,25 @@ class _MealSuggestionHeuristics {
     return 'Dengeli öğün';
   }
 
-  static bool isBudgetFriendly(FoodItem food) => _contains(food, _budgetTokens);
-  static bool isQuick(FoodItem food) => prepMinutes(food) <= 10;
+  static bool isBudgetFriendly(FoodItem food) =>
+      _contains(food, _budgetTokens) ||
+      food.category.contains('Çorba') ||
+      food.category.contains('Sebze') ||
+      food.category.contains('Kahvaltı');
+  static bool isQuick(FoodItem food) => prepMinutes(food) <= 15;
   static bool isHomeStyle(FoodItem food) =>
       food.category.contains('Yemek') ||
       food.category.contains('Çorba') ||
       food.category.contains('Sebze') ||
-      food.category.contains('Pilav');
+      food.category.contains('Pilav') ||
+      food.category.contains('Et / Tavuk') ||
+      food.category.contains('Ana Yemek') ||
+      food.category.contains('Sulu Yemek');
   static bool isFilling(FoodItem food) =>
-      food.proteinPer100g >= 12 ||
-      food.carbPer100g >= 18 ||
-      food.fatPer100g >= 8;
+      food.proteinPer100g >= 10 ||
+      food.carbPer100g >= 20 ||
+      food.fatPer100g >= 10 ||
+      food.kcalPer100g >= 150;
 }
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -305,6 +336,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   String _searchQuery = '';
   _SuggestionRefinement _refinement = _SuggestionRefinement.smart;
   final Set<String> _mutedTokens = <String>{};
+  bool _macroExpanded = false;
   static const _debounceMs = 400;
 
   // Porsiyon
@@ -321,6 +353,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   @override
   void initState() {
     super.initState();
+    AssistantFabVisibility.hide();
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),
@@ -332,6 +365,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
 
   @override
   void dispose() {
+    AssistantFabVisibility.show();
     _searchController.dispose();
     _fadeCtrl.dispose();
     super.dispose();
@@ -518,14 +552,30 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     if (n.contains('kahve')) return '☕';
     if (n.contains('çay')) return '🍵';
     if (n.contains('peynir')) return '🧀';
-    if (n.contains('süt') || n.contains('yoğurt') || n.contains('ayran')) return '🥛';
-    if (n.contains('ekmek') || n.contains('simit') || n.contains('pide')) return '🍞';
+    if (n.contains('süt') || n.contains('yoğurt') || n.contains('ayran')) {
+      return '🥛';
+    }
+    if (n.contains('ekmek') || n.contains('simit') || n.contains('pide')) {
+      return '🍞';
+    }
     if (n.contains('burger') || n.contains('hamburger')) return '🍔';
-    if (n.contains('biftek') || n.contains('antrikot') || n.contains('köfte')) return '🥩';
-    if (n.contains('ceviz') || n.contains('badem') || n.contains('fıstık')) return '🥜';
+    if (n.contains('biftek') || n.contains('antrikot') || n.contains('köfte')) {
+      return '🥩';
+    }
+    if (n.contains('ceviz') || n.contains('badem') || n.contains('fıstık')) {
+      return '🥜';
+    }
     if (n.contains('yulaf') || n.contains('granola')) return '🥣';
-    if (n.contains('çikolata') || n.contains('baklava') || n.contains('tatlı')) return '🍫';
-    if (n.contains('nohut') || n.contains('mercimek') || n.contains('fasulye')) return '🫘';
+    if (n.contains('çikolata') ||
+        n.contains('baklava') ||
+        n.contains('tatlı')) {
+      return '🍫';
+    }
+    if (n.contains('nohut') ||
+        n.contains('mercimek') ||
+        n.contains('fasulye')) {
+      return '🫘';
+    }
     if (n.contains('avokado')) return '🥑';
     if (c.contains('meyve')) return '🍑';
     if (c.contains('sebze')) return '🥦';
@@ -592,8 +642,12 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final remKcal = provider.remainingKcal.round();
     final targets = provider.macroTargets;
     final totals = provider.totals;
-    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
-    final remC = (targets.carb - totals.totalCarb).clamp(0.0, double.infinity).round();
+    final remP = (targets.protein - totals.totalProtein)
+        .clamp(0.0, double.infinity)
+        .round();
+    final remC = (targets.carb - totals.totalCarb)
+        .clamp(0.0, double.infinity)
+        .round();
     final mode = provider.suggestionMode;
 
     if (remKcal < 0) {
@@ -622,7 +676,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final remKcal = provider.remainingKcal.round();
     final targets = provider.macroTargets;
     final totals = provider.totals;
-    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
+    final remP = (targets.protein - totals.totalProtein)
+        .clamp(0.0, double.infinity)
+        .round();
     if (mode == SuggestionMode.highProtein) return 'Protein Odaklı Seçimler';
     if (mode == SuggestionMode.lowCarb) return 'Düşük Karb Seçimleri';
     if (remKcal < 200 && remKcal >= 0) return 'Son Kaloriye Özel Seçimler';
@@ -636,10 +692,18 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final remKcal = provider.remainingKcal.round();
     final targets = provider.macroTargets;
     final totals = provider.totals;
-    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity).round();
-    if (mode == SuggestionMode.highProtein) return '18g+ protein içeren seçenekler';
-    if (mode == SuggestionMode.lowCarb) return 'Net karbonhidrat minimize edildi';
-    if (remKcal < 200 && remKcal >= 0) return 'Kalan $remKcal kcal için optimize edildi';
+    final remP = (targets.protein - totals.totalProtein)
+        .clamp(0.0, double.infinity)
+        .round();
+    if (mode == SuggestionMode.highProtein) {
+      return '18g+ protein içeren seçenekler';
+    }
+    if (mode == SuggestionMode.lowCarb) {
+      return 'Net karbonhidrat minimize edildi';
+    }
+    if (remKcal < 200 && remKcal >= 0) {
+      return 'Kalan $remKcal kcal için optimize edildi';
+    }
     if (remKcal < 0) return 'Kalori hedefini aştın, en hafifler sırada';
     if (remP > 30) return '${remP}g protein açığın var';
     return 'Hedef ve geçmiş verilerine göre';
@@ -656,36 +720,58 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
 
     // 1. Kalori durumu — en kritik bağlam
     if (remKcal < 0) {
-      items.add('Kalori hedefini ${(-remKcal)} kcal aştın — en hafif seçenekler öne çıkarıldı.');
+      items.add(
+        'Kalori hedefini ${(-remKcal)} kcal aştın — en hafif seçenekler öne çıkarıldı.',
+      );
     } else if (remKcal < 150 && remKcal >= 0) {
-      items.add('Sadece $remKcal kcal kaldı — küçük ve dengeli bir seçim yeterli.');
+      items.add(
+        'Sadece $remKcal kcal kaldı — küçük ve dengeli bir seçim yeterli.',
+      );
     } else if (remKcal > 600) {
-      items.add('$remKcal kcal alanın var, çeşitli ve besleyici seçenekler dahil edildi.');
+      items.add(
+        '$remKcal kcal alanın var, çeşitli ve besleyici seçenekler dahil edildi.',
+      );
     }
 
     // 2. Protein önceliği
     if (remP > 35) {
-      items.add('Protein açığın yüksek (${remP}g) — tavuk, yumurta, yoğurt öne çıktı.');
+      items.add(
+        'Protein açığın yüksek (${remP}g) — tavuk, yumurta, yoğurt öne çıktı.',
+      );
     } else if (remP > 15) {
-      items.add('${remP}g protein kaldı — bunu kapatan seçenekler önceliklendirildi.');
+      items.add(
+        '${remP}g protein kaldı — bunu kapatan seçenekler önceliklendirildi.',
+      );
     }
 
     // 3. Mod ve makro dengesine göre özel mesaj
     if (mode == SuggestionMode.highProtein) {
-      items.add('Yüksek protein modu: 18g+ protein içeren yiyecekler önceliklendirildi.');
+      items.add(
+        'Yüksek protein modu: 18g+ protein içeren yiyecekler önceliklendirildi.',
+      );
     } else if (mode == SuggestionMode.lowCarb) {
-      items.add('Düşük karb modu: 8g altı karbonhidrat içeren seçenekler öne çıktı.');
+      items.add(
+        'Düşük karb modu: 8g altı karbonhidrat içeren seçenekler öne çıktı.',
+      );
     } else if (remC > remP * 2.0 && remC > 30) {
-      items.add('Karbonhidrat açığın önde (${remC}g) — pilav, tahıl gibi seçenekler dahil edildi.');
+      items.add(
+        'Karbonhidrat açığın önde (${remC}g) — pilav, tahıl gibi seçenekler dahil edildi.',
+      );
     } else if (items.length < 2) {
-      items.add('Makro dengeyi bozmadan günü tamamlamak için ideal seçimler sıralandı.');
+      items.add(
+        'Makro dengeyi bozmadan günü tamamlamak için ideal seçimler sıralandı.',
+      );
     }
 
     // 4. Arama veya öğün bağlamı
     if (_searchQuery.trim().isNotEmpty) {
-      items.add('"${_searchQuery.trim()}" aramasıyla eşleşen öğeler filtrelendi.');
+      items.add(
+        '"${_searchQuery.trim()}" aramasıyla eşleşen öğeler filtrelendi.',
+      );
     } else if (items.length < 3) {
-      items.add('${_mealTypeLabel(_mealType)} için kişisel profiline uygun eşleşmeler sıralandı.');
+      items.add(
+        '${_mealTypeLabel(_mealType)} için kişisel profiline uygun eşleşmeler sıralandı.',
+      );
     }
 
     return items.take(3).toList();
@@ -720,38 +806,35 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   ) {
     final filtered = source.where((item) {
       if (!_matchesMutedKeywords(item.item)) return false;
-      switch (_refinement) {
-        case _SuggestionRefinement.smart:
-          return true;
-        case _SuggestionRefinement.filling:
-          return _MealSuggestionHeuristics.isFilling(item.item);
-        case _SuggestionRefinement.quick:
-          return _MealSuggestionHeuristics.isQuick(item.item);
-        case _SuggestionRefinement.budget:
-          return _MealSuggestionHeuristics.isBudgetFriendly(item.item);
-        case _SuggestionRefinement.homeStyle:
-          return _MealSuggestionHeuristics.isHomeStyle(item.item);
-      }
+      return true;
     }).toList();
 
     filtered.sort((a, b) {
-      int bonus(SuggestedFoodInsight item) {
+      double bonus(SuggestedFoodInsight item) {
         switch (_refinement) {
           case _SuggestionRefinement.smart:
             return 0;
           case _SuggestionRefinement.filling:
-            return ((item.item.proteinPer100g * 2) +
-                    item.item.carbPer100g +
-                    (item.item.fatPer100g * 1.2))
-                .round();
+            final isMatch = _MealSuggestionHeuristics.isFilling(item.item);
+            final score =
+                (item.item.proteinPer100g * 2) +
+                item.item.carbPer100g +
+                (item.item.fatPer100g * 1.2);
+            return isMatch ? 1000 + score : score;
           case _SuggestionRefinement.quick:
-            return -_MealSuggestionHeuristics.prepMinutes(item.item);
+            final isMatch = _MealSuggestionHeuristics.isQuick(item.item);
+            final score = -_MealSuggestionHeuristics.prepMinutes(
+              item.item,
+            ).toDouble();
+            return isMatch ? 1000 + score : score;
           case _SuggestionRefinement.budget:
             return _MealSuggestionHeuristics.isBudgetFriendly(item.item)
-                ? 30
-                : 0;
+                ? 1000.0
+                : 0.0;
           case _SuggestionRefinement.homeStyle:
-            return _MealSuggestionHeuristics.isHomeStyle(item.item) ? 25 : 0;
+            return _MealSuggestionHeuristics.isHomeStyle(item.item)
+                ? 1000.0
+                : 0.0;
         }
       }
 
@@ -799,45 +882,105 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     }
 
     final combos = <_MealComboPlan>[];
+    final provider = context.read<DietProvider>();
+    final remKcal = provider.remainingKcal;
+    final remP = (provider.macroTargets.protein - provider.totals.totalProtein)
+        .clamp(0.0, 999.0);
+
+    // 0. Dinamik Makro Hedefi Eşleştirici (Knapsack Benzeri)
+    if (remKcal > 150) {
+      double bestDist = double.infinity;
+      SuggestedFoodInsight? best1;
+      SuggestedFoodInsight? best2;
+
+      for (int i = 0; i < visible.length; i++) {
+        if (used.contains(visible[i].item.id)) continue;
+        for (int j = i + 1; j < visible.length; j++) {
+          if (used.contains(visible[j].item.id)) continue;
+          final i1 = visible[i];
+          final i2 = visible[j];
+
+          final k1 = i1.item.kcalPer100g * i1.suggestedPortionG / 100;
+          final k2 = i2.item.kcalPer100g * i2.suggestedPortionG / 100;
+          final p1 = i1.item.proteinPer100g * i1.suggestedPortionG / 100;
+          final p2 = i2.item.proteinPer100g * i2.suggestedPortionG / 100;
+
+          final sumK = k1 + k2;
+          final sumP = p1 + p2;
+
+          final distK = (sumK - (remKcal * 0.4))
+              .abs(); // Hedefin %40'ını dolduracak bir öğün
+          final distP = (sumP - (remP * 0.5)).abs() * 4;
+
+          final dist = distK + distP;
+          if (dist < bestDist && sumK <= remKcal + 50) {
+            bestDist = dist;
+            best1 = i1;
+            best2 = i2;
+          }
+        }
+      }
+
+      if (best1 != null && best2 != null && bestDist < 300) {
+        combos.add(
+          _MealComboPlan(
+            title: 'Makrolarına Tam Uygun',
+            subtitle: '${best1.item.name} + ${best2.item.name}',
+            reason:
+                'Kalan kalori ve protein hedefinizi dengeleyen matematiksel kombinasyon.',
+            icon: Icons.track_changes_rounded,
+            items: [best1, best2],
+          ),
+        );
+        used.addAll([best1.item.id, best2.item.id]);
+      }
+    }
 
     if (_mealType == MealType.breakfast) {
       // 1. Protein + karbonhidrat
       final p = pick((i) => i.item.proteinPer100g >= 12);
       final c = pick((i) => i.item.carbPer100g >= 18, p?.item.id);
       if (p != null && c != null) {
-        combos.add(_MealComboPlan(
-          title: 'Güne sağlam başlangıç',
-          subtitle: '${p.item.name} + ${c.item.name}',
-          reason: 'Protein ve karbonhidratı dengeleyen klasik kahvaltı.',
-          icon: Icons.wb_sunny_rounded,
-          items: [p, c],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Güne sağlam başlangıç',
+            subtitle: '${p.item.name} + ${c.item.name}',
+            reason: 'Protein ve karbonhidratı dengeleyen klasik kahvaltı.',
+            icon: Icons.wb_sunny_rounded,
+            items: [p, c],
+          ),
+        );
         used.addAll([p.item.id, c.item.id]);
       }
       // 2. Süt ürünü + hafif seçenek
       final d = pick((i) => i.item.category.contains('Süt'));
       final f = pick((i) => i.item.kcalPer100g <= 90, d?.item.id);
       if (d != null && f != null) {
-        combos.add(_MealComboPlan(
-          title: 'Hafif ve taze başlangıç',
-          subtitle: '${d.item.name} + ${f.item.name}',
-          reason: 'Sindirimi kolay, güne ferah başlamak için.',
-          icon: Icons.breakfast_dining_rounded,
-          items: [d, f],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Hafif ve taze başlangıç',
+            subtitle: '${d.item.name} + ${f.item.name}',
+            reason: 'Sindirimi kolay, güne ferah başlamak için.',
+            icon: Icons.breakfast_dining_rounded,
+            items: [d, f],
+          ),
+        );
         used.addAll([d.item.id, f.item.id]);
       }
       // 3. Yüksek protein seçenek
       final hp = pick((i) => i.item.proteinPer100g >= 18);
       final s = pick((i) => i.item.kcalPer100g <= 160, hp?.item.id);
       if (hp != null && s != null) {
-        combos.add(_MealComboPlan(
-          title: 'Protein odaklı kahvaltı',
-          subtitle: '${hp.item.name} + ${s.item.name}',
-          reason: 'Sabah protein ihtiyacını erken karşılar, güne güçlü başlatır.',
-          icon: Icons.fitness_center_rounded,
-          items: [hp, s],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Protein odaklı kahvaltı',
+            subtitle: '${hp.item.name} + ${s.item.name}',
+            reason:
+                'Sabah protein ihtiyacını erken karşılar, güne güçlü başlatır.',
+            icon: Icons.fitness_center_rounded,
+            items: [hp, s],
+          ),
+        );
       }
     } else if (_mealType == MealType.snack) {
       // 1. Protein + meyve / hafif
@@ -847,35 +990,41 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         p?.item.id,
       );
       if (p != null && f != null) {
-        combos.add(_MealComboPlan(
-          title: 'Enerji atıştırması',
-          subtitle: '${p.item.name} + ${f.item.name}',
-          reason: 'Protein ve doğal şeker — öğünler arası en akıllı seçim.',
-          icon: Icons.bolt_rounded,
-          items: [p, f],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Enerji atıştırması',
+            subtitle: '${p.item.name} + ${f.item.name}',
+            reason: 'Protein ve doğal şeker — öğünler arası en akıllı seçim.',
+            icon: Icons.bolt_rounded,
+            items: [p, f],
+          ),
+        );
         used.addAll([p.item.id, f.item.id]);
       }
       // 2. Süt ürünü + hafif
       final d = pick((i) => i.item.category.contains('Süt'));
       final l = pick((i) => i.item.kcalPer100g <= 100, d?.item.id);
       if (d != null && l != null) {
-        combos.add(_MealComboPlan(
-          title: 'Hafif mola',
-          subtitle: '${d.item.name} + ${l.item.name}',
-          reason: 'Doyurucu ama hafif, öğünleri dengelemek için ideal.',
-          icon: Icons.spa_rounded,
-          items: [d, l],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Hafif mola',
+            subtitle: '${d.item.name} + ${l.item.name}',
+            reason: 'Doyurucu ama hafif, öğünleri dengelemek için ideal.',
+            icon: Icons.spa_rounded,
+            items: [d, l],
+          ),
+        );
       }
     } else {
       // Öğle / Akşam
 
       // 1. Tam öğün: çorba/sebze/salata + protein + karbonhidrat (3 item)
-      final anchor = pick((i) =>
-          i.item.category.contains('Çorba') ||
-          i.item.category.contains('Sebze') ||
-          i.item.category.contains('Salata'));
+      final anchor = pick(
+        (i) =>
+            i.item.category.contains('Çorba') ||
+            i.item.category.contains('Sebze') ||
+            i.item.category.contains('Salata'),
+      );
       final mainP = pick(
         (i) => i.item.proteinPer100g >= 14 && i.item.id != anchor?.item.id,
         anchor?.item.id,
@@ -890,24 +1039,33 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
       );
 
       if (anchor != null && mainP != null && mainC != null) {
-        combos.add(_MealComboPlan(
-          title: _mealType == MealType.lunch ? 'Dolu öğle tabağı' : 'Dolu akşam tabağı',
-          subtitle: '${anchor.item.name} · ${mainP.item.name} · ${mainC.item.name}',
-          reason: anchor.item.category.contains('Çorba')
-              ? 'Çorba + ana protein + enerji — eksiksiz bir öğün.'
-              : 'Sebze + protein + karbonhidrat dengesi.',
-          icon: Icons.dinner_dining_rounded,
-          items: [anchor, mainP, mainC],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: _mealType == MealType.lunch
+                ? 'Dolu öğle tabağı'
+                : 'Dolu akşam tabağı',
+            subtitle:
+                '${anchor.item.name} · ${mainP.item.name} · ${mainC.item.name}',
+            reason: anchor.item.category.contains('Çorba')
+                ? 'Çorba + ana protein + enerji — eksiksiz bir öğün.'
+                : 'Sebze + protein + karbonhidrat dengesi.',
+            icon: Icons.dinner_dining_rounded,
+            items: [anchor, mainP, mainC],
+          ),
+        );
         used.addAll([anchor.item.id, mainP.item.id, mainC.item.id]);
       } else if (mainP != null && mainC != null) {
-        combos.add(_MealComboPlan(
-          title: _mealType == MealType.lunch ? 'Dengeli öğle' : 'Dengeli akşam',
-          subtitle: '${mainP.item.name} + ${mainC.item.name}',
-          reason: 'Protein ve enerjiyi tek öğünde dengeler.',
-          icon: Icons.dinner_dining_rounded,
-          items: [mainP, mainC],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: _mealType == MealType.lunch
+                ? 'Dengeli öğle'
+                : 'Dengeli akşam',
+            subtitle: '${mainP.item.name} + ${mainC.item.name}',
+            reason: 'Protein ve enerjiyi tek öğünde dengeler.',
+            icon: Icons.dinner_dining_rounded,
+            items: [mainP, mainC],
+          ),
+        );
         used.addAll([mainP.item.id, mainC.item.id]);
       }
 
@@ -922,13 +1080,15 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         p2?.item.id,
       );
       if (p2 != null && l2 != null) {
-        combos.add(_MealComboPlan(
-          title: 'Hafif ama tok tutar',
-          subtitle: '${p2.item.name} + ${l2.item.name}',
-          reason: 'Protein odağını korurken kaloriyi kontrollü tutar.',
-          icon: Icons.spa_rounded,
-          items: [p2, l2],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Hafif ama tok tutar',
+            subtitle: '${p2.item.name} + ${l2.item.name}',
+            reason: 'Protein odağını korurken kaloriyi kontrollü tutar.',
+            icon: Icons.spa_rounded,
+            items: [p2, l2],
+          ),
+        );
         used.addAll([p2.item.id, l2.item.id]);
       }
 
@@ -939,13 +1099,15 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         q1?.item.id,
       );
       if (q1 != null && q2 != null) {
-        combos.add(_MealComboPlan(
-          title: 'Pratik ve besleyici',
-          subtitle: '${q1.item.name} + ${q2.item.name}',
-          reason: 'Dakikalar içinde hazır, makro hedefini destekler.',
-          icon: Icons.flash_on_rounded,
-          items: [q1, q2],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Pratik ve besleyici',
+            subtitle: '${q1.item.name} + ${q2.item.name}',
+            reason: 'Dakikalar içinde hazır, makro hedefini destekler.',
+            icon: Icons.flash_on_rounded,
+            items: [q1, q2],
+          ),
+        );
         used.addAll([q1.item.id, q2.item.id]);
       }
 
@@ -956,13 +1118,16 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         hp1?.item.id,
       );
       if (hp1 != null && hp2 != null && combos.length < 3) {
-        combos.add(_MealComboPlan(
-          title: 'Protein bombası',
-          subtitle: '${hp1.item.name} + ${hp2.item.name}',
-          reason: 'İki yüksek proteinli seçenek bir arada — kas desteği maksimum.',
-          icon: Icons.fitness_center_rounded,
-          items: [hp1, hp2],
-        ));
+        combos.add(
+          _MealComboPlan(
+            title: 'Protein bombası',
+            subtitle: '${hp1.item.name} + ${hp2.item.name}',
+            reason:
+                'İki yüksek proteinli seçenek bir arada — kas desteği maksimum.',
+            icon: Icons.fitness_center_rounded,
+            items: [hp1, hp2],
+          ),
+        );
       }
     }
 
@@ -1009,6 +1174,8 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildHeader()),
+            if (_aiReasoning != null && _aiReasoning!.isNotEmpty && !_loading)
+              SliverToBoxAdapter(child: _buildAICard(_aiReasoning!)),
             SliverToBoxAdapter(
               child: _buildMacroProgress(
                 remKcal: remKcal,
@@ -1022,8 +1189,6 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
               ),
             ),
             SliverToBoxAdapter(child: _buildControlPanel(provider)),
-            if (_aiReasoning != null && _aiReasoning!.isNotEmpty && !_loading)
-              SliverToBoxAdapter(child: _buildAICard(_aiReasoning!)),
             if (_loading)
               const SliverFillRemaining(
                 hasScrollBody: false,
@@ -1140,10 +1305,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                         height: 52,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary,
-                              AppColors.primaryDark,
-                            ],
+                            colors: [AppColors.primary, AppColors.primaryDark],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -1169,10 +1331,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                           children: [
                             ShaderMask(
                               shaderCallback: (bounds) => LinearGradient(
-                                colors: [
-                                  Colors.white,
-                                  AppColors.primaryLight,
-                                ],
+                                colors: [Colors.white, AppColors.primaryLight],
                               ).createShader(bounds),
                               child: const Text(
                                 'Ne ekleyeyim?',
@@ -1189,7 +1348,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                             Text(
                               _mealTimeGreeting(),
                               style: TextStyle(
-                                color: AppColors.primaryLight.withValues(alpha: 0.7),
+                                color: AppColors.primaryLight.withValues(
+                                  alpha: 0.7,
+                                ),
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1271,208 +1432,166 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final provider = Provider.of<DietProvider>(context, listen: false);
     final consumedKcal = provider.totals.totalKcal.round();
     final targetKcal = provider.effectiveTargetKcal.round();
+    final kcalText = remKcal >= 0
+        ? '$remKcal kcal alan var'
+        : '${remKcal.abs()} kcal aşıldı';
+    final focusText = remP >= 20
+        ? 'Protein açığın ${remP}g'
+        : remC >= 35
+        ? 'Karb alanın ${remC}g'
+        : remF >= 12
+        ? 'Yağ alanın ${remF}g'
+        : 'Makrolar dengede';
+    final statusColor = remKcal >= 0 ? AppColors.secondary : Colors.redAccent;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF111520),
-              Color(0xFF0D1014),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top kcal header
-            Container(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.secondary.withValues(alpha: 0.15),
-                    Colors.transparent,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(22),
-                ),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.07),
-                  ),
-                ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _macroExpanded = !_macroExpanded);
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF121722), Color(0xFF0C1015)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Kalan kalori hedefi',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                          ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.28),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.28),
                         ),
-                        const SizedBox(height: 5),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              '$remKcal',
-                              style: TextStyle(
-                                foreground: Paint()
-                                  ..shader = LinearGradient(
-                                    colors: [
-                                      AppColors.secondary,
-                                      AppColors.secondaryLight,
-                                    ],
-                                  ).createShader(
-                                    const Rect.fromLTWH(0, 0, 120, 40),
-                                  ),
-                                fontSize: 34,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -1.5,
-                                height: 1.0,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'kcal kaldı',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '$consumedKcal / $targetKcal kcal tüketildi',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.35),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      ),
+                      child: Icon(
+                        remKcal >= 0
+                            ? Icons.local_fire_department_rounded
+                            : Icons.warning_amber_rounded,
+                        color: statusColor,
+                        size: 19,
+                      ),
                     ),
-                  ),
-                  // Status badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.25),
-                          AppColors.primary.withValues(alpha: 0.1),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$kcalText · $focusText',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '$consumedKcal / $targetKcal kcal tüketildi',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.42),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
                     ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          remKcal > 400
-                              ? Icons.bolt_rounded
-                              : Icons.check_circle_outline_rounded,
-                          size: 18,
-                          color: AppColors.primaryLight,
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          remKcal > 400 ? 'Alan var' : 'Yakınsın',
-                          style: TextStyle(
-                            color: AppColors.primaryLight,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w900,
+                    const SizedBox(width: 8),
+                    Icon(
+                      _macroExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      size: 23,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: pKcal,
+                    minHeight: 5,
+                    backgroundColor: statusColor.withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  child: _macroExpanded
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 13),
+                          child: Row(
+                            children: [
+                              _macroProgressTile(
+                                label: 'Kalori',
+                                value: '$remKcal',
+                                unit: 'kcal',
+                                progress: pKcal,
+                                color: AppColors.secondary,
+                                icon: Icons.local_fire_department_rounded,
+                              ),
+                              _macroProgressTile(
+                                label: 'Protein',
+                                value: '$remP',
+                                unit: 'g',
+                                progress: pProt,
+                                color: AppColors.chartBlue,
+                                icon: Icons.fitness_center_rounded,
+                              ),
+                              _macroProgressTile(
+                                label: 'Karb',
+                                value: '$remC',
+                                unit: 'g',
+                                progress: pCarb,
+                                color: AppColors.chartGreen,
+                                icon: Icons.grain_rounded,
+                              ),
+                              _macroProgressTile(
+                                label: 'Yağ',
+                                value: '$remF',
+                                unit: 'g',
+                                progress: pFat,
+                                color: const Color(0xFFFFB74D),
+                                icon: Icons.water_drop_rounded,
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ),
-            // Macro tiles
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-              child: Row(
-                children: [
-                  _macroProgressTile(
-                    label: 'Kalori',
-                    value: '$remKcal',
-                    unit: 'kcal',
-                    progress: pKcal,
-                    color: AppColors.secondary,
-                    icon: Icons.local_fire_department_rounded,
-                  ),
-                  _macroProgressTile(
-                    label: 'Protein',
-                    value: '$remP',
-                    unit: 'g',
-                    progress: pProt,
-                    color: AppColors.chartBlue,
-                    icon: Icons.fitness_center_rounded,
-                  ),
-                  _macroProgressTile(
-                    label: 'Karb',
-                    value: '$remC',
-                    unit: 'g',
-                    progress: pCarb,
-                    color: AppColors.chartGreen,
-                    icon: Icons.grain_rounded,
-                  ),
-                  _macroProgressTile(
-                    label: 'Yağ',
-                    value: '$remF',
-                    unit: 'g',
-                    progress: pFat,
-                    color: const Color(0xFFFFB74D),
-                    icon: Icons.water_drop_rounded,
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1495,9 +1614,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color.withValues(alpha: 0.1),
-              border: Border.all(
-                color: color.withValues(alpha: 0.2),
-              ),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
             child: Icon(icon, size: 16, color: color),
           ),
@@ -1573,7 +1690,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Öğün ve tercih seç',
+                  'Öneriyi ayarla',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
                     fontSize: 12,
@@ -1610,65 +1727,230 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             const SizedBox(height: 10),
             _buildMealTypeSelector(provider),
             const SizedBox(height: 10),
-            _buildSuggestionModeSelector(provider),
-            const SizedBox(height: 10),
-            _buildDietaryFilters(provider),
-            const SizedBox(height: 10),
-            Text(
-              'Hızlı ara',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.42),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Expanded(child: _buildSuggestionModeSelector(provider)),
+                const SizedBox(width: 8),
+                _buildFilterButton(provider),
+              ],
             ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _smartChips()
-                    .map(
-                      (chip) => Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ActionChip(
-                          label: Text(chip),
-                          onPressed: () {
-                            _searchController.text = chip;
-                            _onSearchChanged(chip);
-                          },
-                          avatar: Icon(
-                            Icons.bolt_rounded,
-                            size: 14,
-                            color: AppColors.primaryLight.withValues(
-                              alpha: 0.75,
-                            ),
-                          ),
-                          backgroundColor: Colors.white.withValues(alpha: 0.05),
-                          labelStyle: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 2,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    )
-                    .toList(),
+            const SizedBox(height: 9),
+            _buildQuickHint(provider),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(DietProvider provider) {
+    final count = _activeFilterCount(provider);
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        _showFilterSheet(provider);
+      },
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: count > 0
+              ? AppColors.primaryLight.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.045),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: count > 0
+                ? AppColors.primaryLight.withValues(alpha: 0.45)
+                : Colors.white.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 15,
+              color: count > 0
+                  ? AppColors.primaryLight
+                  : Colors.white.withValues(alpha: 0.55),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              count > 0 ? 'Filtre $count' : 'Filtre',
+              style: TextStyle(
+                color: count > 0
+                    ? AppColors.primaryLight
+                    : Colors.white.withValues(alpha: 0.62),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildQuickHint(DietProvider provider) {
+    final prefs = provider.nutritionPreferences;
+    final activePrefs = <String>[
+      if (prefs.vegetarian) 'Vejetaryen',
+      if (prefs.vegan) 'Vegan',
+      if (prefs.glutenFree) 'Glutensiz',
+      if (prefs.lactoseFree) 'Laktozsuz',
+    ];
+    final text = activePrefs.isEmpty
+        ? 'Filtreler isteğe bağlı; öneriler hazır gelir.'
+        : 'Aktif: ${activePrefs.join(', ')}';
+
+    return Row(
+      children: [
+        Icon(
+          Icons.info_outline_rounded,
+          size: 13,
+          color: Colors.white.withValues(alpha: 0.32),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.38),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  int _activeFilterCount(DietProvider provider) {
+    final prefs = provider.nutritionPreferences;
+    var count = 0;
+    if (prefs.vegetarian) count += 1;
+    if (prefs.vegan) count += 1;
+    if (prefs.glutenFree) count += 1;
+    if (prefs.lactoseFree) count += 1;
+    return count;
+  }
+
+  void _showFilterSheet(DietProvider provider) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF101419),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 24,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        color: AppColors.primaryLight,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Filtreler ve hızlı arama',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildDietaryFilters(provider),
+                const SizedBox(height: 16),
+                Text(
+                  'Hızlı ara',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _smartChips().map((chip) {
+                    return ActionChip(
+                      label: Text(chip),
+                      onPressed: () {
+                        Navigator.of(sheetContext).pop();
+                        _searchController.text = chip;
+                        _onSearchChanged(chip);
+                      },
+                      avatar: Icon(
+                        Icons.bolt_rounded,
+                        size: 14,
+                        color: AppColors.primaryLight.withValues(alpha: 0.75),
+                      ),
+                      backgroundColor: Colors.white.withValues(alpha: 0.055),
+                      labelStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1764,12 +2046,22 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final provider = Provider.of<DietProvider>(context, listen: false);
     final targets = provider.macroTargets;
     final totals = provider.totals;
-    final remP = (targets.protein - totals.totalProtein).clamp(0.0, double.infinity);
+    final remP = (targets.protein - totals.totalProtein).clamp(
+      0.0,
+      double.infinity,
+    );
     final remC = (targets.carb - totals.totalCarb).clamp(0.0, double.infinity);
     final mode = provider.suggestionMode;
 
     const Map<MealType, List<String>> baseChips = {
-      MealType.breakfast: ['Yumurta', 'Yulaf', 'Peynir', 'Simit', 'Omlet', 'Süt'],
+      MealType.breakfast: [
+        'Yumurta',
+        'Yulaf',
+        'Peynir',
+        'Simit',
+        'Omlet',
+        'Süt',
+      ],
       MealType.lunch: ['Tavuk', 'Salata', 'Çorba', 'Pilav', 'Köfte', 'Balık'],
       MealType.dinner: ['Izgara', 'Sebze', 'Balık', 'Et', 'Çorba', 'Mercimek'],
       MealType.snack: ['Kuruyemiş', 'Meyve', 'Yoğurt', 'Kahve', 'Muz', 'Badem'],
@@ -1779,7 +2071,13 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
 
     // Protein açığı büyükse protein odaklı chip'leri öne al
     if (remP > 30 || mode == SuggestionMode.highProtein) {
-      const proteinFirst = ['Tavuk', 'Ton Balık', 'Yumurta', 'Yoğurt', 'Peynir'];
+      const proteinFirst = [
+        'Tavuk',
+        'Ton Balık',
+        'Yumurta',
+        'Yoğurt',
+        'Peynir',
+      ];
       for (final chip in proteinFirst.reversed) {
         base.remove(chip);
         base.insert(0, chip);
@@ -1811,29 +2109,29 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         label: '🌿 Vejetaryen',
         active: prefs.vegetarian,
         toggle: () => provider.saveNutritionPreferences(
-              prefs.copyWith(vegetarian: !prefs.vegetarian, vegan: false),
-            ),
+          prefs.copyWith(vegetarian: !prefs.vegetarian, vegan: false),
+        ),
       ),
       (
         label: '🌱 Vegan',
         active: prefs.vegan,
         toggle: () => provider.saveNutritionPreferences(
-              prefs.copyWith(vegan: !prefs.vegan, vegetarian: false),
-            ),
+          prefs.copyWith(vegan: !prefs.vegan, vegetarian: false),
+        ),
       ),
       (
         label: '🌾 Glutensiz',
         active: prefs.glutenFree,
         toggle: () => provider.saveNutritionPreferences(
-              prefs.copyWith(glutenFree: !prefs.glutenFree),
-            ),
+          prefs.copyWith(glutenFree: !prefs.glutenFree),
+        ),
       ),
       (
         label: '🥛 Laktozsuz',
         active: prefs.lactoseFree,
         toggle: () => provider.saveNutritionPreferences(
-              prefs.copyWith(lactoseFree: !prefs.lactoseFree),
-            ),
+          prefs.copyWith(lactoseFree: !prefs.lactoseFree),
+        ),
       ),
     ];
 
@@ -1864,7 +2162,10 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: f.active
                           ? AppColors.primaryLight.withValues(alpha: 0.18)
@@ -2231,11 +2532,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
       child: Container(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              Color(0xFF0F1F12),
-              Color(0xFF0A1410),
-              Color(0xFF0D1117),
-            ],
+            colors: [Color(0xFF0F1F12), Color(0xFF0A1410), Color(0xFF0D1117)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -2394,7 +2691,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                               Icon(
                                 Icons.insights_rounded,
                                 size: 10,
-                                color: AppColors.primaryLight.withValues(alpha: 0.7),
+                                color: AppColors.primaryLight.withValues(
+                                  alpha: 0.7,
+                                ),
                               ),
                               const SizedBox(width: 5),
                               Flexible(
@@ -2453,7 +2752,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                             ),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: AppColors.chartGreen.withValues(alpha: 0.25),
+                              color: AppColors.chartGreen.withValues(
+                                alpha: 0.25,
+                              ),
                             ),
                           ),
                           child: Text(
@@ -2572,7 +2873,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           ),
         ),
         SizedBox(
-          height: 320,
+          height: 340,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -2623,8 +2924,8 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 _mealType == MealType.breakfast
                     ? 'Kahvaltı Kombinasyonları'
                     : _mealType == MealType.snack
-                        ? 'Atıştırmalık Kombinasyonları'
-                        : 'Hazır Öğün Kombinasyonları',
+                    ? 'Atıştırmalık Kombinasyonları'
+                    : 'Hazır Öğün Kombinasyonları',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
@@ -2768,7 +3069,10 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 backgroundColor: AppColors.chartBlue.withValues(alpha: 0.18),
                 foregroundColor: AppColors.chartBlue,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -2837,308 +3141,349 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // Score badge + favorite
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        scoreColor.withValues(alpha: 0.28),
-                        scoreColor.withValues(alpha: 0.12),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: scoreColor.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 9,
-                        color: scoreColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _matchLabel(score),
-                        style: TextStyle(
-                          color: scoreColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (suggestion.isFavoriteLike)
+              // Score badge + favorite
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Container(
-                    padding: const EdgeInsets.all(5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.favorite_rounded,
-                      size: 12,
-                      color: AppColors.secondary,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            // Food icon + category
-            Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        scoreColor.withValues(alpha: 0.22),
-                        scoreColor.withValues(alpha: 0.08),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: scoreColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _foodEmoji(food),
-                      style: const TextStyle(fontSize: 22),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        food.category,
-                        style: TextStyle(
-                          color: scoreColor.withValues(alpha: 0.75),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _MealSuggestionHeuristics.prepLabel(food),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // Food name — prominent
-            Text(
-              food.name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                height: 1.2,
-                letterSpacing: -0.3,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            // Macro pills
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                _macroPill(
-                  '${food.kcalPer100g.round()} kcal',
-                  AppColors.secondary,
-                ),
-                _macroPill(
-                  'P ${food.proteinPer100g.round()}g',
-                  AppColors.chartBlue,
-                ),
-                _macroPill(
-                  'K ${food.carbPer100g.round()}g',
-                  AppColors.chartGreen,
-                ),
-              ],
-            ),
-            if (badges.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 7,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: badges.first.color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: badges.first.color.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Text(
-                  badges.first.label,
-                  style: TextStyle(
-                    color: badges.first.color,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            // Reason chip
-            if (suggestion.reasons.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.22),
-                  ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.check_circle_rounded,
-                      color: AppColors.primaryLight,
-                      size: 11,
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Text(
-                        suggestion.reasons.first,
-                        style: TextStyle(
-                          color: AppColors.primaryLight.withValues(alpha: 0.88),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 6),
-            Text(
-              '${suggestion.suggestedPortionG.round()}g · ${(food.kcalPer100g * suggestion.suggestedPortionG / 100).round()} kcal',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 9.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-
-            const Spacer(),
-            // Glow add button
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: double.infinity,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: isQuickAdding
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.success.withValues(alpha: 0.3),
-                          AppColors.success.withValues(alpha: 0.12),
-                        ],
-                      )
-                    : LinearGradient(
+                      gradient: LinearGradient(
                         colors: [
                           scoreColor.withValues(alpha: 0.28),
-                          scoreColor.withValues(alpha: 0.1),
+                          scoreColor.withValues(alpha: 0.12),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: scoreColor.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 9,
+                          color: scoreColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _matchLabel(score),
+                          style: TextStyle(
+                            color: scoreColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (suggestion.isFavoriteLike)
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            size: 12,
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          context.read<DietProvider>().toggleDislikedFood(
+                            food.id,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${food.name} bir daha önerilmeyecek.',
+                              ),
+                              backgroundColor: AppColors.error,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                          _load();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.thumb_down_rounded,
+                            size: 12,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Food icon + category
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          scoreColor.withValues(alpha: 0.22),
+                          scoreColor.withValues(alpha: 0.08),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isQuickAdding
-                      ? AppColors.success.withValues(alpha: 0.5)
-                      : scoreColor.withValues(alpha: 0.45),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isQuickAdding ? AppColors.success : scoreColor)
-                        .withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: scoreColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _foodEmoji(food),
+                        style: const TextStyle(fontSize: 22),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          food.category,
+                          style: TextStyle(
+                            color: scoreColor.withValues(alpha: 0.75),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _MealSuggestionHeuristics.prepLabel(food),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: isQuickAdding
-                      ? null
-                      : () => _quickAdd(suggestion, provider),
-                  borderRadius: BorderRadius.circular(10),
-                  child: Center(
-                    child: isQuickAdding
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                scoreColor,
-                              ),
+              const SizedBox(height: 10),
+              // Food name — prominent
+              Text(
+                food.name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  height: 1.2,
+                  letterSpacing: -0.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
+              // Macro pills
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  _macroPill(
+                    '${food.kcalPer100g.round()} kcal',
+                    AppColors.secondary,
+                  ),
+                  _macroPill(
+                    'P ${food.proteinPer100g.round()}g',
+                    AppColors.chartBlue,
+                  ),
+                  _macroPill(
+                    'K ${food.carbPer100g.round()}g',
+                    AppColors.chartGreen,
+                  ),
+                ],
+              ),
+              if (badges.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: badges.first.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: badges.first.color.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Text(
+                    badges.first.label,
+                    style: TextStyle(
+                      color: badges.first.color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              // Reason chip
+              if (suggestion.reasons.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.primaryLight,
+                        size: 11,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          suggestion.reasons.first,
+                          style: TextStyle(
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.88,
                             ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.add_rounded,
-                                size: 14,
-                                color: scoreColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Hemen ekle',
-                                style: TextStyle(
-                                  color: scoreColor,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 6),
+              Text(
+                '${suggestion.suggestedPortionG.round()}g · ${(food.kcalPer100g * suggestion.suggestedPortionG / 100).round()} kcal',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const Spacer(),
+              // Glow add button
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: double.infinity,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: isQuickAdding
+                      ? LinearGradient(
+                          colors: [
+                            AppColors.success.withValues(alpha: 0.3),
+                            AppColors.success.withValues(alpha: 0.12),
+                          ],
+                        )
+                      : LinearGradient(
+                          colors: [
+                            scoreColor.withValues(alpha: 0.28),
+                            scoreColor.withValues(alpha: 0.1),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isQuickAdding
+                        ? AppColors.success.withValues(alpha: 0.5)
+                        : scoreColor.withValues(alpha: 0.45),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isQuickAdding ? AppColors.success : scoreColor)
+                          .withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isQuickAdding
+                        ? null
+                        : () => _quickAdd(suggestion, provider),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Center(
+                      child: isQuickAdding
+                          ? SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scoreColor,
                                 ),
                               ),
-                            ],
-                          ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_rounded,
+                                  size: 14,
+                                  color: scoreColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Hemen ekle',
+                                  style: TextStyle(
+                                    color: scoreColor,
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -3269,7 +3614,8 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
                                       children: [
                                         Text(
                                           _foodEmoji(food),
@@ -3297,16 +3643,25 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                                         Text(
                                           food.category,
                                           style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.35),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
                                             fontSize: 11,
                                           ),
                                         ),
                                         const SizedBox(width: 6),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: scoreColor.withValues(alpha: 0.14),
-                                            borderRadius: BorderRadius.circular(5),
+                                            color: scoreColor.withValues(
+                                              alpha: 0.14,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              5,
+                                            ),
                                           ),
                                           child: Text(
                                             _matchLabel(score),
@@ -4236,10 +4591,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 1.1,
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.1),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.12),

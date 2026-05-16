@@ -63,8 +63,8 @@ class SettingsHelpScreen extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'iPhone: Ayarlar → Apple ID → Abonelikler → FitMentor → İptal Et.\n'
-                  'Android: Google Play → Abonelikler → FitMentor → İptal Et.',
+                  'iPhone: Ayarlar → Apple ID → Abonelikler → PusulaFit → İptal Et.\n'
+                  'Android: Google Play → Abonelikler → PusulaFit → İptal Et.',
                 ),
               ),
             ],
@@ -99,7 +99,7 @@ class SettingsHelpScreen extends StatelessWidget {
             title: const Text('E-posta Gönder'),
             subtitle: Text(_kSupportEmail),
             onTap: () => launchUrl(
-              Uri.parse('mailto:$_kSupportEmail?subject=FitMentor%20Destek'),
+              Uri.parse('mailto:$_kSupportEmail?subject=PusulaFit%20Destek'),
               mode: LaunchMode.externalApplication,
             ),
           ),

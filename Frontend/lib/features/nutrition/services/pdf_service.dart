@@ -148,7 +148,7 @@ class PdfService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'FitMentor Tarafından Oluşturuldu',
+                    'PusulaFit Tarafından Oluşturuldu',
                     style: pw.TextStyle(font: fontRegular, fontSize: 10, color: PdfColors.grey600),
                   ),
                   pw.Text(

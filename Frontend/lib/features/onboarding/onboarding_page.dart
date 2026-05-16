@@ -31,9 +31,10 @@ class _SwipeHintState extends State<_SwipeHint>
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: false);
 
-    _slide = Tween<double>(begin: 0, end: 18).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _slide = Tween<double>(
+      begin: 0,
+      end: 18,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
     _fade = TweenSequence<double>([
       TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 50),
@@ -207,8 +208,8 @@ class _OnboardingPageState extends State<OnboardingPage>
       emoji: '🚀',
       title: 'Her Şey Hazır!',
       subtitle: widget.isNewUserTour
-          ? 'Şimdi birkaç küçük adımda profilini tamamlayıp FitMentor\'u sana göre kişiselleştireceğiz.'
-          : 'Profilini oluştur, hedefini seç ve FitMentor\'u kendi ritmine göre kişiselleştir. Sağlıklı yaşam yolculuğun başlıyor!',
+          ? 'Şimdi birkaç küçük adımda profilini tamamlayıp PusulaFit\'i sana göre kişiselleştireceğiz.'
+          : 'Profilini oluştur, hedefini seç ve PusulaFit\'i kendi ritmine göre kişiselleştir. Sağlıklı yaşam yolculuğun başlıyor!',
       features: const [
         _FeatureItem(icon: Icons.person_rounded, label: 'Kişisel profil kur'),
         _FeatureItem(icon: Icons.flag_rounded, label: 'Hedef belirle'),

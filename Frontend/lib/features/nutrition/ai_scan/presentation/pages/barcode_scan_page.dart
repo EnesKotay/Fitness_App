@@ -36,21 +36,24 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
       title: 'Barkod Nasıl Taranır?',
       description:
           'Ürünün arkasındaki barkodu kamera çerçevesine getir ve sabit tut. Barkod tanınınca besin değerleri otomatik gelir — öğünü seç ve kaydet.',
-      tip: 'Işık az ise flaş butonuna dokun. Çizgili barkodlar net görününce en iyi okumayı sağlar.',
+      tip:
+          'Işık az ise flaş butonuna dokun. Çizgili barkodlar net görününce en iyi okumayı sağlar.',
     ),
     GuideStep(
       emoji: '🔍',
       title: 'Barkod Okumuyorsa?',
       description:
           'Eğer barkod okunamazsa:\n• Üstteki arama kutusuna ürün adını yaz\n• Geri dön → Etiket OCR ile besin tablosunu tara\n• Öğün ekle → Manuel giriş seçeneği',
-      tip: 'Türk marka ve zincir market ürünlerinin büyük çoğunluğu veritabanında mevcut.',
+      tip:
+          'Türk marka ve zincir market ürünlerinin büyük çoğunluğu veritabanında mevcut.',
     ),
     GuideStep(
       emoji: '✅',
       title: 'Porsiyon Seç ve Kaydet',
       description:
           'Besin değerleri geldikten sonra porsiyon miktarını gir (gram, adet veya ml), hangi öğüne ait olduğunu seç (Kahvaltı, Öğle vb.) ve "Ekle" butonuna dokun.',
-      tip: 'Aynı ürünü tekrar taradığında sadece miktarı değiştirip anında ekleyebilirsin.',
+      tip:
+          'Aynı ürünü tekrar taradığında sadece miktarı değiştirip anında ekleyebilirsin.',
     ),
   ];
 
@@ -127,7 +130,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
       final food = await dietProvider.getFoodById(foodId);
       if (food != null && mounted) {
         setState(() => _isLookingUp = false);
-        _showFoundDialog(food);
+        _showFoundDialog(food, barcode);
         return;
       }
     }
@@ -138,7 +141,7 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
     setState(() => _isLookingUp = false);
 
     if (directFood != null) {
-      _showFoundDialog(directFood);
+      _showFoundDialog(directFood, barcode);
       return;
     }
 
@@ -164,22 +167,40 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
     }
   }
 
-  void _showFoundDialog(FoodItem food) {
+  void _showFoundDialog(FoodItem food, String barcode) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E2C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Ürün Bulundu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Ürün Bulundu',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(food.name, style: const TextStyle(color: Colors.white, fontSize: 16)),
+            Text(
+              food.name,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
             const SizedBox(height: 4),
             Text(
               '${food.nutrients.kcal.round()} kcal · ${food.nutrients.protein.round()}g protein',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 13),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Dış veritabanı hatalıysa adı düzelt. Bir sonraki okutmanda bu barkod düzelttiğin ürünle açılır.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 12,
+                height: 1.25,
+              ),
             ),
           ],
         ),
@@ -189,7 +210,17 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
               Navigator.pop(ctx);
               _controller.start();
             },
-            child: Text('İptal', style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+            child: Text(
+              'İptal',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showRenameFoodDialog(food, barcode);
+            },
+            child: const Text('Adı Düzelt'),
           ),
           FilledButton(
             onPressed: () {
@@ -201,6 +232,92 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
         ],
       ),
     );
+  }
+
+  void _showRenameFoodDialog(FoodItem food, String barcode) {
+    final controller = TextEditingController(text: food.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E2C),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Ürün Adını Düzelt',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Örn. Çerezza Cips',
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35)),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.06),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _controller.start();
+            },
+            child: Text(
+              'Vazgeç',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final correctedName = controller.text.trim();
+              if (correctedName.length < 2) return;
+              Navigator.pop(ctx);
+              await _saveCorrectedFoodAndNavigate(food, barcode, correctedName);
+            },
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    ).whenComplete(controller.dispose);
+  }
+
+  Future<void> _saveCorrectedFoodAndNavigate(
+    FoodItem food,
+    String barcode,
+    String correctedName,
+  ) async {
+    final correctedFood = FoodItem(
+      id: 'barcode_$barcode',
+      name: correctedName,
+      category: food.category,
+      basis: food.basis,
+      nutrients: food.nutrients,
+      servings: food.servings,
+      aliases: [food.name, ...food.aliases],
+      tags: const ['barcode-verified', 'user-corrected'],
+      brand: food.brand,
+      barcode: barcode,
+      imageUrl: food.imageUrl,
+    );
+
+    try {
+      await context.read<DietProvider>().addCustomFood(correctedFood);
+      await _repo.saveMapping(barcode, correctedFood.id);
+      if (!mounted) return;
+      _navigateToPortionAdd(correctedFood);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Düzeltme kaydedilemedi: $e')));
+      await _controller.start();
+    }
   }
 
   void _navigateToPortionAdd(FoodItem food) {
@@ -292,7 +409,11 @@ class _BarcodeScanPageState extends State<BarcodeScanPage> {
                     SizedBox(height: 16),
                     Text(
                       'Ürün aranıyor...',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),

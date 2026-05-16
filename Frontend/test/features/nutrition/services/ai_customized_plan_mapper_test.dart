@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fitness/features/nutrition/domain/entities/meal_type.dart';
-import 'package:fitness/features/nutrition/models/nutrition_ai_response.dart';
-import 'package:fitness/features/nutrition/services/ai_customized_plan_mapper.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/meal_type.dart';
+import 'package:pusulafit/features/nutrition/models/nutrition_ai_response.dart';
+import 'package:pusulafit/features/nutrition/services/ai_customized_plan_mapper.dart';
 
 void main() {
   group('AiCustomizedPlanMapper', () {

@@ -77,7 +77,10 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
     final code = barcode.trim();
     if (code.isEmpty) return null;
     final cached = await _hive.getRemoteCachedByBarcode(code);
-    if (cached != null) return cached;
+    if (cached != null &&
+        !_looksSuspiciousProductName(cached.name, cached.brand)) {
+      return cached;
+    }
 
     try {
       final response = await _dio.get('$_productUrl/$code');
@@ -92,33 +95,29 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
       if (item != null) await _hive.saveRemoteCacheByBarcode(code, item);
       return item;
     } catch (_) {
-      return null;
+      return cached != null ? _sanitizeCachedItem(cached) : null;
     }
   }
 
   static FoodItem? _productToFoodItem(Map<String, dynamic> p) {
     final code = p['code']?.toString();
-    final name = p['product_name']?.toString().trim();
-    if (code == null || code.isEmpty || name == null || name.isEmpty) {
+    final brand = p['brands']?.toString().split(',').first.trim();
+    final name = _bestProductName(p, brand);
+    if (code == null || code.isEmpty || name == null) {
       return null;
     }
     final nut = p['nutriments'] as Map<String, dynamic>? ?? {};
-    final brand = p['brands']?.toString().split(',').first.trim();
-    num? kcal = nut['energy-kcal_100g'] ?? nut['energy_100g'];
-    if (kcal == null && nut['energy-kcal_100g'] == null) {
-      final kj = nut['energy-kj_100g'] ?? nut['energy_100g'];
-      if (kj != null) kcal = (kj as num) / 4.184;
-    }
-    final protein = (nut['proteins_100g'] as num?)?.toDouble() ?? 0.0;
-    final carb = (nut['carbohydrates_100g'] as num?)?.toDouble() ?? 0.0;
-    final fat = (nut['fat_100g'] as num?)?.toDouble() ?? 0.0;
+    final kcal = _kcalPer100g(nut);
+    final protein = _asDouble(nut['proteins_100g']) ?? 0.0;
+    final carb = _asDouble(nut['carbohydrates_100g']) ?? 0.0;
+    final fat = _asDouble(nut['fat_100g']) ?? 0.0;
     return FoodItem(
       id: 'off_$code',
       name: name,
       category: 'Paketli Ürün (Etiket)',
       basis: const FoodBasis(amount: 100, unit: 'g'),
       nutrients: Nutrients(
-        kcal: kcal != null ? kcal.toDouble() : 0,
+        kcal: kcal ?? 0,
         protein: protein,
         carb: carb,
         fat: fat,
@@ -126,5 +125,156 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
       tags: const ['verified-source', 'etiket-verisi', 'open-food-facts'],
       brand: brand != null && brand.isNotEmpty ? brand : null,
     );
+  }
+
+  static FoodItem _sanitizeCachedItem(FoodItem item) {
+    if (!_looksSuspiciousProductName(item.name, item.brand)) return item;
+
+    return FoodItem(
+      id: item.id,
+      name: _fallbackProductName(item.brand, item.category),
+      category: item.category,
+      basis: item.basis,
+      nutrients: item.nutrients,
+      servings: item.servings,
+      aliases: item.aliases,
+      tags: item.tags,
+      brand: item.brand,
+      barcode: item.barcode,
+      imageUrl: item.imageUrl,
+    );
+  }
+
+  static String? _bestProductName(Map<String, dynamic> p, String? brand) {
+    final candidates = [
+      p['product_name_tr'],
+      p['generic_name_tr'],
+      p['product_name_en'],
+      p['generic_name_en'],
+      p['product_name'],
+      p['generic_name'],
+      p['abbreviated_product_name'],
+    ];
+
+    for (final candidate in candidates) {
+      final name = candidate?.toString().trim();
+      if (name == null || name.isEmpty) continue;
+      if (_looksSuspiciousProductName(name, brand)) continue;
+      return _withBrandIfUseful(name, brand);
+    }
+
+    return _fallbackProductName(brand, p['categories']?.toString());
+  }
+
+  static String _withBrandIfUseful(String name, String? brand) {
+    final cleanBrand = brand?.trim();
+    if (cleanBrand == null || cleanBrand.isEmpty) return name;
+    if (name.toLowerCase().contains(cleanBrand.toLowerCase())) return name;
+    return '$cleanBrand $name';
+  }
+
+  static String _fallbackProductName(String? brand, String? category) {
+    final cleanBrand = brand?.trim();
+    final categoryLabel = _categoryLabel(category);
+    if (cleanBrand != null && cleanBrand.isNotEmpty) {
+      return '$cleanBrand $categoryLabel';
+    }
+    return categoryLabel;
+  }
+
+  static String _categoryLabel(String? category) {
+    final normalized = category?.toLowerCase() ?? '';
+    if (normalized.contains('crisps') ||
+        normalized.contains('chips') ||
+        normalized.contains('cips')) {
+      return 'Cips';
+    }
+    if (normalized.contains('chocolate') || normalized.contains('çikolata')) {
+      return 'Çikolata';
+    }
+    if (normalized.contains('biscuit') || normalized.contains('bisküvi')) {
+      return 'Bisküvi';
+    }
+    if (normalized.contains('snack') || normalized.contains('atıştırmalık')) {
+      return 'Atıştırmalık';
+    }
+    return 'Paketli Ürün';
+  }
+
+  static bool _looksSuspiciousProductName(String name, String? brand) {
+    final normalized = name.trim().toLowerCase();
+    if (normalized.length < 3) return true;
+    if (normalized == 'unknown' ||
+        normalized == 'undefined' ||
+        normalized == 'bilinmeyen ürün') {
+      return true;
+    }
+
+    final cleanBrand = brand?.trim().toLowerCase();
+    if (cleanBrand != null &&
+        cleanBrand.isNotEmpty &&
+        normalized.contains(cleanBrand)) {
+      return false;
+    }
+    if (_containsProductHint(normalized)) return false;
+
+    final words = normalized
+        .split(RegExp(r'\s+'))
+        .where((word) => word.length > 1)
+        .toList();
+    final looksLikePersonName =
+        words.length >= 2 &&
+        words.length <= 3 &&
+        words.every((word) => RegExp(r'^[a-zçğıöşü]+$').hasMatch(word));
+    return looksLikePersonName;
+  }
+
+  static bool _containsProductHint(String value) {
+    const hints = [
+      'cips',
+      'chips',
+      'crisps',
+      'patates',
+      'mısır',
+      'baharat',
+      'peynir',
+      'ketçap',
+      'yoğurt',
+      'süt',
+      'çikolata',
+      'bisküvi',
+      'kraker',
+      'gofret',
+      'kuruyemiş',
+      'fıstık',
+      'fındık',
+      'bar',
+      'protein',
+      'içecek',
+      'meyve',
+      'aromalı',
+      'acılı',
+      'sade',
+      'tuzlu',
+      'light',
+    ];
+    return hints.any(value.contains);
+  }
+
+  static double? _kcalPer100g(Map<String, dynamic> nutriments) {
+    final explicitKcal = _asDouble(nutriments['energy-kcal_100g']);
+    if (explicitKcal != null) return explicitKcal;
+
+    final kj =
+        _asDouble(nutriments['energy-kj_100g']) ??
+        _asDouble(nutriments['energy_100g']);
+    if (kj == null) return null;
+    return kj / 4.184;
+  }
+
+  static double? _asDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.replaceAll(',', '.'));
+    return null;
   }
 }

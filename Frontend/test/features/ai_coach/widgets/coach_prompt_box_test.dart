@@ -1,4 +1,4 @@
-import 'package:fitness/features/ai_coach/widgets/coach_prompt_box.dart';
+import 'package:pusulafit/features/ai_coach/widgets/coach_prompt_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

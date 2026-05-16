@@ -404,6 +404,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   context,
                                 ).pushNamed('/settings-nutrition'),
                               ),
+                              _settingsTile(
+                                icon: Icons.fitness_center_rounded,
+                                accent: const Color(0xFFFF8A65),
+                                title: 'Antrenman Tercihleri',
+                                subtitle: 'Ortam ve ekipman ayarları',
+                                onTap: () =>
+                                    _showWorkoutSettingsSheet(context),
+                              ),
 
                               _settingsTile(
                                 icon: Icons.help_outline_rounded,
@@ -1876,6 +1884,196 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ],
                 ),
+        ),
+      ),
+    );
+  }
+
+  void _showWorkoutSettingsSheet(BuildContext ctx) {
+    String location = StorageHelper.getWorkoutLocation();
+    String equipment = StorageHelper.getEquipmentType();
+
+    const accent = Color(0xFFFF8A65);
+
+    final locationOptions = [
+      (value: 'home', emoji: '🏠', label: 'Evde', hint: 'Minimal veya ekipmansız'),
+      (value: 'gym', emoji: '🏋️', label: 'Spor Salonunda', hint: 'Tam gym erişimi'),
+    ];
+    final equipmentOptions = [
+      (value: 'bodyweight', emoji: '🤸', label: 'Sadece Vücut Ağırlığı', hint: 'Ekipman gerektirmez'),
+      (value: 'dumbbells', emoji: '🏋️', label: 'Dambıl / Kettlebell', hint: 'Hafif ekipman'),
+      (value: 'full_gym', emoji: '💪', label: 'Tam Spor Salonu', hint: 'Barbell ve makinalar'),
+    ];
+
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (_, setState) => Container(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
+          ),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F1117),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.fitness_center_rounded, color: Color(0xFFFF8A65), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Antrenman Tercihleri',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Workout Location
+              Text('Nerede spor yapıyorsun?',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: locationOptions.map((opt) {
+                  final selected = location == opt.value;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () => setState(() => location = opt.value),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: selected ? accent.withValues(alpha: 0.15) : const Color(0xFF1A1D24),
+                            border: Border.all(
+                              color: selected ? accent.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08),
+                              width: selected ? 1.5 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(opt.emoji, style: const TextStyle(fontSize: 26)),
+                              const SizedBox(height: 6),
+                              Text(opt.label,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: selected ? Colors.white : Colors.white60,
+                                  fontSize: 13, fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(opt.hint,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 22),
+
+              // Equipment
+              Text('Hangi ekipmanın var?',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 10),
+              ...equipmentOptions.map((opt) {
+                final selected = equipment == opt.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () => setState(() => equipment = opt.value),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: selected ? accent.withValues(alpha: 0.12) : const Color(0xFF1A1D24),
+                        border: Border.all(
+                          color: selected ? accent.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.07),
+                          width: selected ? 1.5 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(opt.emoji, style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(opt.label,
+                                  style: TextStyle(
+                                    color: selected ? Colors.white : Colors.white70,
+                                    fontSize: 14, fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(opt.hint,
+                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (selected)
+                            Icon(Icons.check_circle_rounded, color: accent, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
+
+              // Save button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () async {
+                    await StorageHelper.saveWorkoutLocation(location);
+                    await StorageHelper.saveEquipmentType(equipment);
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                  },
+                  child: const Text('Kaydet', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

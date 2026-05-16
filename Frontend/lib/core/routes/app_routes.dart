@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/ai_coach/models/ai_coach_models.dart';
 import '../../features/ai_coach/screens/ai_coach_screen.dart';
+import '../../features/ai_coach/screens/ai_memory_screen.dart';
 import '../../features/ai_coach/screens/weekly_plan_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
@@ -24,6 +25,7 @@ class AppRoutes {
   AppRoutes._();
 
   static const aiCoach = '/ai-coach';
+  static const aiMemory = '/ai-memory';
   static const weeklyPlan = '/weekly-plan';
   static const dailyTasks = '/daily-tasks';
   static const home = '/home';
@@ -81,6 +83,7 @@ class AppRoutes {
         );
         return _guard(context, AiCoachScreen(initialSummary: summary));
       },
+      aiMemory: (context) => _guard(context, const AiMemoryScreen()),
       weeklyPlan: (context) => _guard(context, const WeeklyPlanScreen()),
       dailyTasks: (context) => _guard(context, const DailyTasksScreen()),
       '/profile': (context) => _guard(context, const ProfileScreen()),

@@ -127,7 +127,7 @@ class ScanOptionsSheet extends StatelessWidget {
                 icon: Icons.camera_alt_rounded,
                 title: 'Besin Etiketi Tara',
                 subtitle: isPremiumUser
-                    ? 'Premium aktif, etiketi anında okut'
+                    ? 'Etiketi anında okut'
                     : 'Kalori cetvelini okut',
                 color: const Color(0xFFBB86FC),
                 isPremium: true,
@@ -141,10 +141,10 @@ class ScanOptionsSheet extends StatelessWidget {
               _buildOption(
                 context,
                 icon: Icons.restaurant_rounded,
-                title: 'Yemek Fotoğrafı Analizi',
+                title: 'Yemek Analizi',
                 subtitle: isPremiumUser
-                    ? 'Premium aktif, AI tahminini kullan'
-                    : 'Yemeğin fotoğrafını çek, AI tahmin etsin',
+                    ? 'Fotoğraftan porsiyon tahmini al'
+                    : 'Yemeğin fotoğrafını çek, tahmin al',
                 isPremium: true,
                 isUnlocked: isPremiumUser,
                 color: const Color(0xFFFF8A65),

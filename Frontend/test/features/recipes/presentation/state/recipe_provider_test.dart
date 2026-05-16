@@ -1,5 +1,5 @@
-import 'package:fitness/features/recipes/domain/entities/recipe.dart';
-import 'package:fitness/features/recipes/presentation/state/recipe_provider.dart';
+import 'package:pusulafit/features/recipes/domain/entities/recipe.dart';
+import 'package:pusulafit/features/recipes/presentation/state/recipe_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -101,18 +101,21 @@ void main() {
     expect(provider.filtered.map((recipe) => recipe.id), ['snack']);
   });
 
-  test('typed filters use recipe attributes instead of raw string contains', () {
-    provider.seedStateForTesting(
-      recipes: [glutenFreeBowl, snackRecipe, heavySalad],
-      filter: const RecipeFilter(
-        maxMinutes: 20,
-        minProtein: 20,
-        glutenFreeOnly: true,
-      ),
-    );
+  test(
+    'typed filters use recipe attributes instead of raw string contains',
+    () {
+      provider.seedStateForTesting(
+        recipes: [glutenFreeBowl, snackRecipe, heavySalad],
+        filter: const RecipeFilter(
+          maxMinutes: 20,
+          minProtein: 20,
+          glutenFreeOnly: true,
+        ),
+      );
 
-    expect(provider.filtered.map((recipe) => recipe.id), ['bowl']);
-  });
+      expect(provider.filtered.map((recipe) => recipe.id), ['bowl']);
+    },
+  );
 
   test('recommendedFor prioritizes history and remaining calories', () {
     provider.seedStateForTesting(
@@ -122,10 +125,7 @@ void main() {
       cookCounts: const {'bowl': 2},
     );
 
-    final recommended = provider.recommendedFor(
-      remainingKcal: 500,
-      limit: 2,
-    );
+    final recommended = provider.recommendedFor(remainingKcal: 500, limit: 2);
 
     expect(recommended.first.id, 'bowl');
     expect(recommended.map((recipe) => recipe.id), isNot(contains('salad')));

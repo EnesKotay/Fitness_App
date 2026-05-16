@@ -120,6 +120,37 @@ class AiCoachService {
     }
   }
 
+  /// Fire-and-forget — never throws, never blocks the UI.
+  Future<void> sendFeedback({
+    required String aiResponse,
+    required bool isPositive,
+    String? taskMode,
+    String? personality,
+  }) async {
+    try {
+      final token = StorageHelper.getToken();
+      if (token == null || token.isEmpty) return;
+      await _apiClient.post(
+        '${ApiConstants.apiPrefix}/ai/feedback',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          sendTimeout: const Duration(seconds: 8),
+          receiveTimeout: const Duration(seconds: 8),
+        ),
+        data: {
+          'aiResponse': aiResponse.length > 800
+              ? aiResponse.substring(0, 800)
+              : aiResponse,
+          'reaction': isPositive ? 'POSITIVE' : 'NEGATIVE',
+          if (taskMode != null) 'taskMode': taskMode,
+          if (personality != null) 'personality': personality,
+        },
+      );
+    } catch (_) {
+      // Non-critical — silently ignore all errors
+    }
+  }
+
   int? _extractRetryAfterSeconds(dynamic data) {
     if (data is! Map) {
       return null;

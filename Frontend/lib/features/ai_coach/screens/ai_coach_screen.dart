@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,18 +16,20 @@ import '../../nutrition/domain/entities/user_profile.dart';
 import '../controllers/ai_coach_controller.dart';
 import '../models/ai_coach_models.dart';
 import '../services/ai_coach_usage_service.dart';
+import '../services/ai_coach_sync_service.dart';
 import '../../tasks/controllers/daily_tasks_controller.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/ai_coach_dashboard.dart';
+import 'chat_history_screen.dart';
 import '../../../core/services/notification_service.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
-import '../../workout/providers/workout_provider.dart';
-import '../../weight/presentation/providers/weight_provider.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../auth/screens/legal_screen.dart';
 import '../../../core/services/page_guide_service.dart';
 import '../../../core/widgets/page_guide_overlay.dart';
 import '../../../core/widgets/page_guide_button.dart';
+
+part 'ai_coach_screen_components.dart';
 
 class AiCoachScreen extends StatelessWidget {
   const AiCoachScreen({super.key, this.initialSummary});
@@ -48,17 +52,21 @@ class AiCoachScreenBody extends StatefulWidget {
   State<AiCoachScreenBody> createState() => _AiCoachScreenBodyState();
 }
 
-class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
+class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
+    with WidgetsBindingObserver {
   static const Color _surface = Color(0xFF101826);
   static const Color _brandBlue = Color(0xFF73D4FF);
   static const Color _brandGold = Color(0xFFEBC374);
   final TextEditingController _textController = TextEditingController();
+  final FocusNode _inputFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   final AiCoachUsageService _usageService = AiCoachUsageService();
   late ConfettiController _confettiController;
   bool _isPremium = false;
   int _remainingFreePrompts = AiCoachUsageService.freeDailyPromptLimit;
   AiCoachController? _aiController;
+  bool _hasText = false;
+  bool _showScrollToBottom = false;
 
   static const List<GuideStep> _guideSteps = [
     GuideStep(
@@ -67,7 +75,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       description:
           'Bu ekran senin 7/24 hizmetindeki kişisel fitness ve beslenme koçundur.\n\n'
           'Sadece genel geçer bilgiler değil, doğrudan senin mevcut kilona, hedefine ve gün içindeki kalori verilerine bakarak sana özel tavsiyeler verir.',
-      tip: 'AI asistanın Türkçe dilinde uzmandır, cümleleri tam kurmasan bile ne demek istediğini anlar.',
+      tip:
+          'AI asistanın Türkçe dilinde uzmandır, cümleleri tam kurmasan bile ne demek istediğini anlar.',
     ),
     GuideStep(
       emoji: '💬',
@@ -78,7 +87,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           '• Yemek Planı: "Kalan 500 kalorim için bol proteinli bir akşam yemeği öner"\n'
           '• Bilgi & Sorular: "Kreatin ne zaman kullanılmalı?"\n'
           '• Psikolojik Destek: "Bugün antrenmana gitmeye üşeniyorum, beni motive et"',
-      tip: 'Eğer bir antrenman programı veya tarif istersen, AI bunu senin için okunaklı liste halinde sunar.',
+      tip:
+          'Eğer bir antrenman programı veya tarif istersen, AI bunu senin için okunaklı liste halinde sunar.',
     ),
     GuideStep(
       emoji: '📊',
@@ -86,7 +96,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       description:
           'AI Koç, uygulamanın geri kalanıyla bağlantılıdır.\n\n'
           '"Bugün nasılım?" veya "Diyetime uyuyor muyum?" diye sorduğunda o gün yediğin kalorilere, attığın adımlara ve su tüketimine bakar ve sana durum değerlendirmesi yapar.',
-      tip: 'Gece uyumadan önce "Bana günümün özetini yap" diyerek gidişatını kontrol edebilirsin.',
+      tip:
+          'Gece uyumadan önce "Bana günümün özetini yap" diyerek gidişatını kontrol edebilirsin.',
     ),
     GuideStep(
       emoji: '📷',
@@ -94,7 +105,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       description:
           'Yazı kutusunun yanındaki artı/kamera (➕) ikonuna dokunarak yemeğinin fotoğrafını gönderebilirsin.\n\n'
           'AI görüntüyü analiz eder, tabağındaki yiyecekleri tespit eder ve sana tahmini kalori ile protein, karb, yağ değerlerini söyler.',
-      tip: 'Dışarıda yemek yerken porsiyonu bilemediğinde fotoğraf çekip sormak hayat kurtarır.',
+      tip:
+          'Dışarıda yemek yerken porsiyonu bilemediğinde fotoğraf çekip sormak hayat kurtarır.',
     ),
     GuideStep(
       emoji: '🔁',
@@ -102,7 +114,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       description:
           'AI ile arandaki sohbet devamlıdır. Önceki dediklerini unutmaz.\n\n'
           'Örneğin sana bir yemek planı verdiğinde; "Bu plandaki tavuğu çıkarıp yerine balık koy" dersen, önceki planı anlar ve sadece istediğin kısmı güncelleyerek yeniden sunar.',
-      tip: 'Sohbet geçmişin kaydedilir. Ücretsiz sürümde mesaj hakkın sınırlıdır (tepe noktasında gösterilir).',
+      tip:
+          'Sohbet geçmişin kaydedilir. Ücretsiz sürümde mesaj hakkın sınırlıdır (tepe noktasında gösterilir).',
     ),
   ];
 
@@ -118,8 +131,26 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   }
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Keyboard açılınca en alta scroll
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final bottom = MediaQuery.viewInsetsOf(context).bottom;
+      if (bottom > 100) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
     );
@@ -128,17 +159,40 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       if (mounted) {
         _aiController = context.read<AiCoachController>();
         _aiController!.addListener(_onAiControllerUpdate);
-        // Restore previous session messages
         await _aiController!.restoreSession();
+        // Proaktif bildirimleri arka planda çek — badge otomatik güncellenir
+        if (mounted) {
+          context.read<NotificationService>().fetchNotifications();
+        }
       }
       await _checkFirstVisitGuide();
+    });
+
+    _textController.addListener(() {
+      final hasText = _textController.text.trim().isNotEmpty;
+      final len = _textController.text.length;
+      if (hasText != _hasText || len > 80) {
+        setState(() => _hasText = hasText);
+      }
+    });
+
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      final show =
+          _scrollController.offset <
+          _scrollController.position.maxScrollExtent - 250;
+      if (show != _showScrollToBottom) {
+        setState(() => _showScrollToBottom = show);
+      }
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _aiController?.removeListener(_onAiControllerUpdate);
     _textController.dispose();
+    _inputFocusNode.dispose();
     _scrollController.dispose();
     _confettiController.dispose();
     super.dispose();
@@ -201,104 +255,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
   }
 
   Future<void> _syncUserData() async {
-    if (!mounted) return;
-
-    final controller = context.read<AiCoachController>();
-    final diet = context.read<DietProvider>();
-    final workout = context.read<WorkoutProvider>();
-    final weight = context.read<WeightProvider>();
-
-    // 1. Current Day Data
-    final calories = diet.totals.totalKcal.round();
-    final todayWorkouts = workout.workoutsForSelectedDate;
-    final workoutMinutes = todayWorkouts.fold<int>(
-      0,
-      (sum, w) => sum + (w.durationMinutes ?? 0),
-    );
-    final highlights = todayWorkouts.map((w) => w.name).take(5).toList();
-
-    // 2. Macros
-    final proteinGrams = diet.totals.totalProtein > 0
-        ? diet.totals.totalProtein.round()
-        : null;
-    final carbsGrams = diet.totals.totalCarb > 0
-        ? diet.totals.totalCarb.round()
-        : null;
-    final fatGrams = diet.totals.totalFat > 0
-        ? diet.totals.totalFat.round()
-        : null;
-
-    // 3. Meal names eaten today
-    final mealNames = diet.entries.map((e) => e.foodName).take(6).toList();
-
-    // 4. User profile demographics
-    final profile = diet.profile;
-    final userAge = profile?.age;
-    final userHeightCm = profile?.height;
-    final userGender = profile?.gender.name;
-    final activityLevel = profile?.activityLevel.name;
-    final tdee = profile?.tdee.round();
-
-    // 5. Weight trend
-    final weeklyWeightChangeKg = weight.entries.isNotEmpty
-        ? weight.weeklyChange
-        : null;
-    final weightStreak = weight.currentStreak > 0 ? weight.currentStreak : null;
-
-    // 6. Phase 8: Historical Context (Last 7 Days)
-    int? avgCalories;
-    double? avgWater;
-
-    try {
-      final logs = await diet.getRecentDaysLogs(7);
-      if (!mounted) return;
-      if (logs.isNotEmpty) {
-        final totalKcal = logs.fold<double>(0, (sum, l) => sum + l.totalKcal);
-        final totalWater = logs.fold<double>(
-          0,
-          (sum, l) => sum + (l.totalKcal > 0 ? 2.0 : 0.0),
-        );
-        avgCalories = (totalKcal / logs.length).round();
-        avgWater = totalWater / logs.length;
-      }
-    } catch (e) {
-      debugPrint('Error calculating averages for AI Coach: $e');
-    }
-
-    controller.setDailySummary(
-      DailySummary(
-        steps: null, // app does not track steps
-        calories: calories,
-        waterLiters: diet.waterLiters,
-        sleepHours: null, // app does not track sleep
-        workouts: todayWorkouts.length,
-        workoutMinutes: workoutMinutes,
-        workoutHighlights: highlights,
-        avgCaloriesLast7Days: avgCalories,
-        avgWaterLast7Days: avgWater,
-        avgStepsLast7Days: null, // app does not track steps
-        targetCalories: diet.dailyTargetKcal?.round(),
-        currentWeightKg: diet.profile?.weight,
-        targetWeightKg: diet.profile?.targetWeight,
-        bmi: diet.bmi > 0 ? diet.bmi : null,
-        proteinGrams: proteinGrams,
-        carbsGrams: carbsGrams,
-        fatGrams: fatGrams,
-        mealNames: mealNames,
-        weeklyWeightChangeKg: weeklyWeightChangeKg,
-        weightStreak: weightStreak,
-        userAge: userAge,
-        userHeightCm: userHeightCm,
-        userGender: userGender,
-        activityLevel: activityLevel,
-        tdee: tdee,
-      ),
-    );
-
-    // Sync goal from profile
-    if (diet.profile != null) {
-      controller.setGoal(diet.profile!.goal);
-    }
+    await AiCoachSyncService.syncUserData(context);
   }
 
   void _showFreeLimitSheet() {
@@ -531,7 +488,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       if (diff > 150) {
         parts.add('Bugün kalori hedefinin yaklaşık $diff kcal altındasın.');
       } else if (diff < -150) {
-        parts.add('Bugün hedefini yaklaşık ${diff.abs()} kcal aşmış görünüyorsun.');
+        parts.add(
+          'Bugün hedefini yaklaşık ${diff.abs()} kcal aşmış görünüyorsun.',
+        );
       } else {
         parts.add('Bugün kalori hedefine oldukça yakınsın.');
       }
@@ -565,18 +524,24 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     if (s.targetCalories != null && s.calories > 0) {
       final diff = s.targetCalories! - s.calories;
       if (diff > 150) {
-        claudeQuote = '«Kalori açığın güzel ama kas kaybını önlemek için şu an ${diff} kalorilik yüksek proteinli şu öğünü eklemelisin...»';
+        claudeQuote =
+            '«Kalori açığın güzel ama kas kaybını önlemek için şu an $diff kalorilik yüksek proteinli şu öğünü eklemelisin...»';
       } else if (diff < -150) {
-        claudeQuote = '«Hedefi biraz aştık. Yarınki kardiyoyu 15 dk uzatıp ilk öğünde karbonhidratı kısarak bunu hızla dengeleyelim...»';
+        claudeQuote =
+            '«Hedefi biraz aştık. Yarınki kardiyoyu 15 dk uzatıp ilk öğünde karbonhidratı kısarak bunu hızla dengeleyelim...»';
       } else {
-        claudeQuote = '«Tam hedeftesin. Yarın bu dengeyi korumak için sana şu 3 öğünlük makro planını hazırladım...»';
+        claudeQuote =
+            '«Tam hedeftesin. Yarın bu dengeyi korumak için sana şu 3 öğünlük makro planını hazırladım...»';
       }
     } else if (s.workouts > 0) {
-      claudeQuote = '«Bugünkü idman yüküne göre yarınki dinlenme stratejin böyle olmalı. Toparlanmayı hızlandıracak rutinin şudur...»';
+      claudeQuote =
+          '«Bugünkü idman yüküne göre yarınki dinlenme stratejin böyle olmalı. Toparlanmayı hızlandıracak rutinin şudur...»';
     } else if (s.mealNames.isNotEmpty) {
-      claudeQuote = '«Bugün yediklerine baktığımda protein dağılımında şu eksik var, yarınki öğününe doğrudan şunu ekleyelim...»';
+      claudeQuote =
+          '«Bugün yediklerine baktığımda protein dağılımında şu eksik var, yarınki öğününe doğrudan şunu ekleyelim...»';
     } else {
-      claudeQuote = '«Hedefine ulaşman için yarın sabah kalktığında uygulaman gereken ilk 3 adım şunlar...»';
+      claudeQuote =
+          '«Hedefine ulaşman için yarın sabah kalktığında uygulaman gereken ilk 3 adım şunlar...»';
     }
 
     return 'Premium açık olsaydı, Claude sana şu an muhtemelen şunu derdi:\n\n$claudeQuote';
@@ -635,7 +600,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
       return;
     }
 
+    HapticFeedback.lightImpact();
     _textController.clear();
+    _inputFocusNode.requestFocus();
     final success = await controller.submitPrompt(text);
     if (!mounted) return;
 
@@ -669,6 +636,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     _textController.selection = TextSelection.fromPosition(
       TextPosition(offset: prompt.length),
     );
+    // Chip'e basınca direkt gönder — kullanıcı edit etmek isterse zaten klavye açılır
+    _handleSend(controller);
   }
 
   @override
@@ -679,9 +648,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
         // Step: Confetti Trigger
         if (controller.shouldShowConfetti) {
           _confettiController.play();
-          // Reset trigger after a slight delay
-          Future.delayed(const Duration(seconds: 1), () {
-            controller.resetConfetti();
+          HapticFeedback.heavyImpact();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) controller.resetConfetti();
           });
         }
 
@@ -739,53 +708,86 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                         ),
                       ),
                     Expanded(
-                      child: ListView(
-                        controller: _scrollController,
-                        padding: EdgeInsets.fromLTRB(
-                          16,
-                          12,
-                          16,
-                          hasConversation ? 132 : 16,
-                        ),
+                      child: Stack(
                         children: [
-                          if (!hasConversation) ...[
-                            _buildStartExperience(controller),
-                          ] else ...[
-                            _buildCompactConversationHeader(controller),
-                          ],
-                          const SizedBox(height: 6),
-                          ...controller.messages.map(
-                            (message) => ChatBubble(message: message)
-                                .animate()
-                                .fadeIn(duration: 320.ms, curve: Curves.easeOut)
-                                .slideY(begin: 0.08, end: 0),
-                          ),
-                          if (controller.messages.isNotEmpty &&
-                              controller.messages.last.isError &&
-                              controller.canRetryLastPrompt) ...[
-                            const SizedBox(height: 8),
-                            Center(
-                              child: TextButton.icon(
-                                onPressed: () => controller.retryLastPrompt(),
-                                icon: const Icon(
-                                  Icons.refresh_rounded,
-                                  size: 18,
-                                  color: Color(0xFFEBC374),
-                                ),
-                                label: Text(
-                                  'Tekrar dene',
-                                  style: GoogleFonts.dmSans(
-                                    color: const Color(0xFFEBC374),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
+                          ListView(
+                            controller: _scrollController,
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              12,
+                              16,
+                              hasConversation ? 132 : 16,
+                            ),
+                            children: [
+                              if (!hasConversation) ...[
+                                _buildStartExperience(controller),
+                              ] else ...[
+                                _buildCompactConversationHeader(controller),
+                              ],
+                              const SizedBox(height: 6),
+                              ...controller.messages.map(
+                                (message) => ChatBubble(message: message)
+                                    .animate()
+                                    .fadeIn(
+                                      duration: 400.ms,
+                                      curve: Curves.easeOut,
+                                    )
+                                    .slideY(
+                                      begin: 0.25,
+                                      end: 0,
+                                      duration: 650.ms,
+                                      curve: Curves.elasticOut,
+                                    ),
+                              ),
+                              if (controller.messages.isNotEmpty &&
+                                  controller.messages.last.isError &&
+                                  controller.canRetryLastPrompt) ...[
+                                const SizedBox(height: 8),
+                                Center(
+                                  child: TextButton.icon(
+                                    onPressed: () =>
+                                        controller.retryLastPrompt(),
+                                    icon: const Icon(
+                                      Icons.refresh_rounded,
+                                      size: 18,
+                                      color: Color(0xFFEBC374),
+                                    ),
+                                    label: Text(
+                                      'Tekrar dene',
+                                      style: GoogleFonts.dmSans(
+                                        color: const Color(0xFFEBC374),
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
-                          if (controller.isLoading)
-                            const TypingBubble().animate().fadeIn(
-                              duration: 300.ms,
+                              ],
+                              if (controller.isLoading)
+                                const TypingBubble().animate().fadeIn(
+                                  duration: 300.ms,
+                                ),
+                            ],
+                          ),
+                          if (_showScrollToBottom)
+                            Positioned(
+                              bottom: 16,
+                              right: 16,
+                              child:
+                                  FloatingActionButton.small(
+                                        backgroundColor: const Color(
+                                          0xFF1F2937,
+                                        ).withValues(alpha: 0.9),
+                                        foregroundColor: Colors.white,
+                                        elevation: 4,
+                                        onPressed: _scrollToBottom,
+                                        child: const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                        ),
+                                      )
+                                      .animate()
+                                      .fadeIn(duration: 200.ms)
+                                      .scale(curve: Curves.easeOutBack),
                             ),
                         ],
                       ),
@@ -953,59 +955,117 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
               ],
             ),
           ),
-          onSelected: (value) {
+          onSelected: (value) async {
             if (value == 'goal') {
               _showGoalPicker(context, controller);
             } else if (value == 'personality') {
               _showPersonalityPicker(context, controller);
+            } else if (value == 'new') {
+              await controller.startNewConversation();
+            } else if (value == 'history') {
+              final reload = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => ChatHistoryScreen(controller: controller),
+                ),
+              );
+              if (reload == true && mounted) setState(() {});
             } else if (value == 'clear') {
               controller.clearMessages();
+            } else if (value == 'memory') {
+              Navigator.of(context).pushNamed('/ai-memory');
             } else if (value == 'premium') {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()));
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PremiumScreen()),
+              );
             }
           },
           itemBuilder: (context) => [
             PopupMenuItem<String>(
+              value: 'new',
+              child: Row(
+                children: [
+                  const Icon(Icons.add_comment_rounded, size: 18, color: Color(0xFF73D4FF)),
+                  const SizedBox(width: 8),
+                  Text('Yeni Sohbet', style: GoogleFonts.dmSans(color: Colors.white)),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: 'history',
+              child: Row(
+                children: [
+                  const Icon(Icons.history_rounded, size: 18, color: Color(0xFFEBC374)),
+                  const SizedBox(width: 8),
+                  Text('Sohbet Geçmişi', style: GoogleFonts.dmSans(color: Colors.white)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
               value: 'goal',
-              child: Text(
-                'Hedef seç',
-                style: GoogleFonts.dmSans(color: Colors.white),
+              child: Row(
+                children: [
+                  const Icon(Icons.flag_rounded, size: 18, color: Colors.white54),
+                  const SizedBox(width: 8),
+                  Text('Hedef seç', style: GoogleFonts.dmSans(color: Colors.white)),
+                ],
               ),
             ),
             PopupMenuItem<String>(
               value: 'personality',
-              child: Text(
-                'Koç karakteri',
-                style: GoogleFonts.dmSans(color: Colors.white),
+              child: Row(
+                children: [
+                  const Icon(Icons.record_voice_over_rounded, size: 18, color: Colors.white54),
+                  const SizedBox(width: 8),
+                  Text('Koç karakteri', style: GoogleFonts.dmSans(color: Colors.white)),
+                ],
+              ),
+            ),
+            PopupMenuItem<String>(
+              value: 'memory',
+              child: Row(
+                children: [
+                  const Icon(Icons.psychology_rounded, size: 18, color: Color(0xFFEBC374)),
+                  const SizedBox(width: 8),
+                  Text('AI Hafızası', style: GoogleFonts.dmSans(color: Colors.white)),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'regenerate',
+              enabled: controller.canRetryLastPrompt && controller.messages.length > 2,
+              child: Row(
+                children: [
+                  const Icon(Icons.refresh_rounded, size: 18, color: Colors.white54),
+                  const SizedBox(width: 8),
+                  Text('Son Cevabı Yeniden Üret', style: GoogleFonts.dmSans(color: Colors.white70)),
+                ],
               ),
             ),
             PopupMenuItem<String>(
               value: 'clear',
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.delete_sweep_rounded,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
+                  const Icon(Icons.delete_sweep_rounded, size: 18, color: Colors.white54),
                   const SizedBox(width: 8),
-                  Text(
-                    'Sohbeti Temizle',
-                    style: GoogleFonts.dmSans(color: Colors.white70),
-                  ),
+                  Text('Sohbeti Temizle', style: GoogleFonts.dmSans(color: Colors.white70)),
                 ],
               ),
             ),
-            if (!_isPremium)
+            if (!_isPremium) ...[
+              const PopupMenuDivider(),
               PopupMenuItem<String>(
                 value: 'premium',
-                child: Text(
-                  'Premium\'u aç',
-                  style: GoogleFonts.dmSans(color: const Color(0xFFEBC374)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.stars_rounded, size: 18, color: Color(0xFFEBC374)),
+                    const SizedBox(width: 8),
+                    Text("Premium'u aç", style: GoogleFonts.dmSans(color: const Color(0xFFEBC374))),
+                  ],
                 ),
               ),
+            ],
           ],
         ),
         const SizedBox(width: 4),
@@ -1113,6 +1173,35 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     }
 
     return items.take(4).toList();
+  }
+
+  (IconData, Color) _chipMeta(String chip, CoachTaskMode mode) {
+    final lc = chip.toLowerCase();
+    if (lc.contains('kalori') || lc.contains('kcal') || lc.contains('öğün') || lc.contains('yemek') || lc.contains('kahvaltı')) {
+      return (Icons.restaurant_rounded, const Color(0xFFEBC374));
+    }
+    if (lc.contains('antrenman') || lc.contains('egzersiz') || lc.contains('hareket')) {
+      return (Icons.fitness_center_rounded, const Color(0xFF34D399));
+    }
+    if (lc.contains('su') || lc.contains('toparlanma') || lc.contains('uyku') || lc.contains('dinlen')) {
+      return (Icons.water_drop_rounded, const Color(0xFF73D4FF));
+    }
+    if (lc.contains('analiz') || lc.contains('özet') || lc.contains('nasıl') || lc.contains('veriler')) {
+      return (Icons.insights_rounded, const Color(0xFFBC74EB));
+    }
+    if (lc.contains('plan') || lc.contains('öncelik') || lc.contains('program')) {
+      return (Icons.route_rounded, const Color(0xFF6B9FFF));
+    }
+    if (lc.contains('makro') || lc.contains('protein') || lc.contains('beslen')) {
+      return (Icons.pie_chart_rounded, const Color(0xFFEBC374));
+    }
+    return switch (mode) {
+      CoachTaskMode.nutrition => (Icons.restaurant_rounded, const Color(0xFFEBC374)),
+      CoachTaskMode.workout   => (Icons.fitness_center_rounded, const Color(0xFF34D399)),
+      CoachTaskMode.recovery  => (Icons.self_improvement_rounded, const Color(0xFF73D4FF)),
+      CoachTaskMode.analysis  => (Icons.analytics_rounded, const Color(0xFFBC74EB)),
+      CoachTaskMode.plan      => (Icons.route_rounded, const Color(0xFF6B9FFF)),
+    };
   }
 
   IconData _modeIcon(CoachTaskMode mode) {
@@ -1502,66 +1591,96 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
     final summary = controller.dailySummary;
     final chips = <String>[];
     if (summary.calories > 0) chips.add('${summary.calories} kcal');
-    if (summary.waterLiters > 0) {
-      chips.add('${summary.waterLiters.toStringAsFixed(1)} L su');
-    }
+    if (summary.waterLiters > 0) chips.add('${summary.waterLiters.toStringAsFixed(1)} L su');
     if (summary.workouts > 0) chips.add('${summary.workouts} antrenman');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.035),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               decoration: BoxDecoration(
-                color: _brandBlue.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _brandBlue.withValues(alpha: 0.2)),
+                color: Colors.white.withValues(alpha: 0.035),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    _modeIcon(controller.taskMode),
-                    size: 14,
-                    color: _brandBlue,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    controller.taskMode.label,
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: _brandBlue.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: _brandBlue.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_modeIcon(controller.taskMode), size: 13, color: _brandBlue),
+                        const SizedBox(width: 5),
+                        Text(
+                          controller.taskMode.label,
+                          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                        ),
+                      ],
                     ),
                   ),
+                  if (chips.isNotEmpty) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        chips.join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.42),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-            if (chips.isNotEmpty) ...[
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  chips.join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.48),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
+          ),
+          const SizedBox(width: 8),
+          // Yeni sohbet + geçmiş butonları
+          GestureDetector(
+            onTap: () async {
+              final reload = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => ChatHistoryScreen(controller: controller),
                 ),
+              );
+              if (reload == true && mounted) setState(() {});
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
               ),
-            ],
-          ],
-        ),
+              child: const Icon(Icons.history_rounded, size: 18, color: Color(0xFFEBC374)),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => controller.startNewConversation(),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: _brandBlue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _brandBlue.withValues(alpha: 0.18)),
+              ),
+              child: const Icon(Icons.add_comment_rounded, size: 18, color: Color(0xFF73D4FF)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1703,7 +1822,12 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       delay: (index * 80).ms,
                       curve: Curves.easeOut,
                     )
-                    .slideY(begin: 0.08, end: 0);
+                    .slideY(
+                      begin: 0.25,
+                      end: 0,
+                      duration: 650.ms,
+                      curve: Curves.elasticOut,
+                    );
               }),
             );
           },
@@ -1721,7 +1845,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.24),
+              color: Colors.black.withValues(alpha: 0.35),
               border: Border(
                 top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
@@ -1856,32 +1980,45 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                     !controller.isLoading) ...[
                   const SizedBox(height: 6),
                   SizedBox(
-                    height: 32,
+                    height: 34,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
                       children: controller.actionChips.map((chip) {
+                        final meta = _chipMeta(chip, controller.taskMode);
+                        final chipIcon = meta.$1;
+                        final chipColor = meta.$2;
                         return GestureDetector(
-                          onTap: () => _applyPrompt(controller, chip),
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _applyPrompt(controller, chip);
+                          },
                           child: Container(
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
+                              horizontal: 11,
+                              vertical: 7,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.06),
+                              color: chipColor.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.12),
+                                color: chipColor.withValues(alpha: 0.22),
                               ),
                             ),
-                            child: Text(
-                              chip,
-                              style: GoogleFonts.dmSans(
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(chipIcon, size: 13, color: chipColor),
+                                const SizedBox(width: 5),
+                                Text(
+                                  chip,
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white.withValues(alpha: 0.82),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -1933,33 +2070,49 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          minLines: 1,
-                          maxLines: 2,
-                          style: GoogleFonts.dmSans(
-                            color: Colors.white,
-                            fontSize: 13.5,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: controller.isCooldownActive
-                                ? 'Bekleniyor...'
-                                : !_isPremium && _remainingFreePrompts <= 1
-                                ? 'Son hakkın, iyi kullan'
-                                : controller.taskMode.hint,
-                            hintStyle: GoogleFonts.dmSans(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              fontSize: 13.5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextField(
+                              controller: _textController,
+                              focusNode: _inputFocusNode,
+                              minLines: 1,
+                              maxLines: 4,
+                              style: GoogleFonts.dmSans(
+                                color: Colors.white,
+                                fontSize: 13.5,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: controller.isCooldownActive
+                                    ? 'Bekleniyor...'
+                                    : !_isPremium && _remainingFreePrompts <= 1
+                                    ? 'Son hakkın, iyi kullan'
+                                    : controller.taskMode.hint,
+                                hintStyle: GoogleFonts.dmSans(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  fontSize: 13.5,
+                                ),
+                                contentPadding: const EdgeInsets.fromLTRB(0, 12, 8, 12),
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _handleSend(controller),
                             ),
-                            contentPadding: const EdgeInsets.fromLTRB(
-                              0,
-                              12,
-                              8,
-                              12,
-                            ),
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _handleSend(controller),
+                            if (_textController.text.length > 80)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 4, right: 4),
+                                child: Text(
+                                  '${_textController.text.length}/500',
+                                  style: TextStyle(
+                                    color: _textController.text.length > 450
+                                        ? const Color(0xFFFF6B6B)
+                                        : Colors.white.withValues(alpha: 0.28),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -2167,12 +2320,42 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                subtitle: Text(
-                                  n.message,
-                                  style: GoogleFonts.dmSans(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
+                                subtitle: Builder(
+                                  builder: (context) {
+                                    String displayText = n.message;
+                                    try {
+                                      String cleaned = displayText.trim();
+                                      if (cleaned.contains('```')) {
+                                        final firstBrace = cleaned.indexOf('{');
+                                        final lastBrace = cleaned.lastIndexOf(
+                                          '}',
+                                        );
+                                        if (firstBrace != -1 &&
+                                            lastBrace != -1 &&
+                                            lastBrace > firstBrace) {
+                                          cleaned = cleaned.substring(
+                                            firstBrace,
+                                            lastBrace + 1,
+                                          );
+                                        }
+                                      }
+                                      if (cleaned.startsWith('{')) {
+                                        final map = jsonDecode(cleaned);
+                                        displayText =
+                                            map['todayFocus']?.toString() ??
+                                            map['message']?.toString() ??
+                                            map['content']?.toString() ??
+                                            displayText;
+                                      }
+                                    } catch (_) {}
+                                    return Text(
+                                      displayText,
+                                      style: GoogleFonts.dmSans(
+                                        color: Colors.white70,
+                                        fontSize: 13,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 trailing: Text(
                                   '${n.createdAt.hour}:${n.createdAt.minute.toString().padLeft(2, '0')}',
@@ -2360,8 +2543,30 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
 
   Widget _buildSendButton(AiCoachController controller) {
     final disabled = controller.isLoading || controller.isCooldownActive;
+    final showMic = !_hasText && !controller.isLoading;
+
     return GestureDetector(
-          onTap: disabled ? null : () => _handleSend(controller),
+          onTap: disabled
+              ? null
+              : () {
+                  if (showMic) {
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '🎙️ Sesli komut özelliği yakında eklenecek!',
+                          style: GoogleFonts.dmSans(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF101826),
+                      ),
+                    );
+                  } else {
+                    _handleSend(controller);
+                  }
+                },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             height: 48,
@@ -2397,12 +2602,20 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
                         strokeWidth: 2.5,
                       ),
                     )
-                  : Icon(
-                      Icons.arrow_upward_rounded,
-                      color: disabled
-                          ? Colors.white.withValues(alpha: 0.3)
-                          : Colors.white,
-                      size: 20,
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, anim) =>
+                          ScaleTransition(scale: anim, child: child),
+                      child: Icon(
+                        showMic
+                            ? Icons.mic_rounded
+                            : Icons.arrow_upward_rounded,
+                        key: ValueKey(showMic),
+                        color: disabled
+                            ? Colors.white.withValues(alpha: 0.3)
+                            : Colors.white,
+                        size: 20,
+                      ),
                     ),
             ),
           ),
@@ -2415,194 +2628,5 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody> {
           duration: 1200.ms,
           color: Colors.white.withValues(alpha: 0.15),
         );
-  }
-}
-
-class _AnimatedMeshBackground extends StatefulWidget {
-  const _AnimatedMeshBackground();
-
-  @override
-  State<_AnimatedMeshBackground> createState() =>
-      _AnimatedMeshBackgroundState();
-}
-
-class _AnimatedMeshBackgroundState extends State<_AnimatedMeshBackground> {
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF050814), Color(0xFF09111E), Color(0xFF060A12)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        _buildAura(
-          const Color(0xFF0F6B85),
-          380,
-          alignment: Alignment.topRight,
-          offset: const Offset(80, -90),
-        ),
-        _buildAura(
-          const Color(0xFF0C8C6C),
-          320,
-          alignment: Alignment.topLeft,
-          offset: const Offset(-100, 120),
-        ),
-        _buildAura(
-          const Color(0xFF5E3A1B),
-          280,
-          alignment: Alignment.bottomCenter,
-          offset: const Offset(0, 180),
-        ),
-        IgnorePointer(
-          child: CustomPaint(
-            painter: _CoachBackdropPainter(),
-            size: Size.infinite,
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.black.withValues(alpha: 0.12),
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.18),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              stops: const [0.0, 0.45, 1.0],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAura(
-    Color color,
-    double size, {
-    required Alignment alignment,
-    required Offset offset,
-  }) {
-    return Align(
-          alignment: alignment,
-          child: Transform.translate(
-            offset: offset,
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    color.withValues(alpha: 0.22),
-                    color.withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.0, 0.35, 1.0],
-                ),
-              ),
-            ),
-          ),
-        )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .move(
-          begin: const Offset(0, 0),
-          end: const Offset(18, 24),
-          duration: 12.seconds,
-          curve: Curves.easeInOut,
-        )
-        .scale(
-          begin: const Offset(1, 1),
-          end: const Offset(1.08, 1.08),
-          duration: 10.seconds,
-        );
-  }
-}
-
-class _CoachBackdropPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final linePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: 0.035);
-
-    final beamPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          const Color(0xFF73D4FF).withValues(alpha: 0.05),
-          Colors.transparent,
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    const spacing = 56.0;
-    for (double x = -20; x < size.width + 20; x += spacing) {
-      final path = Path()
-        ..moveTo(x, 0)
-        ..quadraticBezierTo(x + 18, size.height * 0.35, x - 10, size.height);
-      canvas.drawPath(path, linePaint);
-    }
-
-    final beamRect = Rect.fromCenter(
-      center: Offset(size.width * 0.78, size.height * 0.22),
-      width: size.width * 0.28,
-      height: size.height * 0.6,
-    );
-    canvas.drawOval(beamRect, beamPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _LimitSheetFeature extends StatelessWidget {
-  const _LimitSheetFeature({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: color.withValues(alpha: 0.22)),
-          ),
-          child: Icon(icon, color: color, size: 18),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Icon(
-          Icons.check_circle_rounded,
-          size: 16,
-          color: color.withValues(alpha: 0.7),
-        ),
-      ],
-    );
   }
 }

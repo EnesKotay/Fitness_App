@@ -58,7 +58,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
           content: Text(
             'Apple abonelikleri yalnızca App Store üzerinden iptal edilebilir.\n\n'
             'İptal etmek için:\n'
-            'Ayarlar → Apple ID adın → Abonelikler → FitMentor\n\n'
+            'Ayarlar → Apple ID adın → Abonelikler → PusulaFit\n\n'
             'İptal edene kadar mevcut dönem sonunda otomatik yenilenir.',
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.75),
@@ -595,7 +595,7 @@ class _MembershipCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
-    final planPrice = plan == 'yearly' ? '1.199₺ / yıl' : '149₺ / ay';
+    final planPrice = plan == 'yearly' ? '799,99₺ / yıl' : '149₺ / ay';
     final statusColor = cancelAtEnd
         ? Colors.orangeAccent
         : const Color(0xFF69F0AE);

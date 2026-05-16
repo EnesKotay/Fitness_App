@@ -1,4 +1,4 @@
-import 'package:fitness/features/recipes/domain/entities/recipe.dart';
+import 'package:pusulafit/features/recipes/domain/entities/recipe.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Recipe _recipeFromJson(Map<String, dynamic> overrides) {
@@ -17,12 +17,7 @@ Recipe _recipeFromJson(Map<String, dynamic> overrides) {
         'unit': 'g',
         'category': 'sut urunleri',
       },
-      {
-        'name': 'muz',
-        'amount': 1,
-        'unit': 'adet',
-        'category': 'sebze/meyve',
-      },
+      {'name': 'muz', 'amount': 1, 'unit': 'adet', 'category': 'sebze/meyve'},
     ],
     'steps': ['Karistir', 'Servis et'],
     'imageEmoji': '🥣',

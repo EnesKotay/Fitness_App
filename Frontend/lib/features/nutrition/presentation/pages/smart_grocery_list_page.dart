@@ -83,15 +83,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     'Kategoriler ve yemek fikirleri toparlıyor...',
   ];
 
-  bool get _hasPremiumAccess {
-    final localTier = context
-        .read<AuthProvider>()
-        .user
-        ?.premiumTier
-        ?.toLowerCase()
-        .trim();
-    return localTier == 'premium' || _isPremium;
-  }
+  bool get _hasPremiumAccess => _isPremium;
 
   static const List<GuideStep> _guideSteps = [
     GuideStep(

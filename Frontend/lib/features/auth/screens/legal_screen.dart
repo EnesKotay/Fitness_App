@@ -4,27 +4,27 @@ import '../../../core/theme/app_colors.dart';
 
 const _kSupportUrl = String.fromEnvironment(
   'APP_SUPPORT_URL',
-  defaultValue: 'mailto:eneskotay23@gmail.com?subject=FitMentor%20Destek',
+  defaultValue: 'mailto:eneskotay23@gmail.com?subject=PusulaFit%20Destek',
 );
 const _kPrivacyEmail = String.fromEnvironment(
   'APP_PRIVACY_EMAIL',
-  defaultValue: 'eneskotay23@gmail.com',
+  defaultValue: '',
 );
 const _kLegalEmail = String.fromEnvironment(
   'APP_LEGAL_EMAIL',
-  defaultValue: 'eneskotay23@gmail.com',
+  defaultValue: '',
 );
 const _kDataControllerName = String.fromEnvironment(
   'APP_DATA_CONTROLLER_NAME',
-  defaultValue: 'Enes Kotay',
+  defaultValue: 'PusulaFit',
 );
 const _kDataControllerAddress = String.fromEnvironment(
   'APP_DATA_CONTROLLER_ADDRESS',
-  defaultValue: 'Türkiye',
+  defaultValue: 'Belirtilmedi',
 );
 const _kDataControllerTaxId = String.fromEnvironment(
   'APP_DATA_CONTROLLER_TAX_ID',
-  defaultValue: 'eneskotay23@gmail.com',
+  defaultValue: 'Belirtilmedi',
 );
 
 enum LegalTab { privacy, terms, kvkk }
@@ -107,7 +107,7 @@ class _PrivacyPolicyView extends StatelessWidget {
           const _LegalTitle('Gizlilik Politikası'),
           const _LegalDate('Son güncelleme: Nisan 2025'),
           const _LegalSection('1. Toplanan Veriler', '''
-FitMentor uygulaması ("Uygulama") aşağıdaki verileri toplar:
+PusulaFit uygulaması ("Uygulama") aşağıdaki verileri toplar:
 
 • Hesap bilgileri: ad, e-posta adresi, şifre (şifrelenmiş)
 • Profil bilgileri: yaş, boy, kilo, cinsiyet, hedefler
@@ -125,18 +125,23 @@ Toplanan veriler yalnızca aşağıdaki amaçlarla kullanılır:
 • Hesap güvenliğini sağlamak
 • Premium üyelik yönetimi
 • Yasal yükümlülükleri yerine getirmek'''),
-          const _LegalSection('3. Veri Paylaşımı ve Yurt Dışına Aktarım (KVKK Madde 9)', """
+          const _LegalSection(
+            '3. Veri Paylaşımı ve Yurt Dışına Aktarım (KVKK Madde 9)',
+            """
 Verileriniz yalnızca aşağıdaki alıcılarla ve belirtilen amaçlarla paylaşılabilir:
 
 • Google LLC (ABD) — AI koç (ücretsiz plan): Beslenme ve fitness analizi için Gemini API kullanılır. Açık rıza (Md.9). Rıza geri alınırsa AI özelliği devre dışı kalır.
 • Anthropic PBC (ABD) — AI koç (premium plan): Kişiselleştirilmiş koçluk için Claude API kullanılır. Açık rıza (Md.9). Yalnızca aktif premium üyeliği olan kullanıcıların verileri aktarılır.
-• Apple Inc. / Google Inc. (ABD) — Ödeme: Abonelik doğrulaması. Açık rıza (Md.9). Kart bilgisi FitMentor'da saklanmaz.
+• Apple Inc. / Google Inc. (ABD) — Ödeme: Abonelik doğrulaması. Açık rıza (Md.9). Kart bilgisi PusulaFit'te saklanmaz.
 • Open Food Facts (Fransa/AB) — Gıda DB: Yalnızca barkod numarası gönderilir; kişisel veri iletilmez.
 • Sentry (ABD) — Hata raporlama: Kilitlenme izleri ve teknik log. Meşru menfaat (Md.5/2-f). Ayarlar → Gizlilik → Hata raporları seçeneğiyle kapatılabilir.
 • Yasal zorunluluk: Mahkeme kararı veya mevzuat gerektirdiğinde, yalnızca zorunlu minimum veri.
 
-Verileriniz hiçbir koşulda reklam amaçlı üçüncü taraflarla paylaşılmaz."""),
-          const _LegalSection('4. Veri Güvenliği (KVKK Madde 12)', """
+Verileriniz hiçbir koşulda reklam amaçlı üçüncü taraflarla paylaşılmaz.""",
+          ),
+          const _LegalSection(
+            '4. Veri Güvenliği (KVKK Madde 12)',
+            """
 Teknik önlemler:
 • Tüm veriler HTTPS/TLS ile şifreli aktarılır
 • Şifreler bcrypt ile hash'lenerek saklanır
@@ -149,12 +154,15 @@ Teknik önlemler:
 • Güvenlik açıkları periyodik olarak denetlenmektedir
 
 Veri ihlali bildirimi (KVKK Madde 12/5):
-Kişisel veri güvenliği ihlali tespit edilmesi halinde, KVKK Madde 12/5 uyarınca 72 saat içinde Kişisel Verileri Koruma Kurumu'na bildirim yapılır. Risk düzeyine göre ilgili kişiler makul süre içinde bilgilendirilir."""),
+Kişisel veri güvenliği ihlali tespit edilmesi halinde, KVKK Madde 12/5 uyarınca 72 saat içinde Kişisel Verileri Koruma Kurumu'na bildirim yapılır. Risk düzeyine göre ilgili kişiler makul süre içinde bilgilendirilir.""",
+          ),
           const _LegalSection('5. Veri Saklama Süresi', '''
 • Aktif hesaplar: hesap silinene kadar
 • Silinen hesaplar: talebin ardından 30 gün içinde kalıcı olarak silinir
 • Yedekler: 90 gün içinde temizlenir'''),
-          _LegalSection('6. Veri Sorumlusu', '''
+          _LegalSection(
+            '6. Veri Sorumlusu',
+            '''
 6698 sayılı KVKK Madde 10 uyarınca veri sorumlusu:
 
 Unvan  : $_kDataControllerName
@@ -162,8 +170,11 @@ Vergi/TC: $_kDataControllerTaxId
 Adres  : $_kDataControllerAddress
 E-posta: $_kPrivacyEmail
 
-KVKK Madde 11 kapsamındaki başvurularınızı kimliğinizi doğrulayan bilgilerle (ad, e-posta) birlikte yukarıdaki e-posta adresine iletebilirsiniz. Başvurular en geç 30 gün içinde yanıtlanır.'''),
-          const _LegalSection('7. KVKK Kapsamındaki Tüm Haklarınız (Madde 11)', '''
+KVKK Madde 11 kapsamındaki başvurularınızı kimliğinizi doğrulayan bilgilerle (ad, e-posta) birlikte yukarıdaki e-posta adresine iletebilirsiniz. Başvurular en geç 30 gün içinde yanıtlanır.''',
+          ),
+          const _LegalSection(
+            '7. KVKK Kapsamındaki Tüm Haklarınız (Madde 11)',
+            '''
 a) Kişisel verilerinizin işlenip işlenmediğini öğrenme
 b) İşlenmişse buna ilişkin bilgi talep etme
 c) İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme
@@ -178,21 +189,25 @@ Uygulama içinden kullanabileceğiniz haklar:
 • Veri dışa aktarma → Ayarlar → Gizlilik → "Verilerimi dışa aktar"
 • Hesap silme → Ayarlar → Gizlilik → "Hesabı kalıcı olarak sil"
 • Diğer başvurular → $_kPrivacyEmail (Konu: "KVKK Madde 11 Başvurusu")
-• KVK Kurumu'na şikâyet → www.kvkk.gov.tr (yanıt verilmezse veya reddedilirse)'''),
-          const _LegalSection('8. Reşit Olmayanlar', '''
-FitMentor, 18 yaşın altındaki bireyler için tasarlanmamıştır. Türk Medeni Kanunu uyarınca 18 yaş altı kullanıcıların sağlık verisi gibi özel nitelikli kişisel verilerinin işlenebilmesi için yasal temsilcilerinin (ebeveyn/vasi) açık rızası gereklidir.
+• KVK Kurumu'na şikâyet → www.kvkk.gov.tr (yanıt verilmezse veya reddedilirse)''',
+          ),
+          const _LegalSection(
+            '8. Reşit Olmayanlar',
+            '''
+PusulaFit, 18 yaşın altındaki bireyler için tasarlanmamıştır. Türk Medeni Kanunu uyarınca 18 yaş altı kullanıcıların sağlık verisi gibi özel nitelikli kişisel verilerinin işlenebilmesi için yasal temsilcilerinin (ebeveyn/vasi) açık rızası gereklidir.
 
-18 yaşın altındaki bir kullanıcıya ait veri tespit edilmesi halinde söz konusu veriler derhal silinir ve ilgili hesap kapatılır.'''),
-          const _LegalSection('9. İletişim', '''
+18 yaşın altındaki bir kullanıcıya ait veri tespit edilmesi halinde söz konusu veriler derhal silinir ve ilgili hesap kapatılır.''',
+          ),
+          const _LegalSection(
+            '9. İletişim',
+            '''
 Gizlilik ile ilgili sorularınız için:
 E-posta: $_kPrivacyEmail
 
-Bu politika zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim gönderilir.'''),
-          const SizedBox(height: 8),
-          _ExternalLinkButton(
-            label: 'Destek',
-            url: _kSupportUrl,
+Bu politika zaman zaman güncellenebilir. Önemli değişikliklerde uygulama içi bildirim gönderilir.''',
           ),
+          const SizedBox(height: 8),
+          _ExternalLinkButton(label: 'Destek', url: _kSupportUrl),
           const SizedBox(height: 24),
         ],
       ),
@@ -214,8 +229,11 @@ class _TermsOfServiceView extends StatelessWidget {
         children: [
           const _LegalTitle('Kullanım Koşulları'),
           const _LegalDate('Son güncelleme: Mart 2025'),
-          const _LegalSection('1. Kabul', """
-FitMentor uygulamasını kullanarak bu Kullanım Koşulları'nı kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız uygulamayı kullanmamalısınız."""),
+          const _LegalSection(
+            '1. Kabul',
+            """
+PusulaFit uygulamasını kullanarak bu Kullanım Koşulları'nı kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız uygulamayı kullanmamalısınız.""",
+          ),
           const _LegalSection('2. Hesap', '''
 • Hesap oluşturmak için doğru ve güncel bilgi sağlamalısınız
 • Hesabınızın güvenliğinden siz sorumlusunuz
@@ -229,20 +247,26 @@ Aşağıdaki davranışlar yasaktır:
 • Uygulamanın altyapısına zarar verecek işlemler yapmak
 • Yanlış sağlık veya tıbbi bilgi yaymak
 • Uygulamayı tersine mühendislik ile analiz etmek'''),
-          const _LegalSection('4. Premium Üyelik', '''
+          const _LegalSection(
+            '4. Premium Üyelik',
+            '''
 • Premium özellikler aylık veya yıllık abonelik gerektirir
 • Abonelikler App Store veya Google Play üzerinden yönetilir
 • Ödeme, satın alma onayında Apple/Google hesabınızdan çekilir
 • Abonelik, mevcut dönem sona ermeden en az 24 saat önce iptal edilmezse otomatik yenilenir
 • İptal işlemi için cihazınızın App Store/Google Play abonelik yönetimini kullanın
-• Kullanılmamış abonelik süresine geri ödeme yapılmaz (platform kuralları gereği)'''),
-          const _LegalSection('5. Sağlık Uyarısı', '''
-FitMentor bir tıbbi cihaz veya sağlık hizmeti değildir.
+• Kullanılmamış abonelik süresine geri ödeme yapılmaz (platform kuralları gereği)''',
+          ),
+          const _LegalSection(
+            '5. Sağlık Uyarısı',
+            '''
+PusulaFit bir tıbbi cihaz veya sağlık hizmeti değildir.
 
 • Uygulama yalnızca genel sağlıklı yaşam bilgisi sunar
 • Herhangi bir sağlık sorununda mutlaka bir doktora başvurun
 • AI koç önerileri profesyonel tıbbi tavsiye yerine geçmez
-• Aşırı egzersiz veya yetersiz beslenme ile ilgili kararlardan kullanıcı sorumludur'''),
+• Aşırı egzersiz veya yetersiz beslenme ile ilgili kararlardan kullanıcı sorumludur''',
+          ),
           const _LegalSection('6. Fikri Mülkiyet', '''
 • Uygulamanın tüm içeriği, tasarımı ve kodu telif hakkı ile korunmaktadır
 • Kullanıcılar uygulamayı yalnızca kişisel, ticari olmayan amaçlarla kullanabilir
@@ -253,10 +277,16 @@ Uygulama "olduğu gibi" sunulmaktadır. Şu konularda sorumluluk kabul edilmez:
 • Kullanıcının verdiği yanlış bilgilerden kaynaklanan sonuçlar
 • İnternet bağlantısı kesintilerinden kaynaklanan veri kaybı
 • Üçüncü taraf servislerden (AI, barcode DB) kaynaklanan hatalar'''),
-          const _LegalSection('8. Değişiklikler', '''
-Bu koşullar zaman zaman güncellenebilir. Devam eden kullanım güncel koşulları kabul ettiğiniz anlamına gelir.'''),
-          const _LegalSection('9. Geçerli Hukuk', '''
-Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklarda İstanbul mahkemeleri yetkilidir.'''),
+          const _LegalSection(
+            '8. Değişiklikler',
+            '''
+Bu koşullar zaman zaman güncellenebilir. Devam eden kullanım güncel koşulları kabul ettiğiniz anlamına gelir.''',
+          ),
+          const _LegalSection(
+            '9. Geçerli Hukuk',
+            '''
+Bu sözleşme Türkiye Cumhuriyeti yasalarına tabidir. Anlaşmazlıklarda İstanbul mahkemeleri yetkilidir.''',
+          ),
           const _LegalSection('10. İletişim', '''
 Sorularınız için:
 E-posta: $_kLegalEmail'''),
@@ -280,8 +310,12 @@ class _KvkkAydinlatmaView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _LegalTitle('KVKK Aydınlatma Metni'),
-          const _LegalDate('6698 Sayılı Kişisel Verilerin Korunması Kanunu Madde 10'),
-          _LegalSection('1. Veri Sorumlusu', '''
+          const _LegalDate(
+            '6698 Sayılı Kişisel Verilerin Korunması Kanunu Madde 10',
+          ),
+          _LegalSection(
+            '1. Veri Sorumlusu',
+            '''
 6698 sayılı KVKK Madde 10 uyarınca, kişisel verilerinizi işleyen veri sorumlusu:
 
 Unvan  : $_kDataControllerName
@@ -290,8 +324,11 @@ Adres  : $_kDataControllerAddress
 E-posta: $_kPrivacyEmail
 Başvuru: $_kPrivacyEmail — Konu: "KVKK Madde 11 Başvurusu"
 
-Not: Veri sorumlusuna yönelik başvurularda kimliğinizi doğrulayan bilgileri (ad, e-posta adresi) eklemeniz gerekmektedir. Başvurular KVKK Madde 13 gereği en geç 30 gün içinde yanıtlanır.'''),
-          const _LegalSection('2. İşlenen Kişisel Veri Kategorileri ve Hukuki Sebepleri', '''
+Not: Veri sorumlusuna yönelik başvurularda kimliğinizi doğrulayan bilgileri (ad, e-posta adresi) eklemeniz gerekmektedir. Başvurular KVKK Madde 13 gereği en geç 30 gün içinde yanıtlanır.''',
+          ),
+          const _LegalSection(
+            '2. İşlenen Kişisel Veri Kategorileri ve Hukuki Sebepleri',
+            '''
 Kimlik / iletişim verisi
   Örnekler: Ad, e-posta adresi
   Hukuki sebep: Sözleşmenin kurulması ve ifası (Md. 5/2-c)
@@ -312,7 +349,8 @@ Analitik ve hata raporlama verisi
 
 Ödeme / abonelik verisi
   Örnekler: İşlem tarihi, abonelik durumu (kart bilgisi saklanmaz)
-  Hukuki sebep: Sözleşmenin ifası (Md. 5/2-c)'''),
+  Hukuki sebep: Sözleşmenin ifası (Md. 5/2-c)''',
+          ),
           const _LegalSection('3. Kişisel Verilerin İşlenme Amaçları', '''
 • Uygulama hizmetinin ve kullanıcı hesabının yönetimi
 • Kişiselleştirilmiş fitness ve beslenme takibinin sağlanması
@@ -321,15 +359,18 @@ Analitik ve hata raporlama verisi
 • Premium üyelik süreçlerinin yönetimi
 • Anonim kullanım analitiği ile hizmet kalitesinin artırılması
 • Yasal yükümlülüklerin yerine getirilmesi'''),
-          const _LegalSection('4. Kişisel Verilerin Aktarımı', '''
-Yurt İçi: Veriler doğrudan FitMentor sunucu altyapısında saklanır; üçüncü taraf reklam amaçlı aktarım yapılmaz.
+          const _LegalSection(
+            '4. Kişisel Verilerin Aktarımı',
+            '''
+Yurt İçi: Veriler doğrudan PusulaFit sunucu altyapısında saklanır; üçüncü taraf reklam amaçlı aktarım yapılmaz.
 
 Yurt Dışı Aktarım (KVKK Madde 9 — Açık Rıza):
 • Google LLC (ABD) — Google Gemini API: Ücretsiz plan kullanıcılarının beslenme ve fitness AI analizi için sağlık verisi aktarılır. Kayıt sırasında kullanıcının açık rızası alınmaktadır. Rıza geri alındığında AI koç özelliği devre dışı kalır.
 • Anthropic PBC (ABD) — Claude API: Premium plan kullanıcılarının kişiselleştirilmiş AI koçluk hizmeti için sağlık ve fitness verisi aktarılır. Yalnızca aktif premium aboneliği olan kullanıcılar için geçerlidir. Kayıt sırasında kullanıcının açık rızası alınmaktadır.
-• Apple Inc. / Google Inc. (ABD) — App Store / Google Play: Abonelik durumu ve satın alma doğrulaması. Kart veya ödeme bilgisi FitMentor tarafından işlenmez ya da saklanmaz. Kayıt sırasında kullanıcının açık rızası alınmaktadır.
+• Apple Inc. / Google Inc. (ABD) — App Store / Google Play: Abonelik durumu ve satın alma doğrulaması. Kart veya ödeme bilgisi PusulaFit tarafından işlenmez ya da saklanmaz. Kayıt sırasında kullanıcının açık rızası alınmaktadır.
 • Open Food Facts (Fransa/AB): Barkod sorgularında yalnızca ürün barkod numarası iletilmekte olup ad, e-posta veya sağlık verisi gibi kişisel veri gönderilmemektedir.
-• Sentry (ABD) — Hata raporlama: Uygulama kilitlenme izleri ve teknik log verisi. Hukuki sebep: Meşru menfaat (Md. 5/2-f). Ayarlar → Gizlilik → Hata raporları seçeneğiyle devre dışı bırakılabilir.'''),
+• Sentry (ABD) — Hata raporlama: Uygulama kilitlenme izleri ve teknik log verisi. Hukuki sebep: Meşru menfaat (Md. 5/2-f). Ayarlar → Gizlilik → Hata raporları seçeneğiyle devre dışı bırakılabilir.''',
+          ),
           const _LegalSection('5. Kişisel Veri Toplamanın Yöntemi', '''
 • Elektronik ortam: Kayıt formu, profil kurulumu, uygulama içi girişler
 • Otomatik yöntem: Uygulama kullanımı sırasında kaydedilen teknik log verileri
@@ -347,7 +388,9 @@ KVKK Madde 11/g kapsamında bu otomatik işleme itiraz hakkınız saklıdır.'''
 • Kapatılan hesap: Talepten itibaren 30 gün içinde kalıcı silme
 • Yedek sistemler: 90 gün içinde imha
 • Anonim analitik veriler: Süresiz (kişisel veri içermez)'''),
-          const _LegalSection('8. KVKK Madde 11 Kapsamındaki Tüm Haklarınız', '''
+          const _LegalSection(
+            '8. KVKK Madde 11 Kapsamındaki Tüm Haklarınız',
+            '''
 a) Kişisel verilerinizin işlenip işlenmediğini öğrenme
 b) İşlenmişse buna ilişkin bilgi talep etme
 c) İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme
@@ -356,8 +399,11 @@ d) Eksik veya yanlış işlenmiş ise düzeltilmesini isteme
 e) KVKK Madde 7 çerçevesinde silinmesini veya yok edilmesini isteme
 f) (d) ve (e) kapsamındaki işlemlerin aktarılan üçüncü kişilere bildirilmesini isteme
 g) Otomatik sistemler vasıtasıyla analiz sonucu aleyhinize bir kararın oluşmasına itiraz etme
-ğ) Kanuna aykırı işleme nedeniyle zarara uğramanız halinde tazminat talep etme'''),
-          const _LegalSection('9. Başvuru Yöntemi ve Yanıt Süresi', '''
+ğ) Kanuna aykırı işleme nedeniyle zarara uğramanız halinde tazminat talep etme''',
+          ),
+          const _LegalSection(
+            '9. Başvuru Yöntemi ve Yanıt Süresi',
+            '''
 Haklarınızı kullanmak için:
 
 • E-posta: $_kPrivacyEmail
@@ -366,7 +412,8 @@ Haklarınızı kullanmak için:
 
 • Uygulama içi: Ayarlar → Gizlilik → KVKK Başvurusu
 
-Başvurular en geç 30 (otuz) gün içinde yanıtlanır (KVKK Madde 13). Başvurunun reddedilmesi veya 30 gün içinde yanıt alınamaması halinde Kişisel Verileri Koruma Kurumu'na (www.kvkk.gov.tr) şikâyette bulunabilirsiniz.'''),
+Başvurular en geç 30 (otuz) gün içinde yanıtlanır (KVKK Madde 13). Başvurunun reddedilmesi veya 30 gün içinde yanıt alınamaması halinde Kişisel Verileri Koruma Kurumu'na (www.kvkk.gov.tr) şikâyette bulunabilirsiniz.''',
+          ),
           const SizedBox(height: 8),
           _ExternalLinkButton(
             label: 'KVK Kurumu',
@@ -375,7 +422,8 @@ Başvurular en geç 30 (otuz) gün içinde yanıtlanır (KVKK Madde 13). Başvur
           const SizedBox(height: 12),
           _ExternalLinkButton(
             label: 'KVKK Başvurusu Gönder',
-            url: 'mailto:$_kPrivacyEmail?subject=KVKK%20Madde%2011%20Ba%C5%9Fvurusu',
+            url:
+                'mailto:$_kPrivacyEmail?subject=KVKK%20Madde%2011%20Ba%C5%9Fvurusu',
           ),
           const SizedBox(height: 24),
         ],
@@ -413,7 +461,10 @@ class _LegalDate extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4, bottom: 20),
       child: Text(
         text,
-        style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.4),
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -466,9 +517,9 @@ class _ExternalLinkButton extends StatelessWidget {
       onPressed: trimmedUrl.isEmpty
           ? null
           : () => launchUrl(
-                Uri.parse(trimmedUrl),
-                mode: LaunchMode.externalApplication,
-              ),
+              Uri.parse(trimmedUrl),
+              mode: LaunchMode.externalApplication,
+            ),
       icon: const Icon(Icons.open_in_new, size: 16),
       label: Text(label),
       style: OutlinedButton.styleFrom(

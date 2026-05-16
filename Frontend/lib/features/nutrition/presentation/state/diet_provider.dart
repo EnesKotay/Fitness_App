@@ -96,19 +96,34 @@ class DietProvider with ChangeNotifier {
   double get waterLiters => _waterLiters;
 
   void addWater(double amount) {
-    _waterLiters += amount;
+    setWaterMlForSelectedDate(((_waterLiters + amount) * 1000).round());
+  }
+
+  void setWaterMlForSelectedDate(int ml) {
+    final safeMl = ml.clamp(0, 6000);
+    _waterLiters = safeMl / 1000.0;
+    final dateKey = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    StorageHelper.saveWaterForDate(dateKey, safeMl);
     notifyListeners();
+  }
+
+  void setWaterGlassesForSelectedDate(int glasses) {
+    setWaterMlForSelectedDate(glasses.clamp(0, 24) * 250);
   }
 
   static double getCategoryDefaultGrams(String? category) {
     if (category == null) return 100.0;
     final c = category.toLowerCase();
     if (c.contains('çorba')) return 250.0;
-    if (c.contains('pilav') || c.contains('makarna')) return 150.0; // Reduced to 150
+    if (c.contains('pilav') || c.contains('makarna')) {
+      return 150.0; // Reduced to 150
+    }
     if (c.contains('et') || c.contains('tavuk') || c.contains('balık')) {
       return 150.0;
     }
-    if (c.contains('fırın') || c.contains('unlu') || c.contains('hamur')) return 80.0;
+    if (c.contains('fırın') || c.contains('unlu') || c.contains('hamur')) {
+      return 80.0;
+    }
     if (c.contains('atıştırmalık') || c.contains('tatlı')) return 50.0;
     if (c.contains('fast food') || c.contains('burger')) return 150.0;
     return 100.0;
@@ -162,7 +177,9 @@ class DietProvider with ChangeNotifier {
     }
 
     // Bardak / Fincan
-    if (lower.contains('kahve') || lower.contains('çay') || lower.contains('fincan')) {
+    if (lower.contains('kahve') ||
+        lower.contains('çay') ||
+        lower.contains('fincan')) {
       return 'Fincan';
     }
     if (lower.contains('su') ||
@@ -336,18 +353,17 @@ class DietProvider with ChangeNotifier {
     final carbKcal = (kcal - proteinKcal - fatKcal).clamp(0.0, double.infinity);
     final carbG = (carbKcal / 4).roundToDouble();
 
-    return MacroTargets(
-      protein: proteinG,
-      carb: carbG,
-      fat: fatG,
-    );
+    return MacroTargets(protein: proteinG, carb: carbG, fat: fatG);
   }
 
   /// Calculates the simulated daily calorie and protein targets if the user were to switch to [simulatedGoal].
-  ({double targetKcal, double proteinTarget}) getSimulatedTargets(Goal simulatedGoal) {
+  ({double targetKcal, double proteinTarget}) getSimulatedTargets(
+    Goal simulatedGoal,
+  ) {
     if (_profile == null) return (targetKcal: 2000.0, proteinTarget: 140.0);
 
-    final currentWeight = _weightProvider?.latestEntry?.weightKg ?? _profile!.weight;
+    final currentWeight =
+        _weightProvider?.latestEntry?.weightKg ?? _profile!.weight;
 
     final fakeProfile = UserProfile(
       name: _profile!.name,
@@ -488,6 +504,9 @@ class DietProvider with ChangeNotifier {
     _selectedDate = date;
     _entries = await _diaryService.getEntriesByDate(date);
     _totals = await _diaryService.getTotalsByDate(date);
+    final dateKey = DateFormat('yyyy-MM-dd').format(date);
+    final savedMl = StorageHelper.getWaterForDate(dateKey);
+    _waterLiters = savedMl / 1000.0;
   }
 
   void _recalculateTarget() {
@@ -591,6 +610,11 @@ class DietProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> toggleDislikedFood(String foodId) async {
+    await StorageHelper.toggleDislike(foodId);
+    notifyListeners();
+  }
+
   Future<List<FoodItem>> searchFoods(String query, {String? category}) async {
     try {
       final local = await _foodRepo.searchFoods(query, category: category);
@@ -679,6 +703,14 @@ class DietProvider with ChangeNotifier {
     final profile = _profile;
     if (profile != null) {
       context['goal'] = _goalLabel(profile.goal);
+      context['userAge'] = profile.age;
+      context['userWeightKg'] = profile.weight;
+      context['userHeightCm'] = profile.height;
+      context['userGender'] = profile.gender.name;
+      context['activityLevel'] = profile.activityLevel.name;
+      context['targetCalories'] = profile.targetCalories.round();
+      // Protein target: ~1.8g per kg for most fitness goals
+      context['proteinTargetG'] = (profile.weight * 1.8).round();
     }
     if (mealType != null && mealType.trim().isNotEmpty) {
       context['mealType'] = mealType.trim();
@@ -691,7 +723,7 @@ class DietProvider with ChangeNotifier {
     if (prefs.lactoseFree) activePrefs.add('Lactose-Free');
     if (prefs.glutenFree) activePrefs.add('Gluten-Free');
     if (prefs.excludePork) activePrefs.add('Pork-Free');
-    
+
     if (activePrefs.isNotEmpty) {
       context['dietaryRestrictions'] = activePrefs;
     }
@@ -705,6 +737,9 @@ class DietProvider with ChangeNotifier {
     if (availableIngredients.isNotEmpty) {
       context['availableIngredients'] = availableIngredients;
     }
+
+    context['workoutLocation'] = StorageHelper.getWorkoutLocation();
+    context['equipmentType'] = StorageHelper.getEquipmentType();
 
     return context;
   }
@@ -735,9 +770,10 @@ class DietProvider with ChangeNotifier {
 
     void mergeItem(GroceryItem item) {
       if (item.name.trim().isEmpty) return;
-      final key = item.normalizedName.isNotEmpty
+      final rawKey = item.normalizedName.isNotEmpty
           ? item.normalizedName
           : _normalizeGroceryName(item.name);
+      final key = rawKey.isNotEmpty ? rawKey : item.name.trim().toLowerCase();
       final existing = groceries[key];
       if (existing == null) {
         groceries[key] = item;
@@ -1108,11 +1144,9 @@ class DietProvider with ChangeNotifier {
         foodName: food.name,
         grams: grams,
         calculatedKcal: kcal.isNaN || kcal.isInfinite ? 0 : kcal,
-        protein: (food.proteinPer100g * ratio).isNaN
-            ? 0
-            : food.proteinPer100g * ratio,
-        carb: (food.carbPer100g * ratio).isNaN ? 0 : food.carbPer100g * ratio,
-        fat: (food.fatPer100g * ratio).isNaN ? 0 : food.fatPer100g * ratio,
+        protein: _safeDouble(food.proteinPer100g * ratio),
+        carb: _safeDouble(food.carbPer100g * ratio),
+        fat: _safeDouble(food.fatPer100g * ratio),
         createdAt: DateTime.now(),
       );
       await _diaryRepo.addEntry(entry);
@@ -1123,6 +1157,93 @@ class DietProvider with ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Birden fazla besini tek seferde ekler (çoklu seçim özelliği için).
+  Future<void> addMultipleEntries({
+    required List<({FoodItem food, double grams})> items,
+    required MealType mealType,
+    required DateTime date,
+  }) async {
+    if (items.isEmpty) return;
+    try {
+      final normalizedDate = DiaryService.normalizeDate(date);
+      for (final item in items) {
+        final grams = item.grams;
+        if (grams <= 0 || grams.isNaN || grams.isInfinite) continue;
+        final food = item.food;
+        final kcal = FoodCalculator.calculateCalories(food, grams);
+        final ratio = grams / 100;
+        final entry = FoodEntry(
+          id: _uuid.v4(),
+          date: normalizedDate,
+          mealType: mealType,
+          foodId: food.id,
+          foodName: food.name,
+          grams: grams,
+          calculatedKcal: kcal.isNaN || kcal.isInfinite ? 0 : kcal,
+          protein: _safeDouble(food.proteinPer100g * ratio),
+          carb: _safeDouble(food.carbPer100g * ratio),
+          fat: _safeDouble(food.fatPer100g * ratio),
+          createdAt: DateTime.now(),
+        );
+        await _diaryRepo.addEntry(entry);
+      }
+      await loadDay(DateTime(date.year, date.month, date.day));
+    } catch (e) {
+      debugPrint('DietProvider.addMultipleEntries hatası: $e');
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // ── Kayıtlı Öğünler ────────────────────────────────────────────────────────
+
+  List<SavedMeal> getSavedMeals() => StorageHelper.getSavedMeals();
+
+  Future<void> saveCurrentSelectionAsMeal({
+    required String name,
+    required List<({FoodItem food, double grams})> items,
+  }) async {
+    if (name.trim().isEmpty || items.isEmpty) return;
+    final meal = SavedMeal(
+      id: _uuid.v4(),
+      name: name.trim(),
+      items: items
+          .map(
+            (e) => SavedMealItem(
+              foodId: e.food.id,
+              foodName: e.food.name,
+              grams: e.grams,
+            ),
+          )
+          .toList(),
+      createdAt: DateTime.now(),
+    );
+    await StorageHelper.saveSavedMeal(meal);
+    notifyListeners();
+  }
+
+  Future<void> deleteSavedMeal(String mealId) async {
+    await StorageHelper.deleteSavedMeal(mealId);
+    notifyListeners();
+  }
+
+  /// Kayıtlı öğündeki tüm besinleri günlüğe ekler.
+  Future<void> addSavedMealToDay({
+    required SavedMeal meal,
+    required MealType mealType,
+    required DateTime date,
+  }) async {
+    final foodItems = <({FoodItem food, double grams})>[];
+    for (final item in meal.items) {
+      final food = await getFoodById(item.foodId);
+      if (food != null) {
+        foodItems.add((food: food, grams: item.grams));
+      }
+    }
+    await addMultipleEntries(items: foodItems, mealType: mealType, date: date);
   }
 
   Future<void> deleteEntry(String entryId) async {
@@ -1216,9 +1337,9 @@ class DietProvider with ChangeNotifier {
         calculatedKcal: (kcal * scale).isNaN || (kcal * scale).isInfinite
             ? 0
             : kcal * scale,
-        protein: (protein * scale).isNaN ? 0 : protein * scale,
-        carb: (carbs * scale).isNaN ? 0 : carbs * scale,
-        fat: (fat * scale).isNaN ? 0 : fat * scale,
+        protein: _safeDouble(protein * scale),
+        carb: _safeDouble(carbs * scale),
+        fat: _safeDouble(fat * scale),
         createdAt: DateTime.now(),
       );
       await _diaryRepo.addEntry(entry);
@@ -1579,6 +1700,7 @@ class DietProvider with ChangeNotifier {
     final useQuery = searchQuery != null && searchQuery.isNotEmpty;
     final allowTreats = _queryExplicitlyAllowsTreats(searchQuery);
     final cats = _mealCategories(mealType);
+    final dislikedIds = StorageHelper.getDislikedFoodIds().toSet();
 
     try {
       final recentSignals = await _buildRecentPreferenceSignals();
@@ -1616,6 +1738,7 @@ class DietProvider with ChangeNotifier {
       final List<_ScoredSuggestion> scored = [];
 
       for (final item in pool) {
+        if (dislikedIds.contains(item.id)) continue;
         if (!_matchesNutritionPreferences(item)) {
           continue;
         }
@@ -1790,49 +1913,121 @@ class DietProvider with ChangeNotifier {
                 item.fatPer100g <= 15) {
               reasons.add('Dengeyi korumak için ideal seçim');
             }
+            break;
           case null:
             break;
         }
 
-        // 9. Öğün tipine göre uyum bonusu + saat bazlı ağırlık
+        // 9. Çevresel Faktörler (Hava / Mevsimsel)
+        final month = DateTime.now().month;
         final hour = DateTime.now().hour;
+        final lowerName = _norm(item.name);
+        if (month >= 5 && month <= 9) {
+          // Yaz ve sıcak aylar
+          if (lowerName.contains('soguk') ||
+              lowerName.contains('smoothie') ||
+              lowerName.contains('salata') ||
+              item.category == 'Meyve') {
+            score += 25;
+            if (!reasons.contains('Hava sıcak; ferahlatıcı bir seçenek.')) {
+              reasons.add('Hava sıcak; ferahlatıcı bir seçenek.');
+            }
+          }
+        } else if (month >= 11 || month <= 3) {
+          // Kış ve soğuk aylar
+          if (lowerName.contains('sicak') ||
+              lowerName.contains('corba') ||
+              lowerName.contains('firin') ||
+              item.category.contains('Sulu Yemek')) {
+            score += 25;
+            if (!reasons.contains('Soğuk havalar için sıcak bir alternatif.')) {
+              reasons.add('Soğuk havalar için sıcak bir alternatif.');
+            }
+          }
+        }
+
+        // Gece geç saatler (Sirkadiyen Ritim Uyumlu)
+        if (hour >= 21) {
+          if (item.kcalPer100g > 250) {
+            score -= 60; // Geç saatte ağır şeyleri engelle
+          } else if (item.kcalPer100g < 120 &&
+              !lowerName.contains('kahve') &&
+              !lowerName.contains('kafein')) {
+            score += 35;
+            if (!reasons.contains(
+              'Geç saatler için uyku kaçırmayan, hafif bir atıştırmalık.',
+            )) {
+              reasons.add(
+                'Geç saatler için uyku kaçırmayan, hafif bir atıştırmalık.',
+              );
+            }
+          }
+        }
+
+        // 9. Öğün tipine göre uyum bonusu + saat bazlı ağırlık
         switch (mealType) {
           case MealType.breakfast:
-            if (item.carbPer100g >= 20) { score += 12; }
+            if (item.carbPer100g >= 20) {
+              score += 12;
+            }
             if (item.category.contains('Süt') ||
-                item.category.contains('Kahvaltı')) { score += 10; }
-            if (item.proteinPer100g >= 15) { score += 8; }
+                item.category.contains('Kahvaltı')) {
+              score += 10;
+            }
+            if (item.proteinPer100g >= 15) {
+              score += 8;
+            }
             // Sabah saati (07-10) kahvaltı kategorisi boost
             if (hour >= 7 && hour <= 10) {
-              if (item.category.contains('Kahvaltı') || item.category.contains('Süt')) {
+              if (item.category.contains('Kahvaltı') ||
+                  item.category.contains('Süt')) {
                 score += 15;
               }
             }
             break;
           case MealType.dinner:
-            if (item.kcalPer100g > 350) { score -= 18; }
-            if (item.proteinPer100g >= 15 && item.kcalPer100g <= 220) { score += 14; }
+            if (item.kcalPer100g > 350) {
+              score -= 18;
+            }
+            if (item.proteinPer100g >= 15 && item.kcalPer100g <= 220) {
+              score += 14;
+            }
             if (item.category.contains('Çorba') ||
-                item.category.contains('Sebze')) { score += 8; }
-            if (item.fatPer100g <= 10 && item.proteinPer100g >= 10) { score += 8; }
+                item.category.contains('Sebze')) {
+              score += 8;
+            }
+            if (item.fatPer100g <= 10 && item.proteinPer100g >= 10) {
+              score += 8;
+            }
             // Geç akşam (21+) ağır yiyeceklere ek ceza, hafife bonus
             if (hour >= 21) {
-              if (item.kcalPer100g > 400) { score -= 20; }
+              if (item.kcalPer100g > 400) {
+                score -= 20;
+              }
               if (item.kcalPer100g <= 150 && item.proteinPer100g >= 10) {
                 score += 18;
-                if (reasons.length < 3) reasons.add('Geç saatte hafif ve doyurucu');
+                if (reasons.length < 3) {
+                  reasons.add('Geç saatte hafif ve doyurucu');
+                }
               }
             }
             break;
           case MealType.snack:
-            if (item.kcalPer100g > 300) { score -= 20; }
-            if (item.kcalPer100g <= 100) { score += 15; }
+            if (item.kcalPer100g > 300) {
+              score -= 20;
+            }
+            if (item.kcalPer100g <= 100) {
+              score += 15;
+            }
             if (item.category.contains('Meyve') ||
-                item.category.contains('Kuruyemiş')) { score += 12; }
+                item.category.contains('Kuruyemiş')) {
+              score += 12;
+            }
             break;
           case MealType.lunch:
             // Öğle için sebze ve bakliyat bonusu
-            if (item.category.contains('Sebze') || item.category.contains('Salata')) {
+            if (item.category.contains('Sebze') ||
+                item.category.contains('Salata')) {
               score += 8;
             }
             break;
@@ -1840,10 +2035,13 @@ class DietProvider with ChangeNotifier {
 
         // 10. Protein verimi bonusu (protein / kalori oranı)
         if (item.kcalPer100g > 0) {
-          final proteinEfficiency = item.proteinPer100g / item.kcalPer100g * 100;
+          final proteinEfficiency =
+              item.proteinPer100g / item.kcalPer100g * 100;
           if (proteinEfficiency >= 40) {
             score += 32;
-            if (reasons.length < 3) reasons.add('Kaloriye göre protein verimi çok yüksek');
+            if (reasons.length < 3) {
+              reasons.add('Kaloriye göre protein verimi çok yüksek');
+            }
           } else if (proteinEfficiency >= 25) {
             score += 16;
             if (reasons.length < 3) reasons.add('Verimli protein kaynağı');
@@ -1852,9 +2050,12 @@ class DietProvider with ChangeNotifier {
 
         // 11. Sebze / bakliyat mikro besin bonusu (dengeli modda)
         if (_suggestionMode == SuggestionMode.balanced) {
-          final isVeg = item.category.contains('Sebze') || item.category.contains('Salata');
+          final isVeg =
+              item.category.contains('Sebze') ||
+              item.category.contains('Salata');
           final nameNorm = _norm(item.name);
-          final isLegume = item.category.contains('Bakliyat') ||
+          final isLegume =
+              item.category.contains('Bakliyat') ||
               nameNorm.contains('mercimek') ||
               nameNorm.contains('nohut') ||
               nameNorm.contains('fasulye') ||
@@ -1984,6 +2185,9 @@ class DietProvider with ChangeNotifier {
     }
   }
 
+  static double _safeDouble(double v) =>
+      v.isNaN || v.isInfinite ? 0.0 : v;
+
   static const Set<String> _porkTokens = {
     'domuz',
     'pork',
@@ -1997,31 +2201,134 @@ class DietProvider with ChangeNotifier {
   };
 
   static const Set<String> _meatTokens = {
-    'et', 'etli', 'kirmizi et', 'beef', 'veal', 'lamb', 'kuzu', 'kuzulu', 'dana', 'danali',
-    'tavuk', 'tavuklu', 'chicken', 'hindi', 'turkey', 'balik', 'balikli', 'fish',
-    'somon', 'ton baligi', 'tuna', 'shrimp', 'karides', 'anchovy', 'hamsi',
-    'meat', 'kofte', 'kebap', 'kavurma', 'sosis', 'sucuk', 'salam', 'pastirma', 'biftek', 'antrikot'
+    'et',
+    'etli',
+    'kirmizi et',
+    'beef',
+    'veal',
+    'lamb',
+    'kuzu',
+    'kuzulu',
+    'dana',
+    'danali',
+    'tavuk',
+    'tavuklu',
+    'chicken',
+    'hindi',
+    'turkey',
+    'balik',
+    'balikli',
+    'fish',
+    'somon',
+    'ton baligi',
+    'tuna',
+    'shrimp',
+    'karides',
+    'anchovy',
+    'hamsi',
+    'meat',
+    'kofte',
+    'kebap',
+    'kavurma',
+    'sosis',
+    'sucuk',
+    'salam',
+    'pastirma',
+    'biftek',
+    'antrikot',
   };
 
   static const Set<String> _veganExtraTokens = {
-    'yumurta', 'yumurtali', 'egg', 'sut', 'sutlu', 'milk', 'peynir', 'peynirli', 
-    'cheese', 'yogurt', 'yogurtlu', 'ayran', 'kefir', 'butter', 'tereyagi', 
-    'tereyagli', 'cream', 'krema', 'kremali', 'whey', 'bal', 'balli', 'honey', 
-    'sutlac', 'kasein', 'casein'
+    'yumurta',
+    'yumurtali',
+    'egg',
+    'sut',
+    'sutlu',
+    'milk',
+    'peynir',
+    'peynirli',
+    'cheese',
+    'yogurt',
+    'yogurtlu',
+    'ayran',
+    'kefir',
+    'butter',
+    'tereyagi',
+    'tereyagli',
+    'cream',
+    'krema',
+    'kremali',
+    'whey',
+    'bal',
+    'balli',
+    'honey',
+    'sutlac',
+    'kasein',
+    'casein',
   };
 
   static const Set<String> _lactoseTokens = {
-    'sut', 'sutlu', 'milk', 'peynir', 'peynirli', 'cheese', 'yogurt', 'yogurtlu',
-    'ayran', 'kefir', 'whey', 'cream', 'krema', 'kremali', 'tereyagi', 'tereyagli', 
-    'butter', 'sutlac', 'kasein', 'casein'
+    'sut',
+    'sutlu',
+    'milk',
+    'peynir',
+    'peynirli',
+    'cheese',
+    'yogurt',
+    'yogurtlu',
+    'ayran',
+    'kefir',
+    'whey',
+    'cream',
+    'krema',
+    'kremali',
+    'tereyagi',
+    'tereyagli',
+    'butter',
+    'sutlac',
+    'kasein',
+    'casein',
   };
 
   static const Set<String> _glutenTokens = {
-    'bugday', 'wheat', 'arpa', 'barley', 'cavdar', 'rye', 'bulgur', 'makarna',
-    'pasta', 'bread', 'ekmek', 'lavas', 'lavash', 'durum', 'wrap', 'noodle',
-    'sehriye', 'un', 'unlu', 'borek', 'pogaca', 'simit', 'kraker', 'biskuvi',
-    'kek', 'kurabiye', 'pizza', 'pide', 'lahmacun', 'waffle', 'krep', 'pancake',
-    'kruvasan', 'tart', 'gevrek', 'galeta', 'manti', 'eriste'
+    'bugday',
+    'wheat',
+    'arpa',
+    'barley',
+    'cavdar',
+    'rye',
+    'bulgur',
+    'makarna',
+    'pasta',
+    'bread',
+    'ekmek',
+    'lavas',
+    'lavash',
+    'durum',
+    'wrap',
+    'noodle',
+    'sehriye',
+    'un',
+    'unlu',
+    'borek',
+    'pogaca',
+    'simit',
+    'kraker',
+    'biskuvi',
+    'kek',
+    'kurabiye',
+    'pizza',
+    'pide',
+    'lahmacun',
+    'waffle',
+    'krep',
+    'pancake',
+    'kruvasan',
+    'tart',
+    'gevrek',
+    'galeta',
+    'manti',
+    'eriste',
   };
 
   bool _matchesNutritionPreferences(FoodItem item) {
@@ -2031,7 +2338,10 @@ class DietProvider with ChangeNotifier {
         ' ${_norm([item.name, item.category, ...item.aliases, ...item.tags].join(' '))} ';
 
     // Etsiz veya vegan/bitkisel olarak isimlendirilmiş ürünler için basit bayrak
-    final isEtsizOrVegan = haystack.contains(' etsiz ') || haystack.contains(' vegan ') || haystack.contains(' bitkisel ');
+    final isEtsizOrVegan =
+        haystack.contains(' etsiz ') ||
+        haystack.contains(' vegan ') ||
+        haystack.contains(' bitkisel ');
 
     bool containsAny(Set<String> tokens) {
       for (final token in tokens) {
@@ -2043,24 +2353,31 @@ class DietProvider with ChangeNotifier {
     }
 
     if (prefs.excludePork && containsAny(_porkTokens)) return false;
-    
-    if (prefs.vegetarian && !isEtsizOrVegan && containsAny(_meatTokens.union(_porkTokens))) {
+
+    if (prefs.vegetarian &&
+        !isEtsizOrVegan &&
+        containsAny(_meatTokens.union(_porkTokens))) {
       return false;
     }
-    
-    if (prefs.vegan && !isEtsizOrVegan &&
+
+    if (prefs.vegan &&
+        !isEtsizOrVegan &&
         containsAny(_meatTokens.union(_porkTokens).union(_veganExtraTokens))) {
       return false;
     }
-    
-    if (prefs.lactoseFree && !haystack.contains(' laktozsuz ') && containsAny(_lactoseTokens)) {
+
+    if (prefs.lactoseFree &&
+        !haystack.contains(' laktozsuz ') &&
+        containsAny(_lactoseTokens)) {
       return false;
     }
-    
-    if (prefs.glutenFree && !haystack.contains(' glutensiz ') && containsAny(_glutenTokens)) {
+
+    if (prefs.glutenFree &&
+        !haystack.contains(' glutensiz ') &&
+        containsAny(_glutenTokens)) {
       return false;
     }
-    
+
     return true;
   }
 

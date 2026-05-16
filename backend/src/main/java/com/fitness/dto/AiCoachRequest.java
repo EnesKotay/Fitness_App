@@ -1,10 +1,13 @@
 package com.fitness.dto;
 
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public class AiCoachRequest {
     public String goal;
     public DailySummaryDto dailySummary;
+
+    @Size(max = 2000, message = "Soru en fazla 2000 karakter olabilir.")
     public String question;
     /** Optional: motivator | scientist | supportive – affects coach tone in prompt */
     public String personality;
@@ -19,6 +22,7 @@ public class AiCoachRequest {
 
     public static class ConversationTurn {
         public String role;    // "user" | "assistant"
+        @Size(max = 4000)
         public String content;
     }
 
@@ -52,5 +56,7 @@ public class AiCoachRequest {
         public String userGender;
         public String activityLevel;
         public Integer tdee;
+        public String workoutLocation;
+        public String equipmentType;
     }
 }

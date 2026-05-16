@@ -5,16 +5,20 @@ import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+enum HistoryFilter { all, changesOnly, manualOnly }
+
 class HistoryList extends StatelessWidget {
   final WeightProvider provider;
   final Function(WeightEntry) onDelete;
   final Function(WeightEntry)? onEdit;
+  final HistoryFilter filter;
 
   const HistoryList({
     super.key,
     required this.provider,
     required this.onDelete,
     this.onEdit,
+    this.filter = HistoryFilter.all,
   });
 
   /// Kilo gösterimi için güvenli format (taşma ve float gürültüsü önlenir).
@@ -43,7 +47,9 @@ class HistoryList extends StatelessWidget {
 
   static bool isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   static bool isSameDay(DateTime a, DateTime b) {
@@ -51,16 +57,39 @@ class HistoryList extends StatelessWidget {
   }
 
   /// Tüm kayıtları döndürür (en yeni en üstte).
-  static List<WeightEntry> entriesWithWeightChange(List<WeightEntry> entries) {
-    return entries; // Artık filtreleme yapmıyoruz, her gelişim değerli.
+  static List<WeightEntry> entriesWithWeightChange(
+    List<WeightEntry> entries, {
+    HistoryFilter filter = HistoryFilter.all,
+  }) {
+    final visible = <WeightEntry>[];
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final previousVisible = visible.isNotEmpty ? visible.last : null;
+      final isAutoProfileUpdate =
+          entry.note?.toLowerCase().contains('profil güncellendi') ?? false;
+      final repeatsVisibleWeight =
+          previousVisible != null &&
+          (entry.weightKg - previousVisible.weightKg).abs() < 0.05;
+      if (isAutoProfileUpdate && repeatsVisibleWeight) continue;
+      if (filter == HistoryFilter.manualOnly && isAutoProfileUpdate) continue;
+      if (filter == HistoryFilter.changesOnly && i < entries.length - 1) {
+        final olderEntry = entries[i + 1];
+        if ((entry.weightKg - olderEntry.weightKg).abs() < 0.05) continue;
+      }
+      visible.add(entry);
+    }
+    return visible;
   }
 
   @override
   Widget build(BuildContext context) {
-    final entries = entriesWithWeightChange(provider.entries);
+    final entries = entriesWithWeightChange(provider.entries, filter: filter);
     if (entries.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
+    final latestWeightChanged =
+        entries.length < 2 ||
+        (entries.first.weightKg - entries[1].weightKg).abs() >= 0.05;
 
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -69,11 +98,11 @@ class HistoryList extends StatelessWidget {
           final entry = entries[index];
           final isLast = index == entries.length - 1;
           final isFirst = index == 0;
-          final showDateLabel = index == 0 ||
-              !isSameDay(entries[index - 1].date, entry.date);
+          final showDateLabel =
+              index == 0 || !isSameDay(entries[index - 1].date, entry.date);
           // Bir sonraki (daha eski) kayda göre fark: pozitif = kilo almış, negatif = vermiş
           double? diff;
-          if (index < entries.length - 1) {
+          if (latestWeightChanged && index < entries.length - 1) {
             final olderEntry = entries[index + 1];
             diff = entry.weightKg - olderEntry.weightKg;
             if (diff.abs() < 0.05) diff = null;
@@ -184,219 +213,236 @@ class _HistoryListItem extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: null,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: null,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: showToday
-                          ? AppColors.primary.withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.06),
-                      width: 1,
-                    ),
-                    color: showToday
-                        ? AppColors.primary.withValues(alpha: 0.06)
-                        : Colors.white.withValues(alpha: 0.04),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (showToday)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.25),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Bugün',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primaryLight,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (showDateLabel) ...[
-                              Text(
-                                dateStr,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  letterSpacing: -0.2,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                weekdayStr,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.5),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ] else ...[
-                              const SizedBox(height: 18),
-                            ],
-                            if (entry.note != null && entry.note!.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(Icons.notes_rounded, size: 12, color: Colors.white38),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      entry.note!,
-                                      style: const TextStyle(
-                                        color: Colors.white38,
-                                        fontSize: 12,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            if (diffValue != null && diffValue.abs() >= 0.05) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    diffValue < 0
-                                        ? Icons.trending_down_rounded
-                                        : Icons.trending_up_rounded,
-                                    size: 14,
-                                    color: diffValue < 0
-                                        ? AppColors.success
-                                        : AppColors.warning,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    diffValue < 0
-                                        ? '${(-diffValue).toStringAsFixed(1)} kg'
-                                        : '+${diffValue.toStringAsFixed(1)} kg',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: diffValue < 0
-                                          ? AppColors.success
-                                          : AppColors.warning,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    diffValue < 0 ? 'verdi' : 'aldı',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white.withValues(alpha: 0.5),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: showToday
+                              ? AppColors.primary.withValues(alpha: 0.25)
+                              : Colors.white.withValues(alpha: 0.06),
+                          width: 1,
                         ),
+                        color: showToday
+                            ? AppColors.primary.withValues(alpha: 0.06)
+                            : Colors.white.withValues(alpha: 0.04),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
                         children: [
-                          Text(
-                            weightStr,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 20,
-                              letterSpacing: -0.5,
-                              height: 1.0,
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showToday)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Bugün',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primaryLight,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (showDateLabel) ...[
+                                  Text(
+                                    dateStr,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      letterSpacing: -0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    weekdayStr,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 18),
+                                ],
+                                if (entry.note != null &&
+                                    entry.note!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.notes_rounded,
+                                        size: 12,
+                                        color: Colors.white38,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          entry.note!,
+                                          style: const TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                                if (diffValue != null &&
+                                    diffValue.abs() >= 0.05) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        diffValue < 0
+                                            ? Icons.trending_down_rounded
+                                            : Icons.trending_up_rounded,
+                                        size: 14,
+                                        color: diffValue < 0
+                                            ? AppColors.success
+                                            : AppColors.warning,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        diffValue < 0
+                                            ? '${(-diffValue).toStringAsFixed(1)} kg'
+                                            : '+${diffValue.toStringAsFixed(1)} kg',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: diffValue < 0
+                                              ? AppColors.success
+                                              : AppColors.warning,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        diffValue < 0 ? 'verdi' : 'aldı',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                          Text(
-                            'kg',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                weightStr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 20,
+                                  letterSpacing: -0.5,
+                                  height: 1.0,
+                                ),
+                              ),
+                              Text(
+                                'kg',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 4),
+                          if (onEdit != null)
+                            Tooltip(
+                              message: 'Düzenle',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: onEdit,
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8),
+                                    child: Icon(
+                                      Icons.edit_rounded,
+                                      size: 18,
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Tooltip(
+                            message: 'Kaydı sil',
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: onDelete,
+                                borderRadius: BorderRadius.circular(10),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 20,
+                                    color: Colors.white.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(width: 4),
-                      if (onEdit != null)
-                        Tooltip(
-                          message: 'Düzenle',
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: onEdit,
-                              borderRadius: BorderRadius.circular(10),
-                              child: Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Icon(
-                                  Icons.edit_rounded,
-                                  size: 18,
-                                  color: AppColors.primary.withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      Tooltip(
-                        message: 'Kaydı sil',
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: onDelete,
-                            borderRadius: BorderRadius.circular(10),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                size: 20,
-                                color: Colors.white.withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ).animate().fadeIn(
-                duration: 350.ms,
-                delay: (30 * index).clamp(0, 300).ms,
-              ).slideX(begin: 0.02, end: 0, curve: Curves.easeOut),
+              )
+              .animate()
+              .fadeIn(duration: 350.ms, delay: (30 * index).clamp(0, 300).ms)
+              .slideX(begin: 0.02, end: 0, curve: Curves.easeOut),
         ],
       ),
     );

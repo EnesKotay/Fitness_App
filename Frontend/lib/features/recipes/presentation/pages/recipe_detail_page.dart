@@ -286,77 +286,79 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 const AmbientGlowBackground(),
                 CustomScrollView(
                   physics: const BouncingScrollPhysics(),
-                slivers: [
-                  _buildHeroSliver(
-                    context,
-                    recipe,
-                    color,
-                    topPad,
-                    isFav,
-                    recipeProvider,
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildRecipeSnapshot(recipe, color, factor)
-                        .animate(delay: 40.ms)
-                        .fadeIn(duration: 280.ms)
-                        .slideY(begin: 0.05, end: 0),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildGoalBadge(
-                      goalCompat,
-                      recipeKcal,
-                      remaining,
-                    ).animate(delay: 80.ms).fadeIn(duration: 280.ms),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildPortionBar(recipe, color, factor)
-                        .animate(delay: 120.ms)
-                        .fadeIn(duration: 300.ms)
-                        .slideY(begin: 0.06, end: 0),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildMacroBar(recipe, color, factor)
-                        .animate(delay: 160.ms)
-                        .fadeIn(duration: 320.ms)
-                        .slideY(begin: 0.06, end: 0),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildTimeTagRow(
+                  slivers: [
+                    _buildHeroSliver(
+                      context,
                       recipe,
                       color,
-                    ).animate(delay: 200.ms).fadeIn(duration: 320.ms),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildIngredients(
-                      recipe,
-                      color,
-                    ).animate(delay: 240.ms).fadeIn(duration: 320.ms),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildSteps(
-                      recipe,
-                      color,
-                    ).animate(delay: 280.ms).fadeIn(duration: 320.ms),
-                  ),
-                  if (similar.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: _buildSimilarRecipes(
-                        context,
-                        similar,
-                        recipeProvider,
-                      ).animate(delay: 320.ms).fadeIn(duration: 320.ms),
+                      topPad,
+                      isFav,
+                      recipeProvider,
                     ),
-                  SliverToBoxAdapter(child: SizedBox(height: bottomPad + 100)),
-                ],
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomBar(color, bottomPad),
-              ),
-            ],
-          ),
+                    SliverToBoxAdapter(
+                      child: _buildRecipeSnapshot(recipe, color, factor)
+                          .animate(delay: 40.ms)
+                          .fadeIn(duration: 280.ms)
+                          .slideY(begin: 0.05, end: 0),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildGoalBadge(
+                        goalCompat,
+                        recipeKcal,
+                        remaining,
+                      ).animate(delay: 80.ms).fadeIn(duration: 280.ms),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildPortionBar(recipe, color, factor)
+                          .animate(delay: 120.ms)
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.06, end: 0),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildMacroBar(recipe, color, factor)
+                          .animate(delay: 160.ms)
+                          .fadeIn(duration: 320.ms)
+                          .slideY(begin: 0.06, end: 0),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildTimeTagRow(
+                        recipe,
+                        color,
+                      ).animate(delay: 200.ms).fadeIn(duration: 320.ms),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildIngredients(
+                        recipe,
+                        color,
+                      ).animate(delay: 240.ms).fadeIn(duration: 320.ms),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildSteps(
+                        recipe,
+                        color,
+                      ).animate(delay: 280.ms).fadeIn(duration: 320.ms),
+                    ),
+                    if (similar.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: _buildSimilarRecipes(
+                          context,
+                          similar,
+                          recipeProvider,
+                        ).animate(delay: 320.ms).fadeIn(duration: 320.ms),
+                      ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: bottomPad + 100),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildBottomBar(color, bottomPad),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -497,12 +499,17 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
               right: 64,
               child: GestureDetector(
                 onTap: () {
-                  final text = 'Harika bir tarif buldum: ${recipe.name}! 🍲\n\n'
+                  final text =
+                      'Harika bir tarif buldum: ${recipe.name}! 🍲\n\n'
                       'Sadece ${recipe.kcalPerServing.toInt()} kcal ve ${recipe.proteinPerServing.toInt()}g protein içeriyor.\n\n'
-                      'Hemen FitMentor\'da dene!';
+                      'Hemen PusulaFit\'te dene!';
                   final box = context.findRenderObject() as RenderBox?;
                   if (box != null) {
-                    Share.share(text, sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size);
+                    Share.share(
+                      text,
+                      sharePositionOrigin:
+                          box.localToGlobal(Offset.zero) & box.size,
+                    );
                   } else {
                     Share.share(text);
                   }

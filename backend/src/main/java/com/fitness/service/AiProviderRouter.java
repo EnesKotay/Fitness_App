@@ -1,9 +1,11 @@
 package com.fitness.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.jboss.logging.Logger;
 
+import com.fitness.dto.NutritionAiRequest;
 import com.fitness.entity.User;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -66,15 +68,48 @@ public class AiProviderRouter {
             String fallbackModel,
             String prompt,
             boolean expectJson) {
+        return generateText(endpointName, userId, primaryModel, fallbackModel, prompt, null, expectJson, null);
+    }
+
+    public GeminiClientResult generateText(
+            String endpointName,
+            Long userId,
+            String primaryModel,
+            String fallbackModel,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            boolean expectJson) {
+        return generateText(endpointName, userId, primaryModel, fallbackModel, prompt, history, expectJson, null);
+    }
+
+    /**
+     * Route text generation with optional conversation history for multi-turn context.
+     * History is used by Claude as actual message turns; Gemini receives it in the prompt.
+     */
+    public GeminiClientResult generateText(
+            String endpointName,
+            Long userId,
+            String primaryModel,
+            String fallbackModel,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            boolean expectJson,
+            com.fasterxml.jackson.databind.JsonNode tools) {
 
         if (isPremium(userId) && claudeClient.isAvailable()) {
-            LOG.infof("Routing to Claude (premium) endpoint=%s userId=%d", endpointName, userId);
-            return claudeClient.generateText(endpointName, userId, prompt, expectJson);
+            LOG.infof("Routing to Claude (premium) endpoint=%s userId=%d historyTurns=%d",
+                    endpointName, userId, history != null ? history.size() : 0);
+            GeminiClientResult claudeResult = claudeClient.generateText(endpointName, userId, prompt, history, expectJson);
+            if (claudeResult.isSuccess()) {
+                return claudeResult;
+            }
+            LOG.warnf("Claude failed (status=%d), falling back to Gemini endpoint=%s userId=%d",
+                    claudeResult.getStatusCode(), endpointName, userId);
         }
 
-        // Free tier → Gemini, or premium when Claude is not configured
+        // Free tier → Gemini, or premium when Claude is not configured/failed
         geminiClient.validateApiKey();
-        return geminiClient.generateText(endpointName, userId, primaryModel, fallbackModel, prompt, expectJson);
+        return geminiClient.generateText(endpointName, userId, primaryModel, fallbackModel, prompt, expectJson, tools);
     }
 
     /**
@@ -92,10 +127,15 @@ public class AiProviderRouter {
 
         if (isPremium(userId) && claudeClient.isAvailable()) {
             LOG.infof("Routing to Claude Vision (premium) endpoint=%s userId=%d", endpointName, userId);
-            return claudeClient.generateWithImage(endpointName, userId, prompt, imageBytes, mimeType, expectJson);
+            GeminiClientResult claudeResult = claudeClient.generateWithImage(endpointName, userId, prompt, imageBytes, mimeType, expectJson);
+            if (claudeResult.isSuccess()) {
+                return claudeResult;
+            }
+            LOG.warnf("Claude Vision failed (status=%d), falling back to Gemini endpoint=%s userId=%d",
+                    claudeResult.getStatusCode(), endpointName, userId);
         }
 
-        // Free tier → Gemini, or premium when Claude is not configured
+        // Free tier → Gemini, or premium when Claude is not configured/failed
         geminiClient.validateApiKey();
         return geminiClient.generateWithImage(
                 endpointName, userId, primaryModel, fallbackModel, prompt, imageBytes, mimeType, expectJson);

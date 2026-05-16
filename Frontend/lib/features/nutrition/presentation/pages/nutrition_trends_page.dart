@@ -922,8 +922,8 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
                         ],
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
-                            tooltipRoundedRadius: 10,
-                            tooltipBgColor: AppColors.surface.withValues(
+                            tooltipBorderRadius: BorderRadius.circular(10),
+                            getTooltipColor: (_) => AppColors.surface.withValues(
                               alpha: 0.92,
                             ),
                             getTooltipItems: (spots) => spots

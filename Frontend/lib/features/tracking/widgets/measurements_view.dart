@@ -156,8 +156,9 @@ class MeasurementsView extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
+              final provider = context.read<TrackingProvider>();
               Navigator.pop(ctx);
-              context.read<TrackingProvider>().deleteBodyMeasurement(m.userId, m.id);
+              provider.deleteBodyMeasurement(m.userId, m.id);
             },
             child: const Text('Sil', style: TextStyle(color: AppColors.error)),
           ),

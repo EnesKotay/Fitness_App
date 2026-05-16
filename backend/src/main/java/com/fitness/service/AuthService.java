@@ -1,17 +1,38 @@
 package com.fitness.service;
 
+import java.math.BigInteger;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.spec.RSAPublicKeySpec;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fitness.dto.AuthResponse;
 import com.fitness.dto.ChangePasswordRequest;
+import com.fitness.dto.ForgotPasswordRequest;
 import com.fitness.dto.LoginRequest;
 import com.fitness.dto.ProfileUpdateRequest;
 import com.fitness.dto.RegisterRequest;
+import com.fitness.dto.ResetPasswordRequest;
+import com.fitness.dto.SocialLoginRequest;
 import com.fitness.dto.UserResponse;
+import com.fitness.dto.VerifyResetCodeRequest;
 import com.fitness.dto.WeightRecordRequest;
 import com.fitness.entity.AiInsight;
 import com.fitness.entity.AiRateLimit;
@@ -24,9 +45,6 @@ import com.fitness.entity.WeightRecord;
 import com.fitness.entity.Workout;
 import com.fitness.repository.BodyMeasurementRepository;
 import com.fitness.repository.UserRepository;
-import com.fitness.dto.ForgotPasswordRequest;
-import com.fitness.dto.VerifyResetCodeRequest;
-import com.fitness.dto.ResetPasswordRequest;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -37,13 +55,17 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.mindrot.jbcrypt.BCrypt;
-import java.security.SecureRandom;
 
 @ApplicationScoped
 public class AuthService {
 
     private static final String HMAC_SHA256 = "HmacSHA256";
     private static final long JWT_LIFESPAN_MS = 7L * 24 * 3600 * 1000; // 7 gün
+    private static final String GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+    private static final String APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     @Inject
     UserRepository userRepository;
@@ -58,12 +80,23 @@ public class AuthService {
     Mailer mailer;
 
     @Inject
+    ObjectMapper objectMapper;
+
+    @Inject
     @ConfigProperty(name = "smallrye.jwt.sign.key")
     String jwtSignKey;
 
     @Inject
     @ConfigProperty(name = "app.auth.jwt.clock-skew-seconds", defaultValue = "5")
     long jwtClockSkewSeconds;
+
+    @Inject
+    @ConfigProperty(name = "app.auth.google.allowed-client-ids", defaultValue = "")
+    String googleAllowedClientIds;
+
+    @Inject
+    @ConfigProperty(name = "app.auth.apple.allowed-audiences", defaultValue = "com.eneskotay.pusulafit")
+    String appleAllowedAudiences;
 
     /**
      * Kullanıcı kaydı - şifre BCrypt ile hash'lenir, cevap JWT döner.
@@ -121,12 +154,267 @@ public class AuthService {
         return new AuthResponse(token, userResponse);
     }
 
+    /**
+     * Google / Apple kimlik token'ını doğrular, kullanıcıyı bulur/oluşturur ve
+     * uygulamanın kendi JWT oturumunu döner.
+     */
+    @Transactional
+    public AuthResponse socialLogin(SocialLoginRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Sosyal giriş verisi gerekli!");
+        }
+
+        String provider = request.provider == null ? "" : request.provider.trim().toLowerCase(Locale.ROOT);
+        SocialIdentity identity = switch (provider) {
+            case "google" -> verifyGoogleIdentityToken(request.idToken);
+            case "apple" -> verifyAppleIdentityToken(request.idToken, request.name);
+            default -> throw new RuntimeException("Desteklenmeyen sosyal giriş sağlayıcısı.");
+        };
+
+        if (!identity.emailVerified()) {
+            throw new RuntimeException("Sosyal giriş hesabının e-posta adresi doğrulanmamış.");
+        }
+
+        String emailNorm = identity.email() == null ? "" : identity.email().trim().toLowerCase(Locale.ROOT);
+        if (emailNorm.isBlank()) {
+            throw new RuntimeException("Sosyal giriş sağlayıcısı doğrulanmış bir e-posta döndürmedi.");
+        }
+
+        User user = userRepository.findByEmail(emailNorm);
+        if (user == null) {
+            user = new User();
+            user.email = emailNorm;
+            user.password = BCrypt.hashpw(generateRandomPassword(), BCrypt.gensalt());
+            user.name = resolveUserName(identity.name(), emailNorm);
+            userRepository.persist(user);
+        } else if ((user.name == null || user.name.isBlank()) && identity.name() != null && !identity.name().isBlank()) {
+            user.name = identity.name().trim();
+            userRepository.persist(user);
+        }
+
+        return new AuthResponse(buildJwt(user), toUserResponse(user));
+    }
+
     /** BCrypt hash "$2a$", "$2b$", "$2y$" ile başlar. */
     private static boolean isBcryptHash(String stored) {
         return stored != null && stored.length() >= 4
                 && stored.startsWith("$2")
                 && (stored.charAt(2) == 'a' || stored.charAt(2) == 'b' || stored.charAt(2) == 'y')
                 && stored.charAt(3) == '$';
+    }
+
+    private SocialIdentity verifyGoogleIdentityToken(String idToken) {
+        Claims claims = verifyThirdPartyIdToken(idToken, GOOGLE_JWKS_URL, List.of("RS256"));
+
+        if (!matchesIssuer(claims.getIssuer(), List.of("https://accounts.google.com", "accounts.google.com"))) {
+            throw new RuntimeException("Google kimlik doğrulaması başarısız: issuer geçersiz.");
+        }
+        if (!matchesAudience(claims.get("aud"), parseCsv(googleAllowedClientIds))) {
+            throw new RuntimeException("Google kimlik doğrulaması başarısız: audience eşleşmedi.");
+        }
+
+        String email = asTrimmedString(claims.get("email"));
+        boolean emailVerified = asBoolean(claims.get("email_verified"));
+        String name = asTrimmedString(claims.get("name"));
+        String subject = claims.getSubject();
+
+        if (subject == null || subject.isBlank()) {
+            throw new RuntimeException("Google kimlik doğrulaması başarısız: kullanıcı kimliği eksik.");
+        }
+
+        return new SocialIdentity(email, emailVerified, name, subject);
+    }
+
+    private SocialIdentity verifyAppleIdentityToken(String idToken, String requestedName) {
+        Claims claims = verifyThirdPartyIdToken(idToken, APPLE_JWKS_URL, List.of("RS256"));
+
+        if (!matchesIssuer(claims.getIssuer(), List.of("https://appleid.apple.com"))) {
+            throw new RuntimeException("Apple kimlik doğrulaması başarısız: issuer geçersiz.");
+        }
+        if (!matchesAudience(claims.get("aud"), parseCsv(appleAllowedAudiences))) {
+            throw new RuntimeException("Apple kimlik doğrulaması başarısız: audience eşleşmedi.");
+        }
+
+        String email = asTrimmedString(claims.get("email"));
+        boolean emailVerified = asBoolean(claims.get("email_verified"));
+        String name = requestedName == null ? null : requestedName.trim();
+        String subject = claims.getSubject();
+
+        if (subject == null || subject.isBlank()) {
+            throw new RuntimeException("Apple kimlik doğrulaması başarısız: kullanıcı kimliği eksik.");
+        }
+
+        return new SocialIdentity(email, emailVerified, name, subject);
+    }
+
+    private Claims verifyThirdPartyIdToken(String idToken, String jwksUrl, List<String> allowedAlgorithms) {
+        if (idToken == null || idToken.isBlank()) {
+            throw new RuntimeException("Kimlik token'ı boş.");
+        }
+
+        try {
+            JsonNode header = parseJwtSegment(idToken, 0);
+            String keyId = header.path("kid").asText("");
+            String algorithm = header.path("alg").asText("");
+            if (keyId.isBlank()) {
+                throw new RuntimeException("Token key id alanı eksik.");
+            }
+            if (!allowedAlgorithms.contains(algorithm)) {
+                throw new RuntimeException("Desteklenmeyen token algoritması: " + algorithm);
+            }
+
+            PublicKey publicKey = fetchRsaPublicKey(jwksUrl, keyId);
+            return Jwts.parser()
+                    .verifyWith(publicKey)
+                    .clockSkewSeconds(jwtClockSkewSeconds)
+                    .build()
+                    .parseSignedClaims(idToken)
+                    .getPayload();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Kimlik token'ı doğrulanamadı: " + e.getMessage());
+        }
+    }
+
+    private JsonNode parseJwtSegment(String token, int segmentIndex) throws Exception {
+        String[] parts = token.split("\\.");
+        if (parts.length != 3 || segmentIndex < 0 || segmentIndex > 2) {
+            throw new RuntimeException("Geçersiz JWT formatı.");
+        }
+
+        byte[] decoded = Base64.getUrlDecoder().decode(parts[segmentIndex]);
+        return objectMapper.readTree(decoded);
+    }
+
+    private PublicKey fetchRsaPublicKey(String jwksUrl, String keyId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(jwksUrl))
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+        HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new RuntimeException("Sağlayıcı anahtarları alınamadı (HTTP " + response.statusCode() + ").");
+        }
+
+        JsonNode root = objectMapper.readTree(response.body());
+        JsonNode keys = root.path("keys");
+        if (!keys.isArray()) {
+            throw new RuntimeException("Sağlayıcı anahtar listesi geçersiz.");
+        }
+
+        for (JsonNode keyNode : keys) {
+            if (keyId.equals(keyNode.path("kid").asText())) {
+                String modulus = keyNode.path("n").asText("");
+                String exponent = keyNode.path("e").asText("");
+                if (modulus.isBlank() || exponent.isBlank()) {
+                    throw new RuntimeException("Sağlayıcı anahtar verisi eksik.");
+                }
+
+                BigInteger n = new BigInteger(1, Base64.getUrlDecoder().decode(modulus));
+                BigInteger e = new BigInteger(1, Base64.getUrlDecoder().decode(exponent));
+                RSAPublicKeySpec spec = new RSAPublicKeySpec(n, e);
+                return KeyFactory.getInstance("RSA").generatePublic(spec);
+            }
+        }
+
+        throw new RuntimeException("İmzalama anahtarı bulunamadı.");
+    }
+
+    private boolean matchesIssuer(String actualIssuer, List<String> allowedIssuers) {
+        if (actualIssuer == null || actualIssuer.isBlank()) {
+            return false;
+        }
+        for (String allowedIssuer : allowedIssuers) {
+            if (actualIssuer.equals(allowedIssuer)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesAudience(Object audienceClaim, List<String> allowedAudiences) {
+        if (allowedAudiences.isEmpty()) {
+            throw new RuntimeException("Sosyal giriş audience ayarı eksik.");
+        }
+
+        List<String> actualAudiences = new ArrayList<>();
+        if (audienceClaim instanceof String audience) {
+            if (!audience.isBlank()) {
+                actualAudiences.add(audience);
+            }
+        } else if (audienceClaim instanceof Collection<?> collection) {
+            for (Object item : collection) {
+                String value = asTrimmedString(item);
+                if (value != null && !value.isBlank()) {
+                    actualAudiences.add(value);
+                }
+            }
+        }
+
+        for (String actual : actualAudiences) {
+            if (allowedAudiences.contains(actual)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> parseCsv(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+
+        List<String> values = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isBlank()) {
+                values.add(trimmed);
+            }
+        }
+        return values;
+    }
+
+    private String asTrimmedString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = value.toString().trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private boolean asBoolean(Object value) {
+        if (value instanceof Boolean boolValue) {
+            return boolValue;
+        }
+        if (value instanceof String stringValue) {
+            return "true".equalsIgnoreCase(stringValue.trim());
+        }
+        return false;
+    }
+
+    private String resolveUserName(String providerName, String email) {
+        if (providerName != null && !providerName.isBlank()) {
+            return providerName.trim();
+        }
+
+        String localPart = email;
+        int atIndex = email.indexOf('@');
+        if (atIndex > 0) {
+            localPart = email.substring(0, atIndex);
+        }
+
+        String normalized = localPart.replaceAll("[._-]+", " ").trim();
+        return normalized.isEmpty() ? "PusulaFit Kullanıcısı" : normalized;
+    }
+
+    private String generateRandomPassword() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private record SocialIdentity(String email, boolean emailVerified, String name, String subject) {
     }
 
     private String buildJwt(User user) {
@@ -339,13 +627,13 @@ public class AuthService {
         token.persist();
 
         // Email Gönder
-        String htmlBody = "<h2>FitMentor</h2>"
+        String htmlBody = "<h2>PusulaFit</h2>"
                 + "<p>Şifre sıfırlama talebinde bulundunuz.</p>"
                 + "<p>Doğrulama kodunuz: <b style='font-size:24px; color:#CC7A4A;'>" + code + "</b></p>"
                 + "<p>Kodunuz 15 dakika boyunca geçerlidir.</p>";
 
         try {
-            mailer.send(Mail.withHtml(user.email, "FitMentor Şifre Sıfırlama Kodu", htmlBody));
+            mailer.send(Mail.withHtml(user.email, "PusulaFit Şifre Sıfırlama Kodu", htmlBody));
         } catch (Exception e) {
             System.err.println("=== MAIL GONDERIM HATASI ===");
             e.printStackTrace();

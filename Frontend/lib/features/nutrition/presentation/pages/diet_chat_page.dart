@@ -44,33 +44,23 @@ class _DietChatPageState extends State<DietChatPage> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🤖',
-      title: 'Diyetisyene Sor (AI)',
+      title: 'AI Koç',
       description:
-          'Bu sayfa, senin doğal dilde konuşarak beslenme kaydı yapmanı ve tavsiye almanı sağlayan akıllı asistanındır.\n\n'
-          'Sadece bir şeyler yazıp göndererek yediklerini otomatik olarak kaydedebilir veya kalori/makro durumunu anında öğrenebilirsin.',
-      tip: 'Yemek aramakla vakit kaybetmek yerine, yediğin yemeği doğrudan buraya yazabilirsin.',
+          'Yediklerini yaz, kalori-makro durumunu sor veya öğün fikri al.',
+      tip: 'Örneğin: "Öğle yemeğine 200 g tavuk ekle".',
     ),
     GuideStep(
       emoji: '🍽️',
-      title: 'Doğal Dille Öğün Ekleme',
-      description:
-          'Yediklerini bir insanla konuşur gibi yaz:\n\n'
-          '• "Öğle yemeğine 1 porsiyon döner ve 1 bardak ayran ekle"\n'
-          '• "Sabah 2 yumurta, 5 zeytin ve 1 dilim kepek ekmek yedim"\n'
-          '• "Ara öğüne 1 elma ekler misin?"\n\n'
-          'AI yazdıklarını anlar, porsiyonları hesaplar ve ilgili öğüne anında ekler.',
-      tip: 'Eğer bir öğün ismi (sabah, öğle, akşam) belirtmezsen, AI o anki saate bakarak en uygun öğünü tahmin eder.',
+      title: 'Doğal Dille Öğün Ekle',
+      description: 'AI Koç porsiyonu hesaplar ve uygun öğüne kayıt açar.',
+      tip: 'Öğün adı yazmazsan günün saatine göre tahmin eder.',
     ),
     GuideStep(
       emoji: '📊',
-      title: 'Durum Özeti İsteme',
+      title: 'Günlük Özet',
       description:
-          'Gün içindeki durumunu merak ettiğinde sadece sor:\n\n'
-          '• "Bugün ne yedim?"\n'
-          '• "Kaç kalorim kaldı?"\n'
-          '• "Bugün yeterince protein aldım mı?"\n\n'
-          'Asistan sana o günkü makro dağılımını ve öğünlerinin detaylı bir özetini sunar.',
-      tip: 'Her akşam yatmadan önce "Bana günümün özetini ver" diyerek günü değerlendirebilirsin.',
+          'Bugün ne yediğini, ne kadar kalori kaldığını ve protein durumunu sor.',
+      tip: '"Bana günümün özetini ver" kısa ve yeterli.',
     ),
     GuideStep(
       emoji: '🔁',
@@ -81,7 +71,8 @@ class _DietChatPageState extends State<DietChatPage> {
           '• "İptal et"\n'
           '• "Geri al"\n\n'
           'Yazman yeterlidir. Sistem en son eklenen öğünü anında diyet listenden çıkarır.',
-      tip: 'Ayrıca eklenen tüm öğünleri "Ana Sayfa" veya "Beslenme" sekmesinden de manuel olarak düzenleyebilirsin.',
+      tip:
+          'Ayrıca eklenen tüm öğünleri "Ana Sayfa" veya "Beslenme" sekmesinden de manuel olarak düzenleyebilirsin.',
     ),
     GuideStep(
       emoji: '💡',
@@ -91,7 +82,8 @@ class _DietChatPageState extends State<DietChatPage> {
           '• "Kalan 400 kalorim için bol proteinli bir akşam yemeği öner"\n'
           '• "Canım tatlı çekiyor, düşük kalorili ne yiyebilirim?"\n\n'
           'Sana hedefine uygun tarifler ve yiyecek seçenekleri sunacaktır.',
-      tip: 'Üst menüdeki kısayol çipleriyle (Bugün ne yedim, Kalori açığım ne kadar vb.) tek dokunuşla hazır soruları gönderebilirsin.',
+      tip:
+          'Üst menüdeki kısayol çipleriyle (Bugün ne yedim, Kalori açığım ne kadar vb.) tek dokunuşla hazır soruları gönderebilirsin.',
     ),
   ];
 
@@ -236,9 +228,18 @@ class _DietChatPageState extends State<DietChatPage> {
     // Öğün tespiti: herhangi bir konumda öğün kelimesi ara
     MealType? type;
     final mealKeywords = [
-      'kahvaltı', 'öğle', 'öğleye', 'öğlene', 'öğlen',
-      'akşam', 'akşama', 'atıştırma', 'atıştırmalık',
-      'atıştırmalığa', 'ara öğün', 'snack',
+      'kahvaltı',
+      'öğle',
+      'öğleye',
+      'öğlene',
+      'öğlen',
+      'akşam',
+      'akşama',
+      'atıştırma',
+      'atıştırmalık',
+      'atıştırmalığa',
+      'ara öğün',
+      'snack',
     ];
     for (final kw in mealKeywords) {
       if (lower.contains(kw)) {
@@ -253,7 +254,11 @@ class _DietChatPageState extends State<DietChatPage> {
     var foodName = lower;
     // Çıkar: öğün ifadeleri
     for (final kw in [
-      'yemeğine', 'yemeği', 'öğününe', 'öğünüme', ...mealKeywords,
+      'yemeğine',
+      'yemeği',
+      'öğününe',
+      'öğünüme',
+      ...mealKeywords,
     ]) {
       foodName = foodName.replaceAll(kw, ' ');
     }
@@ -411,12 +416,19 @@ class _DietChatPageState extends State<DietChatPage> {
           'AI servisi şu an erişilemiyor. "Bugün ne yedim?" özeti ve manuel ekleme komutları çalışmaya devam ediyor.',
         );
       } else if (provider.aiService != null && provider.aiService!.isReady) {
-        final contextStr = provider.getDietContext();
+        final nutritionContext = provider.getNutritionAiContext();
+        final contextStr =
+            nutritionContext['summaryText'] as String? ??
+            provider.getDietContext();
         final aiService = provider.aiService!;
 
-        // Get structured response directly from aiService
+        // Get structured response with full nutrition context (goal, restrictions, today's foods)
         final structuredResponse = await aiService
-            .getStructuredNutritionResponse(text, contextStr);
+            .getStructuredNutritionResponse(
+              text,
+              contextStr,
+              nutritionContext: nutritionContext,
+            );
 
         final reply = structuredResponse.reply;
         if (reply != null && reply.isNotEmpty) {
@@ -447,7 +459,7 @@ class _DietChatPageState extends State<DietChatPage> {
         title: Row(
           children: [
             const Text(
-              'Beslenme Asistanı',
+              'AI Koç',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -485,7 +497,7 @@ class _DietChatPageState extends State<DietChatPage> {
           IconButton(
             icon: const Icon(Icons.help_outline_rounded, color: Colors.white70),
             onPressed: () => _showAssistantInfoSheet(context),
-            tooltip: 'Hangi Asistan?',
+            tooltip: 'AI Koç hakkında',
           ),
         ],
       ),
@@ -509,7 +521,7 @@ class _DietChatPageState extends State<DietChatPage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Premium aktif. AI diyet sohbeti tam erişimle açık.',
+                      'Premium aktif. AI Koç tam erişimle açık.',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.82),
                         fontSize: 12.5,
@@ -561,7 +573,10 @@ class _DietChatPageState extends State<DietChatPage> {
                 ? _buildEmptyState()
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 24,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (_, i) {
                       final m = _messages[i];
@@ -599,7 +614,10 @@ class _DietChatPageState extends State<DietChatPage> {
                   ),
                   const SizedBox(width: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.06),
                       borderRadius: const BorderRadius.only(
@@ -756,9 +774,7 @@ class _DietChatPageState extends State<DietChatPage> {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: TextField(
                 controller: _controller,
@@ -786,7 +802,10 @@ class _DietChatPageState extends State<DietChatPage> {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
+                colors: [
+                  AppColors.primary,
+                  AppColors.primary.withValues(alpha: 0.8),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -801,7 +820,11 @@ class _DietChatPageState extends State<DietChatPage> {
             ),
             child: IconButton(
               onPressed: _loading ? null : _handleSend,
-              icon: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 22),
+              icon: const Icon(
+                Icons.arrow_upward_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
               tooltip: 'Gönder',
             ),
           ),
@@ -862,7 +885,9 @@ class _DietChatPageState extends State<DietChatPage> {
                           end: Alignment.bottomRight,
                         )
                       : null,
-                  color: !m.isUser ? Colors.white.withValues(alpha: 0.08) : null,
+                  color: !m.isUser
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : null,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(20),
                     topRight: const Radius.circular(20),
@@ -881,7 +906,7 @@ class _DietChatPageState extends State<DietChatPage> {
                             color: AppColors.primary.withValues(alpha: 0.2),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
-                          )
+                          ),
                         ]
                       : [],
                 ),
@@ -1277,7 +1302,7 @@ class _DietChatPageState extends State<DietChatPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${meal.name} ($grams.toInt()g) $mealType\'e eklendi',
+              '${meal.name} (${grams.toInt()}g) ${mealType}e eklendi',
             ),
             backgroundColor: Colors.green,
           ),
@@ -1345,7 +1370,7 @@ class _DietChatPageState extends State<DietChatPage> {
                 const SizedBox(width: 16),
                 const Expanded(
                   child: Text(
-                    'Hangi Asistanı Kullanmalıyım?',
+                    'AI Koç Nerede Kullanılır?',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -1358,7 +1383,7 @@ class _DietChatPageState extends State<DietChatPage> {
             const SizedBox(height: 24),
             _buildInfoRow(
               icon: Icons.restaurant_menu_rounded,
-              title: 'Beslenme Asistanı (Şu An Buradasın)',
+              title: 'AI Koç - Beslenme',
               desc:
                   'Sadece yediklerine odaklanır. Yediğin yemekleri listene ekler, porsiyon hesaplar ve kalori/makro durumunu anında özetler.',
               color: AppColors.primaryLight,
@@ -1366,7 +1391,7 @@ class _DietChatPageState extends State<DietChatPage> {
             const SizedBox(height: 16),
             _buildInfoRow(
               icon: Icons.fitness_center_rounded,
-              title: 'Ana AI Koç (Ana Ekrandadır)',
+              title: 'AI Koç - Genel',
               desc:
                   'Tüm fitness serüvenini takip eder. Antrenman programını değiştirir, vücut ölçülerini analiz eder ve sana genel motivasyon sağlar.',
               color: const Color(0xFF10B981), // Zümrüt yeşili

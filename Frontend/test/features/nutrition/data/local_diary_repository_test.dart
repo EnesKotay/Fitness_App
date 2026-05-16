@@ -1,10 +1,10 @@
-import 'package:fitness/core/models/meal.dart';
-import 'package:fitness/core/models/meal_models.dart';
-import 'package:fitness/features/nutrition/data/datasources/hive_diet_storage.dart';
-import 'package:fitness/features/nutrition/data/repositories/local_diary_repository.dart';
-import 'package:fitness/features/nutrition/domain/entities/food_entry.dart';
-import 'package:fitness/features/nutrition/domain/entities/meal_type.dart';
-import 'package:fitness/features/nutrition/domain/entities/user_profile.dart';
+import 'package:pusulafit/core/models/meal.dart';
+import 'package:pusulafit/core/models/meal_models.dart';
+import 'package:pusulafit/features/nutrition/data/datasources/hive_diet_storage.dart';
+import 'package:pusulafit/features/nutrition/data/repositories/local_diary_repository.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/food_entry.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/meal_type.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/user_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -12,12 +12,7 @@ void main() {
     test('uploads unsynced local entries before fetching day data', () async {
       final storage = _FakeStorage(
         entries: [
-          _entry(
-            id: 'local_1',
-            date: '2026-03-02',
-            grams: 150,
-            kcal: 330,
-          ),
+          _entry(id: 'local_1', date: '2026-03-02', grams: 150, kcal: 330),
         ],
       );
       final remote = _FakeRemoteGateway(
@@ -56,12 +51,7 @@ void main() {
     test('keeps local api entry when remote delete fails', () async {
       final storage = _FakeStorage(
         entries: [
-          _entry(
-            id: 'api_7',
-            date: '2026-03-02',
-            grams: 100,
-            kcal: 220,
-          ),
+          _entry(id: 'api_7', date: '2026-03-02', grams: 100, kcal: 220),
         ],
       );
       final remote = _FakeRemoteGateway(deleteThrows: true);
@@ -76,45 +66,38 @@ void main() {
       expect(storage.entries.any((e) => e.id == 'api_7'), isTrue);
     });
 
-    test('updates unsynced local entry by creating remote and replacing id', () async {
-      final storage = _FakeStorage(
-        entries: [
-          _entry(
-            id: 'temp_1',
-            date: '2026-03-02',
-            grams: 100,
-            kcal: 220,
+    test(
+      'updates unsynced local entry by creating remote and replacing id',
+      () async {
+        final storage = _FakeStorage(
+          entries: [
+            _entry(id: 'temp_1', date: '2026-03-02', grams: 100, kcal: 220),
+          ],
+        );
+        final remote = _FakeRemoteGateway(
+          createdMeal: _meal(
+            id: 42,
+            name: 'Omlet',
+            notes: '__app_meta__:food_omlet|180.00',
+            calories: 396,
           ),
-        ],
-      );
-      final remote = _FakeRemoteGateway(
-        createdMeal: _meal(
-          id: 42,
-          name: 'Omlet',
-          notes: '__app_meta__:food_omlet|180.00',
-          calories: 396,
-        ),
-      );
-      final repo = LocalDiaryRepository(
-        storage: storage,
-        remote: remote,
-        userIdOverride: 1,
-        tokenOverride: 'token',
-      );
+        );
+        final repo = LocalDiaryRepository(
+          storage: storage,
+          remote: remote,
+          userIdOverride: 1,
+          tokenOverride: 'token',
+        );
 
-      await repo.updateEntry(
-        _entry(
-          id: 'temp_1',
-          date: '2026-03-02',
-          grams: 180,
-          kcal: 396,
-        ),
-      );
+        await repo.updateEntry(
+          _entry(id: 'temp_1', date: '2026-03-02', grams: 180, kcal: 396),
+        );
 
-      expect(remote.createCalls, 1);
-      expect(storage.entries.any((e) => e.id == 'temp_1'), isFalse);
-      expect(storage.entries.any((e) => e.id == 'api_42'), isTrue);
-    });
+        expect(remote.createCalls, 1);
+        expect(storage.entries.any((e) => e.id == 'temp_1'), isFalse);
+        expect(storage.entries.any((e) => e.id == 'api_42'), isTrue);
+      },
+    );
   });
 }
 
@@ -192,7 +175,8 @@ class _FakeRemoteGateway implements NutritionRemoteGateway {
   }
 
   @override
-  Future<List<Meal>> getMealsByDate(int userId, DateTime date) async => dayMeals;
+  Future<List<Meal>> getMealsByDate(int userId, DateTime date) async =>
+      dayMeals;
 
   @override
   Future<List<Meal>> getUserMeals(int userId) async => dayMeals;
@@ -223,7 +207,8 @@ class _FakeStorage extends HiveDietStorage {
   }
 
   @override
-  Future<List<FoodEntry>> getAllEntries() async => List<FoodEntry>.from(entries);
+  Future<List<FoodEntry>> getAllEntries() async =>
+      List<FoodEntry>.from(entries);
 
   @override
   Future<void> saveAllEntries(List<FoodEntry> updatedEntries) async {

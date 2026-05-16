@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fitness/features/nutrition/models/nutrition_ai_response.dart';
-import 'package:fitness/features/nutrition/presentation/widgets/meal_card.dart';
+import 'package:pusulafit/features/nutrition/models/nutrition_ai_response.dart';
+import 'package:pusulafit/features/nutrition/presentation/widgets/meal_card.dart';
 
 void main() {
   group('MealCard Widget Tests', () {

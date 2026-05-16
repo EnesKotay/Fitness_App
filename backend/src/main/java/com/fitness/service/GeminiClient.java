@@ -64,6 +64,20 @@ public class GeminiClient {
             String fallbackModel,
             String prompt,
             boolean expectJson) {
+        return generateText(endpointName, userId, primaryModel, fallbackModel, prompt, expectJson, null);
+    }
+
+    /**
+     * Generate text with Native Function Calling (Tools) support.
+     */
+    public GeminiClientResult generateText(
+            String endpointName,
+            Long userId,
+            String primaryModel,
+            String fallbackModel,
+            String prompt,
+            boolean expectJson,
+            JsonNode tools) {
 
         int promptLength = prompt != null ? prompt.length() : 0;
 
@@ -79,7 +93,7 @@ public class GeminiClient {
             long startTime = System.currentTimeMillis();
 
             try {
-                String responseBody = callGemini(prompt, model, expectJson);
+                String responseBody = callGemini(prompt, model, expectJson, tools);
                 long latencyMs = System.currentTimeMillis() - startTime;
 
                 String outputText = extractTextFromResponse(responseBody);
@@ -233,7 +247,7 @@ public class GeminiClient {
         return candidates;
     }
 
-    private String callGemini(String prompt, String model, boolean expectJson)
+    private String callGemini(String prompt, String model, boolean expectJson, JsonNode tools)
             throws IOException, InterruptedException {
         String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/"
                 + model
@@ -254,6 +268,10 @@ public class GeminiClient {
         }
 
         payload.set("generationConfig", generationConfig);
+
+        if (tools != null) {
+            payload.set("tools", tools);
+        }
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(endpoint))
@@ -324,12 +342,51 @@ public class GeminiClient {
             throw new IOException("Gemini returned no candidates");
         }
 
-        JsonNode textNode = candidates.path(0).path("content").path("parts").path(0).path("text");
+        JsonNode parts = candidates.path(0).path("content").path("parts");
+        if (parts.isEmpty()) {
+            throw new IOException("Gemini returned empty parts");
+        }
+        
+        JsonNode firstPart = parts.get(0);
+        if (firstPart.has("functionCall")) {
+            ObjectNode funcCallWrapper = objectMapper.createObjectNode();
+            funcCallWrapper.set("functionCall", firstPart.get("functionCall"));
+            return funcCallWrapper.toString();
+        }
+
+        JsonNode textNode = firstPart.path("text");
         if (textNode.isMissingNode() || textNode.asText().isBlank()) {
             throw new IOException("Gemini returned empty content");
         }
 
         return textNode.asText();
+    }
+
+    /**
+     * Aşama 2: Vektör RAG için Metinleri Embedding'e çevirir.
+     */
+    public List<Double> generateEmbedding(String text) throws IOException, InterruptedException {
+        String endpoint = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=" + geminiApiKey;
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.set("model", objectMapper.getNodeFactory().textNode("models/text-embedding-004"));
+        payload.set("content", objectMapper.createObjectNode()
+            .set("parts", objectMapper.createArrayNode()
+                .add(objectMapper.createObjectNode().put("text", text))));
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            JsonNode values = objectMapper.readTree(response.body()).path("embedding").path("values");
+            List<Double> embedding = new ArrayList<>();
+            if (values.isArray()) values.forEach(val -> embedding.add(val.asDouble()));
+            return embedding;
+        }
+        return new ArrayList<>();
     }
 
     private String extractJson(String raw) {

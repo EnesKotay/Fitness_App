@@ -62,10 +62,11 @@ class _EditEntrySheetState extends State<EditEntrySheet> {
     _selectedMealType = widget.entry.mealType;
 
     final ratio = widget.entry.grams > 0 ? widget.entry.grams / 100 : 1;
-    _per100Kcal = ratio > 0 ? widget.entry.calculatedKcal / ratio : 0;
-    _per100Protein = ratio > 0 ? widget.entry.protein / ratio : 0;
-    _per100Carb = ratio > 0 ? widget.entry.carb / ratio : 0;
-    _per100Fat = ratio > 0 ? widget.entry.fat / ratio : 0;
+    double _safe(double v) => v.isNaN || v.isInfinite ? 0.0 : v;
+    _per100Kcal = _safe(ratio > 0 ? widget.entry.calculatedKcal / ratio : 0);
+    _per100Protein = _safe(ratio > 0 ? widget.entry.protein / ratio : 0);
+    _per100Carb = _safe(ratio > 0 ? widget.entry.carb / ratio : 0);
+    _per100Fat = _safe(ratio > 0 ? widget.entry.fat / ratio : 0);
   }
 
   @override

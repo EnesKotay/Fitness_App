@@ -17,20 +17,24 @@ class OfflineSyncService {
 
   OfflineSyncService._internal();
 
-  late Box<PendingSync> _syncBox;
+  Box<PendingSync>? _syncBox;
   StreamSubscription? _connectivitySubscription;
   bool _isSyncing = false;
+  String? _activeSuffix;
+
+  final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
+  final ValueNotifier<bool> isSyncing = ValueNotifier<bool>(false);
 
   Future<void> init() async {
-    final suffix = StorageHelper.getUserStorageSuffix();
     if (!Hive.isAdapterRegistered(44)) {
       Hive.registerAdapter(PendingSyncAdapter());
     }
-    _syncBox = await Hive.openBox<PendingSync>('pending_sync$suffix');
+    await _ensureBox();
 
-    _connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> results) {
+    await _connectivitySubscription?.cancel();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
       if (results.contains(ConnectivityResult.mobile) ||
           results.contains(ConnectivityResult.wifi)) {
         // İletişim sağlandığında senkronizasyonu başlat
@@ -49,32 +53,53 @@ class OfflineSyncService {
 
   Future<void> dispose() async {
     await _connectivitySubscription?.cancel();
-    if (_syncBox.isOpen) {
-      await _syncBox.close();
+    final box = _syncBox;
+    if (box != null && box.isOpen) {
+      await box.close();
     }
   }
 
   /// Yeni bir çevrimdışı işlem eklendiğinde kuyruğa kaydeder
   Future<void> addToQueue(PendingSync item) async {
-    if (!_syncBox.isOpen) {
-      final suffix = StorageHelper.getUserStorageSuffix();
-      _syncBox = await Hive.openBox<PendingSync>('pending_sync$suffix');
-    }
-    await _syncBox.put(item.id, item);
+    final box = await _ensureBox();
+    await box.put(item.id, item);
+    _updatePendingCount();
     debugPrint('Sıraya eklendi (Çevrimdışı): ${item.toString()}');
+  }
+
+  Future<Box<PendingSync>> _ensureBox() async {
+    final suffix = StorageHelper.getUserStorageSuffix();
+    final box = _syncBox;
+    if (box != null && box.isOpen && _activeSuffix == suffix) {
+      _updatePendingCount();
+      return box;
+    }
+    if (box != null && box.isOpen) {
+      await box.close();
+    }
+    _activeSuffix = suffix;
+    _syncBox = await Hive.openBox<PendingSync>('pending_sync$suffix');
+    _updatePendingCount();
+    return _syncBox!;
+  }
+
+  void _updatePendingCount() {
+    final box = _syncBox;
+    pendingCount.value = box != null && box.isOpen ? box.length : 0;
   }
 
   Future<void> _syncPendingItems() async {
     if (_isSyncing) return;
-    if (!_syncBox.isOpen) return;
+    final box = await _ensureBox();
 
-    if (_syncBox.isEmpty) return;
+    if (box.isEmpty) return;
 
     _isSyncing = true;
-    final keys = _syncBox.keys.toList();
+    isSyncing.value = true;
+    final keys = box.keys.toList();
 
     for (var key in keys) {
-      final item = _syncBox.get(key);
+      final item = box.get(key);
       if (item == null) continue;
 
       try {
@@ -82,7 +107,9 @@ class OfflineSyncService {
 
         final userId = StorageHelper.getUserId();
         if (userId == null || userId <= 0) {
-          debugPrint('Geçerli kullanıcı bulunamadı, senkronizasyon iptal edildi.');
+          debugPrint(
+            'Geçerli kullanıcı bulunamadı, senkronizasyon iptal edildi.',
+          );
           continue;
         }
 
@@ -92,7 +119,10 @@ class OfflineSyncService {
         if (item.entityType == 'workout') {
           final workoutService = WorkoutService();
           if (item.action == 'create') {
-            await workoutService.createWorkout(userId, WorkoutRequest.fromJson(payload));
+            await workoutService.createWorkout(
+              userId,
+              WorkoutRequest.fromJson(payload),
+            );
           } else if (item.action == 'update') {
             final workoutId = payload['id'] as int;
             final reqData = WorkoutRequest.fromJson(payload['data']);
@@ -101,22 +131,29 @@ class OfflineSyncService {
             final workoutId = payload['id'] as int;
             await workoutService.deleteWorkout(userId, workoutId);
           }
-        } 
-        else if (item.entityType == 'body_measurement') {
+        } else if (item.entityType == 'body_measurement') {
           final trackingService = TrackingService();
           if (item.action == 'create') {
-            await trackingService.createBodyMeasurement(userId, BodyMeasurementRequest.fromJson(payload));
+            await trackingService.createBodyMeasurement(
+              userId,
+              BodyMeasurementRequest.fromJson(payload),
+            );
           } else if (item.action == 'update') {
             final measurementId = payload['id'] as int;
             final reqData = BodyMeasurementRequest.fromJson(payload['data']);
-            await trackingService.updateBodyMeasurement(userId, measurementId, reqData);
+            await trackingService.updateBodyMeasurement(
+              userId,
+              measurementId,
+              reqData,
+            );
           } else if (item.action == 'delete') {
             final measurementId = payload['id'] as int;
             await trackingService.deleteBodyMeasurement(userId, measurementId);
           }
         }
 
-        await _syncBox.delete(key);
+        await box.delete(key);
+        _updatePendingCount();
         debugPrint('Başarılı şekilde senkronize edildi: ${item.id}');
       } catch (e) {
         debugPrint('Senkronizasyon hatası: ${item.id} - Hata: $e');
@@ -126,5 +163,7 @@ class OfflineSyncService {
     }
 
     _isSyncing = false;
+    isSyncing.value = false;
+    _updatePendingCount();
   }
 }

@@ -8,7 +8,18 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
+import '../../../core/api/services/tracking_service.dart';
+import '../../../core/api/services/workout_service.dart';
+import '../../../core/services/crash_reporting_service.dart';
 import '../../../core/utils/storage_helper.dart';
+import '../../ai_coach/services/ai_coach_session_service.dart';
+import '../../nutrition/data/datasources/hive_diet_storage.dart';
+import '../../nutrition/presentation/state/diet_provider.dart';
+import '../../tasks/storage/daily_task_storage.dart';
+import '../../tracking/providers/tracking_provider.dart';
+import '../../weight/data/repositories/weight_repository_impl.dart';
+import '../../weight/presentation/providers/weight_provider.dart';
+import '../../workout/providers/workout_provider.dart';
 import 'legal_screen.dart';
 
 class SettingsPrivacyScreen extends StatefulWidget {
@@ -19,6 +30,13 @@ class SettingsPrivacyScreen extends StatefulWidget {
 }
 
 class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
+  final HiveDietStorage _dietStorage = HiveDietStorage();
+  final HiveWeightRepository _weightRepository = HiveWeightRepository();
+  final DailyTaskStorage _dailyTaskStorage = DailyTaskStorage();
+  final AiCoachSessionService _aiCoachSessionService = AiCoachSessionService();
+  final WorkoutService _workoutService = WorkoutService();
+  final TrackingService _trackingService = TrackingService();
+
   bool _analytics = true;
   bool _personalization = true;
   bool _crashReports = true;
@@ -45,15 +63,89 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     await StorageHelper.savePrivacyCrashReports(_crashReports);
   }
 
-  Map<String, dynamic> _buildExportPayload() {
+  Future<List<Map<String, dynamic>>> _loadWorkoutExportPayload() async {
+    final provider = context.read<WorkoutProvider>();
+    if (provider.workouts.isNotEmpty) {
+      return provider.workouts.map((item) => item.toJson()).toList();
+    }
+    try {
+      final workouts = await _workoutService.getUserWorkouts(0);
+      return workouts.map((item) => item.toJson()).toList();
+    } catch (_) {
+      return provider.workouts.map((item) => item.toJson()).toList();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadBodyMeasurementExportPayload() async {
+    final provider = context.read<TrackingProvider>();
+    if (provider.bodyMeasurements.isNotEmpty) {
+      return provider.bodyMeasurements.map((item) => item.toJson()).toList();
+    }
+    try {
+      final bodyMeasurements = await _trackingService.getUserBodyMeasurements(
+        0,
+      );
+      return bodyMeasurements.map((item) => item.toJson()).toList();
+    } catch (_) {
+      return provider.bodyMeasurements.map((item) => item.toJson()).toList();
+    }
+  }
+
+  Future<Map<String, dynamic>> _buildExportPayload() async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
+    final dietProvider = context.read<DietProvider>();
+    final weightProvider = context.read<WeightProvider>();
+    final localProfile = await _dietStorage.getProfile();
+    final localEntries = await _dietStorage.getAllEntries();
+    final customFoods = await _dietStorage.getCustomFoods();
+    final localWeightEntries = await _weightRepository.getEntries();
+    final taskMap = await _dailyTaskStorage.exportAllTasks();
+    final recurringTemplates = await _dailyTaskStorage.loadRecurringTemplates();
+    final aiCoachData = user == null
+        ? const <String, dynamic>{}
+        : await _aiCoachSessionService.exportSessions(userId: user.id);
+    final workouts = await _loadWorkoutExportPayload();
+    final bodyMeasurements = await _loadBodyMeasurementExportPayload();
+
+    final profilePayload = localProfile != null
+        ? <String, dynamic>{
+            'name': localProfile.name,
+            'age': localProfile.age,
+            'weight': localProfile.weight,
+            'height': localProfile.height,
+            'gender': localProfile.gender.name,
+            'activityLevel': localProfile.activityLevel.name,
+            'goal': localProfile.goal.name,
+            'customKcalTarget': localProfile.customKcalTarget,
+            'targetWeight': localProfile.targetWeight,
+            'targetCalories': localProfile.targetCalories,
+          }
+        : null;
+
+    final diaryEntries = localEntries.map((entry) => entry.toJson()).toList();
+    final customFoodPayload = customFoods.map((food) => food.toJson()).toList();
+    final weightEntries =
+        (weightProvider.entries.isNotEmpty
+                ? weightProvider.entries
+                : localWeightEntries)
+            .map((entry) => entry.toJson())
+            .toList();
+    final taskPayload = <String, dynamic>{
+      for (final item in taskMap.entries)
+        item.key: item.value.map((task) => task.toJson()).toList(),
+    };
+
     return <String, dynamic>{
       'exportedAt': DateTime.now().toIso8601String(),
+      'exportVersion': 2,
       'account': <String, dynamic>{
         'id': user?.id,
         'email': user?.email ?? StorageHelper.getUserEmail(),
         'name': user?.name ?? StorageHelper.getUserName(),
+        'premiumTier': user?.premiumTier,
+        'premiumPlan': user?.premiumPlan,
+        'premiumExpiresAt': user?.premiumExpiresAt?.toIso8601String(),
       },
       'preferences': <String, dynamic>{
         'notificationEnabled': StorageHelper.getNotifEnabled(),
@@ -63,6 +155,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
         'privacyAnalytics': _analytics,
         'privacyPersonalization': _personalization,
         'privacyCrashReports': _crashReports,
+        'privacyHealthConsent': _healthConsent,
+        'privacyTransferConsent': _transferConsent,
+        'privacyPaymentTransferConsent': _paymentTransferConsent,
       },
       'targets': <String, dynamic>{
         'targetWeight': StorageHelper.getTargetWeight(),
@@ -72,6 +167,33 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
         'targetFat': StorageHelper.getTargetFat(),
         'waterGoalML': StorageHelper.getWaterGoalML(),
       },
+      'nutrition': <String, dynamic>{
+        'profile': profilePayload,
+        'entries': diaryEntries,
+        'customFoods': customFoodPayload,
+        'selectedDateEntries': dietProvider.entries
+            .map((entry) => entry.toJson())
+            .toList(),
+        'selectedDateTotals': <String, dynamic>{
+          'kcal': dietProvider.totals.totalKcal,
+          'protein': dietProvider.totals.totalProtein,
+          'carb': dietProvider.totals.totalCarb,
+          'fat': dietProvider.totals.totalFat,
+          'waterLiters': dietProvider.waterLiters,
+        },
+      },
+      'tracking': <String, dynamic>{
+        'weightEntries': weightEntries,
+        'bodyMeasurements': bodyMeasurements,
+      },
+      'workouts': workouts,
+      'dailyTasks': <String, dynamic>{
+        'days': taskPayload,
+        'recurringTemplates': recurringTemplates
+            .map((item) => item.toJson())
+            .toList(),
+      },
+      'aiCoach': aiCoachData,
     };
   }
 
@@ -79,7 +201,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
     if (_exporting) return;
     setState(() => _exporting = true);
     try {
-      final payload = _buildExportPayload();
+      final payload = await _buildExportPayload();
       final pretty = const JsonEncoder.withIndent('  ').convert(payload);
       final dir = await getApplicationDocumentsDirectory();
       final now = DateTime.now().toIso8601String().replaceAll(':', '-');
@@ -94,15 +216,14 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
           sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
         );
       } else {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Fitness hesap verisi dışa aktarma',
-        );
+        await Share.shareXFiles([
+          XFile(file.path),
+        ], text: 'Fitness hesap verisi dışa aktarma');
       }
     } catch (_) {
       final fallback = const JsonEncoder.withIndent(
         '  ',
-      ).convert(_buildExportPayload());
+      ).convert(await _buildExportPayload());
       await Clipboard.setData(ClipboardData(text: fallback));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -147,16 +268,14 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
       final ok = await auth.deleteAccount();
       if (!mounted) return;
       if (ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Hesabın silindi.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Hesabın silindi.')));
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.errorMessage ?? 'Hesap silinemedi.'),
-        ),
+        SnackBar(content: Text(auth.errorMessage ?? 'Hesap silinemedi.')),
       );
     } finally {
       if (mounted) {
@@ -197,8 +316,22 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
           SwitchListTile(
             value: _crashReports,
             onChanged: (v) async {
+              final messenger = ScaffoldMessenger.of(context);
               setState(() => _crashReports = v);
               await _save();
+              if (!v) {
+                await CrashReportingService.disableForCurrentSession();
+              }
+              if (!mounted) return;
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    v
+                        ? 'Hata raporları açıldı. Tam etkisi uygulamayı yeniden açınca görünür.'
+                        : 'Hata raporları kapatıldı. Bu oturumdan sonra yeni raporlar gönderilmez.',
+                  ),
+                ),
+              );
             },
             title: const Text('Hata raporları'),
             subtitle: const Text('Beklenmeyen hata bilgilerini anonim gönder'),
@@ -320,7 +453,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
             title: const Text('Apple/Google ödeme aktarımı (KVKK Md.9)'),
             subtitle: const Text(
               'Abonelik doğrulaması için Apple/Google\'a aktarıma rıza. '
-              'Kart bilgisi FitMentor\'da saklanmaz.',
+              'Kart bilgisi PusulaFit\'te saklanmaz.',
             ),
           ),
           const Divider(height: 22),
@@ -343,7 +476,9 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
               color: Colors.redAccent,
             ),
             title: const Text('Hesabı kalıcı olarak sil'),
-            subtitle: const Text('Hesabını ve bağlı verilerini uygulama içinden sil'),
+            subtitle: const Text(
+              'Hesabını ve bağlı verilerini uygulama içinden sil',
+            ),
             trailing: _processingDelete
                 ? const SizedBox(
                     width: 18,
@@ -361,8 +496,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    const LegalScreen(initialTab: LegalTab.privacy),
+                builder: (_) => const LegalScreen(initialTab: LegalTab.privacy),
               ),
             ),
           ),
@@ -398,8 +532,7 @@ class _SettingsPrivacyScreenState extends State<SettingsPrivacyScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) =>
-                    const LegalScreen(initialTab: LegalTab.kvkk),
+                builder: (_) => const LegalScreen(initialTab: LegalTab.kvkk),
               ),
             ),
           ),

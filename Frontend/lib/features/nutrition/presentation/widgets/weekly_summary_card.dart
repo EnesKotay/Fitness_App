@@ -174,11 +174,11 @@ class WeeklySummaryCard extends StatelessWidget {
                     maxY: chartMax,
                     barTouchData: BarTouchData(
                       touchTooltipData: BarTouchTooltipData(
-                        tooltipBgColor:
+                        getTooltipColor: (_) =>
                             AppColors.surface.withValues(alpha: 0.95),
                         tooltipPadding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 6),
-                        tooltipRoundedRadius: 10,
+                        tooltipBorderRadius: BorderRadius.circular(10),
                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
                           final dayStr = sortedKeys[groupIndex];
                           final parts = dayStr.split('-');

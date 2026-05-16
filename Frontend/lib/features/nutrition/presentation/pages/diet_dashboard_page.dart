@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
+import 'dart:async';
 import 'profile_setup_page.dart';
 import '../../domain/entities/meal_type.dart';
 import '../state/diet_provider.dart';
@@ -19,11 +19,12 @@ import '../../domain/entities/food_entry.dart';
 import '../../../../core/widgets/ambient_glow_background.dart';
 import '../widgets/scan_options_sheet.dart';
 import '../widgets/weekly_summary_card.dart';
-import '../widgets/micro_nutrients_sheet.dart';
 import '../../domain/repositories/diary_repository.dart';
 import '../../../../core/services/page_guide_service.dart';
 import '../../../../core/widgets/page_guide_overlay.dart';
 import '../../../../core/widgets/page_guide_button.dart';
+import '../../../tasks/controllers/daily_tasks_controller.dart';
+import '../../../tasks/models/daily_task.dart';
 
 class DietDashboardPage extends StatefulWidget {
   const DietDashboardPage({super.key});
@@ -33,8 +34,6 @@ class DietDashboardPage extends StatefulWidget {
 }
 
 class _DietDashboardPageState extends State<DietDashboardPage> {
-  int _waterGlasses = 0;
-  String? _waterDateKey;
   int _waterGoalGlasses = 8;
   bool _didInitialLoadAttempt = false;
   Map<String, DiaryTotals> _weeklyData = {};
@@ -43,63 +42,37 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🍽️',
-      title: 'Öğün Ekleme',
+      title: 'Öğün Ekle',
       description:
-          'Kahvaltı, öğle, akşam ve ara öğün eklemek için her öğünün sağ tarafındaki "+" butonuna dokun.\n\n'
-          '• Yemekleri veritabanından arayabilirsin\n'
-          '• Porsiyon veya gram olarak miktar girebilirsin\n'
-          '• Her öğün anında kalori halkana yansır',
-      tip: 'Sık yediğin yemekler "Son Yenenler" listesinde otomatik çıkar — tek dokunuşla ekleyebilirsin.',
-    ),
-    GuideStep(
-      emoji: '🔢',
-      title: 'Kalori ve Makro Halkaları',
-      description:
-          'En üstteki büyük gösterge bugün kaç kalori hakkın kaldığını gösterir. Altındaki üç küçük halka ise protein, karbonhidrat ve yağ durumunu söyler.\n\n'
-          '• Halka tam dolarsa hedefe ulaştın demektir\n'
-          '• Kırmızıya dönerse hedefi aştın demektir',
-      tip: 'Bir halkaya dokunarak veya "Detay" butonuna basarak mikro besinlerini (demir, lif, kalsiyum vb.) inceleyebilirsin.',
+          'Yemek Ekle ile arama, porsiyon ve manuel kayıt seçeneklerine ulaşırsın.',
+      tip: 'Sık yediklerin sonraki kayıtlarda daha hızlı görünür.',
     ),
     GuideStep(
       emoji: '📷',
-      title: 'Kamera ile Hızlı Giriş (AI)',
+      title: 'Yemek Analizi',
       description:
-          'Yemek aramak yerine sağ alttaki 📸 kamera butonuna dokun:\n\n'
-          '• 🥩 Fotoğraf Analizi: Tabaktaki yemeği çek, AI içindekileri ve porsiyonu tahmin etsin\n'
-          '• 📊 Besin Tablosu (OCR): Paketli gıdanın arkasındaki besin değerleri tablosunu kameraya okut\n'
-          '• 🔍 Barkod Okuyucu: Süpermarket ürünlerinin barkodunu tara',
-      tip: 'Fotoğraf taraması, dışarıda ne yediğini bilmediğin zamanlarda mükemmel bir yardımcıdır.',
+          'Barkod, besin etiketi veya yemek fotoğrafı ile hızlı kayıt açabilirsin.',
+      tip: 'Paketli ürünlerde önce barkodu dene; olmazsa etiket taramaya geç.',
     ),
     GuideStep(
-      emoji: '📖',
-      title: 'Beslenme Rehberi',
-      description:
-          'Sağ üst köşedeki "Rehber" butonuna dokunarak kapsamlı beslenme bilgi tabanına erişebilirsin:\n\n'
-          '• Protein, karbonhidrat ve yağların ne işe yaradığı\n'
-          '• Hangi hedefe göre nasıl beslenmen gerektiği\n'
-          '• Örnek diyetler ve suplement tavsiyeleri burada',
-      tip: 'Eğer fitness dünyasında yeniysen, mutlaka Rehber sekmesindeki temel bilgileri oku.',
+      emoji: '🔢',
+      title: 'Günlük Özet',
+      description: 'Üstte kalori, makro ve su durumunu tek bakışta görürsün.',
+      tip: 'Kırmızıya yaklaşan değerleri günün kalan öğünlerinde dengele.',
     ),
     GuideStep(
-      emoji: '📅',
-      title: 'Geçmiş Günleri İnceleme',
+      emoji: '✨',
+      title: 'AI Koç',
       description:
-          'Üstteki tarih şeridini sağa veya sola kaydırarak geçmiş ve gelecek günlere gidebilirsin:\n\n'
-          '• Dün ne yediğini kontrol et\n'
-          '• Yarına şimdiden yemek planla\n'
-          '• Unuttuğun eski günlerin kayıtlarını gir',
-      tip: 'Eğer geriye dönük detaylı analiz istersen, Araçlar menüsünden haftalık özetine bakabilirsin.',
+          'Beslenme sorularını ve günlük menü fikirlerini AI Koçtan alabilirsin.',
+      tip: 'Aynı isim her yerde aynı işi anlatır: AI Koç yönlendirir.',
     ),
     GuideStep(
-      emoji: '🛠️',
-      title: 'Araçlar Menüsü',
+      emoji: '🧰',
+      title: 'Tüm Özellikler',
       description:
-          'Sayfanın ortasındaki Araçlar menüsünde faydalı kısayollar var:\n\n'
-          '• 🤖 Diyetisyene Sor: Beslenmenle ilgili AI\'a soru sor\n'
-          '• 🍲 Tarifler: Sağlıklı yemek tariflerine ulaş\n'
-          '• 🛒 Alışveriş Listesi: Market planını yap\n'
-          '• 📅 Haftalık Plan: 7 günlük diyet planını gör',
-      tip: 'Araçlar bölümü, günlük öğün eklemenin ötesine geçip beslenmeni tam kontrol altına almanı sağlar.',
+          'Rehber, trendler, tarifler, haftalık plan ve alışveriş listesi burada durur.',
+      tip: 'Günlük kayıt bittiğinde detaylara buradan geç.',
     ),
   ];
 
@@ -183,7 +156,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   }
 
   // ─── App Bar ──────────────────────────────────────────────────────────────
-  PreferredSizeWidget _buildAppBar(BuildContext context, DietProvider provider) {
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    DietProvider provider,
+  ) {
     final target = provider.effectiveTargetKcal.round();
     return AppBar(
       backgroundColor: Colors.transparent,
@@ -208,17 +184,25 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               if (provider.currentStreak > 0) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.45)),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.45),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.local_fire_department_rounded,
-                          color: Colors.orange, size: 13),
+                      const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: Colors.orange,
+                        size: 13,
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         '${provider.currentStreak} gün',
@@ -252,7 +236,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
         GestureDetector(
           onTap: () {
             try {
-              Navigator.of(context, rootNavigator: false).pushNamed('nutrition_guide');
+              Navigator.of(
+                context,
+                rootNavigator: false,
+              ).pushNamed('nutrition_guide');
             } catch (e) {
               debugPrint('nutrition_guide navigation: $e');
             }
@@ -263,12 +250,18 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.menu_book_rounded, size: 14, color: AppColors.secondary),
+                Icon(
+                  Icons.menu_book_rounded,
+                  size: 14,
+                  color: AppColors.secondary,
+                ),
                 const SizedBox(width: 5),
                 Text(
                   'Rehber',
@@ -327,20 +320,32 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                 color: AppColors.error.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.error_outline_rounded, size: 48,
-                  color: AppColors.error.withValues(alpha: 0.9)),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: AppColors.error.withValues(alpha: 0.9),
+              ),
             ),
             const SizedBox(height: 20),
-            Text('Veriler yüklenemedi',
-                style: GoogleFonts.dmSans(
-                  color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Veriler yüklenemedi',
+              style: GoogleFonts.dmSans(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(provider.error ?? 'Bilinmeyen hata',
-                style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-                textAlign: TextAlign.center,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis),
+            Text(
+              provider.error ?? 'Bilinmeyen hata',
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () => provider.init(),
@@ -349,8 +354,13 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ],
@@ -365,18 +375,14 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     final consumed = provider.totals.totalKcal;
     final remaining = provider.remainingKcal;
     final burned = provider.todayBurnedKcal;
-    final progress = targetKcal > 0 ? (consumed / targetKcal).clamp(0.0, 1.0) : 0.0;
+    final progress = targetKcal > 0
+        ? (consumed / targetKcal).clamp(0.0, 1.0)
+        : 0.0;
 
-    final dateKey = DateFormat('yyyy-MM-dd').format(provider.selectedDate);
-    if (dateKey != _waterDateKey) {
-      _waterDateKey = dateKey;
-      final keyToLoad = dateKey;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _waterDateKey != keyToLoad) return;
-        final ml = StorageHelper.getWaterForDate(keyToLoad);
-        setState(() => _waterGlasses = (ml / 250).round().clamp(0, _waterGoalGlasses));
-      });
-    }
+    final waterGlasses = ((provider.waterLiters * 1000) / 250).round().clamp(
+      0,
+      _waterGoalGlasses,
+    );
 
     return RefreshIndicator(
       onRefresh: () => provider.init(),
@@ -394,13 +400,18 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           children: [
             // ── Tarih şeridi ───────────────────────────────────────────────
             DateStrip(
-              selectedDate: provider.selectedDate,
-              onDateSelected: (date) => provider.loadDay(date),
-            ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.05, end: 0, curve: Curves.easeOut),
+                  selectedDate: provider.selectedDate,
+                  onDateSelected: (date) => provider.loadDay(date),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: -0.05, end: 0, curve: Curves.easeOut),
             const SizedBox(height: 16),
 
             // ── Profil eksik uyarısı ───────────────────────────────────────
-            if (provider.profile == null && !provider.loading && !_profileBannerDismissed) ...[
+            if (provider.profile == null &&
+                !provider.loading &&
+                !_profileBannerDismissed) ...[
               _buildMissingProfileBanner(context),
               const SizedBox(height: 14),
             ],
@@ -416,32 +427,40 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             ),
             const SizedBox(height: 12),
 
+            if (provider.entries.isNotEmpty) ...[
+              _buildDailyActionCard(context, provider),
+              const SizedBox(height: 12),
+            ],
+
+            _buildToolsGrid(context),
+            const SizedBox(height: 12),
+
             // ── BMI chips (profil varsa) ───────────────────────────────────
             if (provider.profile != null && provider.bmi > 0) ...[
               _buildBmiInsightRow(provider),
               const SizedBox(height: 12),
             ],
 
-            // ── Araçlar bölümü ─────────────────────────────────────────────
-            _buildSectionHeader(
-              icon: Icons.apps_rounded,
-              label: 'Araçlar',
-              accentColor: AppColors.primaryLight,
-            ).animate().fadeIn(delay: 60.ms, duration: 300.ms),
-            const SizedBox(height: 12),
-            _buildToolsGrid(context),
-            const SizedBox(height: 20),
-
             // ── Su takibi ──────────────────────────────────────────────────
             WaterTracker(
-              currentGlasses: _waterGlasses,
-              goalGlasses: _waterGoalGlasses,
-              onChanged: (val) {
-                setState(() => _waterGlasses = val);
-                StorageHelper.saveWaterForDate(dateKey, val * 250);
-              },
-              onGoalTap: _showWaterGoalDialog,
-            ).animate().fadeIn(delay: 80.ms, duration: 350.ms)
+                  currentGlasses: waterGlasses,
+                  goalGlasses: _waterGoalGlasses,
+                  onChanged: (val) {
+                    provider.setWaterGlassesForSelectedDate(val);
+                    if (val >= _waterGoalGlasses) {
+                      unawaited(
+                        context
+                            .read<DailyTasksController>()
+                            .autoCompleteFirstUndoneByCategory(
+                              TaskCategory.water,
+                            ),
+                      );
+                    }
+                  },
+                  onGoalTap: _showWaterGoalDialog,
+                )
+                .animate()
+                .fadeIn(delay: 80.ms, duration: 350.ms)
                 .slideY(begin: 0.03, end: 0, curve: Curves.easeOut),
             const SizedBox(height: 20),
 
@@ -466,15 +485,18 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               final index = type.index;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: VisualMealCard(
-                  mealType: type,
-                  entries: provider.entriesForMeal(type),
-                  onAdd: () => _openSearch(context, type),
-                  onDelete: (id) => provider.deleteEntry(id),
-                  onEdit: (entry) => _showEditSheet(context, entry, provider),
-                ).animate()
-                    .fadeIn(delay: (160 + index * 40).ms, duration: 380.ms)
-                    .slideX(begin: 0.02, end: 0, curve: Curves.easeOut),
+                child:
+                    VisualMealCard(
+                          mealType: type,
+                          entries: provider.entriesForMeal(type),
+                          onAdd: () => _openSearch(context, type),
+                          onDelete: (id) => provider.deleteEntry(id),
+                          onEdit: (entry) =>
+                              _showEditSheet(context, entry, provider),
+                        )
+                        .animate()
+                        .fadeIn(delay: (160 + index * 40).ms, duration: 380.ms)
+                        .slideX(begin: 0.02, end: 0, curve: Curves.easeOut),
               );
             }),
 
@@ -533,10 +555,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             letterSpacing: -0.3,
           ),
         ),
-        if (trailing != null) ...[
-          const Spacer(),
-          trailing,
-        ],
+        if (trailing != null) ...[const Spacer(), trailing],
       ],
     );
   }
@@ -552,8 +571,11 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.person_add_alt_1_rounded,
-              color: Colors.orangeAccent, size: 20),
+          const Icon(
+            Icons.person_add_alt_1_rounded,
+            color: Colors.orangeAccent,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -597,8 +619,11 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           const SizedBox(width: 6),
           GestureDetector(
             onTap: () => setState(() => _profileBannerDismissed = true),
-            child: Icon(Icons.close_rounded,
-                size: 18, color: Colors.white.withValues(alpha: 0.4)),
+            child: Icon(
+              Icons.close_rounded,
+              size: 18,
+              color: Colors.white.withValues(alpha: 0.4),
+            ),
           ),
         ],
       ),
@@ -627,7 +652,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.14), width: 1),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.14),
+              width: 1,
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -655,7 +683,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                             ),
                           ),
                           TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
+                            tween: Tween(
+                              begin: 0,
+                              end: progress.clamp(0.0, 1.0),
+                            ),
                             duration: const Duration(milliseconds: 950),
                             curve: Curves.easeOutCubic,
                             builder: (context, value, _) => SizedBox(
@@ -666,7 +697,9 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                                 strokeWidth: 10,
                                 strokeCap: StrokeCap.round,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  isOver ? AppColors.warning : AppColors.secondary,
+                                  isOver
+                                      ? AppColors.warning
+                                      : AppColors.secondary,
                                 ),
                               ),
                             ),
@@ -733,26 +766,30 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                           // İlerleme durumu chip
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
-                              color: (isOver
-                                      ? AppColors.warning
-                                      : AppColors.secondary)
-                                  .withValues(alpha: 0.12),
+                              color:
+                                  (isOver
+                                          ? AppColors.warning
+                                          : AppColors.secondary)
+                                      .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: (isOver
-                                        ? AppColors.warning
-                                        : AppColors.secondary)
-                                    .withValues(alpha: 0.25),
+                                color:
+                                    (isOver
+                                            ? AppColors.warning
+                                            : AppColors.secondary)
+                                        .withValues(alpha: 0.25),
                               ),
                             ),
                             child: Text(
                               isOver
                                   ? '$overAmount kcal hedefi aştın'
                                   : target > 0
-                                      ? '%${(progress * 100).round()} tamamlandı'
-                                      : 'Hedef belirlenmedi',
+                                  ? '%${(progress * 100).round()} tamamlandı'
+                                  : 'Hedef belirlenmedi',
                               style: GoogleFonts.dmSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -771,69 +808,41 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
 
               // ── Divider ──────────────────────────────────────────────────
               Divider(
-                  color: Colors.white.withValues(alpha: 0.07),
-                  height: 1,
-                  indent: 20,
-                  endIndent: 20),
+                color: Colors.white.withValues(alpha: 0.07),
+                height: 1,
+                indent: 20,
+                endIndent: 20,
+              ),
 
               // ── Makro mini strip ──────────────────────────────────────────
-              GestureDetector(
-                onTap: () => showModalBottomSheet(
-                  context: context,
-                  backgroundColor: Colors.transparent,
-                  isScrollControlled: true,
-                  builder: (_) => MicroNutrientsSheet(totals: t),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
-                  child: Row(
-                    children: [
-                      _miniMacro('Protein', t.totalProtein, targets.protein,
-                          const Color(0xFF5B9BFF), icon: Icons.fitness_center_rounded),
-                      _macroSeparator(),
-                      _miniMacro('Karb', t.totalCarb, targets.carb,
-                          const Color(0xFF4CD1A3), icon: Icons.grass_rounded),
-                      _macroSeparator(),
-                      _miniMacro('Yağ', t.totalFat, targets.fat,
-                          const Color(0xFFFFB74D), icon: Icons.water_drop_rounded),
-                      _macroSeparator(),
-                      // "Detay" butonu
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.06),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.10)),
-                            ),
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 20,
-                              color: Colors.white.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Detay',
-                            style: GoogleFonts.dmSans(
-                              fontSize: 10.5,
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '',
-                            style: GoogleFonts.dmSans(fontSize: 9),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
+                child: Row(
+                  children: [
+                    _miniMacro(
+                      'Protein',
+                      t.totalProtein,
+                      targets.protein,
+                      const Color(0xFF5B9BFF),
+                      icon: Icons.fitness_center_rounded,
+                    ),
+                    _macroSeparator(),
+                    _miniMacro(
+                      'Karb',
+                      t.totalCarb,
+                      targets.carb,
+                      const Color(0xFF4CD1A3),
+                      icon: Icons.grass_rounded,
+                    ),
+                    _macroSeparator(),
+                    _miniMacro(
+                      'Yağ',
+                      t.totalFat,
+                      targets.fat,
+                      const Color(0xFFFFB74D),
+                      icon: Icons.water_drop_rounded,
+                    ),
+                  ],
                 ),
               ),
               Padding(
@@ -889,7 +898,13 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     );
   }
 
-  Widget _miniMacro(String label, double value, double target, Color color, {IconData? icon}) {
+  Widget _miniMacro(
+    String label,
+    double value,
+    double target,
+    Color color, {
+    IconData? icon,
+  }) {
     final progress = target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0;
     final remaining = (target - value).clamp(0, double.infinity);
     final isComplete = value >= target && target > 0;
@@ -967,7 +982,9 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           // Target info
           Text(
             target > 0
-                ? (isComplete ? '✓ ${target.round()}g' : '${remaining.round()}g kaldı')
+                ? (isComplete
+                      ? '✓ ${target.round()}g'
+                      : '${remaining.round()}g kaldı')
                 : '—',
             style: GoogleFonts.dmSans(
               fontSize: 9,
@@ -1013,52 +1030,366 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-      decoration: BoxDecoration(
-        color: bmiColor.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: bmiColor.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: bmiColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(bmiIcon, size: 14, color: bmiColor),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          decoration: BoxDecoration(
+            color: bmiColor.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: bmiColor.withValues(alpha: 0.2)),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'VKİ: ${bmi.toStringAsFixed(1)} · $category',
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.88),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: bmiColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
-                  provider.bmiAdvice,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.45),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Icon(bmiIcon, size: 14, color: bmiColor),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'VKİ: ${bmi.toStringAsFixed(1)} · $category',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.88),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      provider.bmiAdvice,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
+              ),
+            ],
+          ),
+        )
+        .animate()
+        .fadeIn(delay: 60.ms, duration: 350.ms)
+        .slideY(begin: 0.03, end: 0);
+  }
+
+  Widget _buildDailyActionCard(BuildContext context, DietProvider provider) {
+    final hasEntries = provider.entries.isNotEmpty;
+    final remaining = provider.remainingKcal.round();
+    final proteinLeft =
+        (provider.macroTargets.protein - provider.totals.totalProtein)
+            .clamp(0.0, 999.0)
+            .round();
+    final title = hasEntries ? 'Sıradaki öğün' : 'İlk adım';
+    final message = hasEntries
+        ? remaining >= 0
+              ? '$remaining kcal alanın var · protein için yaklaşık $proteinLeft g kaldı.'
+              : 'Hedefi ${remaining.abs()} kcal aştın; sonraki seçimleri sade tut.'
+        : 'Önce ilk öğününü ekle; analiz ve AI önerileri sonra daha doğru çalışır.';
+    final actionLabel = hasEntries ? 'Öneri Al' : 'Yemek Ekle';
+    final actionIcon = hasEntries
+        ? Icons.auto_awesome_rounded
+        : Icons.add_rounded;
+    final actionColor = hasEntries
+        ? AppColors.primaryLight
+        : AppColors.secondary;
+    final actionTap = hasEntries
+        ? () => showMealSuggestionSheet(context)
+        : () => _openSearch(context, null);
+
+    return Container(
+          padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF101922).withValues(alpha: 0.86),
+                const Color(0xFF0A1016).withValues(alpha: 0.92),
               ],
             ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: AppColors.secondary.withValues(alpha: 0.2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 60.ms, duration: 350.ms).slideY(begin: 0.03, end: 0);
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: actionColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: actionColor.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Icon(actionIcon, color: actionColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.56),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: actionTap,
+                  borderRadius: BorderRadius.circular(15),
+                  child: Ink(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: actionColor.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: actionColor.withValues(alpha: 0.34),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(actionIcon, color: actionColor, size: 16),
+                        const SizedBox(width: 6),
+                        Text(
+                          actionLabel,
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white.withValues(alpha: 0.92),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )
+        .animate()
+        .fadeIn(delay: 80.ms, duration: 350.ms)
+        .slideY(begin: 0.03, end: 0, curve: Curves.easeOut);
+  }
+
+  // ignore: unused_element
+  Widget _buildFeaturedNutritionRow(BuildContext context) {
+    void navigate(String route) {
+      try {
+        Navigator.of(context, rootNavigator: false).pushNamed(route);
+      } catch (e) {
+        debugPrint('DietDashboardPage featured $route navigation: $e');
+      }
+    }
+
+    void openScanOptions() {
+      ScanOptionsSheet.show(
+        context,
+        defaultMealType: MealType.snack,
+        onSearchTap: () => _openSearch(context, null),
+      );
+    }
+
+    Widget featuredCard({
+      required String title,
+      required String subtitle,
+      required IconData icon,
+      required Color color,
+      required VoidCallback onTap,
+      required double width,
+    }) {
+      return SizedBox(
+        width: width,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(15),
+            child: Ink(
+              height: 78,
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: color.withValues(alpha: 0.26)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 19),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontSize: 12.7,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white.withValues(alpha: 0.48),
+                            fontSize: 10.2,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final spacing = 8.0;
+        final tileWidth = (constraints.maxWidth - spacing) / 2;
+
+        return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 2, bottom: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.apps_rounded,
+                        size: 15,
+                        color: AppColors.primaryLight.withValues(alpha: 0.95),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Beslenme araçları',
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '4 ana araç',
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.36),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Wrap(
+                  spacing: spacing,
+                  runSpacing: 8,
+                  children: [
+                    featuredCard(
+                      title: 'AI Koç',
+                      subtitle: 'Soru sor',
+                      icon: Icons.auto_awesome_rounded,
+                      color: AppColors.primaryLight,
+                      onTap: () => navigate('diet_chat'),
+                      width: tileWidth,
+                    ),
+                    featuredCard(
+                      title: 'Öğün Önerisi',
+                      subtitle: 'Bugün ne yesem?',
+                      icon: Icons.restaurant_rounded,
+                      color: const Color(0xFFFF9F0A),
+                      onTap: () => showMealSuggestionSheet(context),
+                      width: tileWidth,
+                    ),
+                    featuredCard(
+                      title: 'Yemek Analizi',
+                      subtitle: 'Barkod / fotoğraf',
+                      icon: Icons.qr_code_scanner_rounded,
+                      color: AppColors.secondary,
+                      onTap: openScanOptions,
+                      width: tileWidth,
+                    ),
+                    featuredCard(
+                      title: 'Rehber',
+                      subtitle: 'Makro öğren',
+                      icon: Icons.school_rounded,
+                      color: const Color(0xFF5AC8FA),
+                      onTap: () => navigate('nutrition_guide'),
+                      width: tileWidth,
+                    ),
+                  ],
+                ),
+              ],
+            )
+            .animate()
+            .fadeIn(delay: 100.ms, duration: 340.ms)
+            .slideY(begin: 0.03, end: 0, curve: Curves.easeOut);
+      },
+    );
   }
 
   // ─── Tools Grid ───────────────────────────────────────────────────────────
@@ -1081,66 +1412,72 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
       required int delay,
     }) {
       return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.11),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: color.withValues(alpha: 0.35), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(13),
+            onTap: onTap,
+            child: Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.11),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: color.withValues(alpha: 0.35),
+                  width: 1.2,
                 ),
-                child: Icon(icon, size: 22, color: color),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      label,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      sublabel,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: color.withValues(alpha: 0.75),
-                      ),
+                    child: Icon(icon, size: 22, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          sublabel,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: color.withValues(alpha: 0.75),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 13,
+                    color: color.withValues(alpha: 0.4),
+                  ),
+                ],
               ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  size: 13, color: color.withValues(alpha: 0.4)),
-            ],
-          ),
-        ),
-      )
+            ),
+          )
           .animate()
           .fadeIn(delay: delay.ms, duration: 350.ms)
           .slideX(begin: 0.04, end: 0, curve: Curves.easeOut);
@@ -1156,98 +1493,131 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
       required int delay,
     }) {
       return Expanded(
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 66,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withValues(alpha: 0.3), width: 1.1),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        label,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.92),
-                        ),
+        child:
+            GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    height: 66,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.3),
+                        width: 1.1,
                       ),
-                      Text(
-                        sublabel,
-                        style: GoogleFonts.dmSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: color.withValues(alpha: 0.6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(icon, size: 18, color: color),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                label,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                ),
+                              ),
+                              Text(
+                                sublabel,
+                                style: GoogleFonts.dmSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: color.withValues(alpha: 0.6),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        )
-            .animate()
-            .fadeIn(delay: delay.ms, duration: 350.ms)
-            .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
+                )
+                .animate()
+                .fadeIn(delay: delay.ms, duration: 350.ms)
+                .slideY(begin: 0.05, end: 0, curve: Curves.easeOut),
       );
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Üst: AI araçları (büyük yatay kartlar)
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.apps_rounded,
+                size: 15,
+                color: AppColors.primaryLight.withValues(alpha: 0.95),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Beslenme araçları',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '8 araç',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.36),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
         bigCard(
-          label: 'AI Öğün Önerisi',
-          sublabel: 'Hedefine uygun menü al',
+          label: 'AI Koç',
+          sublabel: 'Beslenme sorusu sor, günlük yön al',
           icon: Icons.auto_awesome_rounded,
           color: AppColors.primaryLight,
-          onTap: () => showMealSuggestionSheet(context),
+          onTap: () => navigate('diet_chat'),
           delay: 120,
         ),
         const SizedBox(height: 10),
         bigCard(
-          label: 'Beslenme Rehberi',
-          sublabel: 'Hedef bazlı makro & öğün planı',
-          icon: Icons.menu_book_rounded,
+          label: 'Öğün Önerisi',
+          sublabel: 'Hedefine uygun menü al',
+          icon: Icons.restaurant_rounded,
           color: const Color(0xFFFF9F0A),
-          onTap: () => navigate('nutrition_guide'),
+          onTap: () => showMealSuggestionSheet(context),
           delay: 150,
         ),
         const SizedBox(height: 10),
 
-        // Alt: 4 küçük araç (2x2 satır)
         Row(
           children: [
             smallCard(
-              label: 'Tara',
+              label: 'Yemek Analizi',
               sublabel: 'Barkod / fotoğraf',
               icon: Icons.qr_code_scanner_rounded,
               color: AppColors.secondary,
@@ -1304,11 +1674,11 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             ),
             const SizedBox(width: 10),
             smallCard(
-              label: 'Diyet Sohbeti',
-              sublabel: 'AI beslenme asistanı',
-              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Rehber',
+              sublabel: 'Makro ve öğün planı',
+              icon: Icons.school_rounded,
               color: const Color(0xFF5AC8FA),
-              onTap: () => navigate('diet_chat'),
+              onTap: () => navigate('nutrition_guide'),
               delay: 280,
             ),
           ],
@@ -1343,8 +1713,10 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   // ─── Helpers ──────────────────────────────────────────────────────────────
   Future<void> _openSearch(BuildContext context, MealType? type) async {
     try {
-      await Navigator.of(context, rootNavigator: false)
-          .pushNamed('search', arguments: type ?? MealType.snack);
+      await Navigator.of(
+        context,
+        rootNavigator: false,
+      ).pushNamed('search', arguments: type ?? MealType.snack);
       if (!context.mounted) return;
       try {
         final provider = Provider.of<DietProvider>(context, listen: false);
@@ -1367,11 +1739,14 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             return AlertDialog(
               backgroundColor: AppColors.surface,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: Text(
                 'Günlük su hedefi',
                 style: GoogleFonts.dmSans(
-                    color: Colors.white, fontWeight: FontWeight.w700),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1397,14 +1772,20 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('6',
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 12)),
-                      Text('20 bardak',
-                          style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
-                              fontSize: 12)),
+                      Text(
+                        '6',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        '20 bardak',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1412,16 +1793,21 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: Text('İptal',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7))),
+                  child: Text(
+                    'İptal',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, selected),
                   style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10))),
+                    backgroundColor: AppColors.secondary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   child: const Text('Kaydet'),
                 ),
               ],
@@ -1433,28 +1819,35 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     if (result != null) {
       await StorageHelper.saveWaterGoalML(result * 250);
       if (!mounted) return;
+      final provider = context.read<DietProvider>();
+      final currentGlasses = ((provider.waterLiters * 1000) / 250).round();
       setState(() {
         _waterGoalGlasses = result;
-        if (_waterGlasses > result) _waterGlasses = result;
       });
+      if (currentGlasses > result) {
+        provider.setWaterGlassesForSelectedDate(result);
+      }
     }
   }
 
   void _showEditSheet(
-      BuildContext context, FoodEntry entry, DietProvider provider) {
+    BuildContext context,
+    FoodEntry entry,
+    DietProvider provider,
+  ) {
     EditEntrySheet.show(
       context,
       entry: entry,
-      onSave: ({
-        required String entryId,
-        required double newGrams,
-        required MealType newMealType,
-      }) =>
-          provider.updateEntry(
-        entryId: entryId,
-        newGrams: newGrams,
-        newMealType: newMealType,
-      ),
+      onSave:
+          ({
+            required String entryId,
+            required double newGrams,
+            required MealType newMealType,
+          }) => provider.updateEntry(
+            entryId: entryId,
+            newGrams: newGrams,
+            newMealType: newMealType,
+          ),
     );
   }
 }

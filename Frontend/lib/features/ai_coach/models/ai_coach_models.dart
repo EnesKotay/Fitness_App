@@ -136,6 +136,8 @@ class DailySummary {
   final String? userGender;
   final String? activityLevel;
   final int? tdee;
+  final String? workoutLocation;
+  final String? equipmentType;
 
   const DailySummary({
     this.steps,
@@ -163,6 +165,8 @@ class DailySummary {
     this.userGender,
     this.activityLevel,
     this.tdee,
+    this.workoutLocation,
+    this.equipmentType,
   });
 
   Map<String, dynamic> toJson() => {
@@ -191,6 +195,8 @@ class DailySummary {
     'userGender': userGender,
     'activityLevel': activityLevel,
     'tdee': tdee,
+    'workoutLocation': workoutLocation,
+    'equipmentType': equipmentType,
   };
 }
 

@@ -26,11 +26,16 @@ class StorageKeys {
   static const String smartGroceryCheckedItems = 'smart_grocery_checked_items';
   static const String nutritionPreferences = 'nutrition_preferences';
   static const String pendingOnboardingSummary = 'pending_onboarding_summary';
+  static const String pendingInitialProfileSetup =
+      'pending_initial_profile_setup';
   static const String quickAccessHintSeen = 'quick_access_hint_seen';
 
   /// Yeni kayıt olan kullanıcıya 1 kere gösterilen uygulama tur rehberi.
   static const String appTourSeen = 'app_tour_seen';
   static const String pendingAppTour = 'pending_app_tour';
+  static const String assistantFabCorner = 'assistant_fab_corner';
+  static const String workoutLocation = 'workout_location';
+  static const String equipmentType = 'equipment_type';
   // Settings
   static const String settingsNotifEnabled = 'settings_notif_enabled';
   static const String settingsNotifWater = 'settings_notif_water';

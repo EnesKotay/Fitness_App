@@ -8,12 +8,18 @@ class StreakProvider with ChangeNotifier {
   static const _kLastWorkoutDateKey = 'last_workout_date';
   static const _kTotalWorkoutsKey = 'total_workouts';
   static const _kUnlockedBadgesKey = 'unlocked_badges';
+  static const _kTaskStreakKey = 'task_streak';
+  static const _kLongestTaskStreakKey = 'longest_task_streak';
+  static const _kLastTaskCompletionDateKey = 'last_task_completion_date';
 
   int _currentStreak = 0;
   int _longestStreak = 0;
   int _totalWorkouts = 0;
   DateTime? _lastWorkoutDate;
   List<String> _unlockedBadges = [];
+  int _taskStreak = 0;
+  int _longestTaskStreak = 0;
+  DateTime? _lastTaskCompletionDate;
 
   // Yeni kazanılan rozet (overlay tetikler)
   AchievementBadge? _justUnlockedBadge;
@@ -24,6 +30,8 @@ class StreakProvider with ChangeNotifier {
   DateTime? get lastWorkoutDate => _lastWorkoutDate;
   List<String> get unlockedBadges => List.unmodifiable(_unlockedBadges);
   AchievementBadge? get justUnlockedBadge => _justUnlockedBadge;
+  int get taskStreak => _taskStreak;
+  int get longestTaskStreak => _longestTaskStreak;
 
   bool get isOnFire => _currentStreak >= 3;
 
@@ -34,9 +42,15 @@ class StreakProvider with ChangeNotifier {
     _longestStreak = prefs.getInt(_kLongestStreakKey) ?? 0;
     _totalWorkouts = prefs.getInt(_kTotalWorkoutsKey) ?? 0;
     _unlockedBadges = prefs.getStringList(_kUnlockedBadgesKey) ?? [];
+    _taskStreak = prefs.getInt(_kTaskStreakKey) ?? 0;
+    _longestTaskStreak = prefs.getInt(_kLongestTaskStreakKey) ?? 0;
     final lastDateStr = prefs.getString(_kLastWorkoutDateKey);
     if (lastDateStr != null) {
       _lastWorkoutDate = DateTime.tryParse(lastDateStr);
+    }
+    final lastTaskDateStr = prefs.getString(_kLastTaskCompletionDateKey);
+    if (lastTaskDateStr != null) {
+      _lastTaskCompletionDate = DateTime.tryParse(lastTaskDateStr);
     }
     notifyListeners();
   }
@@ -170,26 +184,96 @@ class StreakProvider with ChangeNotifier {
     return null;
   }
 
+  /// Günlük tüm görevler tamamlandığında çağrılır. Task streak'i günceller.
+  /// Döndürür: yeni rozet kazanıldıysa [AchievementBadge], yoksa null.
+  Future<AchievementBadge?> onDailyTasksAllCompleted() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (_lastTaskCompletionDate != null) {
+      final last = DateTime(
+        _lastTaskCompletionDate!.year,
+        _lastTaskCompletionDate!.month,
+        _lastTaskCompletionDate!.day,
+      );
+      if (last == today) return null;
+
+      final yesterday = today.subtract(const Duration(days: 1));
+      if (last == yesterday) {
+        _taskStreak++;
+      } else {
+        _taskStreak = 1;
+      }
+    } else {
+      _taskStreak = 1;
+    }
+
+    _lastTaskCompletionDate = today;
+    if (_taskStreak > _longestTaskStreak) {
+      _longestTaskStreak = _taskStreak;
+    }
+
+    final badge = _checkTaskStreakBadge();
+    _justUnlockedBadge = badge;
+    await _persist();
+    notifyListeners();
+    return badge;
+  }
+
+  AchievementBadge? _checkTaskStreakBadge() {
+    final milestones = <int, AchievementBadge>{
+      7: AchievementBadge(
+        id: 'task_streak_7',
+        title: '7 Günlük Görev Serisi!',
+        description: '7 gün boyunca tüm görevleri tamamladın!',
+        emoji: '✅',
+        isStreak: true,
+      ),
+      30: AchievementBadge(
+        id: 'task_streak_30',
+        title: '30 Günlük Görev Serisi!',
+        description: 'Bir ay boyunca tüm görevleri tamamladın!',
+        emoji: '🏅',
+        isStreak: true,
+      ),
+    };
+    final badge = milestones[_taskStreak];
+    if (badge == null) return null;
+    if (_unlockedBadges.contains(badge.id)) return null;
+    _unlockedBadges.add(badge.id);
+    return badge;
+  }
+
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kStreakKey, _currentStreak);
     await prefs.setInt(_kLongestStreakKey, _longestStreak);
     await prefs.setInt(_kTotalWorkoutsKey, _totalWorkouts);
     await prefs.setStringList(_kUnlockedBadgesKey, _unlockedBadges);
+    await prefs.setInt(_kTaskStreakKey, _taskStreak);
+    await prefs.setInt(_kLongestTaskStreakKey, _longestTaskStreak);
     if (_lastWorkoutDate != null) {
       await prefs.setString(
           _kLastWorkoutDateKey, _lastWorkoutDate!.toIso8601String());
     }
+    if (_lastTaskCompletionDate != null) {
+      await prefs.setString(
+          _kLastTaskCompletionDateKey, _lastTaskCompletionDate!.toIso8601String());
+    }
   }
 
-  void reset() {
+  Future<void> reset() async {
     _currentStreak = 0;
     _longestStreak = 0;
     _totalWorkouts = 0;
     _lastWorkoutDate = null;
     _unlockedBadges = [];
     _justUnlockedBadge = null;
+    _taskStreak = 0;
+    _longestTaskStreak = 0;
+    _lastTaskCompletionDate = null;
     notifyListeners();
+    await _persist();
   }
 }
 

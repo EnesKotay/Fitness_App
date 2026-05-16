@@ -81,6 +81,37 @@ class AuthService {
     }
   }
 
+  Future<AuthResponse> socialLogin(SocialLoginRequest request) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.socialLogin,
+        data: request.toJson(),
+        options: Options(
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
+
+      final authResponse = AuthResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      await _persistSession(
+        token: authResponse.token,
+        userId: authResponse.user.id,
+        email: authResponse.user.email.trim().toLowerCase(),
+        name: authResponse.user.name,
+      );
+
+      return authResponse;
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException(message: 'Sosyal giris islemi basarisiz oldu');
+    }
+  }
+
   Future<User> getMe() async {
     try {
       final response = await _apiClient
@@ -160,11 +191,14 @@ class AuthService {
 
   Future<void> forgotPassword(ForgotPasswordRequest request) async {
     try {
-      await _apiClient
-          .post('/api/auth/forgot-password', data: request.toJson())
-          .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
-      throw ApiException(message: 'Bağlantı zaman aşımı');
+      await _apiClient.post(
+        '/api/auth/forgot-password',
+        data: request.toJson(),
+        options: Options(
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'E-posta gönderilemedi');
@@ -173,11 +207,14 @@ class AuthService {
 
   Future<void> verifyResetCode(VerifyResetCodeRequest request) async {
     try {
-      await _apiClient
-          .post('/api/auth/verify-reset-code', data: request.toJson())
-          .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
-      throw ApiException(message: 'Bağlantı zaman aşımı');
+      await _apiClient.post(
+        '/api/auth/verify-reset-code',
+        data: request.toJson(),
+        options: Options(
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'Kod doğrulanamadı');
@@ -186,11 +223,14 @@ class AuthService {
 
   Future<void> resetPassword(ResetPasswordRequest request) async {
     try {
-      await _apiClient
-          .post('/api/auth/reset-password', data: request.toJson())
-          .timeout(const Duration(seconds: 5));
-    } on TimeoutException {
-      throw ApiException(message: 'Bağlantı zaman aşımı');
+      await _apiClient.post(
+        '/api/auth/reset-password',
+        data: request.toJson(),
+        options: Options(
+          sendTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      );
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException(message: 'Şifreniz sıfırlanamadı');

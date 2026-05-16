@@ -3,7 +3,11 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/constants/api_constants.dart';
+import '../../../core/utils/storage_helper.dart';
+import 'package:dio/dio.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../models/ai_coach_models.dart';
 import '../services/ai_coach_service.dart';
@@ -20,6 +24,8 @@ class ChatMessage {
   final CoachResponse? structuredResponse;
   final bool isError;
   final bool isSystemNote;
+  final String? taskMode;
+  final String? personality;
 
   ChatMessage({
     required this.id,
@@ -30,6 +36,8 @@ class ChatMessage {
     this.imagePath,
     this.isError = false,
     this.isSystemNote = false,
+    this.taskMode,
+    this.personality,
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
@@ -41,18 +49,18 @@ class AiCoachController extends ChangeNotifier {
     DailySummary? initialSummary,
     int? userId,
     AiCoachSessionService? sessionService,
-  })  : _service = service ?? AiCoachService(),
-        _sessionService = sessionService ?? AiCoachSessionService(),
-        _userId = userId,
-        _dailySummary =
-            initialSummary ??
-            const DailySummary(
-              calories: 0,
-              waterLiters: 0,
-              workouts: 0,
-              workoutMinutes: 0,
-              workoutHighlights: <String>[],
-            ) {
+  }) : _service = service ?? AiCoachService(),
+       _sessionService = sessionService ?? AiCoachSessionService(),
+       _userId = userId,
+       _dailySummary =
+           initialSummary ??
+           const DailySummary(
+             calories: 0,
+             waterLiters: 0,
+             workouts: 0,
+             workoutMinutes: 0,
+             workoutHighlights: <String>[],
+           ) {
     _addInitialMessage();
   }
 
@@ -186,14 +194,18 @@ class AiCoachController extends ChangeNotifier {
     if (lower.contains('protein')) {
       final s = _dailySummary;
       final p = s.proteinGrams;
-      chips.add(p != null && p > 0
-          ? 'Bugün ${p}g protein aldım, bu yeterli mi?'
-          : 'Günlük kaç gram protein almalıyım?');
+      chips.add(
+        p != null && p > 0
+            ? 'Bugün ${p}g protein aldım, bu yeterli mi?'
+            : 'Günlük kaç gram protein almalıyım?',
+      );
       chips.add('En iyi protein kaynakları neler?');
     }
 
-    if ((lower.contains('makro') || lower.contains('karbonhidrat') || lower.contains('yağ'))
-        && !lower.contains('protein')) {
+    if ((lower.contains('makro') ||
+            lower.contains('karbonhidrat') ||
+            lower.contains('yağ')) &&
+        !lower.contains('protein')) {
       chips.add('Makrolarımı nasıl dengeleyebilirim?');
       chips.add('Karbonhidrat miktarını azaltmalı mıyım?');
     }
@@ -202,7 +214,9 @@ class AiCoachController extends ChangeNotifier {
     if (lower.contains('antrenman') || lower.contains('egzersiz')) {
       final s = _dailySummary;
       if (s.workouts > 0 && s.workoutMinutes >= 30) {
-        chips.add('${s.workoutMinutes} dakika sonrası için toparlanma planı ver');
+        chips.add(
+          '${s.workoutMinutes} dakika sonrası için toparlanma planı ver',
+        );
         chips.add('Bu antrenmandan sonra ne yemem gerekiyor?');
       } else {
         chips.add('Bugün kaç dakika egzersiz yapmalıyım?');
@@ -211,7 +225,9 @@ class AiCoachController extends ChangeNotifier {
     }
 
     // --- Recovery / sleep context ---
-    if (lower.contains('toparlanma') || lower.contains('uyku') || lower.contains('dinlenme')) {
+    if (lower.contains('toparlanma') ||
+        lower.contains('uyku') ||
+        lower.contains('dinlenme')) {
       chips.add('Toparlanmamı hızlandırmak için ne yapabilirim?');
       chips.add('Uyku kalitemi artırmanın yolları neler?');
     }
@@ -233,20 +249,28 @@ class AiCoachController extends ChangeNotifier {
     // --- Water context ---
     if (lower.contains('su') || lower.contains('hidrasyon')) {
       final s = _dailySummary;
-      chips.add('Bugün ${s.waterLiters.toStringAsFixed(1)} L su içtim, yeterli mi?');
+      chips.add(
+        'Bugün ${s.waterLiters.toStringAsFixed(1)} L su içtim, yeterli mi?',
+      );
       chips.add('Su içmeyi artırmak için pratik öneriler ver');
     }
 
     // --- Meal plan context ---
-    if (lower.contains('öğün') || lower.contains('kahvaltı') || lower.contains('akşam yemeği')
-        || lower.contains('yemek listesi') || lower.contains('menü')) {
+    if (lower.contains('öğün') ||
+        lower.contains('kahvaltı') ||
+        lower.contains('akşam yemeği') ||
+        lower.contains('yemek listesi') ||
+        lower.contains('menü')) {
       chips.add('Bu planı daha yüksek proteinli yapabilir misin?');
       chips.add('Vejeteryan alternatif öner');
     }
 
     // --- Motivation / emotional context ---
-    if (lower.contains('motivasyon') || lower.contains('baş') || lower.contains('zor') ||
-        lower.contains('dur') || lower.contains('sabır')) {
+    if (lower.contains('motivasyon') ||
+        lower.contains('baş') ||
+        lower.contains('zor') ||
+        lower.contains('dur') ||
+        lower.contains('sabır')) {
       chips.add('İlerleme göremiyorum, bu normal mi?');
       chips.add('Küçük ama kalıcı bir alışkanlık nasıl oluşturabilirim?');
     }
@@ -289,8 +313,14 @@ class AiCoachController extends ChangeNotifier {
     final s = _dailySummary;
     final hasCalories = s.calories > 0;
     final hasWorkout = s.workouts > 0;
-    final isUnderCalories = s.targetCalories != null && hasCalories && s.calories < s.targetCalories! - 200;
-    final isOverCalories = s.targetCalories != null && hasCalories && s.calories > s.targetCalories! + 200;
+    final isUnderCalories =
+        s.targetCalories != null &&
+        hasCalories &&
+        s.calories < s.targetCalories! - 200;
+    final isOverCalories =
+        s.targetCalories != null &&
+        hasCalories &&
+        s.calories > s.targetCalories! + 200;
     final isLowWater = s.waterLiters < 1.5;
     final timeOfDay = _getTimeOfDay();
 
@@ -298,9 +328,12 @@ class AiCoachController extends ChangeNotifier {
       case CoachTaskMode.nutrition:
         return [
           if (!hasCalories) 'Bugün ne yemeliyim?',
-          if (hasCalories && isUnderCalories) '${(s.targetCalories! - s.calories)} kcal daha alayım, ne önerirsin?',
-          if (hasCalories && isOverCalories) 'Kalori aştım, nasıl dengeleyeyim?',
-          if (hasCalories && !isUnderCalories && !isOverCalories) 'Kalorim hedefe uygun mu?',
+          if (hasCalories && isUnderCalories)
+            '${(s.targetCalories! - s.calories)} kcal daha alayım, ne önerirsin?',
+          if (hasCalories && isOverCalories)
+            'Kalori aştım, nasıl dengeleyeyim?',
+          if (hasCalories && !isUnderCalories && !isOverCalories)
+            'Kalorim hedefe uygun mu?',
           if (timeOfDay == 'akşam' || timeOfDay == 'gece') 'Akşam öğünü öner',
           if (timeOfDay == 'sabah') 'Sabah kahvaltısı öner',
           'Makrolarımı yorumla',
@@ -309,8 +342,10 @@ class AiCoachController extends ChangeNotifier {
       case CoachTaskMode.workout:
         return [
           if (!hasWorkout) 'Bugüne uygun antrenman ver',
-          if (hasWorkout && s.workoutMinutes >= 45) 'Toparlanma için ne yapmalıyım?',
-          if (hasWorkout && s.workoutMinutes < 30) 'Antrenmanı tamamlamak için öneri ver',
+          if (hasWorkout && s.workoutMinutes >= 45)
+            'Toparlanma için ne yapmalıyım?',
+          if (hasWorkout && s.workoutMinutes < 30)
+            'Antrenmanı tamamlamak için öneri ver',
           if (!hasWorkout) '30 dakikalık ev antrenmanı yap',
           'Bugün dinlenmeli miyim?',
           'Isınma planı ver',
@@ -404,11 +439,13 @@ class AiCoachController extends ChangeNotifier {
     // Replace welcome message with stored history
     _messages.clear();
     for (final m in stored) {
-      _messages.add(ChatMessage(
-        id: 'restored_${DateTime.now().microsecondsSinceEpoch}',
-        role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
-        content: m['content']!,
-      ));
+      _messages.add(
+        ChatMessage(
+          id: 'restored_${DateTime.now().microsecondsSinceEpoch}',
+          role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
+          content: m['content']!,
+        ),
+      );
     }
     notifyListeners();
   }
@@ -418,15 +455,52 @@ class AiCoachController extends ChangeNotifier {
     if (uid == null) return;
     final toSave = _messages
         .where((m) => !m.isError && !m.isSystemNote && m.content.isNotEmpty)
+        .map(
+          (m) => {
+            'role': m.role == ChatRole.user ? 'user' : 'assistant',
+            'content': m.content,
+          },
+        )
+        .toList();
+    await _sessionService.saveSession(userId: uid, messages: toSave);
+    // Also archive to daily history key so it's always up-to-date
+    if (toSave.isNotEmpty) {
+      await _sessionService.archiveSession(
+        userId: uid,
+        date: _todayKey(),
+        messages: toSave,
+      );
+    }
+  }
+
+  /// Saves current conversation to history before clearing.
+  Future<void> _archiveIfNeeded() async {
+    final uid = _userId;
+    if (uid == null) return;
+    final real = _messages
+        .where((m) => !m.isError && !m.isSystemNote && m.content.isNotEmpty)
+        .toList();
+    if (real.length < 2) return;
+    final toSave = real
         .map((m) => {
               'role': m.role == ChatRole.user ? 'user' : 'assistant',
               'content': m.content,
             })
         .toList();
-    await _sessionService.saveSession(userId: uid, messages: toSave);
+    await _sessionService.archiveSession(
+      userId: uid,
+      date: _todayKey(),
+      messages: toSave,
+    );
   }
 
-  void clearMessages() {
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  void clearMessages() async {
+    await _archiveIfNeeded();
     _messages.clear();
     _addInitialMessage();
     _errorMessage = null;
@@ -434,6 +508,48 @@ class AiCoachController extends ChangeNotifier {
       _sessionService.clearSession(userId: _userId);
     }
     notifyListeners();
+  }
+
+  /// Start a fresh conversation, archiving the current one first.
+  Future<void> startNewConversation() async {
+    await _archiveIfNeeded();
+    _messages.clear();
+    _addInitialMessage();
+    _errorMessage = null;
+    if (_userId != null) {
+      await _sessionService.clearSession(userId: _userId);
+    }
+    notifyListeners();
+  }
+
+  /// Returns list of past sessions (newest first) for the history screen.
+  Future<List<Map<String, dynamic>>> getSessionHistory() async {
+    final uid = _userId;
+    if (uid == null) return [];
+    return _sessionService.listSessionsAsync(userId: uid);
+  }
+
+  /// Load a past session by date key (e.g. "2025-05-10").
+  Future<void> loadHistorySession(String date) async {
+    final uid = _userId;
+    if (uid == null) return;
+    final stored = await _sessionService.loadHistorySession(userId: uid, date: date);
+    if (stored.isEmpty) return;
+    _messages.clear();
+    for (final m in stored) {
+      _messages.add(ChatMessage(
+        id: 'hist_${DateTime.now().microsecondsSinceEpoch}',
+        role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
+        content: m['content']!,
+      ));
+    }
+    notifyListeners();
+  }
+
+  Future<void> deleteHistorySession(String date) async {
+    final uid = _userId;
+    if (uid == null) return;
+    await _sessionService.deleteHistorySession(userId: uid, date: date);
   }
 
   void setDailySummary(DailySummary summary) {
@@ -557,10 +673,23 @@ class AiCoachController extends ChangeNotifier {
         );
       }
 
-      String fullContent = response.focus.isNotEmpty
-          ? response.focus
+      final contentBuffer = StringBuffer();
+      if (response.focus.isNotEmpty) {
+        contentBuffer.write(response.focus);
+      }
+      if (response.todoItems.isNotEmpty) {
+        if (contentBuffer.isNotEmpty) contentBuffer.write('\n\n');
+        for (final item in response.todoItems) {
+          contentBuffer.writeln('- $item');
+        }
+      }
+      if (response.nutritionNote.isNotEmpty) {
+        if (contentBuffer.isNotEmpty) contentBuffer.write('\n\n');
+        contentBuffer.write(response.nutritionNote);
+      }
+      String fullContent = contentBuffer.isNotEmpty
+          ? contentBuffer.toString().trim()
           : 'Sana yardımcı olmaya hazırım!';
-
 
       // Step: Achievement Check
       if (response.isAchievement) {
@@ -570,23 +699,31 @@ class AiCoachController extends ChangeNotifier {
       // Optimized typewriter — 20-char chunks at 8ms base = smooth but fast.
       // Sentence-end pauses preserved for natural reading rhythm.
       final aiMsgId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
-      _messages.add(ChatMessage(
-        id: aiMsgId,
-        role: ChatRole.assistant,
-        content: '',
-        structuredResponse: response,
-      ));
+      _messages.add(
+        ChatMessage(
+          id: aiMsgId,
+          role: ChatRole.assistant,
+          content: '',
+          structuredResponse: response,
+          taskMode: snapshot.taskMode.name,
+          personality: snapshot.personality.name,
+        ),
+      );
       notifyListeners();
 
       int i = 0;
       const chunkSize = 20;
       while (i < fullContent.length) {
-        final end = (i + chunkSize) > fullContent.length ? fullContent.length : (i + chunkSize);
+        final end = (i + chunkSize) > fullContent.length
+            ? fullContent.length
+            : (i + chunkSize);
         _messages[_messages.length - 1] = ChatMessage(
           id: aiMsgId,
           role: ChatRole.assistant,
           content: fullContent.substring(0, end),
           structuredResponse: response,
+          taskMode: snapshot.taskMode.name,
+          personality: snapshot.personality.name,
         );
         notifyListeners();
         i = end;
@@ -601,7 +738,7 @@ class AiCoachController extends ChangeNotifier {
         } else if (lastChar == '\n') {
           delay = 40; // New paragraph
         } else {
-          delay = 8;  // Normal
+          delay = 8; // Normal
         }
         await Future.delayed(Duration(milliseconds: delay));
       }
@@ -613,6 +750,9 @@ class AiCoachController extends ChangeNotifier {
 
       // Persist conversation for cross-session continuity
       unawaited(_persistSession());
+
+      // Summarize old messages if conversation is getting long
+      unawaited(_summarizeIfNeeded());
 
       return true;
     } on ApiException catch (e) {
@@ -739,30 +879,159 @@ class AiCoachController extends ChangeNotifier {
         p.contains('öğün');
   }
 
+  /// Yaygın Türkçe yazım hatalarını düzelt ve keyword'leri normalize et
+  String _normalizeTurkish(String text) {
+    return text
+        .replaceAll(RegExp(r'\bantreman\b', caseSensitive: false), 'antrenman')
+        .replaceAll(
+          RegExp(r'\bantremanı\b', caseSensitive: false),
+          'antrenmanı',
+        )
+        .replaceAll(
+          RegExp(r'\bantremanım\b', caseSensitive: false),
+          'antrenmanım',
+        )
+        .replaceAll(
+          RegExp(r'\bkarbohidrat\b', caseSensitive: false),
+          'karbonhidrat',
+        )
+        .replaceAll(RegExp(r'\bprotein\b', caseSensitive: false), 'protein')
+        .replaceAll(RegExp(r'\bkalori\b', caseSensitive: false), 'kalori')
+        .replaceAll(
+          RegExp(r'\bkilo\s+ver\b', caseSensitive: false),
+          'kilo vermek',
+        )
+        .replaceAll(
+          RegExp(r'\byağ\s+yak\b', caseSensitive: false),
+          'yağ yakmak',
+        )
+        .replaceAll(
+          RegExp(r'\bspor\s+salon\b', caseSensitive: false),
+          'spor salonu',
+        )
+        .replaceAll(RegExp(r'\bIF\b'), 'aralıklı oruç (intermittent fasting)')
+        .replaceAll(RegExp(r'\bcreatine\b', caseSensitive: false), 'kreatin')
+        .replaceAll(RegExp(r'\bwhey\b', caseSensitive: false), 'whey protein');
+  }
+
   String _buildModeAwarePrompt(String prompt, CoachTaskMode mode) {
-    final trimmed = prompt.trim();
-    final timeCtx = '[Gün: ${_getTimeOfDay()}]';
-    if (trimmed.isEmpty) return '$timeCtx ${mode.promptLead}';
+    final trimmed = _normalizeTurkish(prompt.trim());
 
     // Mid-conversation: never inject mode prefix — it disrupts natural flow.
     final isOngoing = _messages.where((m) => !m.isError).length > 2;
-    if (isOngoing) return '$timeCtx $trimmed';
+    if (isOngoing) return trimmed;
+
+    if (trimmed.isEmpty) return mode.promptLead;
 
     // First message: skip mode prefix if the user's question already has a clear topic.
     final lower = trimmed.toLowerCase();
     final hasTopic =
-        lower.contains('kalori') || lower.contains('protein') || lower.contains('makro') ||
-        lower.contains('antrenman') || lower.contains('egzersiz') || lower.contains('spor') ||
-        lower.contains('kilo') || lower.contains('ağırlık') || lower.contains('yemek') ||
-        lower.contains('öğün') || lower.contains('kahvaltı') || lower.contains('su') ||
-        lower.contains('uyku') || lower.contains('toparlanma') || lower.contains('plan') ||
-        lower.contains('ne yap') || lower.contains('analiz') || lower.contains('nasıl');
-    if (hasTopic) return '$timeCtx $trimmed';
+        lower.contains('kalori') ||
+        lower.contains('protein') ||
+        lower.contains('makro') ||
+        lower.contains('antrenman') ||
+        lower.contains('egzersiz') ||
+        lower.contains('spor') ||
+        lower.contains('kilo') ||
+        lower.contains('ağırlık') ||
+        lower.contains('yemek') ||
+        lower.contains('öğün') ||
+        lower.contains('kahvaltı') ||
+        lower.contains('su') ||
+        lower.contains('uyku') ||
+        lower.contains('toparlanma') ||
+        lower.contains('plan') ||
+        lower.contains('ne yap') ||
+        lower.contains('analiz') ||
+        lower.contains('nasıl');
+    if (hasTopic) return trimmed;
 
     // Vague first message (e.g., just "merhaba") — add mode context to help the AI.
-    return '$timeCtx [Mod: ${mode.label}] ${mode.promptLead}\n$trimmed';
+    return '[Mod: ${mode.label}] ${mode.promptLead}\n$trimmed';
   }
 
+  static const int _summarizeThreshold = 14;
+  static const int _keepRecentCount = 6;
+  bool _isSummarizing = false;
+
+  /// When the conversation exceeds [_summarizeThreshold] real messages, sends the
+  /// older half to the backend summarizer and replaces them with a compact summary
+  /// message. The most recent [_keepRecentCount] messages are kept verbatim so
+  /// context stays fresh.
+  Future<void> _summarizeIfNeeded() async {
+    if (_isSummarizing) return;
+    final real = _messages
+        .where((m) => !m.isError && !m.isSystemNote && m.content.isNotEmpty)
+        .toList();
+    if (real.length < _summarizeThreshold) return;
+
+    final toSummarize = real.sublist(0, real.length - _keepRecentCount);
+    if (toSummarize.isEmpty) return;
+
+    _isSummarizing = true;
+    try {
+      final token = StorageHelper.getToken();
+      if (token == null || token.isEmpty) return;
+
+      final lines = toSummarize
+          .map(
+            (m) =>
+                '${m.role == ChatRole.user ? 'Kullanıcı' : 'Koç'}: ${m.content.trim()}',
+          )
+          .toList();
+
+      final response = await ApiClient().post(
+        ApiConstants.aiSummarize,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        data: {'messages': lines},
+      );
+
+      if (response.statusCode != 200) return;
+      final summary =
+          (response.data as Map<String, dynamic>?)?['summary'] as String?;
+      if (summary == null || summary.trim().isEmpty) return;
+
+      // Remove the summarized messages and insert a single summary bubble.
+      final summarizedIds = toSummarize.map((m) => m.id).toSet();
+      _messages.removeWhere((m) => summarizedIds.contains(m.id));
+
+      final summaryMsg = ChatMessage(
+        id: 'summary_${DateTime.now().millisecondsSinceEpoch}',
+        role: ChatRole.assistant,
+        content: '📝 Önceki konuşma özeti:\n\n$summary',
+        isSystemNote: true,
+      );
+      // Insert summary before the kept recent messages (at position 0 after
+      // the welcome message if present, otherwise at the front).
+      final insertAt = _messages.indexWhere(
+        (m) => !m.isSystemNote && m.role == ChatRole.user,
+      );
+      if (insertAt < 0) {
+        _messages.add(summaryMsg);
+      } else {
+        _messages.insert(insertAt, summaryMsg);
+      }
+
+      notifyListeners();
+      unawaited(_persistSession());
+    } catch (_) {
+      // Non-critical — ignore failures silently
+    } finally {
+      _isSummarizing = false;
+    }
+  }
+
+  /// Fire-and-forget feedback — called from ChatBubble when user taps 👍/👎.
+  void sendFeedback(ChatMessage message, {required bool isPositive}) {
+    unawaited(
+      _service.sendFeedback(
+        aiResponse: message.content,
+        isPositive: isPositive,
+        taskMode: message.taskMode,
+        personality: message.personality,
+      ),
+    );
+  }
 
   @override
   void dispose() {

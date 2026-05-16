@@ -27,6 +27,8 @@ public class NutritionPromptBuilder {
         String contextBlock = buildContextBlock(request.context);
         String userContext = buildUserContext(request.context);
 
+        String historyBlock = buildHistoryBlock(request.conversationHistory);
+
         if ("EXTRACT_FOOD_ITEMS".equals(task)) {
             return """
                     Extract only food names from this Turkish text.
@@ -115,13 +117,13 @@ public class NutritionPromptBuilder {
                     """.formatted(userContext, message, contextBlock);
         }
 
-        // Structured JSON prompt for meal suggestions with language/difficulty/budget
+        // Structured JSON prompt — intent-aware: only populate meals when user asks for suggestions
         return """
-                You are a practical nutrition assistant in a fitness app.
+                You are a practical nutrition assistant inside a fitness tracking app.
                 Language: Turkish (tr)
                 %s
 
-                User message: %s
+                %sUser message: %s
 
                 Context:
                 %s
@@ -129,7 +131,7 @@ public class NutritionPromptBuilder {
                 Only output valid JSON. Do not wrap with ```json or ```.
                 Response must follow this exact JSON schema:
                 {
-                  "reply": "string - your conversational response to the user's message",
+                  "reply": "string - your direct Turkish answer to the user's question",
                   "meals": [
                     {
                       "name": "string - meal name in Turkish",
@@ -143,25 +145,55 @@ public class NutritionPromptBuilder {
                         "fatG": 0
                       },
                       "prepMinutes": 0,
-                      "tags": ["string - meal tags like 'kahvalti', 'aksam', 'diyet', 'vegan', 'gluten-free'],
-                      "warnings": ["string - allergy warnings or notes"]
+                      "tags": ["string"],
+                      "warnings": ["string - allergy warnings if any"]
                     }
                   ],
                   "shoppingList": ["string - shopping list item"],
-                  "followUpQuestions": ["string - question user might ask next"]
+                  "followUpQuestions": ["string - helpful follow-up question"]
                 }
 
-                Rules:
-                - meals array must contain 3 to 5 items
-                - macros values must be integers
-                - steps must be 3 to 6 short items
-                - ingredients list should be practical and easy to find
-                - Keep suggestions realistic and safe
-                - Do not provide medical diagnosis
-                - If user asks about a specific meal, focus on that
-                - Consider budget-friendly options when not specified
-                - Prefer easy-to-prepare meals if user is busy
-                """.formatted(userContext, message, contextBlock);
+                CRITICAL — Decide output based on user INTENT:
+
+                INTENT A — Informational / factual question (e.g. "Bugün kaç kalori aldım?",
+                "Ne kadar protein yedim?", "Kalan kalori ne?", "Su içmeli miyim?",
+                "Nasıl beslenmeliyim?", general health advice, "Ne yedim bugün?"):
+                  → Answer ONLY in "reply" with a concise, direct Turkish response.
+                  → "meals", "shoppingList", "followUpQuestions" must be [] (empty arrays).
+                  → Do NOT add unsolicited meal suggestions.
+
+                INTENT B — Meal suggestion / recipe request (e.g. "Ne yemek önerirsin?",
+                "Akşam yemeği için ne yapayım?", "Yemek tarifi ver", "Kahvaltı önerisi"):
+                  → Provide 3 to 5 meal suggestions in "meals".
+                  → "reply" should be a short 1-sentence intro in Turkish.
+                  → Optionally add 1-2 follow-up questions.
+
+                INTENT C — Shopping list request:
+                  → Fill "shoppingList" only. Leave "meals" as [].
+
+                General rules:
+                - Answer exactly what was asked. No extra suggestions unless requested.
+                - macros values must be integers.
+                - steps: 3 to 6 short items when included.
+                - Do not provide medical diagnosis.
+                - Respect dietary restrictions strictly.
+                """.formatted(userContext, historyBlock, message, contextBlock);
+    }
+
+    private String buildHistoryBlock(List<NutritionAiRequest.ConversationTurn> history) {
+        if (history == null || history.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("Conversation history (oldest to most recent):\n");
+        int maxTurns = Math.min(history.size(), 4);
+        int startIdx = history.size() - maxTurns;
+        for (int i = startIdx; i < history.size(); i++) {
+            NutritionAiRequest.ConversationTurn turn = history.get(i);
+            if (turn.userMessage != null && turn.assistantMessage != null) {
+                sb.append("User: ").append(turn.userMessage).append("\n");
+                sb.append("Assistant: ").append(turn.assistantMessage).append("\n");
+            }
+        }
+        sb.append("\n");
+        return sb.toString();
     }
 
     private String buildUserContext(NutritionAiRequest.NutritionContext context) {
@@ -169,31 +201,39 @@ public class NutritionPromptBuilder {
             return "Answer in concise Turkish.";
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Answer in concise Turkish.");
+        StringBuilder sb = new StringBuilder("Answer in concise Turkish. Language: Turkish (tr).");
 
-        // Add language explicitly
-        sb.append(" Language: Turkish (tr).");
-
-        // Add goal if available
         if (context.goal != null && !context.goal.isBlank()) {
-            sb.append(" User goal: ").append(context.goal);
+            sb.append(" User goal: ").append(context.goal).append(".");
         }
-
-        // Add meal type if available
+        if (context.userAge != null) {
+            sb.append(" Age: ").append(context.userAge).append(".");
+        }
+        if (context.userGender != null && !context.userGender.isBlank()) {
+            sb.append(" Gender: ").append(context.userGender).append(".");
+        }
+        if (context.userWeightKg != null) {
+            sb.append(String.format(java.util.Locale.US, " Weight: %.1f kg.", context.userWeightKg));
+        }
+        if (context.userHeightCm != null) {
+            sb.append(String.format(java.util.Locale.US, " Height: %.0f cm.", context.userHeightCm));
+        }
+        if (context.activityLevel != null && !context.activityLevel.isBlank()) {
+            sb.append(" Activity: ").append(context.activityLevel).append(".");
+        }
+        if (context.targetCalories != null) {
+            sb.append(" Daily calorie target: ").append(context.targetCalories).append(" kcal.");
+        }
+        if (context.proteinTargetG != null) {
+            sb.append(" Protein target: ").append(context.proteinTargetG).append(" g.");
+        }
         if (context.mealType != null && !context.mealType.isBlank()) {
-            sb.append(" Meal type: ").append(context.mealType);
+            sb.append(" Meal type: ").append(context.mealType).append(".");
         }
-
-        // Add dietary restrictions if available
         if (context.dietaryRestrictions != null && !context.dietaryRestrictions.isEmpty()) {
-            sb.append(" Dietary restrictions: ").append(String.join(", ", context.dietaryRestrictions));
+            sb.append(" Dietary restrictions: ").append(String.join(", ", context.dietaryRestrictions)).append(".");
         }
-
-        // Add difficulty preference (default to easy if not specified)
         sb.append(" Difficulty: easy/medium (prefer easy if not specified).");
-
-        // Add budget awareness
         sb.append(" Budget: consider cost-effective options when not specified.");
 
         return sb.toString();

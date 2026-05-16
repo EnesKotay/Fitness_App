@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart' hide TextDirection;
@@ -19,6 +21,7 @@ import '../../../core/constants/premium_features.dart';
 import '../../../core/widgets/app_gradient_background.dart';
 import '../../../core/widgets/ambient_glow_background.dart';
 import '../../nutrition/presentation/widgets/date_strip.dart';
+import '../services/progression_engine.dart';
 import '../services/recovery_engine.dart';
 import 'exercise_guide_screen.dart';
 import 'add_workout_page.dart';
@@ -28,6 +31,8 @@ import '../../../core/widgets/page_guide_button.dart';
 import '../services/exercise_parser_service.dart';
 
 part 'workout_screen_components.dart';
+
+enum _WorkoutHistoryFilter { selectedDay, all, thisWeek, prs }
 
 class WorkoutScreen extends StatefulWidget {
   const WorkoutScreen({super.key});
@@ -48,6 +53,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   String _selectedSubRegion = 'Tümü';
   String _regionSearchQuery = '';
   String _exerciseSearchQuery = '';
+  _WorkoutHistoryFilter _historyFilter = _WorkoutHistoryFilter.selectedDay;
   bool _loadingGroups = true;
   bool _loadingExercises = false;
   String? _errorMessage;
@@ -92,7 +98,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           '2. Yaptığın egzersizleri listeden ekle\n'
           '3. Set, tekrar ve ağırlık değerlerini gir\n'
           '4. Kaydet ve gelişimi gör',
-      tip: 'Antrenman esnasında notlar alabilir, o günkü yorgunluk seviyeni veya hissiyatını da kaydedebilirsin.',
+      tip:
+          'Antrenman esnasında notlar alabilir, o günkü yorgunluk seviyeni veya hissiyatını da kaydedebilirsin.',
     ),
     GuideStep(
       emoji: '⚡',
@@ -100,7 +107,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       description:
           'Eğer o gün ne çalışacağına karar veremediysen, sayfanın üst kısmındaki "Hızlı Başlat" şablonlarını kullan. (Full Body, İtme, Çekme, Bacak vb.).\n\n'
           'Bu şablonlar sana hazır egzersizler sunar, sadece ağırlıklarını girip antrenmana başlarsın.',
-      tip: 'Bu şablonları kendi seviyene göre değiştirebilir, egzersiz çıkarıp ekleyebilirsin.',
+      tip:
+          'Bu şablonları kendi seviyene göre değiştirebilir, egzersiz çıkarıp ekleyebilirsin.',
     ),
     GuideStep(
       emoji: '📅',
@@ -130,6 +138,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _favoriteExercises = StorageHelper.getFavoriteExercises();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadMuscleGroups();
@@ -258,15 +269,14 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     }
   }
 
-  String _normalizeMuscleGroupCode(String raw) => ExerciseParserService.normalizeMuscleGroupCode(raw);
+  String _normalizeMuscleGroupCode(String raw) =>
+      ExerciseParserService.normalizeMuscleGroupCode(raw);
 
-  String _normalizeSearchText(String input) => ExerciseParserService.normalizeSearchText(input);
+  String _normalizeSearchText(String input) =>
+      ExerciseParserService.normalizeSearchText(input);
 
-  bool _containsToken(String text, String token) => ExerciseParserService.containsToken(text, token);
-
-  bool _containsAny(String text, List<String> needles) => ExerciseParserService.containsAny(text, needles);
-
-  String _detectSubRegionLabel(Exercise exercise, String muscleGroup) => ExerciseParserService.detectSubRegionLabel(exercise, muscleGroup);
+  String _detectSubRegionLabel(Exercise exercise, String muscleGroup) =>
+      ExerciseParserService.detectSubRegionLabel(exercise, muscleGroup);
 
   List<Exercise> _mergeWithFallback(List<Exercise> apiList, String group) {
     final normalizedApi = apiList
@@ -452,11 +462,23 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   }
 
   void _openQuickStartWorkout(BuildContext context, _QuickStartPreset preset) {
+    _openActiveSession(
+      context,
+      title: preset.templateData.workoutName,
+      plans: _plansFromQuickStart(preset.templateData),
+      onFinish: () => _pushAddWorkoutFromTemplate(context, preset.templateData),
+    );
+  }
+
+  void _pushAddWorkoutFromTemplate(
+    BuildContext context,
+    TemplateData templateData,
+  ) {
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context)
         .push<String>(
           MaterialPageRoute<String>(
-            builder: (_) => AddWorkoutPage(templateData: preset.templateData),
+            builder: (_) => AddWorkoutPage(templateData: templateData),
           ),
         )
         .then((message) {
@@ -473,6 +495,230 @@ class _WorkoutScreenState extends State<WorkoutScreen>
             );
           }
         });
+  }
+
+  List<_SessionExercisePlan> _plansFromQuickStart(TemplateData templateData) {
+    return [
+      _SessionExercisePlan(
+        name: templateData.exerciseName,
+        sets: templateData.sets,
+        reps: templateData.reps,
+        muscleGroup: templateData.muscleGroup,
+      ),
+    ];
+  }
+
+  List<_SessionExercisePlan> _plansFromTemplate(_TemplateData template) {
+    return template.exercises.map((exercise) {
+      final (sets, reps) = _parseVolume(exercise.volume);
+      return _SessionExercisePlan(
+        name: exercise.name,
+        sets: sets,
+        reps: reps,
+        muscleGroup: template.muscles.isNotEmpty
+            ? _normalizedTemplateMuscleGroup(template.muscles.first)
+            : null,
+      );
+    }).toList();
+  }
+
+  List<_SessionExercisePlan> _plansFromProgramDay(ProgramDay day) {
+    return day.exercises
+        .map(
+          (exercise) => _SessionExercisePlan(
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            muscleGroup: exercise.muscleGroup,
+            restSeconds: exercise.restSeconds,
+          ),
+        )
+        .toList();
+  }
+
+  (int sets, int reps) _parseVolume(String volume) {
+    final parts = volume.split('×');
+    if (parts.length != 2) return (3, 10);
+    return (int.tryParse(parts[0]) ?? 3, int.tryParse(parts[1]) ?? 10);
+  }
+
+  void _openActiveSession(
+    BuildContext context, {
+    required String title,
+    required List<_SessionExercisePlan> plans,
+    required VoidCallback onFinish,
+  }) {
+    if (plans.isEmpty) {
+      onFinish();
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ActiveWorkoutSessionSheet(
+        title: title,
+        plans: plans,
+        onFinish: () {
+          Navigator.of(context).pop();
+          onFinish();
+        },
+      ),
+    );
+  }
+
+  void _startSuggestedSession(BuildContext context, WorkoutProvider provider) {
+    final groups = RecoveryEngine.recommendedGroupsToday(provider.workouts);
+    final group = groups.isNotEmpty
+        ? groups.first
+        : kMuscleGroupInfo.keys.first;
+    final exercises = _exerciseCatalogForGroup(group).take(4).toList();
+    if (exercises.isEmpty) {
+      _openAddWorkoutPage(context);
+      return;
+    }
+    final info = kMuscleGroupInfo[group];
+    final plans = exercises
+        .map(
+          (exercise) => _SessionExercisePlan(
+            name: exercise.name,
+            sets: 3,
+            reps: 10,
+            muscleGroup: group,
+          ),
+        )
+        .toList();
+    _openActiveSession(
+      context,
+      title: '${info?.label ?? 'Bugün'} seansı',
+      plans: plans,
+      onFinish: () => _pushAddWorkoutFromTemplate(context, (
+        exerciseName: plans.first.name,
+        sets: plans.first.sets,
+        reps: plans.first.reps,
+        workoutName: '${info?.label ?? 'Akıllı'} Seans',
+        duration: plans.length * 10,
+        muscleGroup: group,
+        difficulty: 'Orta',
+      )),
+    );
+  }
+
+  void _showMuscleGroupPicker(BuildContext context) {
+    final groups = _muscleGroups.isEmpty
+        ? kMuscleGroupInfo.keys.toList()
+        : _muscleGroups;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF111111),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            12,
+            20,
+            20 + MediaQuery.of(sheetContext).padding.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Bölge seç',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Çalışmak istediğin kas grubunu seç.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: groups.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.55,
+                ),
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  final info =
+                      kMuscleGroupInfo[group] ??
+                      (
+                        label: group,
+                        color: const Color(0xFF2E7D32),
+                        icon: Icons.fitness_center_rounded,
+                        imageUrl: '',
+                      );
+                  return InkWell(
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _selectMuscleGroup(group);
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: info.color.withValues(alpha: 0.11),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: info.color.withValues(alpha: 0.32),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(info.icon, color: info.color, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              info.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -605,9 +851,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     final totalCount = provider.workouts.length;
 
                     final text =
-                        'FitMentor\'da bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
+                        'PusulaFit\'te bu hafta $thisWeekCount antrenman tamamladım! 💪\n'
                         'Toplamda $totalCount antrenmana ulaştım.\n\n'
-                        '📲 FitMentor — Akıllı Antrenman Takibi';
+                        '📲 PusulaFit — Akıllı Antrenman Takibi';
                     final box = context.findRenderObject() as RenderBox?;
                     if (box != null) {
                       Share.share(
@@ -709,18 +955,30 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                             .length;
                         final totalCount = provider.workouts.length;
                         final prCount = provider.personalRecords.length;
+                        final showHistoryTools = _tabController.index == 1;
                         return Column(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                              child: DateStrip(
-                                selectedDate: provider.selectedDate,
-                                onDateSelected: (date) =>
-                                    provider.setSelectedDate(date),
+                            if (showHistoryTools)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  12,
+                                  20,
+                                  0,
+                                ),
+                                child: DateStrip(
+                                  selectedDate: provider.selectedDate,
+                                  onDateSelected: (date) =>
+                                      provider.setSelectedDate(date),
+                                ),
                               ),
-                            ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                              padding: EdgeInsets.fromLTRB(
+                                20,
+                                showHistoryTools ? 10 : 12,
+                                20,
+                                0,
+                              ),
                               child: _WeeklyStreakRow(
                                 workouts: provider.workouts,
                                 totalCount: totalCount,
@@ -765,40 +1023,26 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
-          child: _RecoveryInsightsCard(
-            workoutSuggestion: provider.workoutSuggestion,
-            recoveryStatuses: recovery,
-            totalWorkouts:
-                (stats['totalWorkouts'] as num?)?.toInt() ??
-                provider.workouts.length,
-            totalSets:
-                (stats['totalSets'] as num?)?.toInt() ??
-                provider.workouts.fold<int>(
-                  0,
-                  (sum, workout) => sum + (workout.sets ?? 0),
-                ),
-            totalCaloriesBurned:
-                (stats['totalCaloriesBurned'] as num?)?.toInt() ??
-                provider.workouts.fold<int>(
-                  0,
-                  (sum, workout) => sum + (workout.caloriesBurned ?? 0),
-                ),
-            onSelectGroup: _selectMuscleGroup,
+          child: _TodayWorkoutActionCard(
+            workouts: provider.workouts,
+            suggestion: provider.workoutSuggestion,
+            onStart: () => _startSuggestedSession(context, provider),
+            onExplore: () => _showMuscleGroupPicker(context),
           ),
         ),
-        SliverToBoxAdapter(child: _DailyTipCard()),
         SliverToBoxAdapter(
           child: Consumer<WorkoutProgramProvider>(
-            builder: (context, programProvider, _) => _MyProgramsSection(
+            builder: (context, programProvider, _) => _TodayProgramCard(
               programs: programProvider.programs,
-              onCreateTap: () => _openProgramBuilder(context),
-              onProgramTap: (p) => _showProgramDetail(context, p),
+              onStartDay: (program, day) =>
+                  _startProgramDay(context, program, day),
             ),
           ),
         ),
         SliverToBoxAdapter(
           child: _WorkoutTemplatesSection(
             isPremium: isPremium,
+            compactTitle: true,
             onStartPressed: (t) => _openTemplateWorkout(context, t),
             onSavePressed: (t) => _saveTemplate(context, t),
             onUpgradePressed: () {
@@ -806,6 +1050,40 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 context,
               ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()));
             },
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _ProgressionSpotlightCard(
+            workouts: provider.workouts,
+            onStart: (plan) => _openActiveSession(
+              context,
+              title: '${plan.name} ilerleme seansı',
+              plans: [plan],
+              onFinish: () => _pushAddWorkoutFromTemplate(context, (
+                exerciseName: plan.name,
+                sets: plan.sets,
+                reps: plan.reps,
+                workoutName: plan.name,
+                duration: 30,
+                muscleGroup: plan.muscleGroup,
+                difficulty: 'Orta',
+              )),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _WeeklyBalanceCard(
+            workouts: provider.workouts,
+            onSelectGroup: _selectMuscleGroup,
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Consumer<WorkoutProgramProvider>(
+            builder: (context, programProvider, _) => _MyProgramsSection(
+              programs: programProvider.programs,
+              onCreateTap: () => _openProgramBuilder(context),
+              onProgramTap: (p) => _showProgramDetail(context, p),
+            ),
           ),
         ),
         if (_favoriteExercises.isNotEmpty)
@@ -840,6 +1118,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               },
             ),
           ),
+        SliverToBoxAdapter(child: _DailyTipCard()),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
@@ -968,6 +1247,28 @@ class _WorkoutScreenState extends State<WorkoutScreen>
               }, childCount: list.length),
             ),
           ),
+        SliverToBoxAdapter(
+          child: _RecoveryInsightsCard(
+            workoutSuggestion: provider.workoutSuggestion,
+            recoveryStatuses: recovery,
+            totalWorkouts:
+                (stats['totalWorkouts'] as num?)?.toInt() ??
+                provider.workouts.length,
+            totalSets:
+                (stats['totalSets'] as num?)?.toInt() ??
+                provider.workouts.fold<int>(
+                  0,
+                  (sum, workout) => sum + (workout.sets ?? 0),
+                ),
+            totalCaloriesBurned:
+                (stats['totalCaloriesBurned'] as num?)?.toInt() ??
+                provider.workouts.fold<int>(
+                  0,
+                  (sum, workout) => sum + (workout.caloriesBurned ?? 0),
+                ),
+            onSelectGroup: _selectMuscleGroup,
+          ),
+        ),
         if (_errorMessage != null)
           SliverToBoxAdapter(
             child: Padding(
@@ -989,10 +1290,42 @@ class _WorkoutScreenState extends State<WorkoutScreen>
     );
   }
 
+  List<Workout> _filteredHistoryWorkouts(WorkoutProvider provider) {
+    final now = DateTime.now();
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+
+    switch (_historyFilter) {
+      case _WorkoutHistoryFilter.selectedDay:
+        return provider.workoutsForSelectedDate;
+      case _WorkoutHistoryFilter.all:
+        return provider.workouts;
+      case _WorkoutHistoryFilter.thisWeek:
+        return provider.workouts.where((workout) {
+          final day = DateTime(
+            workout.workoutDate.year,
+            workout.workoutDate.month,
+            workout.workoutDate.day,
+          );
+          return !day.isBefore(weekStart);
+        }).toList();
+      case _WorkoutHistoryFilter.prs:
+        return provider.workouts.where((workout) {
+          final pr = provider.personalRecords[workout.name];
+          return workout.oneRepMax != null &&
+              pr != null &&
+              workout.oneRepMax! >= pr - 0.05;
+        }).toList();
+    }
+  }
+
   Widget _buildHistoryList(BuildContext context) {
     return Consumer<WorkoutProvider>(
       builder: (context, provider, _) {
-        final selectedWorkouts = provider.workoutsForSelectedDate;
+        final selectedWorkouts = _filteredHistoryWorkouts(provider);
         if (provider.isLoading && provider.workouts.isEmpty) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
@@ -1214,6 +1547,11 @@ class _WorkoutScreenState extends State<WorkoutScreen>
           return ListView(
             padding: const EdgeInsets.all(20).copyWith(bottom: 100),
             children: [
+              _HistoryFilterBar(
+                selected: _historyFilter,
+                onChanged: (filter) => setState(() => _historyFilter = filter),
+              ),
+              const SizedBox(height: 16),
               _WeeklyVolumeChart(workouts: provider.workouts),
               const SizedBox(height: 40),
               Center(
@@ -1291,6 +1629,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _HistoryFilterBar(
+                      selected: _historyFilter,
+                      onChanged: (filter) =>
+                          setState(() => _historyFilter = filter),
+                    ),
+                    const SizedBox(height: 16),
                     _WeeklyVolumeChart(workouts: provider.workouts),
                     const SizedBox(height: 16),
                     _MuscleGroupChart(workouts: provider.workouts),
@@ -2121,41 +2465,24 @@ class _WorkoutScreenState extends State<WorkoutScreen>
       return;
     }
     final firstEx = day.exercises.first;
-    final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context)
-        .push<String>(
-          MaterialPageRoute(
-            builder: (_) => AddWorkoutPage(
-              templateData: (
-                exerciseName: firstEx.name,
-                sets: firstEx.sets,
-                reps: firstEx.reps,
-                workoutName: '${program.name} – ${day.name}',
-                duration: day.exercises.length * 10,
-                muscleGroup: firstEx.muscleGroup,
-                difficulty: 'Orta',
-              ),
-            ),
-          ),
-        )
-        .then((message) {
-          if (!mounted) return;
-          _loadWorkoutsIfNeeded();
-          if (message != null && message.isNotEmpty) {
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: message.contains('Kişisel Rekor')
-                    ? Colors.amber.shade700
-                    : const Color(0xFF2E7D32),
-              ),
-            );
-          }
-        });
+    final templateData = (
+      exerciseName: firstEx.name,
+      sets: firstEx.sets,
+      reps: firstEx.reps,
+      workoutName: '${program.name} – ${day.name}',
+      duration: day.exercises.length * 10,
+      muscleGroup: firstEx.muscleGroup,
+      difficulty: 'Orta',
+    );
+    _openActiveSession(
+      context,
+      title: '${program.name} – ${day.name}',
+      plans: _plansFromProgramDay(day),
+      onFinish: () => _pushAddWorkoutFromTemplate(context, templateData),
+    );
   }
 
   void _openTemplateWorkout(BuildContext context, _TemplateData template) {
-    final messenger = ScaffoldMessenger.of(context);
     final firstEx = template.exercises.isNotEmpty
         ? template.exercises.first
         : null;
@@ -2167,42 +2494,28 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         reps = int.tryParse(parts[1]) ?? 10;
       }
     }
-    Navigator.of(context)
-        .push<String>(
-          MaterialPageRoute<String>(
-            builder: (_) => AddWorkoutPage(
-              templateData: firstEx == null
-                  ? null
-                  : (
-                      exerciseName: firstEx.name,
-                      sets: sets,
-                      reps: reps,
-                      workoutName: template.name,
-                      duration: template.estimatedMinutes,
-                      muscleGroup: template.muscles.isNotEmpty
-                          ? _normalizedTemplateMuscleGroup(
-                              template.muscles.first,
-                            )
-                          : null,
-                      difficulty: template.difficulty,
-                    ),
-            ),
-          ),
-        )
-        .then((message) {
-          if (!mounted) return;
-          _loadWorkoutsIfNeeded();
-          if (message != null && message.isNotEmpty) {
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(message),
-                backgroundColor: message.contains('Kişisel Rekor')
-                    ? Colors.amber.shade700
-                    : const Color(0xFF2E7D32),
-              ),
-            );
-          }
-        });
+    final templateData = firstEx == null
+        ? null
+        : (
+            exerciseName: firstEx.name,
+            sets: sets,
+            reps: reps,
+            workoutName: template.name,
+            duration: template.estimatedMinutes,
+            muscleGroup: template.muscles.isNotEmpty
+                ? _normalizedTemplateMuscleGroup(template.muscles.first)
+                : null,
+            difficulty: template.difficulty,
+          );
+    if (templateData == null) {
+      _openAddWorkoutPage(context);
+      return;
+    }
+    _openActiveSession(
+      context,
+      title: template.name,
+      plans: _plansFromTemplate(template),
+      onFinish: () => _pushAddWorkoutFromTemplate(context, templateData),
+    );
   }
 }
-

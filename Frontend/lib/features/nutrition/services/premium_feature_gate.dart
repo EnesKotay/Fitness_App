@@ -84,7 +84,7 @@ class PremiumFeatureGate {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Premium Özellik',
+                          'Kilitli Özellik',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 17,
@@ -108,7 +108,7 @@ class PremiumFeatureGate {
               ),
               const SizedBox(height: 20),
               Text(
-                'Ücretsiz planda temel takip açık kalır. Premium bu işi senin yerine daha hızlı ve akıllı hale getirir:',
+                'Temel takip açık kalır. Bu özellikler daha detaylı analiz isteyenler için kilitlidir:',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.45),
                   fontSize: 12,
@@ -118,7 +118,7 @@ class PremiumFeatureGate {
               const SizedBox(height: 12),
               _GateFeatureRow(
                 icon: Icons.smart_toy_rounded,
-                label: 'Claude ile sınırsız ve daha derin AI koçluğu',
+                label: 'AI Koç için daha uzun ve detaylı analiz',
                 color: gold,
               ),
               const SizedBox(height: 8),

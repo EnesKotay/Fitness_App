@@ -30,6 +30,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
   late final TextEditingController _rightLegCtrl;
 
   bool get _isEditMode => widget.existingMeasurement != null;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -186,7 +187,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
             width: double.infinity,
             child: AppButton.primary(
               text: _isEditMode ? 'Güncelle' : 'Kaydet',
-              onPressed: _saveMeasurement,
+              onPressed: _isSaving ? null : _saveMeasurement,
             ),
           ),
         ],
@@ -244,6 +245,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
   }
 
   void _saveMeasurement() async {
+    if (_isSaving) return;
     final chest = double.tryParse(_chestCtrl.text.replaceAll(',', '.'));
     final waist = double.tryParse(_waistCtrl.text.replaceAll(',', '.'));
     final hips = double.tryParse(_hipsCtrl.text.replaceAll(',', '.'));
@@ -297,6 +299,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
       return;
     }
 
+    setState(() => _isSaving = true);
     bool success;
     if (_isEditMode) {
       success = await provider.updateBodyMeasurement(
@@ -316,6 +319,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
         _isEditMode ? 'Ölçüler güncellendi' : 'Ölçüler kaydedildi',
       );
     } else {
+      setState(() => _isSaving = false);
       AppSnack.showError(context, provider.errorMessage ?? 'Hata oluştu');
     }
   }

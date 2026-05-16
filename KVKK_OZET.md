@@ -1,4 +1,4 @@
-# FitMentor — KVKK Uyum Özeti
+# PusulaFit — KVKK Uyum Özeti
 
 Son güncelleme: Nisan 2025
 
@@ -40,8 +40,8 @@ Kişisel verilerin yurt dışına aktarılması KVKK Madde 9 kapsamında özel k
 >
 > 6698 sayılı KVKK kapsamında veri sorumlusu:
 >
-> FitMentor
-> E-posta: privacy@fitmentor.app
+> PusulaFit
+> E-posta: privacy@pusulafit.app
 >
 > Kişisel verilerinize ilişkin başvurularınızı yukarıdaki e-posta adresine iletebilirsiniz.
 
@@ -56,7 +56,7 @@ KVKK'nın temel yükümlülüklerinden biri, "veri sorumlusu"nun (yani uygulamay
 > "• Kişisel Verileri Koruma Kurumu'na (www.kvkk.gov.tr) şikâyette bulunma"
 
 **Güncellenen metin:**
-> "Bu haklarınızı Ayarlar → Gizlilik bölümünden **veya privacy@fitmentor.app adresine e-posta göndererek** kullanabilirsiniz."
+> "Bu haklarınızı Ayarlar → Gizlilik bölümünden **veya privacy@pusulafit.app adresine e-posta göndererek** kullanabilirsiniz."
 
 **Neden gerekli?**
 KVKK Madde 14 kapsamında her kullanıcı, veri sorumlusuna başvurusu reddedilirse veya 30 gün içinde yanıt almazsa KVK Kurumu'na şikâyette bulunma hakkına sahiptir. Bu hakkın politikada yazılı olması zorunludur.
@@ -77,6 +77,6 @@ KVKK Madde 14 kapsamında her kullanıcı, veri sorumlusuna başvurusu reddedili
 
 ## Önemli Notlar
 
-- **Veri Sorumlusu Kimliği:** Şu an "FitMentor" ve bir e-posta adresi yazıyor. Şirket/şahıs olarak resmi tescil yaptırılırsa tam ticari unvan ve adres de eklenmeli.
+- **Veri Sorumlusu Kimliği:** Şu an "PusulaFit" ve bir e-posta adresi yazıyor. Şirket/şahıs olarak resmi tescil yaptırılırsa tam ticari unvan ve adres de eklenmeli.
 - **KVK Kurumu Kaydı:** Türkiye'de faaliyet gösteren ve kişisel veri işleyen her veri sorumlusunun VERBİS (Veri Sorumluları Sicil Bilgi Sistemi) sistemine kayıt olması zorunludur (yıllık ciro/çalışan sayısına göre muafiyet olabilir, kontrol edilmeli).
 - **Aydınlatma Metni:** Gizlilik politikası aynı zamanda KVKK'nın "aydınlatma metni" işlevini görüyor. Daha katı bir denetimde ayrı bir aydınlatma metni belgesi istenebilir.

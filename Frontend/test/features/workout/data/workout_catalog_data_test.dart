@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fitness/features/workout/data/workout_catalog_data.dart';
+import 'package:pusulafit/features/workout/data/workout_catalog_data.dart';
 
 void main() {
   test('each primary muscle group exposes at least five catalog exercises', () {

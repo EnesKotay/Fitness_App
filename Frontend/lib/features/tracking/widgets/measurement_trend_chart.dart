@@ -252,7 +252,7 @@ class _MeasurementTrendChartState extends State<MeasurementTrendChart> {
         ],
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            tooltipRoundedRadius: 8,
+            tooltipBorderRadius: BorderRadius.circular(8),
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final date = validData[spot.x.toInt()].date;

@@ -7,6 +7,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
+
+import com.fitness.dto.NutritionAiRequest;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -37,7 +40,7 @@ public class ClaudeClient {
     @ConfigProperty(name = "claude.api.key", defaultValue = MISSING_KEY_SENTINEL)
     String claudeApiKey;
 
-    @ConfigProperty(name = "claude.model", defaultValue = "claude-haiku-4-5-20251001")
+    @ConfigProperty(name = "claude.model", defaultValue = "claude-haiku-4-5")
     String defaultModel;
 
     @ConfigProperty(name = "claude.timeout.ms", defaultValue = "30000")
@@ -46,7 +49,7 @@ public class ClaudeClient {
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private static final String COACHING_SYSTEM_PROMPT = """
-            You are FitMentor — an elite personal fitness coach and nutritionist with deep reasoning ability.
+            You are PusulaFit — an elite personal fitness coach and nutritionist with deep reasoning ability.
             You are having a real-time conversation with a user who has shared their daily fitness data with you.
 
             CORE RULES — follow these exactly:
@@ -82,6 +85,53 @@ public class ClaudeClient {
             """;
 
     /**
+     * System prompt for the Nutrition Assistant chat (separate from the main AI Coach).
+     * Expects {reply, meals, shoppingList, followUpQuestions} JSON — NOT the coach format.
+     */
+    private static final String NUTRITION_SYSTEM_PROMPT = """
+            You are PusulaFit Nutrition — a concise, data-driven nutrition assistant inside a fitness tracking app.
+            You have the user's real food log, daily calorie intake, macro targets, dietary restrictions, and fitness goal.
+
+            CORE RULES:
+            1. Answer ONLY what the user asked. Never add unsolicited suggestions.
+            2. Always respond in Turkish (tr).
+            3. Short question → short answer (1-3 sentences for informational questions).
+            4. Use the user's real data. Never invent numbers.
+            5. No filler phrases: "tabii ki", "harika", "mükemmel", "elbette", "kesinlikle".
+            6. If the user asks for a number, start the reply with that number immediately.
+            7. If you have conversation history, continue naturally — do not restart tone or re-explain context.
+
+            INTENT → OUTPUT MAPPING:
+            A. Informational question (calories, macros, what I ate, water, general advice, comparisons):
+               → Fill ONLY "reply" with a direct Turkish answer. "meals" = []. "shoppingList" = []. "followUpQuestions" = [].
+            B. Meal suggestion, recipe, or food recommendation:
+               → Provide 3-5 items in "meals". "reply" = 1 short intro sentence in Turkish.
+               → Optionally add 1-2 relevant follow-up questions.
+            C. Shopping list request:
+               → Fill "shoppingList" only. "meals" = [].
+
+            OUTPUT — return ONLY this exact JSON, no text before or after:
+            {
+              "reply": "string — direct Turkish answer to the user",
+              "meals": [
+                {
+                  "name": "string",
+                  "reason": "string",
+                  "ingredients": ["string"],
+                  "steps": ["string"],
+                  "macros": {"kcal": 0, "proteinG": 0, "carbsG": 0, "fatG": 0},
+                  "prepMinutes": 0,
+                  "tags": ["string"],
+                  "warnings": ["string"]
+                }
+              ],
+              "shoppingList": ["string"],
+              "followUpQuestions": ["string"]
+            }
+            No markdown code fences. No text outside the JSON object.
+            """;
+
+    /**
      * Check if Claude API key is configured.
      */
     public boolean isAvailable() {
@@ -99,24 +149,36 @@ public class ClaudeClient {
     }
 
     /**
-     * Generate text using Claude Messages API.
-     * Returns GeminiClientResult for compatibility with existing services.
+     * Generate text using Claude Messages API (single-turn, no history).
      */
     public GeminiClientResult generateText(
             String endpointName,
             Long userId,
             String prompt,
             boolean expectJson) {
+        return generateText(endpointName, userId, prompt, null, expectJson);
+    }
+
+    /**
+     * Generate text using Claude Messages API with optional conversation history
+     * for multi-turn context awareness. Selects system prompt based on endpoint.
+     */
+    public GeminiClientResult generateText(
+            String endpointName,
+            Long userId,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            boolean expectJson) {
 
         long startTime = System.currentTimeMillis();
         int promptLength = prompt != null ? prompt.length() : 0;
 
         try {
-            String responseText = callClaude(prompt, null, null, expectJson);
+            String responseText = callClaude(endpointName, prompt, history, null, null, expectJson);
             long latencyMs = System.currentTimeMillis() - startTime;
 
-            LOG.infof("endpoint=%s status=ok userId=%s promptLength=%d latencyMs=%d modelUsed=%s provider=claude",
-                    endpointName, userId, promptLength, latencyMs, defaultModel);
+            LOG.infof("endpoint=%s status=ok userId=%s promptLength=%d historyTurns=%d latencyMs=%d modelUsed=%s provider=claude",
+                    endpointName, userId, promptLength, history != null ? history.size() : 0, latencyMs, defaultModel);
 
             return GeminiClientResult.builder()
                     .success("claude:" + defaultModel, responseText, latencyMs)
@@ -151,7 +213,7 @@ public class ClaudeClient {
         int promptLength = prompt != null ? prompt.length() : 0;
 
         try {
-            String responseText = callClaude(prompt, imageBytes, mimeType, expectJson);
+            String responseText = callClaude(endpointName, prompt, null, imageBytes, mimeType, expectJson);
             long latencyMs = System.currentTimeMillis() - startTime;
 
             LOG.infof(
@@ -193,21 +255,58 @@ public class ClaudeClient {
 
     // ─── Private helpers ─────────────────────────────────────────
 
-    private String callClaude(String prompt, byte[] imageBytes, String mimeType, boolean expectJson)
+    private String callClaude(
+            String endpointName,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            byte[] imageBytes,
+            String mimeType,
+            boolean expectJson)
             throws IOException, InterruptedException {
 
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("model", defaultModel);
         payload.put("max_tokens", 4096);
 
-        // Always use the coaching system prompt; reinforce JSON when expected
-        String systemPrompt = expectJson
-                ? COACHING_SYSTEM_PROMPT + "\nCRITICAL: your entire response must be valid JSON only — no text outside the JSON object."
-                : COACHING_SYSTEM_PROMPT;
-        payload.put("system", systemPrompt);
+        // Select system prompt based on endpoint
+        boolean isNutritionEndpoint = endpointName != null && endpointName.contains("nutrition");
+        String basePrompt = isNutritionEndpoint ? NUTRITION_SYSTEM_PROMPT : COACHING_SYSTEM_PROMPT;
+        String systemPromptText = expectJson
+                ? basePrompt + "\nCRITICAL: your entire response must be valid JSON only — no text outside the JSON object."
+                : basePrompt;
 
-        // Build messages array
+        // Prompt caching: system prompt as array with cache_control for ~90% cost reduction
+        // Cache TTL is 5 minutes — stable content (system prompt) is cached across requests
+        ArrayNode systemArray = objectMapper.createArrayNode();
+        ObjectNode systemBlock = objectMapper.createObjectNode();
+        systemBlock.put("type", "text");
+        systemBlock.put("text", systemPromptText);
+        ObjectNode cacheControl = objectMapper.createObjectNode();
+        cacheControl.put("type", "ephemeral");
+        systemBlock.set("cache_control", cacheControl);
+        systemArray.add(systemBlock);
+        payload.set("system", systemArray);
+
+        // Build messages array — prepend conversation history for multi-turn context
         ArrayNode messages = objectMapper.createArrayNode();
+        if (history != null && !history.isEmpty()) {
+            int maxHistory = Math.min(history.size(), 5); // last 5 turns max
+            int startIdx = history.size() - maxHistory;
+            for (int i = startIdx; i < history.size(); i++) {
+                NutritionAiRequest.ConversationTurn turn = history.get(i);
+                if (turn.userMessage == null || turn.assistantMessage == null) continue;
+                ObjectNode prevUser = objectMapper.createObjectNode();
+                prevUser.put("role", "user");
+                prevUser.put("content", turn.userMessage);
+                messages.add(prevUser);
+                ObjectNode prevAssistant = objectMapper.createObjectNode();
+                prevAssistant.put("role", "assistant");
+                prevAssistant.put("content", turn.assistantMessage);
+                messages.add(prevAssistant);
+            }
+        }
+
+        // Current user message
         ObjectNode userMessage = objectMapper.createObjectNode();
         userMessage.put("role", "user");
 
@@ -231,7 +330,6 @@ public class ClaudeClient {
 
             userMessage.set("content", contentBlocks);
         } else {
-            // Text only
             userMessage.put("content", prompt);
         }
 
@@ -244,6 +342,7 @@ public class ClaudeClient {
                 .header("Content-Type", "application/json")
                 .header("x-api-key", claudeApiKey)
                 .header("anthropic-version", API_VERSION)
+                .header("anthropic-beta", "prompt-caching-2024-07-31")
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
                 .build();
 

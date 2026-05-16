@@ -14,6 +14,7 @@ import com.fitness.dto.AiCoachResponse;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class GeminiCoachService {
@@ -34,6 +35,9 @@ public class GeminiCoachService {
 
     @Inject
     AiCoachContextBuilder contextBuilder;
+
+    @Inject
+    SemanticMemoryService semanticMemoryService;
 
     @ConfigProperty(name = "gemini.coach.model", defaultValue = "gemini-2.0-flash")
     String coachModel;
@@ -56,14 +60,34 @@ public class GeminiCoachService {
             coachModel,
             coachFallbackModel,
             prompt,
-            true
+            null,
+            true,
+            buildCoachTools()
         );
 
         if (!result.isSuccess()) throw mapFailure(result);
 
         try {
             String jsonText = aiProviderRouter.extractJsonFromResponse(userId, result.getOutputText());
-            AiCoachResponse response = parseResponse(objectMapper.readTree(jsonText));
+            JsonNode parsed = objectMapper.readTree(jsonText);
+            
+            // Aşama 1 ve 4: Native Function Calling Yakalama (Semantik Hafıza)
+            if (parsed.has("functionCall")) {
+                JsonNode funcCall = parsed.get("functionCall");
+                if ("saveUserMemory".equals(funcCall.path("name").asText())) {
+                    String fact = funcCall.path("args").path("fact").asText();
+                    saveSemanticMemory(userId, fact);
+                    
+                    AiCoachResponse funcResponse = new AiCoachResponse();
+                    funcResponse.todayFocus = "Bunu hafızama kaydettim! Gelecekteki planlamalarımda dikkate alacağım. 🧠";
+                    funcResponse.actionItems = List.of("Kalıcı Hafızaya Eklenen Bilgi: " + fact);
+                    funcResponse.actions = new ArrayList<>();
+                    funcResponse.media = new ArrayList<>();
+                    return funcResponse;
+                }
+            }
+
+            AiCoachResponse response = parseResponse(parsed);
             sanitizeResponse(response, request);
             validateResponse(response);
             return response;
@@ -73,23 +97,20 @@ public class GeminiCoachService {
         }
     }
 
-    public AiCoachResponse generateVisionResponse(Long userId, AiCoachRequest request, byte[] imageBytes, String mimeType) {
+    public AiCoachResponse generateVisionResponse(Long userId, AiCoachRequest request, byte[] mediaBytes, String mimeType) {
         validateRequest(request);
 
-        // Build a vision-specific specialized prompt
         CoachPromptContext context = contextBuilder.build(userId, request.dailySummary);
         String basePrompt = promptBuilder.buildPrompt(
                 request,
                 com.fitness.entity.AiInsight.findRecentByUser(userId, 2),
                 context);
-        String visionPrompt = """
-                VISUAL CONTEXT:
-                - Analyze the image only in service of the user's current question.
-                - If the image is a meal, estimate calories/macros only when relevant to the question.
-                - If the image shows exercise form, comment only on visible technique issues and corrections.
-                - If the image is unclear or unrelated to the request, say that briefly instead of guessing.
-                """
-                + "\n" + basePrompt;
+                
+        String mediaContext = mimeType.startsWith("video/") 
+            ? "VISUAL CONTEXT (VIDEO ANALYSIS):\n- Analyze the video for form correction, movement mechanics, and posture.\n- Provide frame-by-frame guidance on what to improve."
+            : "VISUAL CONTEXT (IMAGE ANALYSIS):\n- Analyze the image in service of the user's question.\n- If a meal, estimate calories/macros. If exercise form, comment on technique.";
+
+        String visionPrompt = mediaContext + "\n\n" + basePrompt;
 
         GeminiClientResult result = aiProviderRouter.generateWithImage(
                 "ai/vision",
@@ -97,7 +118,7 @@ public class GeminiCoachService {
                 coachModel,
                 coachFallbackModel,
                 visionPrompt,
-                imageBytes,
+                mediaBytes,
                 mimeType,
                 true
         );
@@ -113,6 +134,29 @@ public class GeminiCoachService {
         } catch (IOException e) {
             throw new AiCoachServiceException(502, "Görüntü analizi işlenemedi.", e);
         }
+    }
+
+    private JsonNode buildCoachTools() {
+        var toolsArray = objectMapper.createArrayNode();
+        var tools = objectMapper.createObjectNode();
+        var functionDeclarations = tools.putArray("function_declarations");
+
+        var saveMemory = functionDeclarations.addObject();
+        saveMemory.put("name", "saveUserMemory");
+        saveMemory.put("description", "Kullanıcının fiziksel durumu, sakatlıkları veya diyet tercihleri hakkında gelecekte planlama yaparken kesinlikle hatırlanması gereken kritik bir bilgiyi hafızaya kaydeder. Örneğin: 'Sağ dizimde menisküs var', 'Vegan besleniyorum', 'Bel fıtığım var'.");
+        var params = saveMemory.putObject("parameters");
+        params.put("type", "OBJECT");
+        var props = params.putObject("properties");
+        props.putObject("fact").put("type", "STRING").put("description", "Hatırlanması gereken kısa ve öz bilgi");
+        params.putArray("required").add("fact");
+
+        toolsArray.add(tools);
+        return toolsArray;
+    }
+
+    @Transactional
+    public void saveSemanticMemory(Long userId, String fact) {
+        semanticMemoryService.saveMemory(userId, fact, "SEMANTIC_MEMORY");
     }
 
     private void validateRequest(AiCoachRequest request) {
@@ -205,7 +249,7 @@ public class GeminiCoachService {
 
     private void validateResponse(AiCoachResponse response) {
         if (response.todayFocus == null || response.todayFocus.isBlank()) {
-            response.todayFocus = "Bugunku hedefe odaklan.";
+            throw new AiCoachServiceException(502, "Yapay zeka net bir yanıt üretemedi. Lütfen tekrar deneyin.");
         }
         if (response.nutritionNote == null || response.nutritionNote.isBlank()) {
             response.nutritionNote = "";
@@ -226,7 +270,7 @@ public class GeminiCoachService {
             response.actionItems = response.actionItems.stream()
                     .filter(item -> item != null && !item.isBlank())
                     .map(String::trim)
-                    .limit(5)
+                    .limit(10)
                     .toList();
         }
 
@@ -237,7 +281,7 @@ public class GeminiCoachService {
         if (response.actions != null && !response.actions.isEmpty()) {
             response.actions = response.actions.stream()
                     .filter(action -> action != null && action.type != null && !action.type.isBlank())
-                    .limit(1)
+                    .limit(3)
                     .toList();
         }
     }

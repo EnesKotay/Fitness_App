@@ -70,7 +70,7 @@ class PdfReportService {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text('FitMentor - Haftalık Rapor', style: titleStyle),
+                  pw.Text('PusulaFit - Haftalık Rapor', style: titleStyle),
                   pw.Text('$startStr - $endStr', style: normalStyle),
                 ],
               ),
@@ -125,7 +125,7 @@ class PdfReportService {
               pw.SizedBox(height: 10),
               pw.Center(
                 child: pw.Text(
-                  'Bu rapor FitMentor tarafından otomatik oluşturulmuştur.',
+                  'Bu rapor PusulaFit tarafından otomatik oluşturulmuştur.',
                   style: pw.TextStyle(font: fontRegular, fontSize: 10, color: PdfColors.grey600),
                 ),
               ),

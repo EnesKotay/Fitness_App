@@ -4,11 +4,13 @@ import '../../../core/api/services/auth_service.dart';
 import '../../../core/models/auth_models.dart';
 import '../../../core/models/user.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/services/social_auth_service.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final SocialAuthService _socialAuthService = SocialAuthService();
 
   // State
   User? _user;
@@ -56,14 +58,7 @@ class AuthProvider with ChangeNotifier {
       );
 
       final response = await _authService.register(request);
-      _user = response.user;
-      _isAuthenticated = true;
-      _isLoading = false;
-      // Hive suffix'i için kullanıcı kimliğini hemen kaydet.
-      await StorageHelper.saveUserEmail(response.user.email);
-      await StorageHelper.saveUserId(response.user.id);
-      await StorageHelper.saveUserName(response.user.name);
-      notifyListeners();
+      await _applyAuthResponse(response);
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -90,14 +85,7 @@ class AuthProvider with ChangeNotifier {
       final request = LoginRequest(email: email, password: password);
 
       final response = await _authService.login(request);
-      _user = response.user;
-      _isAuthenticated = true;
-      _isLoading = false;
-      // Hive suffix'i için kullanıcı kimliğini hemen kaydet.
-      await StorageHelper.saveUserEmail(response.user.email);
-      await StorageHelper.saveUserId(response.user.id);
-      await StorageHelper.saveUserName(response.user.name);
-      notifyListeners();
+      await _applyAuthResponse(response);
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;
@@ -107,6 +95,88 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _errorMessage = 'Beklenmeyen bir hata oluştu';
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final identity = await _socialAuthService.signInWithGoogle();
+      final response = await _authService.socialLogin(
+        SocialLoginRequest(
+          provider: identity.provider,
+          idToken: identity.idToken,
+          name: identity.name,
+          authorizationCode: identity.authorizationCode,
+        ),
+      );
+      await _applyAuthResponse(response);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    } on StateError catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('Google login unexpected error: $e');
+      _errorMessage = e.toString().trim().isNotEmpty
+          ? e.toString()
+          : 'Google ile giriş başarısız oldu';
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> loginWithApple() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final identity = await _socialAuthService.signInWithApple();
+      final response = await _authService.socialLogin(
+        SocialLoginRequest(
+          provider: identity.provider,
+          idToken: identity.idToken,
+          name: identity.name,
+          authorizationCode: identity.authorizationCode,
+        ),
+      );
+      await _applyAuthResponse(response);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    } on StateError catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      _isAuthenticated = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      debugPrint('Apple login unexpected error: $e');
+      _errorMessage = e.toString().trim().isNotEmpty
+          ? e.toString()
+          : 'Apple ile giriş başarısız oldu';
       _isLoading = false;
       _isAuthenticated = false;
       notifyListeners();
@@ -245,6 +315,16 @@ class AuthProvider with ChangeNotifier {
   /// Hata mesajını temizle
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  Future<void> _applyAuthResponse(AuthResponse response) async {
+    _user = response.user;
+    _isAuthenticated = true;
+    _isLoading = false;
+    await StorageHelper.saveUserEmail(response.user.email);
+    await StorageHelper.saveUserId(response.user.id);
+    await StorageHelper.saveUserName(response.user.name);
     notifyListeners();
   }
 

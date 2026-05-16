@@ -1,5 +1,5 @@
-import 'package:fitness/features/nutrition/data/repositories/local_food_repository.dart';
-import 'package:fitness/features/nutrition/domain/entities/food_item.dart';
+import 'package:pusulafit/features/nutrition/data/repositories/local_food_repository.dart';
+import 'package:pusulafit/features/nutrition/domain/entities/food_item.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 FoodItem _food({

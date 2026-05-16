@@ -389,6 +389,7 @@ class _BodyCompositionCardState extends State<BodyCompositionCard> {
   }
 
   Widget _buildCategorySpectrum() {
+    if (_fatPct == null) return const SizedBox.shrink();
     final offset = _isMale ? 0 : 8;
     final double maxVal = 45.0 + offset;
     final segments = [

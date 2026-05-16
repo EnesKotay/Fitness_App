@@ -1,4 +1,4 @@
-// FitMentor Integration Tests
+// PusulaFit Integration Tests
 // Çalıştır: flutter test integration_test/app_test.dart -d "iPhone 16e"
 //
 // Bu testler simülatörde GERÇEK uygulama üzerinde çalışır.
@@ -7,18 +7,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:fitness/main.dart' as app;
+import 'package:pusulafit/main.dart' as app;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  group('FitMentor — Temel Akış Testleri', () {
+  group('PusulaFit — Temel Akış Testleri', () {
     testWidgets('Splash ekranı yükleniyor', (tester) async {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 3));
 
       // Splash ya da login ekranı görünmeli
-      final splashOrLogin = find.textContaining('FitMentor').evaluate().isNotEmpty ||
+      final splashOrLogin =
+          find.textContaining('PusulaFit').evaluate().isNotEmpty ||
           find.textContaining('Giriş').evaluate().isNotEmpty ||
           find.textContaining('E-posta').evaluate().isNotEmpty;
 
@@ -37,7 +38,7 @@ void main() {
     });
   });
 
-  group('FitMentor — Navigasyon Testleri', () {
+  group('PusulaFit — Navigasyon Testleri', () {
     // Not: Bu testler giriş yapılmış bir oturum gerektirir.
     // CI'da env variable ile test hesabı kullanılabilir.
 

@@ -12,7 +12,6 @@ import '../../../domain/entities/food_item.dart';
 import '../../../domain/entities/meal_type.dart';
 import '../../../presentation/pages/portion_add_page.dart';
 import '../../../presentation/state/diet_provider.dart';
-import '../../../services/premium_feature_gate.dart';
 import '../../domain/models/scanned_meal_result.dart';
 
 class MealVisionScanPage extends StatefulWidget {
@@ -38,29 +37,30 @@ class _MealVisionScanPageState extends State<MealVisionScanPage> {
   final _carbController = TextEditingController();
   final _fatController = TextEditingController();
 
-
-
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '📸',
       title: 'Yemeği Fotoğrafla',
       description:
           'Tabağındaki veya kasendeki yemeğin fotoğrafını çek ya da galeriden seç. AI yemeği tanıyıp içindeki malzemeleri ve kalori değerini tahmin eder.',
-      tip: 'Fotoğrafı yukarıdan çek, yemek net görünsün. Karanlıkta flaş kullan — doğruluk artar.',
+      tip:
+          'Fotoğrafı yukarıdan çek, yemek net görünsün. Karanlıkta flaş kullan — doğruluk artar.',
     ),
     GuideStep(
       emoji: '⚖️',
       title: 'Porsiyon & Değerleri Düzenle',
       description:
           'AI\'ın tahmin ettiği besin değerlerini ve porsiyon miktarını göreceksin. Gram veya adet olarak porsiyon miktarını gerçeğe göre ayarlayabilirsin.',
-      tip: 'Tabak büyük görünüyorsa yapay zeka miktarı abartmış olabilir — elle düzelt.',
+      tip:
+          'Tabak büyük görünüyorsa yapay zeka miktarı abartmış olabilir — elle düzelt.',
     ),
     GuideStep(
       emoji: '➕',
       title: 'Öğüne Ekle',
       description:
           'Değerleri onayladıktan sonra hangi öğüne ait olduğunu seç (Kahvaltı, Öğle, Akşam, Ara Öğün) ve "Ekle" butonuna dokun. Günlük takibine anında yansır.',
-      tip: 'Bu özellik PRO üyelere açık. Ücretsiz denemelerden yararlanabilirsin.',
+      tip:
+          'Bu özellik PRO üyelere açık. Ücretsiz denemelerden yararlanabilirsin.',
     ),
   ];
 
@@ -391,7 +391,7 @@ class _MealVisionScanPageState extends State<MealVisionScanPage> {
               ),
           const SizedBox(height: 24),
           const Text(
-                'Yapay Zeka Analiz Ediyor...',
+                'Yemek Analizi Yapılıyor...',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,

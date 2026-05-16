@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../api/api_client.dart';
 import '../models/notification_model.dart';
+import '../utils/storage_helper.dart';
 
 class NotificationService extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -12,6 +13,14 @@ class NotificationService extends ChangeNotifier {
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
   Future<void> fetchNotifications() async {
+    final token = StorageHelper.getToken();
+    if (token == null || token.isEmpty) {
+      _notifications = [];
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     notifyListeners();
 

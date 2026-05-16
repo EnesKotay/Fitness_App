@@ -1,6 +1,6 @@
-import 'package:fitness/features/tasks/controllers/daily_tasks_controller.dart';
-import 'package:fitness/features/tasks/screens/daily_tasks_screen.dart';
-import 'package:fitness/features/tasks/storage/daily_task_storage.dart';
+import 'package:pusulafit/features/tasks/controllers/daily_tasks_controller.dart';
+import 'package:pusulafit/features/tasks/screens/daily_tasks_screen.dart';
+import 'package:pusulafit/features/tasks/storage/daily_task_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +39,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('GÜNLÜK GÖREVLER'), findsOneWidget);
+    expect(find.text('Günlük Görevler'), findsOneWidget);
     expect(find.text('1/2 görev tamamlandı'), findsOneWidget);
     expect(find.text('Yuruyus'), findsOneWidget);
     expect(find.text('Protein ogunu'), findsOneWidget);

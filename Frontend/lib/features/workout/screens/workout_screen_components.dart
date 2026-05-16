@@ -538,7 +538,7 @@ class _HistoryCard extends StatelessWidget {
                       ? '\n⏱ ${workout.durationMinutes} dk'
                       : '';
                   final text =
-                      '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nFitness App ile kaydedildi.';
+                      '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nPusulaFit ile kaydedildi.';
                   final box = context.findRenderObject() as RenderBox?;
                   if (box != null) {
                     Share.share(
@@ -1140,12 +1140,14 @@ const List<_TemplateData> _kWorkoutTemplates = [
 
 class _WorkoutTemplatesSection extends StatelessWidget {
   final bool isPremium;
+  final bool compactTitle;
   final void Function(_TemplateData) onStartPressed;
   final void Function(_TemplateData) onSavePressed;
   final VoidCallback onUpgradePressed;
 
   const _WorkoutTemplatesSection({
     required this.isPremium,
+    this.compactTitle = false,
     required this.onStartPressed,
     required this.onSavePressed,
     required this.onUpgradePressed,
@@ -1161,7 +1163,7 @@ class _WorkoutTemplatesSection extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                'Hazır Programlar',
+                compactTitle ? 'Hızlı Başlat' : 'Hazır Programlar',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1914,6 +1916,789 @@ class _StatChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SessionExercisePlan {
+  const _SessionExercisePlan({
+    required this.name,
+    required this.sets,
+    required this.reps,
+    this.muscleGroup,
+    this.restSeconds = 90,
+  });
+
+  final String name;
+  final int sets;
+  final int reps;
+  final String? muscleGroup;
+  final int restSeconds;
+}
+
+class _TodayWorkoutActionCard extends StatelessWidget {
+  final List<Workout> workouts;
+  final TodayWorkoutSuggestion? suggestion;
+  final VoidCallback onStart;
+  final VoidCallback onExplore;
+
+  const _TodayWorkoutActionCard({
+    required this.workouts,
+    required this.suggestion,
+    required this.onStart,
+    required this.onExplore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayCount = workouts.where((workout) {
+      final d = workout.workoutDate;
+      return d.year == now.year && d.month == now.month && d.day == now.day;
+    }).length;
+    final latest = workouts.isEmpty ? null : workouts.first;
+    final daysSince = latest == null
+        ? null
+        : DateTime(now.year, now.month, now.day)
+              .difference(
+                DateTime(
+                  latest.workoutDate.year,
+                  latest.workoutDate.month,
+                  latest.workoutDate.day,
+                ),
+              )
+              .inDays;
+
+    String title;
+    String detail;
+    IconData icon;
+    Color accent;
+    if (todayCount > 0) {
+      title = 'Bugün seans tamam';
+      detail =
+          '$todayCount antrenman kaydın var. İstersen yardımcı hareket veya mobilite ekleyebilirsin.';
+      icon = Icons.verified_rounded;
+      accent = const Color(0xFF66BB6A);
+    } else if (daysSince == null) {
+      title = 'İlk seansı başlat';
+      detail = 'Hafif bir full body seansıyla ritmi kur.';
+      icon = Icons.play_arrow_rounded;
+      accent = const Color(0xFF2E7D32);
+    } else if (daysSince >= 3) {
+      title = '$daysSince gündür antrenman yok';
+      detail = 'Kısa bir dönüş seansı planla; yoğunluğu kontrollü tut.';
+      icon = Icons.restart_alt_rounded;
+      accent = Colors.orangeAccent;
+    } else {
+      title = suggestion?.title ?? 'Bugünün önerisi hazır';
+      detail = suggestion?.detail ?? 'Toparlanmış bir bölge seçip seansa gir.';
+      icon = suggestion?.icon ?? Icons.auto_graph_rounded;
+      accent = suggestion?.color ?? const Color(0xFF66BB6A);
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [accent.withValues(alpha: 0.20), const Color(0xFF141414)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(icon, color: accent, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BUGÜN NE YAPMALIYIM?',
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            detail,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.66),
+              fontSize: 13,
+              height: 1.38,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onStart,
+                  icon: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                  ),
+                  label: const Text(
+                    'Antrenmana Başla',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed: onExplore,
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: accent.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 13,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  'Bölge Seç',
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressionSpotlightCard extends StatelessWidget {
+  final List<Workout> workouts;
+  final void Function(_SessionExercisePlan plan) onStart;
+
+  const _ProgressionSpotlightCard({
+    required this.workouts,
+    required this.onStart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (workouts.length < 2) return const SizedBox.shrink();
+    final latest = workouts.first;
+    final hint = ProgressionEngine.compute(
+      history: workouts,
+      exerciseName: latest.name,
+      targetReps: latest.reps ?? 10,
+    );
+    if (hint.lastWeight == null && hint.suggestedWeight <= 0) {
+      return const SizedBox.shrink();
+    }
+    final accent = hint.readilyProgressed
+        ? Colors.amber
+        : hint.trendDirection == TrendDirection.down
+        ? Colors.orangeAccent
+        : const Color(0xFF66BB6A);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(Icons.trending_up_rounded, color: accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${latest.name}: ${hint.weightLabel}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  hint.reason,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => onStart(
+              _SessionExercisePlan(
+                name: latest.name,
+                sets: latest.sets ?? 3,
+                reps: hint.suggestedReps,
+                muscleGroup: latest.muscleGroup,
+              ),
+            ),
+            child: Text(
+              'Dene',
+              style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeeklyBalanceCard extends StatelessWidget {
+  final List<Workout> workouts;
+  final void Function(String group) onSelectGroup;
+
+  const _WeeklyBalanceCard({
+    required this.workouts,
+    required this.onSelectGroup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (workouts.isEmpty) return const SizedBox.shrink();
+    final now = DateTime.now();
+    final weekStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final workedGroups = workouts
+        .where((workout) => !workout.workoutDate.isBefore(weekStart))
+        .map((workout) => workout.muscleGroup ?? workout.workoutType)
+        .whereType<String>()
+        .map((group) => ExerciseParserService.normalizeMuscleGroupCode(group))
+        .where((group) => group.isNotEmpty)
+        .toSet();
+    final missing = kMuscleGroupInfo.keys
+        .where((group) => !workedGroups.contains(group))
+        .take(4)
+        .toList();
+    if (missing.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF151515),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.balance_rounded, color: Color(0xFF66BB6A), size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Haftalık denge',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bu hafta eksik kalan bölgeleri tamamlamak planı dengeler.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: missing.map((group) {
+              final info = kMuscleGroupInfo[group];
+              final color = info?.color ?? const Color(0xFF66BB6A);
+              return GestureDetector(
+                onTap: () => onSelectGroup(group),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.11),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withValues(alpha: 0.28)),
+                  ),
+                  child: Text(
+                    info?.label ?? group,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayProgramCard extends StatelessWidget {
+  final List<WorkoutProgram> programs;
+  final void Function(WorkoutProgram program, ProgramDay day) onStartDay;
+
+  const _TodayProgramCard({required this.programs, required this.onStartDay});
+
+  @override
+  Widget build(BuildContext context) {
+    WorkoutProgram? program;
+    for (final item in programs) {
+      if (item.days.isNotEmpty) {
+        program = item;
+        break;
+      }
+    }
+    if (program == null) return const SizedBox.shrink();
+    final selectedProgram = program;
+    final dayIndex = (DateTime.now().weekday - 1) % selectedProgram.days.length;
+    final day = selectedProgram.days[dayIndex];
+    final first = day.exercises.isEmpty ? null : day.exercises.first;
+    final accent = first == null
+        ? const Color(0xFF66BB6A)
+        : kMuscleGroupInfo[first.muscleGroup]?.color ?? const Color(0xFF66BB6A);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [accent.withValues(alpha: 0.16), const Color(0xFF121212)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.calendar_month_rounded, color: accent, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${program.name}: ${day.name}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${day.exercises.length} hareket bugün için hazır',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: day.exercises.isEmpty
+                ? null
+                : () => onStartDay(selectedProgram, day),
+            child: Text(
+              'Başlat',
+              style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryFilterBar extends StatelessWidget {
+  final _WorkoutHistoryFilter selected;
+  final ValueChanged<_WorkoutHistoryFilter> onChanged;
+
+  const _HistoryFilterBar({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _chip('Seçili gün', _WorkoutHistoryFilter.selectedDay),
+          _chip('Tümü', _WorkoutHistoryFilter.all),
+          _chip('Bu hafta', _WorkoutHistoryFilter.thisWeek),
+          _chip('PR', _WorkoutHistoryFilter.prs),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, _WorkoutHistoryFilter filter) {
+    final isSelected = selected == filter;
+    return GestureDetector(
+      onTap: () => onChanged(filter),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF2E7D32).withValues(alpha: 0.22)
+              : Colors.white.withValues(alpha: 0.045),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF66BB6A).withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? const Color(0xFF66BB6A) : Colors.white60,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveWorkoutSessionSheet extends StatefulWidget {
+  final String title;
+  final List<_SessionExercisePlan> plans;
+  final VoidCallback onFinish;
+
+  const _ActiveWorkoutSessionSheet({
+    required this.title,
+    required this.plans,
+    required this.onFinish,
+  });
+
+  @override
+  State<_ActiveWorkoutSessionSheet> createState() =>
+      _ActiveWorkoutSessionSheetState();
+}
+
+class _ActiveWorkoutSessionSheetState
+    extends State<_ActiveWorkoutSessionSheet> {
+  late final Set<String> _completedSets = <String>{};
+  Timer? _timer;
+  int _remaining = 0;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _toggleSet(String key, int restSeconds) {
+    setState(() {
+      if (_completedSets.contains(key)) {
+        _completedSets.remove(key);
+      } else {
+        _completedSets.add(key);
+        _startRest(restSeconds);
+      }
+    });
+  }
+
+  void _startRest(int seconds) {
+    _timer?.cancel();
+    _remaining = seconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
+      setState(() {
+        _remaining--;
+        if (_remaining <= 0) {
+          _remaining = 0;
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSets = widget.plans.fold<int>(0, (sum, plan) => sum + plan.sets);
+    final progress = totalSets == 0 ? 0.0 : _completedSets.length / totalSets;
+    final minutes = (_remaining ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_remaining % 60).toString().padLeft(2, '0');
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.86,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF111111),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        ),
+        child: ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                const Icon(Icons.timer_rounded, color: Color(0xFF66BB6A)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (_remaining > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$minutes:$seconds',
+                      style: const TextStyle(
+                        color: Color(0xFF66BB6A),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                valueColor: const AlwaysStoppedAnimation(Color(0xFF2E7D32)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${_completedSets.length}/$totalSets set tamamlandı',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...widget.plans.asMap().entries.map((entry) {
+              final exerciseIndex = entry.key;
+              final plan = entry.value;
+              final color =
+                  kMuscleGroupInfo[plan.muscleGroup]?.color ??
+                  const Color(0xFF66BB6A);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(plan.sets, (setIndex) {
+                        final key = '$exerciseIndex-$setIndex';
+                        final done = _completedSets.contains(key);
+                        return InkWell(
+                          onTap: () => _toggleSet(key, plan.restSeconds),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 160),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: done
+                                  ? color.withValues(alpha: 0.22)
+                                  : Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: done
+                                    ? color.withValues(alpha: 0.55)
+                                    : Colors.white.withValues(alpha: 0.08),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  done
+                                      ? Icons.check_circle_rounded
+                                      : Icons.radio_button_unchecked_rounded,
+                                  color: done ? color : Colors.white38,
+                                  size: 15,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '${setIndex + 1}. set · ${plan.reps} tekrar',
+                                  style: TextStyle(
+                                    color: done ? Colors.white : Colors.white60,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: widget.onFinish,
+                icon: const Icon(Icons.save_rounded, color: Colors.white),
+                label: const Text(
+                  'Kayda Geçir',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

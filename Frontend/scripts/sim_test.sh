@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sim_test.sh — FitMentor iOS Simülatör Test Yardımcısı
+# sim_test.sh — PusulaFit iOS Simülatör Test Yardımcısı
 # Kullanım: ./scripts/sim_test.sh <komut> [argümanlar]
 #
 # Komutlar:
@@ -155,7 +155,7 @@ case "$cmd" in
 
   help|*)
     cat << 'EOF'
-FitMentor Simülatör Test Araçları
+PusulaFit Simülatör Test Araçları
 ==================================
 Kullanım: ./scripts/sim_test.sh <komut> [argümanlar]
 

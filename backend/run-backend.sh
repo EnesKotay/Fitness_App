@@ -1,12 +1,12 @@
 #!/bin/bash
-# Backend başlatma: 8080 portunu kullanan işlemi kapatır, sonra Quarkus dev modunu başlatır.
+# Backend başlatma: dev portunu kullanan işlemi kapatır, sonra Quarkus dev modunu başlatır.
 # macOS / Linux: chmod +x run-backend.sh && ./run-backend.sh
 
-PORT=8080
+PORT="${DEV_HTTP_PORT:-8081}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 8080 portunu kullanan işlemi kapat
+# Dev portunu kullanan işlemi kapat
 if command -v lsof &> /dev/null; then
   PID=$(lsof -ti:$PORT 2>/dev/null)
   if [ -n "$PID" ]; then
@@ -32,4 +32,5 @@ fi
 [ -n "$JAVA_HOME" ] && export PATH="$JAVA_HOME/bin:${PATH:-/usr/bin:/bin}"
 export QUARKUS_CONSOLE_DISABLED=true
 export MAVEN_OPTS="${MAVEN_OPTS:-} -Duser.language=en -Duser.country=US -Dfile.encoding=UTF-8 -Dquarkus.console.disabled=true -Djdk.console=java.base"
+export DEV_HTTP_PORT="$PORT"
 ./mvnw quarkus:dev -DskipTests -Dquarkus.console.disabled=true < /dev/null
