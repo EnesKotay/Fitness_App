@@ -1,11 +1,11 @@
-name: fitness
-description: "Fitness tracking mobile application"
+name: pusulafit
+description: "PusulaFit fitness tracking mobile application"
 publish_to: 'none'
 
 # version: MAJOR.MINOR.PATCH+BUILD_NUMBER
 # MAJOR.MINOR.PATCH → App Store'da görünen versiyon (CFBundleShortVersionString)
 # BUILD_NUMBER      → App Store Connect'e her yüklemede artırılmalı (CFBundleVersion)
-version: 1.0.0+1
+version: 1.1.1+4
 
 environment:
   sdk: ^3.10.7
@@ -20,11 +20,15 @@ dependencies:
   flutter_native_splash: ^2.4.01
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
-  flutter_markdown: ^0.7.7
-  confetti: ^0.7.0
+  flutter_markdown: ^0.7.7+1
+  confetti: ^0.8.0
   
   # HTTP Client
   dio: ^5.4.0
+
+  # Social Login
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.0.0
   
   # State Management
   provider: ^6.1.5+1
@@ -37,7 +41,7 @@ dependencies:
   intl: ^0.19.0
   
   # Charts
-  fl_chart: ^0.66.0
+  fl_chart: ^1.2.0
 
   # Network images (bölge kartları için önbellekli görsel)
   cached_network_image: ^3.3.1
@@ -63,7 +67,7 @@ dependencies:
   # Local Notifications
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
-  flutter_timezone: ^1.0.4
+  flutter_timezone: ^3.0.1
 
 
   # Offline Sync
@@ -115,6 +119,16 @@ flutter_launcher_icons:
     generate: false
   windows:
     generate: false
+
+flutter_native_splash:
+  color: "#07080B"
+  image: assets/images/app_icon.png
+  android: true
+  ios: true
+  web: true
+  android_12:
+    color: "#07080B"
+    image: assets/images/app_icon.png
 
 flutter:
   uses-material-design: true
