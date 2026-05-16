@@ -42,7 +42,7 @@ public class GeminiCoachService {
     @ConfigProperty(name = "gemini.coach.model", defaultValue = "gemini-2.0-flash")
     String coachModel;
 
-    @ConfigProperty(name = "gemini.coach.fallback", defaultValue = "gemini-1.5-flash")
+    @ConfigProperty(name = "gemini.coach.fallback", defaultValue = "gemini-2.0-flash-lite")
     String coachFallbackModel;
 
     public AiCoachResponse generateCoachResponse(Long userId, AiCoachRequest request) {

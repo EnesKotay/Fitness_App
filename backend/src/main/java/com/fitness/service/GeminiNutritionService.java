@@ -45,7 +45,7 @@ public class GeminiNutritionService {
     @ConfigProperty(name = "gemini.nutrition.model", defaultValue = "gemini-2.0-flash")
     String nutritionModel;
 
-    @ConfigProperty(name = "gemini.nutrition.fallback", defaultValue = "gemini-1.5-flash")
+    @ConfigProperty(name = "gemini.nutrition.fallback", defaultValue = "gemini-2.0-flash-lite")
     String nutritionFallbackModel;
 
     /**
