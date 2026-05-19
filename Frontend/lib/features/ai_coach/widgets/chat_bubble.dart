@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:io';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../services/ai_user_memory_service.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
@@ -291,6 +293,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                 ),
               ),
               // Timestamp + reactions row
+              if (!widget.message.isThinking)
               Padding(
                 padding: const EdgeInsets.only(top: 6, left: 2),
                 child: Row(
@@ -494,7 +497,29 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
+  Widget _buildThinkingDots() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: 7,
+          height: 7,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEBC374),
+            shape: BoxShape.circle,
+          ),
+        )
+            .animate(onPlay: (c) => c.repeat())
+            .fadeIn(delay: (i * 160).ms, duration: 320.ms)
+            .then()
+            .fadeOut(duration: 320.ms);
+      }),
+    );
+  }
+
   Widget _buildMarkdownContent() {
+    if (widget.message.isThinking) return _buildThinkingDots();
     // \n → markdown hard line break (two spaces + newline)
     final data = widget.message.content.replaceAll('\n', '  \n');
     return MarkdownBody(
@@ -745,6 +770,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         return (const Color(0xFFEBC374), const Color(0xFFEBC374));
       case 'OPEN_TRACKING':
         return (const Color(0xFF73D4FF), const Color(0xFF4FACFE));
+      case 'REMEMBER':
+        return (const Color(0xFF34D399), const Color(0xFF34D399));
       default:
         return (const Color(0xFFEBC374), const Color(0xFFEBC374));
     }
@@ -768,6 +795,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         return Icon(Icons.tune_rounded, size: 15, color: color);
       case 'OPEN_TRACKING':
         return Icon(Icons.insights_rounded, size: 15, color: color);
+      case 'REMEMBER':
+        return Icon(Icons.bookmark_added_rounded, size: 15, color: color);
       default:
         return Icon(Icons.launch_rounded, size: 15, color: color);
     }
@@ -802,7 +831,32 @@ class _ChatBubbleState extends State<ChatBubble> {
       case 'SAVE_WORKOUT':
         _handleWorkoutSave(context, action.data);
         break;
+      case 'REMEMBER':
+        _handleRememberFact(context, action.data);
+        break;
     }
+  }
+
+  Future<void> _handleRememberFact(BuildContext context, String? data) async {
+    if (data == null || data.isEmpty) return;
+    final uid = context.read<AuthProvider?>()?.user?.id;
+    if (uid == null) return;
+    final controller = context.read<AiCoachController>();
+    final svc = AiUserMemoryService();
+    await svc.saveFactFromJson(uid, data);
+    final facts = await svc.getFacts(uid);
+    for (final f in facts) {
+      if (!controller.userMemoryFacts.any((e) => e.fact == f.fact)) {
+        await controller.saveMemoryFact(f);
+      }
+    }
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Hatırladım! Hafızama kaydettim ✓'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _switchToMainTab(BuildContext context, int index) {

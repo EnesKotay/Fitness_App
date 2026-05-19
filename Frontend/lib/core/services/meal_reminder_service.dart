@@ -55,19 +55,19 @@ class MealReminderSettings {
 /// Öğün hatırlatıcı servisi.
 class MealReminderService {
   static const String _enabledKey = 'meal_reminder_enabled';
-  
+
   static const String _breakfastEnabledKey = 'meal_reminder_breakfast_enabled';
   static const String _breakfastHhKey = 'meal_reminder_breakfast_hh';
   static const String _breakfastMmKey = 'meal_reminder_breakfast_mm';
-  
+
   static const String _lunchEnabledKey = 'meal_reminder_lunch_enabled';
   static const String _lunchHhKey = 'meal_reminder_lunch_hh';
   static const String _lunchMmKey = 'meal_reminder_lunch_mm';
-  
+
   static const String _dinnerEnabledKey = 'meal_reminder_dinner_enabled';
   static const String _dinnerHhKey = 'meal_reminder_dinner_hh';
   static const String _dinnerMmKey = 'meal_reminder_dinner_mm';
-  
+
   static const String _snackEnabledKey = 'meal_reminder_snack_enabled';
   static const String _snackHhKey = 'meal_reminder_snack_hh';
   static const String _snackMmKey = 'meal_reminder_snack_mm';
@@ -87,19 +87,20 @@ class MealReminderService {
   Future<MealReminderSettings> getSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final enabled = prefs.getBool(_userKey(_enabledKey)) ?? false;
-    
-    final breakfastEnabled = prefs.getBool(_userKey(_breakfastEnabledKey)) ?? true;
+
+    final breakfastEnabled =
+        prefs.getBool(_userKey(_breakfastEnabledKey)) ?? true;
     final breakfastHh = prefs.getInt(_userKey(_breakfastHhKey)) ?? 8;
     final breakfastMm = prefs.getInt(_userKey(_breakfastMmKey)) ?? 0;
-    
+
     final lunchEnabled = prefs.getBool(_userKey(_lunchEnabledKey)) ?? true;
     final lunchHh = prefs.getInt(_userKey(_lunchHhKey)) ?? 12;
     final lunchMm = prefs.getInt(_userKey(_lunchMmKey)) ?? 30;
-    
+
     final dinnerEnabled = prefs.getBool(_userKey(_dinnerEnabledKey)) ?? true;
     final dinnerHh = prefs.getInt(_userKey(_dinnerHhKey)) ?? 19;
     final dinnerMm = prefs.getInt(_userKey(_dinnerMmKey)) ?? 0;
-    
+
     final snackEnabled = prefs.getBool(_userKey(_snackEnabledKey)) ?? true;
     final snackHh = prefs.getInt(_userKey(_snackHhKey)) ?? 16;
     final snackMm = prefs.getInt(_userKey(_snackMmKey)) ?? 0;
@@ -181,7 +182,7 @@ class MealReminderService {
   /// Bildirimleri güncel ayarlara göre yeniden planlar.
   Future<void> _syncNotifications() async {
     final settings = await getSettings();
-    if (!settings.enabled) {
+    if (!settings.enabled || !StorageHelper.getNotifEnabled()) {
       await LocalNotificationService.instance.cancelMealReminders();
       debugPrint('MealReminderService: Tüm öğün hatırlatıcıları kapatıldı');
       return;

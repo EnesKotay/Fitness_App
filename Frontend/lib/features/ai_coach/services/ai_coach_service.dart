@@ -24,6 +24,7 @@ class AiCoachService {
     CoachTaskMode taskMode = CoachTaskMode.plan,
     List<CoachConversationTurn> conversationHistory =
         const <CoachConversationTurn>[],
+    String? userMemory,
   }) async {
     try {
       final token = StorageHelper.getToken();
@@ -49,6 +50,7 @@ class AiCoachService {
             .map((turn) => turn.toJson())
             .toList(),
         'question': userPrompt,
+        if (userMemory != null && userMemory.isNotEmpty) 'userMemory': userMemory,
       };
 
       Response<dynamic> response;
@@ -142,8 +144,8 @@ class AiCoachService {
               ? aiResponse.substring(0, 800)
               : aiResponse,
           'reaction': isPositive ? 'POSITIVE' : 'NEGATIVE',
-          if (taskMode != null) 'taskMode': taskMode,
-          if (personality != null) 'personality': personality,
+          'taskMode': taskMode,
+          'personality': personality,
         },
       );
     } catch (_) {

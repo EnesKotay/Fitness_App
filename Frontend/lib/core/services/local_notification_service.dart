@@ -11,6 +11,7 @@ class LocalNotificationService {
     _instance ??= LocalNotificationService._();
     return _instance!;
   }
+
   LocalNotificationService._();
 
   final FlutterLocalNotificationsPlugin _plugin =
@@ -19,16 +20,19 @@ class LocalNotificationService {
   bool _initialized = false;
 
   // Bildirim ID aralıkları — çakışmaması için sabit ayrılmış
-  static const int _waterBaseId = 100;       // 100-105
+  static const int _waterBaseId = 100; // 100-115
+  static const int _maxWaterReminders = 16;
   static const int _mealBreakfastId = 200;
   static const int _mealLunchId = 201;
   static const int _mealDinnerId = 202;
   static const int _mealSnackId = 203;
+  static const int _workoutReminderId = 300;
+  static const int _dailySummaryReminderId = 301;
 
   static const _androidChannel = AndroidNotificationChannel(
     'fitness_reminders',
     'Fitness Hatırlatıcıları',
-    description: 'Su içme ve öğün hatırlatmaları',
+    description: 'Su içme, öğün, antrenman ve gün sonu hatırlatmaları',
     importance: Importance.high,
   );
 
@@ -39,8 +43,9 @@ class LocalNotificationService {
     final String tzName = await FlutterTimezone.getLocalTimezone();
     tz.setLocalLocation(tz.getLocation(tzName));
 
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -48,16 +53,14 @@ class LocalNotificationService {
     );
 
     await _plugin.initialize(
-      const InitializationSettings(
-        android: androidSettings,
-        iOS: iosSettings,
-      ),
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
     );
 
     // Android 8+ kanal oluştur
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await androidImpl?.createNotificationChannel(_androidChannel);
 
     _initialized = true;
@@ -67,7 +70,8 @@ class LocalNotificationService {
   Future<bool> requestPermission() async {
     final ios = _plugin
         .resolvePlatformSpecificImplementation<
-            IOSFlutterLocalNotificationsPlugin>();
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (ios != null) {
       final granted = await ios.requestPermissions(
         alert: true,
@@ -78,7 +82,8 @@ class LocalNotificationService {
     }
     final android = _plugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
       return granted ?? false;
@@ -93,11 +98,12 @@ class LocalNotificationService {
     await cancelWaterReminders();
     await init();
 
-    // Günde 6 farklı saatte bildirim planla (sabah 7'den itibaren)
     const startHour = 7;
-    for (int i = 0; i < 6; i++) {
+    const endHour = 22;
+    var scheduledCount = 0;
+    for (int i = 0; i < _maxWaterReminders; i++) {
       final hour = startHour + (i * intervalHours);
-      if (hour > 22) break; // gece bildirimi yok
+      if (hour > endHour) break; // gece bildirimi yok
       await _scheduleDaily(
         id: _waterBaseId + i,
         title: '💧 Su içme vakti!',
@@ -105,12 +111,15 @@ class LocalNotificationService {
         hour: hour,
         minute: 0,
       );
+      scheduledCount++;
     }
-    debugPrint('LocalNotificationService: ${(22 - startHour) ~/ intervalHours + 1} su hatırlatıcısı planlandı');
+    debugPrint(
+      'LocalNotificationService: $scheduledCount su hatırlatıcısı planlandı',
+    );
   }
 
   Future<void> cancelWaterReminders() async {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < _maxWaterReminders; i++) {
       await _plugin.cancel(_waterBaseId + i);
     }
   }
@@ -162,7 +171,9 @@ class LocalNotificationService {
         minute: snack.minute,
       );
     }
-    debugPrint('LocalNotificationService: Aktif öğün hatırlatıcıları planlandı');
+    debugPrint(
+      'LocalNotificationService: Aktif öğün hatırlatıcıları planlandı',
+    );
   }
 
   Future<void> cancelMealReminders() async {
@@ -174,6 +185,46 @@ class LocalNotificationService {
     ]) {
       await _plugin.cancel(id);
     }
+  }
+
+  // ── Antrenman ve gün sonu hatırlatıcıları ───────────────────────────────
+
+  Future<void> scheduleWorkoutReminder({
+    TimeOfDay time = const TimeOfDay(hour: 18, minute: 30),
+  }) async {
+    await init();
+    await _plugin.cancel(_workoutReminderId);
+    await _scheduleDaily(
+      id: _workoutReminderId,
+      title: '🏋️ Antrenman zamanı!',
+      body: 'Bugünkü hareket planına kısa bir antrenman ekleyelim.',
+      hour: time.hour,
+      minute: time.minute,
+    );
+    debugPrint('LocalNotificationService: Antrenman hatırlatıcısı planlandı');
+  }
+
+  Future<void> cancelWorkoutReminder() async {
+    await _plugin.cancel(_workoutReminderId);
+  }
+
+  Future<void> scheduleDailySummaryReminder({
+    TimeOfDay time = const TimeOfDay(hour: 21, minute: 30),
+  }) async {
+    await init();
+    await _plugin.cancel(_dailySummaryReminderId);
+    await _scheduleDaily(
+      id: _dailySummaryReminderId,
+      title: '📊 Gün sonu özeti',
+      body: 'Bugünkü kalori, su ve hareket durumunu hızlıca kontrol et.',
+      hour: time.hour,
+      minute: time.minute,
+    );
+    debugPrint('LocalNotificationService: Gün sonu özeti planlandı');
+  }
+
+  Future<void> cancelDailySummaryReminder() async {
+    await _plugin.cancel(_dailySummaryReminderId);
   }
 
   Future<void> cancelAll() async {

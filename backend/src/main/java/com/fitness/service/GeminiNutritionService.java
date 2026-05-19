@@ -3,6 +3,7 @@ package com.fitness.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -724,6 +725,58 @@ public class GeminiNutritionService {
             return new AiCoachServiceException(502, "Beslenme AI istegi basarisiz oldu: " + result.getError());
         }
         return new AiCoachServiceException(502, "Beslenme AI istegi basarisiz oldu.");
+    }
+
+    public Map<String, Object> generateWeeklyPlan(Long userId, int targetKcal, String goal) {
+        String prompt = String.format("""
+                Sen deneyimli bir diyetisyensin. Kullanıcı için 7 günlük öğün planı oluştur.
+
+                Parametreler:
+                - Günlük hedef kalori: %d kcal
+                - Hedef: %s
+
+                Sadece aşağıdaki JSON formatını döndür, başka açıklama ekleme:
+                {
+                  "days": [
+                    {
+                      "breakfast": {"name": "Yemek adı", "kcal": 380, "portionGrams": 250},
+                      "lunch": {"name": "Yemek adı", "kcal": 520, "portionGrams": 400},
+                      "dinner": {"name": "Yemek adı", "kcal": 450, "portionGrams": 350},
+                      "snack": {"name": "Yemek adı", "kcal": 180, "portionGrams": 150}
+                    }
+                  ]
+                }
+
+                Kurallar:
+                - Tam olarak 7 gün döndür.
+                - Her gün için 4 öğün (breakfast, lunch, dinner, snack) olmalı.
+                - Kalorilerin toplamı günlük hedefe yakın olsun (~±100 kcal tolerans).
+                - Türkçe yemek adları kullan.
+                - Çeşitli ve dengeli bir plan oluştur.
+                - Sadece JSON döndür.
+                """, targetKcal, goal);
+
+        GeminiClientResult result = aiProviderRouter.generate(
+                "ai/nutrition/weekly-plan",
+                userId,
+                nutritionModel,
+                nutritionFallbackModel,
+                prompt,
+                true);
+
+        if (!result.isSuccess()) {
+            throw mapFailure(result);
+        }
+
+        try {
+            String jsonText = extractJson(cleanResponse(result.getOutputText()));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parsed = objectMapper.readValue(jsonText, Map.class);
+            return parsed;
+        } catch (Exception e) {
+            LOG.errorf("Weekly plan parse error: %s | raw: %s", e.getMessage(), result.getOutputText());
+            throw new AiCoachServiceException(502, "Haftalık plan çözümlenemedi.");
+        }
     }
 
     public static final class NutritionGenerationResult {

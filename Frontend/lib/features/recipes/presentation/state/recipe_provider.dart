@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/recipe_api_service.dart';
 import '../../data/recipe_loader.dart';
 import '../../domain/entities/recipe.dart';
 import '../../domain/repositories/recipe_repository.dart';
@@ -146,8 +147,9 @@ class RecipeFilter {
 
 class RecipeProvider extends ChangeNotifier {
   final RecipeRepository _repository;
+  final RecipeApiService _api = RecipeApiService();
 
-  RecipeProvider({RecipeRepository? repository}) 
+  RecipeProvider({RecipeRepository? repository})
       : _repository = repository ?? LocalRecipeRepository();
 
   List<Recipe> _all = [];
@@ -477,6 +479,17 @@ class RecipeProvider extends ChangeNotifier {
     _all = [..._all, recipe];
     await _saveCustomRecipes();
     notifyListeners();
+    _api.upsertRecipe(recipe);
+  }
+
+  Future<void> deleteCustomRecipe(String recipeId) async {
+    _customRecipes.removeWhere((r) => r.id == recipeId);
+    _all = _all.where((r) => r.id != recipeId).toList();
+    _favoriteIds.remove(recipeId);
+    _recentlyViewedIds.remove(recipeId);
+    await _saveCustomRecipes();
+    notifyListeners();
+    _api.deleteRecipe(recipeId);
   }
 
   void markCooked(String recipeId) {
@@ -519,6 +532,16 @@ class RecipeProvider extends ChangeNotifier {
     try {
       await Future.wait([_loadFavorites(), _loadRecent(), _loadCookCounts(), _loadCustomRecipes()]);
       final repoRecipes = await _repository.getAllRecipes();
+
+      // Backend'den özel tarifleri al, local'dekilerle birleştir
+      final remoteRecipes = await _api.fetchCustomRecipes();
+      if (remoteRecipes.isNotEmpty) {
+        final localIds = _customRecipes.map((r) => r.id).toSet();
+        final newRemote = remoteRecipes.where((r) => !localIds.contains(r.id)).toList();
+        _customRecipes = [..._customRecipes, ...newRemote];
+        if (newRemote.isNotEmpty) await _saveCustomRecipes();
+      }
+
       _all = [...repoRecipes, ..._customRecipes];
     } catch (e) {
       debugPrint('RecipeProvider init error: $e');

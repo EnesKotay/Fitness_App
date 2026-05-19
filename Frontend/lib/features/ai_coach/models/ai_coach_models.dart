@@ -138,6 +138,8 @@ class DailySummary {
   final int? tdee;
   final String? workoutLocation;
   final String? equipmentType;
+  // Last 3 days kcal for trend context (index 0 = yesterday, 1 = 2 days ago, …)
+  final List<int>? recentDaysCalories;
 
   const DailySummary({
     this.steps,
@@ -167,6 +169,7 @@ class DailySummary {
     this.tdee,
     this.workoutLocation,
     this.equipmentType,
+    this.recentDaysCalories,
   });
 
   Map<String, dynamic> toJson() => {
@@ -197,6 +200,7 @@ class DailySummary {
     'tdee': tdee,
     'workoutLocation': workoutLocation,
     'equipmentType': equipmentType,
+    'recentDaysCalories': recentDaysCalories,
   };
 }
 
@@ -355,6 +359,7 @@ class CoachRequestSnapshot {
   final CoachTaskMode taskMode;
   final List<CoachConversationTurn> conversationHistory;
   final String? imagePath;
+  final String? userMemory;
 
   const CoachRequestSnapshot({
     required this.prompt,
@@ -364,5 +369,6 @@ class CoachRequestSnapshot {
     required this.taskMode,
     this.conversationHistory = const <CoachConversationTurn>[],
     this.imagePath,
+    this.userMemory,
   });
 }

@@ -1,6 +1,10 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/api/api_client.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/page_guide_service.dart';
+import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/widgets/page_guide_overlay.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -58,6 +62,7 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
   final _storage = WeeklyMealPlanStorage();
   _WeekPlan _plan = {};
   bool _loading = true;
+  bool _generating = false;
 
   static const List<GuideStep> _guideSteps = [
     GuideStep(
@@ -124,6 +129,72 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
         _plan = loaded;
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _generateWithAi() async {
+    if (_generating) return;
+    final token = StorageHelper.getToken();
+    if (token == null || token.isEmpty) return;
+
+    final dietProvider = context.read<DietProvider>();
+    final targetKcal = (dietProvider.dailyTargetKcal ?? 2000).round();
+    final goalEnum = dietProvider.profile?.goal;
+    final goal = goalEnum == null ? 'denge' : goalEnum.name;
+
+    setState(() => _generating = true);
+    try {
+      final res = await ApiClient().post(
+        ApiConstants.aiNutritionWeeklyPlan,
+        data: {'targetKcal': targetKcal, 'goal': goal},
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      if (res.statusCode != 200) return;
+
+      final data = res.data as Map<String, dynamic>?;
+      final days = (data?['days'] as List<dynamic>?) ?? [];
+      if (days.isEmpty) return;
+
+      final newPlan = <int, Map<String, PlannedMeal?>>{};
+      for (int i = 0; i < 7 && i < days.length; i++) {
+        final day = days[i] as Map<String, dynamic>;
+        newPlan[i] = {};
+        for (final slot in _slotKeys) {
+          final mealData = day[slot] as Map<String, dynamic>?;
+          if (mealData == null) continue;
+          newPlan[i]![slot] = PlannedMeal(
+            name: mealData['name']?.toString() ?? '',
+            kcal: (mealData['kcal'] as num?)?.toInt() ?? 0,
+            portionGrams: (mealData['portionGrams'] as num?)?.toDouble() ?? 0,
+            mealType: _mealTypeForSlot(slot),
+            ingredients: const [],
+          );
+        }
+      }
+
+      setState(() => _plan = newPlan);
+      await _savePlan();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Haftalık plan oluşturuldu'),
+            backgroundColor: AppColors.chartGreen,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Plan oluşturulamadı, tekrar dene'),
+            backgroundColor: AppColors.chartRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _generating = false);
     }
   }
 
@@ -973,6 +1044,28 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
           ),
         ),
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
+        actions: [
+          if (_generating)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.chartGreen,
+                  ),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: 'AI ile Doldur',
+              icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.chartGreen),
+              onPressed: _generateWithAi,
+            ),
+        ],
       ),
       body: AppGradientBackground(
         imagePath: 'assets/images/nutrition_bg_dark.png',

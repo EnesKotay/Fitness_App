@@ -389,21 +389,25 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     setState(() => _loading = true);
     final provider = Provider.of<DietProvider>(context, listen: false);
     final query = _searchQuery.trim().isEmpty ? null : _searchQuery.trim();
-    final list = await provider.getSuggestedFoodInsights(
-      _mealType,
-      limit: query != null ? 80 : 60,
-      query: query,
-    );
-    final reasoning = await provider.getAISuggestionReasoning(
-      list.map((e) => e.item).toList(),
-    );
-    if (mounted) {
-      setState(() {
-        _suggestions = list;
-        _aiReasoning = reasoning;
-        _loading = false;
-      });
-      _fadeCtrl.forward();
+    try {
+      final list = await provider.getSuggestedFoodInsights(
+        _mealType,
+        limit: query != null ? 80 : 60,
+        query: query,
+      );
+      final reasoning = await provider.getAISuggestionReasoning(
+        list.map((e) => e.item).toList(),
+      );
+      if (mounted) {
+        setState(() {
+          _suggestions = list;
+          _aiReasoning = reasoning;
+          _loading = false;
+        });
+        _fadeCtrl.forward();
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -455,13 +459,17 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     DietProvider provider,
   ) async {
     HapticFeedback.mediumImpact();
-    for (final item in combo.items) {
-      await provider.addEntry(
-        food: item.item,
-        grams: item.suggestedPortionG,
-        mealType: _mealType,
-        date: provider.selectedDate,
-      );
+    try {
+      for (final item in combo.items) {
+        await provider.addEntry(
+          food: item.item,
+          grams: item.suggestedPortionG,
+          mealType: _mealType,
+          date: provider.selectedDate,
+        );
+      }
+    } catch (_) {
+      return;
     }
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -485,12 +493,17 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     if (_quickAddedId != null) return;
     HapticFeedback.lightImpact();
     setState(() => _quickAddedId = suggestion.item.id);
-    await provider.addEntry(
-      food: suggestion.item,
-      grams: suggestion.suggestedPortionG,
-      mealType: _mealType,
-      date: provider.selectedDate,
-    );
+    try {
+      await provider.addEntry(
+        food: suggestion.item,
+        grams: suggestion.suggestedPortionG,
+        mealType: _mealType,
+        date: provider.selectedDate,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _quickAddedId = null);
+      return;
+    }
     if (mounted) {
       setState(() => _quickAddedId = null);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1153,13 +1166,10 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
 
     // Progress percentages (how much consumed out of target)
     final targetKcal = provider.effectiveTargetKcal;
-    final pKcal = (targetKcal > 0 ? t.totalKcal / targetKcal : 0.0).clamp(
-      0.0,
-      1.0,
-    );
-    final pProt = (t.totalProtein / targets.protein).clamp(0.0, 1.0);
-    final pCarb = (t.totalCarb / targets.carb).clamp(0.0, 1.0);
-    final pFat = (t.totalFat / targets.fat).clamp(0.0, 1.0);
+    final pKcal = (targetKcal > 0 ? t.totalKcal / targetKcal : 0.0).clamp(0.0, 1.0);
+    final pProt = targets.protein > 0 ? (t.totalProtein / targets.protein).clamp(0.0, 1.0) : 0.0;
+    final pCarb = targets.carb > 0 ? (t.totalCarb / targets.carb).clamp(0.0, 1.0) : 0.0;
+    final pFat = targets.fat > 0 ? (t.totalFat / targets.fat).clamp(0.0, 1.0) : 0.0;
 
     final visibleSuggestions = _applyRefinement(_suggestions);
     final comboPlans = _buildComboPlans(visibleSuggestions);
@@ -4180,12 +4190,16 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                             child: ElevatedButton(
                               onPressed: () async {
                                 HapticFeedback.mediumImpact();
-                                await provider.addEntry(
-                                  food: food,
-                                  grams: grams,
-                                  mealType: _mealType,
-                                  date: provider.selectedDate,
-                                );
+                                try {
+                                  await provider.addEntry(
+                                    food: food,
+                                    grams: grams,
+                                    mealType: _mealType,
+                                    date: provider.selectedDate,
+                                  );
+                                } catch (_) {
+                                  return;
+                                }
                                 if (mounted) {
                                   setState(() => _selectedFood = null);
                                   ScaffoldMessenger.of(context).showSnackBar(

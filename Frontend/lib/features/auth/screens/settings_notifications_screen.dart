@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/meal_reminder_service.dart';
 import '../../../core/services/water_reminder_service.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../../core/services/notification_scheduler_service.dart';
 import '../../../core/utils/storage_helper.dart';
 
 class SettingsNotificationsScreen extends StatefulWidget {
@@ -49,7 +50,8 @@ class _SettingsNotificationsScreenState
     _water = StorageHelper.getNotifWater();
     _workout = StorageHelper.getNotifWorkout();
     _dailySummary = StorageHelper.getNotifDailySummary();
-    _waterIntervalHours = await WaterReminderService.instance.getIntervalHours();
+    _waterIntervalHours = await WaterReminderService.instance
+        .getIntervalHours();
 
     final mealSettings = await MealReminderService.instance.getSettings();
     if (!mounted) return;
@@ -59,7 +61,7 @@ class _SettingsNotificationsScreenState
       _lunchEnabled = mealSettings.lunchEnabled;
       _dinnerEnabled = mealSettings.dinnerEnabled;
       _snackEnabled = mealSettings.snackEnabled;
-      
+
       _breakfastTime = mealSettings.breakfastTime;
       _lunchTime = mealSettings.lunchTime;
       _dinnerTime = mealSettings.dinnerTime;
@@ -73,8 +75,9 @@ class _SettingsNotificationsScreenState
     await StorageHelper.saveNotifWater(_water);
     await StorageHelper.saveNotifWorkout(_workout);
     await StorageHelper.saveNotifDailySummary(_dailySummary);
-    await WaterReminderService.instance.setEnabled(_enabled && _water);
+    await WaterReminderService.instance.setEnabled(_water);
     await WaterReminderService.instance.setIntervalHours(_waterIntervalHours);
+    await NotificationSchedulerService.instance.syncScheduledNotifications();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -87,16 +90,20 @@ class _SettingsNotificationsScreenState
 
   Future<void> _persistMeal() async {
     await MealReminderService.instance.setEnabled(_mealEnabled);
-    await MealReminderService.instance.setMealEnabled('breakfast', _breakfastEnabled);
+    await MealReminderService.instance.setMealEnabled(
+      'breakfast',
+      _breakfastEnabled,
+    );
     await MealReminderService.instance.setMealEnabled('lunch', _lunchEnabled);
     await MealReminderService.instance.setMealEnabled('dinner', _dinnerEnabled);
     await MealReminderService.instance.setMealEnabled('snack', _snackEnabled);
-    
+
     await MealReminderService.instance.setMealTime('breakfast', _breakfastTime);
     await MealReminderService.instance.setMealTime('lunch', _lunchTime);
     await MealReminderService.instance.setMealTime('dinner', _dinnerTime);
     await MealReminderService.instance.setMealTime('snack', _snackTime);
-    
+    await NotificationSchedulerService.instance.syncScheduledNotifications();
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -200,7 +207,9 @@ class _SettingsNotificationsScreenState
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Cihaz ayarlarından bildirim izni vermelisiniz.'),
+                          content: Text(
+                            'Cihaz ayarlarından bildirim izni vermelisiniz.',
+                          ),
                           backgroundColor: Colors.redAccent,
                         ),
                       );
@@ -234,7 +243,10 @@ class _SettingsNotificationsScreenState
             if (_water && _enabled) ...[
               _divider(),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -369,7 +381,7 @@ class _SettingsNotificationsScreenState
                 },
                 onTimeTap: () => _pickMealTime('snack'),
               ),
-            ]
+            ],
           ]),
           const SizedBox(height: 40),
         ],
@@ -421,7 +433,11 @@ class _SettingsNotificationsScreenState
           color: enabled ? iconColor.withValues(alpha: 0.15) : Colors.white10,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: enabled ? iconColor : Colors.white38, size: 22),
+        child: Icon(
+          icon,
+          color: enabled ? iconColor : Colors.white38,
+          size: 22,
+        ),
       ),
       title: Text(
         title,
@@ -433,7 +449,10 @@ class _SettingsNotificationsScreenState
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(color: enabled ? _textSecondary : Colors.white24, fontSize: 12),
+        style: TextStyle(
+          color: enabled ? _textSecondary : Colors.white24,
+          fontSize: 12,
+        ),
       ),
       trailing: Switch(
         value: value,
@@ -471,7 +490,10 @@ class _SettingsNotificationsScreenState
               onTap: onTimeTap,
               child: Container(
                 margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
@@ -488,7 +510,11 @@ class _SettingsNotificationsScreenState
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.edit_rounded, color: _textSecondary, size: 14),
+                    const Icon(
+                      Icons.edit_rounded,
+                      color: _textSecondary,
+                      size: 14,
+                    ),
                   ],
                 ),
               ),
@@ -506,9 +532,9 @@ class _SettingsNotificationsScreenState
   }
 
   Widget _divider() => const Divider(
-        height: 1,
-        indent: 16,
-        endIndent: 16,
-        color: Colors.white10,
-      );
+    height: 1,
+    indent: 16,
+    endIndent: 16,
+    color: Colors.white10,
+  );
 }

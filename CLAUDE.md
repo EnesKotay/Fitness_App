@@ -1,233 +1,253 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # PusulaFit — Claude Code Kılavuzu
 
 ## Uygulama Hakkında
 
 **PusulaFit** bir Flutter tabanlı fitness takip uygulaması.
-Platform: iOS + Android | Dil: Dart/Flutter | State: Provider
+Platform: iOS + Android | Frontend: Dart/Flutter (Provider) | Backend: Quarkus (Java) + PostgreSQL
+
+---
+
+## Build & Run Komutları
+
+### Frontend (Flutter)
+
+```bash
+cd /Users/eneskotay/Development/Fitness_App-main/Frontend
+
+# iOS simülatörde çalıştır
+flutter run -d "iPhone 16e" --dart-define=FLUTTER_TEST_MODE=true
+
+# Android emülatörde çalıştır
+flutter run -d emulator-5554
+
+# Release build (iOS)
+flutter build ios --release
+
+# Release build (Android)
+flutter build appbundle --release
+
+# Bağımlılıkları yükle
+flutter pub get
+
+# Kod analizi
+flutter analyze
+
+# Testleri çalıştır (unit + widget)
+flutter test
+
+# Tek test dosyası çalıştır
+flutter test test/features/nutrition/diet_provider_test.dart
+
+# Integration test
+flutter test integration_test/
+
+# Kod üretici (freezed, json_serializable)
+dart run build_runner build --delete-conflicting-outputs
+
+# CocoaPods sorunu olursa
+rm -rf ios/.symlinks/
+cd ios && pod install && cd ..
+```
+
+### Backend (Quarkus)
+
+```bash
+cd /Users/eneskotay/Development/Fitness_App-main/backend
+
+# Dev mode (hot reload)
+./mvnw quarkus:dev
+
+# Testleri çalıştır
+./mvnw test
+
+# Production build
+./mvnw package -Pnative
+
+# Docker image
+docker build -f src/main/docker/Dockerfile.jvm -t pusulafit-backend .
+```
+
+---
+
+## Mimari Genel Bakış
+
+### Frontend Mimarisi
+
+```
+lib/
+├── main.dart              → Hive init, Sentry init, MultiProvider, auth flow
+├── core/
+│   ├── api/api_client.dart         → Dio HTTP client (base URL, JWT interceptor)
+│   ├── models/                     → Shared data models
+│   ├── routes/app_routes.dart      → Tüm rotalar (onGenerateRoute)
+│   ├── services/ai_service.dart    → Gemini API wrapper (isReady her zaman true)
+│   └── theme/                      → AppTheme
+└── features/
+    ├── shell/
+    │   ├── app_providers.dart      → Root MultiProvider (tüm Provider'lar burada)
+    │   └── main_shell.dart         → Tab bar + nested navigator yönetimi
+    ├── auth/
+    │   └── providers/auth_provider.dart  → JWT, login, logout, profil state
+    ├── ai_coach/
+    │   ├── controllers/ai_coach_controller.dart  → ChangeNotifier, son 12 mesaj history
+    │   └── services/ai_coach_service.dart        → Backend /ai/coach endpoint
+    ├── nutrition/
+    │   ├── presentation/state/diet_provider.dart          → ChangeNotifierProxyProvider3
+    │   └── presentation/widgets/meal_suggestion_sheet.dart → AI öğün önerisi (4700+ satır)
+    ├── workout/   → Antrenman CRUD
+    ├── tracking/  → İlerleme grafikleri
+    ├── weight/    → Kilo takibi
+    └── tasks/     → Günlük görevler
+```
+
+**State akışı:** `app_providers.dart` içindeki `MultiProvider` root'ta sarılıdır. `DietProvider`, `ChangeNotifierProxyProvider3<WeightProvider, WorkoutProvider, AIService, DietProvider>` olarak kayıtlıdır — yani `WeightProvider` veya `WorkoutProvider` değişince `DietProvider` de güncellenir.
+
+**Navigasyon:** Root `MaterialApp` (named routes) + `DietTabContainer` içinde kendi `GlobalKey<NavigatorState>` ile nested navigator. `showMealSuggestionSheet` bu nested navigator'a push eder.
+
+### Backend Mimarisi
+
+```
+backend/src/main/java/com/fitness/
+├── resource/          → JAX-RS controllers (@Path, @GET, @POST)
+├── service/
+│   ├── AiProviderRouter.java   → AI yönlendirme (free→Gemini, premium→Claude)
+│   ├── GeminiCoachService.java → Google Gemini API entegrasyonu
+│   └── ClaudeCoachService.java → Anthropic Claude API entegrasyonu
+├── entity/            → Hibernate PanacheEntity (@Entity)
+├── repository/        → PanacheRepository
+└── dto/               → Request/Response DTO'ları
+
+resources/
+├── application.properties      → Tüm konfigürasyon (DB, JWT, AI model)
+└── db/migration/               → Flyway: V2__init.sql → V12__...sql
+```
+
+**AI Yönlendirme (`AiProviderRouter.java`):**
+- Free kullanıcılar → `gemini-2.5-flash` (Gemini API)
+- Premium kullanıcılar → Claude API (Anthropic)
+- Premium kontrolü: `user.premiumTier == "premium"` AND `premiumExpiresAt` henüz geçmemiş
+
+**JWT:** SmallRye JWT, 7 günlük token (`smallrye.jwt.new-token.lifespan=604800`)
+
+**Database:** PostgreSQL, Flyway migration V2→V12 (V1 yoktur, V2'den başlar)
+
+---
+
+## Önemli Dosyalar
+
+| Dosya | Açıklama |
+|-------|----------|
+| `Frontend/lib/main.dart` | App başlangıcı, Hive/Sentry init, auth akışı |
+| `Frontend/lib/features/shell/app_providers.dart` | Root MultiProvider — tüm provider kayıtları |
+| `Frontend/lib/core/routes/app_routes.dart` | Tüm named route tanımları |
+| `Frontend/lib/features/shell/main_shell.dart` | Tab bar + nested navigator yönetimi |
+| `Frontend/lib/core/api/api_client.dart` | Dio HTTP client, JWT interceptor |
+| `Frontend/lib/features/auth/providers/auth_provider.dart` | Auth state, login/logout |
+| `Frontend/lib/features/ai_coach/controllers/ai_coach_controller.dart` | AI Coach ChangeNotifier, 12 mesaj history |
+| `Frontend/lib/features/nutrition/presentation/state/diet_provider.dart` | Beslenme state, makro hedefleri |
+| `backend/src/main/java/com/fitness/service/AiProviderRouter.java` | Free/premium AI yönlendirme |
+| `backend/src/main/resources/application.properties` | DB, JWT, Gemini model konfigürasyonu |
+
+---
+
+## Geliştirme Notları
+
+**Flutter paketler:**
+- State: `provider`
+- HTTP: `dio`
+- Local storage: `shared_preferences` + `hive` + `flutter_secure_storage`
+- AI: `google_generative_ai` (Gemini)
+- Monitoring: `sentry_flutter`
+
+**Kritik davranışlar:**
+- `DietProvider.macroTargets`: `carbG` sıfır olabilir eğer protein+fat toplamı toplam kcal'ı aşarsa — bölme öncesi kontrol et
+- `DietProvider.addEntry()`: catch bloğu `rethrow` eder; UI'de try-catch ile sarılmalı
+- `AiCoachController._buildConversationMemory()`: son 12 mesajı tutar, daha eskiler atılır
+- Beslenme tab'ı kendi nested navigator'ını kullanır; `meal_suggestion_sheet.dart`'daki `showMealSuggestionSheet` bunu kullanır
+
+**Flyway migration kuralı:** V1 atlanmıştır; en son migration V12'dir. Yeni migration eklerken `V13__description.sql` ile devam et.
 
 ---
 
 ## iOS Simülatör Test Protokolü
 
-Claude'un uygulamayı otonom test etmesi için bu adımları izle:
-
-### 1. Simülatörü Başlat ve Uygulamayı Çalıştır
+### Başlatma
 
 ```bash
 # Simülatör ID'sini al
 xcrun simctl list devices | grep -E "iPhone.*Booted|iPhone 1[5-9]"
 
-# Uygulamayı Flutter ile başlat (bir kez yapılır)
+# Uygulamayı başlat
 cd /Users/eneskotay/Development/Fitness_App-main/Frontend
 flutter run -d "iPhone 16e" --dart-define=FLUTTER_TEST_MODE=true
 
-# Veya zaten çalışıyorsa bundle ID ile launch et
+# Zaten çalışıyorsa
 xcrun simctl launch booted com.example.fitness
 ```
 
-### 2. Ekran Görüntüsü Al ve Analiz Et
+### Etkileşim Komutları (iPhone 16e: 393×852 pt)
 
 ```bash
-# Anlık ekran görüntüsü al
 xcrun simctl io booted screenshot /tmp/pusulafit_screen.png
-```
-Sonra bu dosyayı Read tool ile oku: `/tmp/pusulafit_screen.png`
-
-### 3. UI ile Etkileşim (Koordinat Bazlı)
-
-```bash
-# Dokunma (iPhone 16e: 393x852 nokta)
 xcrun simctl io booted tap <X> <Y>
-
-# Kaydırma (yukarı)
-xcrun simctl io booted swipe 200 600 200 200
-
-# Kaydırma (aşağı)
-xcrun simctl io booted swipe 200 200 200 600
-
-# Geri git (sol kenardan sağa swipe)
-xcrun simctl io booted swipe 10 400 300 400
-
-# Text gir (klavye açıkken)
-xcrun simctl io booted type "test_user_text"
-
-# Home butonu
+xcrun simctl io booted swipe 200 600 200 200   # yukarı kaydır
+xcrun simctl io booted swipe 200 200 200 600   # aşağı kaydır
+xcrun simctl io booted swipe 10 400 300 400    # geri (sol→sağ)
+xcrun simctl io booted type "metin"
 xcrun simctl io booted button home
 ```
 
-### 4. Erişilebilirlik Ağacını Oku (Flutter Semantics)
+### Ekran Koordinatları
 
-```bash
-# Flutter widget tree (uygulama çalışıyorken)
-# Bu yöntem daha doğru semantik bilgi verir:
-idb --udid <UDID> accessibility-info-at-point <X> <Y>
+**Login:**
+- Email: `(196, 300)` | Şifre: `(196, 380)` | Giriş: `(196, 460)`
 
-# Veya tüm ağacı dump et:
-flutter attach --device-id <DEVICE_ID>
-# Sonra flutter inspector kullan
-```
-
----
-
-## Ekran Haritası ve Test Koordinatları
-
-**Cihaz: iPhone 16e — 393×852 nokta**
-
-### Kimlik Doğrulama Akışı
-
-| Ekran | Route | Tetikleyici |
-|-------|-------|-------------|
-| Splash | (başlangıç) | Otomatik |
-| Login | `/login` | Splash → login yönlendirme |
-| Onboarding | `/onboarding` | İlk kurulum |
-| Profil Kurulum | `/profile-setup` | Login → profil yok |
-
-**Login Ekranı Koordinatları (yaklaşık):**
-- Email field: `(196, 300)`
-- Şifre field: `(196, 380)`
-- Giriş Yap butonu: `(196, 460)`
-- Şifremi Unuttum: `(196, 520)`
-
-### Ana Tab Bar (Alt Navigasyon)
-
-| Tab | İkon | Koordinat |
-|-----|------|-----------|
-| Ana Sayfa | 🏠 | `(50, 830)` |
-| Antrenman | 💪 | `(130, 830)` |
-| Takip | 📈 | `(260, 830)` |
-| Beslenme | 🍽️ | `(340, 830)` |
+**Ana Tab Bar (alt):**
+| Tab | Koordinat |
+|-----|-----------|
+| Ana Sayfa | `(50, 830)` |
+| Antrenman | `(130, 830)` |
+| Takip | `(260, 830)` |
+| Beslenme | `(340, 830)` |
 
 ### Sayfa Rotaları
 
 ```
 /login              → LoginScreen
 /onboarding         → OnboardingPage
-/home               → MainShell (Tab Container)
-  ├── Tab 0: Ana Sayfa   → DashboardScreen
-  ├── Tab 1: Antrenman   → WorkoutScreen
-  ├── Tab 2: Takip       → TrackingScreen
-  └── Tab 3: Beslenme    → DietTabContainer
+/home               → MainShell
+  ├── Tab 0         → DashboardScreen
+  ├── Tab 1         → WorkoutScreen
+  ├── Tab 2         → TrackingScreen
+  └── Tab 3         → DietTabContainer (nested navigator)
 /ai-coach           → AiCoachScreen
 /weekly-plan        → WeeklyPlanScreen
 /daily-tasks        → DailyTasksScreen
 /profile            → ProfileScreen
 /profile-setup      → ProfileSetupPage
+/achievements       → AchievementsScreen
+/forgot-password    → ForgotPasswordScreen
 /settings-password  → SettingsPasswordScreen
 /settings-notifications → SettingsNotificationsScreen
 /settings-privacy   → SettingsPrivacyScreen
 /settings-nutrition → SettingsNutritionScreen
 /settings-theme     → SettingsThemeScreen
 /settings-help      → SettingsHelpScreen
-/achievements       → AchievementsScreen
-/forgot-password    → ForgotPasswordScreen
 ```
 
----
-
-## Otonom Test Akışları
-
-### Test Akışı A: Tam Uygulama Turu
+### Otonom Test Talimatı
 
 ```
-1. Ekran görüntüsü al → hangi ekrandasın anla
-2. Login ekranı görüyorsan:
-   - Demo/test hesabıyla giriş yap
-   - veya kayıt ol
-3. Ana ekrana ulaşınca:
-   a. Dashboard'u tara (scroll et, içerikleri kaydet)
-   b. Tab 1 → Antrenman: antrenman ekle/görüntüle
-   c. Tab 2 → Takip: grafikleri incele
-   d. Tab 3 → Beslenme: yiyecek ara, ekle
-4. Üst sağ köşe FAB'a bas → AI Coach'u aç
-5. AI Coach'ta bir soru sor
-6. Geri dön, Haftalık Plan'ı kontrol et
-7. Görevler ekranını aç
-8. Profil → Ayarlar → her ayar ekranını ziyaret et
-9. Başarımlar ekranını aç
-```
-
-### Test Akışı B: Kritik Path (Login → Workout → Nutrition)
-
-```
-1. Login (email + şifre gir → giriş yap butonu)
-2. Dashboard yüklenince screenshot al
-3. Antrenman tab'ına geç
-4. "+" butonu ile antrenman ekle
-5. Beslenme tab'ına geç
-6. Yiyecek ara (search bar'a yaz)
-7. Bir yiyecek seç ve ekle
-8. AI Coach'u aç, günlük özet iste
-```
-
-### Test Akışı C: Hata Tespiti
-
-Her ekranda şunları kontrol et:
-- [ ] Boş state görünüyor mu? (veri yokken)
-- [ ] Loading spinner çalışıyor mu?
-- [ ] Hata mesajları okunaklı mı?
-- [ ] Back navigasyonu çalışıyor mu?
-- [ ] Keyboard popup ve dismiss doğru mu?
-
----
-
-## Otonom Test Çalıştırma Talimatı
-
-Claude'a şunu söyle:
-
-```
-iOS simülatörde PusulaFit uygulamasını test et. 
-Her adımdan önce screenshot al (/tmp/screen_NNN.png), 
+iOS simülatörde PusulaFit uygulamasını test et.
+Her adımdan önce screenshot al (/tmp/screen_NNN.png),
 ekranı analiz et, sonraki aksiyonu belirle.
-Bulgularını yapılandırılmış bir rapor olarak sun:
+Bulgularını yapılandırılmış rapor olarak sun:
 - Ziyaret edilen ekranlar
 - Tespit edilen bug'lar
 - UI/UX sorunları
 - Başarıyla çalışan akışlar
 ```
-
----
-
-## Proje Yapısı
-
-```
-Frontend/
-├── lib/
-│   ├── core/
-│   │   ├── api/          → API client ve servisler
-│   │   ├── models/       → Veri modelleri
-│   │   ├── routes/       → app_routes.dart (tüm rotalar burada)
-│   │   ├── theme/        → Tema
-│   │   └── widgets/      → Ortak widget'lar
-│   └── features/
-│       ├── ai_coach/     → AI Antrenör (Gemini)
-│       ├── auth/         → Giriş/Kayıt/Profil/Ayarlar
-│       ├── home/         → Dashboard
-│       ├── nutrition/    → Beslenme takibi
-│       ├── onboarding/   → İlk kurulum
-│       ├── recipes/      → Tarifler
-│       ├── shell/        → Ana tab container
-│       ├── tasks/        → Günlük görevler
-│       ├── tracking/     → İlerleme takibi
-│       ├── weight/       → Kilo takibi
-│       └── workout/      → Antrenman
-├── test/                 → Unit ve widget testler
-├── integration_test/     → Entegrasyon testleri
-└── assets/               → Görseller, fontlar, veriler
-```
-
-## Önemli Dosyalar
-
-- `lib/core/routes/app_routes.dart` — Tüm rotalar
-- `lib/features/shell/main_shell.dart` — Tab bar ve navigasyon
-- `lib/main.dart` — Uygulama başlangıcı ve auth flow
-- `lib/core/api/api_client.dart` — Backend API bağlantısı
-- `lib/features/auth/providers/auth_provider.dart` — Kimlik doğrulama state
-
-## Geliştirme Notları
-
-- State management: Provider paketi
-- API: Dio HTTP client
-- Local storage: SharedPreferences + Hive + flutter_secure_storage
-- AI: Google Generative AI (Gemini)
-- Monitoring: Sentry
-- Backend endpoint: `ApiClient` içinde tanımlı

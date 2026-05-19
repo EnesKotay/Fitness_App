@@ -89,8 +89,12 @@ class ApiConstants {
   static const String aiInsights = '$apiPrefix/ai/insights';
   static const String aiSummarize = '$apiPrefix/ai/summarize';
   static const String aiNutrition = '$apiPrefix/ai/nutrition';
+  static const String aiNutritionWeeklyPlan = '$apiPrefix/ai/nutrition/weekly-plan';
   static const String aiScanLabel = '$apiPrefix/ai/nutrition/scan-label';
   static const String aiAnalyzeImage = '$apiPrefix/ai/nutrition/analyze-image';
+
+  // Recipe Endpoints
+  static const String recipes = '$apiPrefix/recipes';
 
   // Premium Endpoints
   static const String premiumStatus = '$apiPrefix/user/premium-status';

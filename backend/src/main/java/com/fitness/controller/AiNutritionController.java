@@ -377,4 +377,39 @@ public class AiNutritionController {
                     .build();
         }
     }
+
+    @POST
+    @Path("/nutrition/weekly-plan")
+    public Response weeklyPlan(@Context HttpHeaders headers, Map<String, Object> body) {
+        long startNs = System.nanoTime();
+        Long userId = null;
+        try {
+            userId = resolveUserId(headers);
+            entitlementService.ensurePremium(userId, "weekly_meal_plan");
+
+            int targetKcal = body.containsKey("targetKcal") ? ((Number) body.get("targetKcal")).intValue() : 2000;
+            String goal = body.containsKey("goal") ? body.get("goal").toString() : "denge";
+
+            Map<String, Object> result = geminiNutritionService.generateWeeklyPlan(userId, targetKcal, goal);
+            logResult("weekly_plan_ok", userId, startNs);
+            return Response.ok(result).build();
+
+        } catch (ForbiddenException e) {
+            logResult("weekly_plan_forbidden", userId, startNs);
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (SecurityException e) {
+            logResult("weekly_plan_unauthorized", userId, startNs);
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            logResult("weekly_plan_error", userId, startNs);
+            LOG.errorf("Weekly plan generation error: %s", e.getMessage());
+            return Response.status(Response.Status.BAD_GATEWAY)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        }
+    }
 }

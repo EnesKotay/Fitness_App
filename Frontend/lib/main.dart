@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/services/iap_service.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/notification_scheduler_service.dart';
 import 'core/utils/storage_helper.dart';
 import 'features/nutrition/data/datasources/hive_diet_storage.dart';
 import 'features/nutrition/presentation/state/diet_provider.dart';
@@ -60,9 +61,15 @@ void main() async {
   }
 
   unawaited(
-    LocalNotificationService.instance.init().catchError((e) {
-      debugPrint('LocalNotificationService init hatası: $e');
-    }),
+    LocalNotificationService.instance
+        .init()
+        .then(
+          (_) => NotificationSchedulerService.instance
+              .syncScheduledNotifications(),
+        )
+        .catchError((e) {
+          debugPrint('LocalNotificationService init hatası: $e');
+        }),
   );
 
   unawaited(

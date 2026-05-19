@@ -48,16 +48,21 @@ class AiCoachSyncService {
         : null;
 
     int? avgCalories;
-    double? avgWater;
+    List<int>? recentDaysCalories;
 
     try {
       final logs = allowPersonalization ? await diet.getRecentDaysLogs(7) : const [];
       if (!context.mounted) return;
       if (logs.isNotEmpty) {
         final totalKcal = logs.fold<double>(0, (sum, l) => sum + l.totalKcal);
-        final totalWater = logs.fold<double>(0, (sum, l) => sum + (l.totalKcal > 0 ? 2.0 : 0.0));
         avgCalories = (totalKcal / logs.length).round();
-        avgWater = totalWater / logs.length;
+        // Last 3 days (skip today at index 0)
+        recentDaysCalories = logs
+            .skip(1)
+            .take(3)
+            .map((l) => l.totalKcal.round())
+            .toList()
+            .cast<int>();
       }
     } catch (e) {
       debugPrint('Error calculating averages for AI Coach: $e');
@@ -73,7 +78,8 @@ class AiCoachSyncService {
         workoutMinutes: workoutMinutes,
         workoutHighlights: highlights,
         avgCaloriesLast7Days: allowPersonalization ? avgCalories : null,
-        avgWaterLast7Days: allowPersonalization ? avgWater : null,
+        avgWaterLast7Days: null,
+        recentDaysCalories: allowPersonalization ? recentDaysCalories : null,
         avgStepsLast7Days: null,
         targetCalories: diet.dailyTargetKcal?.round(),
         currentWeightKg: allowPersonalization ? diet.profile?.weight : null,

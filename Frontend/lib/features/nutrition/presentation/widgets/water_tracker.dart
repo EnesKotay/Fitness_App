@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../../../../core/services/water_reminder_service.dart';
+import '../../../../core/utils/storage_helper.dart';
 
 // ── Okyanus paleti — parlak değil, derin ve şık ──────────────────────────────
 const _kOcean1  = Color(0xFF061118);  // kart bg üst
@@ -65,6 +66,7 @@ class _WaterTrackerState extends State<WaterTracker>
   Future<void> _toggleReminder() async {
     final newState = !_reminderEnabled;
     await WaterReminderService.instance.setEnabled(newState);
+    await StorageHelper.saveNotifWater(newState);
     if (mounted) {
       setState(() => _reminderEnabled = newState);
       ScaffoldMessenger.of(context).showSnackBar(
