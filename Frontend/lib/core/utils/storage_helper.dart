@@ -803,6 +803,24 @@ class StorageHelper {
   static bool getNotifDailySummary() =>
       _prefs?.getBool(_userKey(StorageKeys.settingsNotifDailySummary)) ?? true;
 
+  static Future<bool> saveNotifWorkoutTime(int hour, int minute) async {
+    final encoded = hour * 100 + minute; // e.g. 18:30 → 1830
+    return await _prefs?.setInt(
+          _userKey(StorageKeys.settingsNotifWorkoutTime),
+          encoded,
+        ) ??
+        false;
+  }
+
+  // Returns [hour, minute]. Defaults to 18:30.
+  static List<int> getNotifWorkoutTime() {
+    final encoded = _prefs?.getInt(
+          _userKey(StorageKeys.settingsNotifWorkoutTime),
+        ) ??
+        1830;
+    return [encoded ~/ 100, encoded % 100];
+  }
+
   // Settings - Theme
   static Future<bool> saveThemeMode(String mode) async {
     return await _prefs?.setString(

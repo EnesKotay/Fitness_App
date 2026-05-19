@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../utils/storage_helper.dart';
 import 'local_notification_service.dart';
@@ -48,7 +48,10 @@ class NotificationSchedulerService {
     }
 
     if (StorageHelper.getNotifWorkout()) {
-      await notifications.scheduleWorkoutReminder();
+      final wt = StorageHelper.getNotifWorkoutTime();
+      await notifications.scheduleWorkoutReminder(
+        time: TimeOfDay(hour: wt[0], minute: wt[1]),
+      );
     } else {
       await notifications.cancelWorkoutReminder();
     }

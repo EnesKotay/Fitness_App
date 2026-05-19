@@ -42,6 +42,7 @@ class StorageKeys {
   static const String settingsNotifWorkout = 'settings_notif_workout';
   static const String settingsNotifDailySummary =
       'settings_notif_daily_summary';
+  static const String settingsNotifWorkoutTime = 'settings_notif_workout_time';
   static const String settingsThemeMode = 'settings_theme_mode';
   static const String settingsThemeHighContrast =
       'settings_theme_high_contrast';

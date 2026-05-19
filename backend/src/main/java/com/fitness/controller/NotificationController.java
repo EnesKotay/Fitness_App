@@ -1,12 +1,16 @@
 package com.fitness.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.fitness.entity.Notification;
 import com.fitness.service.AuthService;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PATCH;
@@ -31,13 +35,30 @@ public class NotificationController {
     public Response getNotifications(@Context HttpHeaders headers) {
         try {
             Long userId = resolveUserId(headers);
-            List<Notification> notifications = Notification.find("user.id = ?1 order by createdAt desc", userId).list();
-            return Response.ok(notifications).build();
+            List<Notification> notifications = Notification.find(
+                    "user.id = ?1 order by createdAt desc", userId).list();
+            List<Map<String, Object>> result = notifications.stream()
+                    .map(this::toMap)
+                    .collect(Collectors.toList());
+            return Response.ok(result).build();
         } catch (SecurityException e) {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
     }
 
+    @GET
+    @Path("/unread-count")
+    public Response getUnreadCount(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            long count = Notification.findUnreadByUser(userId).size();
+            return Response.ok(Map.of("count", count)).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+    }
+
+    @Transactional
     @PATCH
     @Path("/{id}/read")
     public Response markAsRead(@Context HttpHeaders headers, @PathParam("id") Long id) {
@@ -58,5 +79,16 @@ public class NotificationController {
     private Long resolveUserId(HttpHeaders headers) {
         String authStr = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         return authService.getUserIdFromToken(authStr);
+    }
+
+    private Map<String, Object> toMap(Notification n) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", n.id);
+        m.put("title", n.title);
+        m.put("message", n.message);
+        m.put("isRead", n.isRead);
+        m.put("createdAt", n.createdAt != null ? n.createdAt.toString() : null);
+        m.put("type", n.type);
+        return m;
     }
 }

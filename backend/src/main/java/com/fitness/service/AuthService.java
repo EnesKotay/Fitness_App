@@ -98,6 +98,9 @@ public class AuthService {
     @ConfigProperty(name = "app.auth.apple.allowed-audiences", defaultValue = "com.eneskotay.pusulafit")
     String appleAllowedAudiences;
 
+    @Inject
+    NotificationCreatorService notificationCreatorService;
+
     /**
      * Kullanıcı kaydı - şifre BCrypt ile hash'lenir, cevap JWT döner.
      * Email küçük harfe normalize edilir; istemci tarafındaki hesap ayırımı
@@ -120,6 +123,12 @@ public class AuthService {
         user.name = request.name != null ? request.name.trim() : "";
 
         userRepository.persist(user);
+
+        notificationCreatorService.create(
+                user.id,
+                "PusulaFit'e hoş geldin! 🎉",
+                "Hedeflerine ulaşmak için ilk adımı attın. Hadi başlayalım!",
+                "SYSTEM");
 
         String token = buildJwt(user);
         UserResponse userResponse = toUserResponse(user);

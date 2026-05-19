@@ -26,6 +26,7 @@ class _SettingsNotificationsScreenState
   bool _workout = true;
   bool _dailySummary = true;
   int _waterIntervalHours = 2;
+  TimeOfDay _workoutTime = const TimeOfDay(hour: 18, minute: 30);
   bool _loading = true;
 
   // Meal reminder state
@@ -50,8 +51,9 @@ class _SettingsNotificationsScreenState
     _water = StorageHelper.getNotifWater();
     _workout = StorageHelper.getNotifWorkout();
     _dailySummary = StorageHelper.getNotifDailySummary();
-    _waterIntervalHours = await WaterReminderService.instance
-        .getIntervalHours();
+    _waterIntervalHours = await WaterReminderService.instance.getIntervalHours();
+    final wt = StorageHelper.getNotifWorkoutTime();
+    _workoutTime = TimeOfDay(hour: wt[0], minute: wt[1]);
 
     final mealSettings = await MealReminderService.instance.getSettings();
     if (!mounted) return;
@@ -75,7 +77,8 @@ class _SettingsNotificationsScreenState
     await StorageHelper.saveNotifWater(_water);
     await StorageHelper.saveNotifWorkout(_workout);
     await StorageHelper.saveNotifDailySummary(_dailySummary);
-    await WaterReminderService.instance.setEnabled(_water);
+    await StorageHelper.saveNotifWorkoutTime(
+        _workoutTime.hour, _workoutTime.minute);
     await WaterReminderService.instance.setIntervalHours(_waterIntervalHours);
     await NotificationSchedulerService.instance.syncScheduledNotifications();
     if (!mounted) return;
@@ -307,6 +310,82 @@ class _SettingsNotificationsScreenState
                 await _persist();
               },
             ),
+            if (_workout && _enabled) ...[
+              _divider(),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Hatırlatma Saati',
+                        style: TextStyle(
+                          color: _textPrimary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: _workoutTime,
+                          builder: (context, child) {
+                            return Theme(
+                              data: ThemeData.dark().copyWith(
+                                colorScheme: const ColorScheme.dark(
+                                  primary: _accent,
+                                  onPrimary: Colors.white,
+                                  surface: _card,
+                                  onSurface: Colors.white,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (picked == null || !mounted) return;
+                        setState(() => _workoutTime = picked);
+                        await _persist();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatTime(_workoutTime),
+                              style: const TextStyle(
+                                color: _accent,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.edit_rounded,
+                              color: _textSecondary,
+                              size: 14,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             _divider(),
             _prefTile(
               icon: Icons.insights_rounded,
