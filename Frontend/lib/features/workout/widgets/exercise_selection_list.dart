@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/exercise.dart';
 import '../providers/workout_provider.dart';
+import 'exercise_progress_sheet.dart';
 
 class ExerciseSelectionList extends StatelessWidget {
   final List<Exercise> exercises;
@@ -95,6 +96,17 @@ class ExerciseSelectionList extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                    if (recentWeights.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => showExerciseProgress(context, ex.name),
+                        child: Icon(
+                          Icons.show_chart_rounded,
+                          size: 15,
+                          color: accentColor.withAlpha((0.55 * 255).toInt()),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 if (summary != null) ...[

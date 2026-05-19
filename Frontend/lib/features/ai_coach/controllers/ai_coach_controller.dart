@@ -12,6 +12,7 @@ import '../../nutrition/domain/entities/user_profile.dart';
 import '../models/ai_coach_models.dart';
 import '../services/ai_coach_service.dart';
 import '../services/ai_coach_session_service.dart';
+import '../services/ai_user_memory_service.dart';
 
 enum ChatRole { user, assistant }
 
@@ -24,6 +25,7 @@ class ChatMessage {
   final CoachResponse? structuredResponse;
   final bool isError;
   final bool isSystemNote;
+  final bool isThinking;
   final String? taskMode;
   final String? personality;
 
@@ -36,6 +38,7 @@ class ChatMessage {
     this.imagePath,
     this.isError = false,
     this.isSystemNote = false,
+    this.isThinking = false,
     this.taskMode,
     this.personality,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -66,8 +69,10 @@ class AiCoachController extends ChangeNotifier {
 
   final AiCoachService _service;
   final AiCoachSessionService _sessionService;
+  final AiUserMemoryService _memoryService = AiUserMemoryService();
   final int? _userId;
   final List<ChatMessage> _messages = [];
+  List<UserMemoryFact> _userMemoryFacts = [];
   DailySummary _dailySummary;
   CoachPersonality _personality = CoachPersonality.supportive;
   CoachTaskMode _taskMode = CoachTaskMode.plan;
@@ -430,10 +435,31 @@ class AiCoachController extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<UserMemoryFact> get userMemoryFacts => List.unmodifiable(_userMemoryFacts);
+  AiUserMemoryService get memoryService => _memoryService;
+
+  Future<void> saveMemoryFact(UserMemoryFact fact) async {
+    final uid = _userId;
+    if (uid == null) return;
+    await _memoryService.saveFact(uid, fact);
+    _userMemoryFacts = await _memoryService.getFacts(uid);
+    notifyListeners();
+  }
+
+  Future<void> deleteMemoryFact(int index) async {
+    final uid = _userId;
+    if (uid == null) return;
+    await _memoryService.deleteFact(uid, index);
+    _userMemoryFacts = await _memoryService.getFacts(uid);
+    notifyListeners();
+  }
+
   /// Restore messages from previous session. Call once after init from the screen.
   Future<void> restoreSession() async {
     final uid = _userId;
     if (uid == null) return;
+    // Load persistent memory alongside conversation
+    _userMemoryFacts = await _memoryService.getFacts(uid);
     final stored = await _sessionService.loadSession(userId: uid);
     if (stored.isEmpty) return;
     // Replace welcome message with stored history
@@ -575,6 +601,7 @@ class AiCoachController extends ChangeNotifier {
       return false;
     }
 
+    final memoryContext = _memoryService.buildContextString(_userMemoryFacts);
     final snapshot = CoachRequestSnapshot(
       prompt: normalized,
       goal: _goal,
@@ -583,6 +610,7 @@ class AiCoachController extends ChangeNotifier {
       taskMode: _taskMode,
       conversationHistory: _buildConversationMemory(),
       imagePath: _selectedImage?.path,
+      userMemory: memoryContext.isNotEmpty ? memoryContext : null,
     );
     return _submitSnapshot(snapshot, recordAsLast: true);
   }
@@ -633,6 +661,16 @@ class AiCoachController extends ChangeNotifier {
         imagePath: requestImagePath,
       ),
     );
+
+    final thinkingId = 'thinking_${DateTime.now().millisecondsSinceEpoch}';
+    _messages.add(
+      ChatMessage(
+        id: thinkingId,
+        role: ChatRole.assistant,
+        content: '',
+        isThinking: true,
+      ),
+    );
     notifyListeners();
 
     try {
@@ -670,6 +708,7 @@ class AiCoachController extends ChangeNotifier {
           personality: snapshot.personality,
           taskMode: snapshot.taskMode,
           conversationHistory: snapshot.conversationHistory,
+          userMemory: snapshot.userMemory,
         );
       }
 
@@ -696,8 +735,9 @@ class AiCoachController extends ChangeNotifier {
         _shouldShowConfetti = true;
       }
 
-      // Optimized typewriter — 20-char chunks at 8ms base = smooth but fast.
-      // Sentence-end pauses preserved for natural reading rhythm.
+      _messages.removeWhere((m) => m.id == thinkingId);
+
+      // Typewriter — 20-char chunks at 8ms base, sentence-end pauses.
       final aiMsgId = 'ai_${DateTime.now().millisecondsSinceEpoch}';
       _messages.add(
         ChatMessage(
@@ -756,6 +796,7 @@ class AiCoachController extends ChangeNotifier {
 
       return true;
     } on ApiException catch (e) {
+      _messages.removeWhere((m) => m.id == thinkingId);
       _errorMessage = e.message;
       String errorContent = e.message;
       if (e.statusCode == 429) {
@@ -776,6 +817,7 @@ class AiCoachController extends ChangeNotifier {
       );
       return false;
     } catch (_) {
+      _messages.removeWhere((m) => m.id == thinkingId);
       const errMsg = 'Koç yanıtı oluşturulamadı. Lütfen tekrar dene.';
       _errorMessage = errMsg;
       _messages.add(

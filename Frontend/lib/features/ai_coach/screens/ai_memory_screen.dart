@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../services/ai_user_memory_service.dart';
 
 class AiMemoryScreen extends StatefulWidget {
   const AiMemoryScreen({super.key});
@@ -14,13 +17,32 @@ class AiMemoryScreen extends StatefulWidget {
 
 class _AiMemoryScreenState extends State<AiMemoryScreen> {
   List<_InsightItem> _insights = [];
+  List<UserMemoryFact> _localFacts = [];
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchInsights();
+    _fetchAll();
+  }
+
+  Future<void> _fetchAll() async {
+    await Future.wait([_fetchInsights(), _loadLocalFacts()]);
+  }
+
+  Future<void> _loadLocalFacts() async {
+    final uid = context.read<AuthProvider?>()?.user?.id;
+    if (uid == null) return;
+    final facts = await AiUserMemoryService().getFacts(uid);
+    if (mounted) setState(() => _localFacts = facts);
+  }
+
+  Future<void> _deleteLocalFact(int index) async {
+    final uid = context.read<AuthProvider?>()?.user?.id;
+    if (uid == null) return;
+    await AiUserMemoryService().deleteFact(uid, index);
+    await _loadLocalFacts();
   }
 
   Future<void> _fetchInsights() async {
@@ -100,7 +122,7 @@ class _AiMemoryScreenState extends State<AiMemoryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
-            onPressed: _fetchInsights,
+            onPressed: _fetchAll,
           ),
         ],
       ),
@@ -131,7 +153,7 @@ class _AiMemoryScreenState extends State<AiMemoryScreen> {
         ),
       );
     }
-    if (_insights.isEmpty) {
+    if (_insights.isEmpty && _localFacts.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -144,7 +166,7 @@ class _AiMemoryScreenState extends State<AiMemoryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Her Pazar gece yarısı AI koçun\nhaftalık analizini buraya kaydeder.',
+              'AI koç sohbet sırasında "Hatırla" butonlarıyla\nönemli bilgilerini kaydedebilir.',
               textAlign: TextAlign.center,
               style: GoogleFonts.dmSans(color: Colors.white24, fontSize: 13),
             ),
@@ -153,29 +175,88 @@ class _AiMemoryScreenState extends State<AiMemoryScreen> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-          child: Text(
-            'AI koçun seni ne kadar tanıdığını görebilirsin.',
-            style: GoogleFonts.dmSans(color: Colors.white38, fontSize: 13),
-          ),
+        Text(
+          'AI koçun seni ne kadar tanıdığını görebilirsin.',
+          style: GoogleFonts.dmSans(color: Colors.white38, fontSize: 13),
         ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            itemCount: _insights.length,
-            itemBuilder: (context, index) {
-              final insight = _insights[index];
-              return _InsightCard(insight: insight, index: index);
-            },
+        if (_localFacts.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Icon(Icons.bookmark_rounded, size: 14, color: Color(0xFF34D399)),
+              const SizedBox(width: 6),
+              Text(
+                'Kullanıcı Tercihleri',
+                style: GoogleFonts.dmSans(
+                  color: const Color(0xFF34D399),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 10),
+          ..._localFacts.asMap().entries.map((entry) {
+            final i = entry.key;
+            final fact = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111D2E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF34D399).withValues(alpha: 0.2)),
+              ),
+              child: ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                leading: const Icon(Icons.bookmark_added_rounded, size: 16, color: Color(0xFF34D399)),
+                title: Text(
+                  fact.fact,
+                  style: GoogleFonts.dmSans(color: Colors.white.withValues(alpha: 0.85), fontSize: 13.5),
+                ),
+                subtitle: Text(
+                  '${fact.category} • ${_formatDate(fact.savedAt)}',
+                  style: GoogleFonts.dmSans(color: Colors.white30, fontSize: 11),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 17, color: Colors.white24),
+                  onPressed: () => _deleteLocalFact(i),
+                ),
+              ),
+            ).animate(delay: (i * 40).ms).fadeIn(duration: 300.ms);
+          }),
+        ],
+        if (_insights.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, size: 14, color: Color(0xFFEBC374)),
+              const SizedBox(width: 6),
+              Text(
+                'Haftalık Analizler',
+                style: GoogleFonts.dmSans(
+                  color: const Color(0xFFEBC374),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ..._insights.asMap().entries.map((entry) =>
+              _InsightCard(insight: entry.value, index: entry.key)),
+        ],
       ],
     );
   }
+
+  String _formatDate(DateTime dt) =>
+      '${dt.day}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
 }
 
 class _InsightCard extends StatelessWidget {
