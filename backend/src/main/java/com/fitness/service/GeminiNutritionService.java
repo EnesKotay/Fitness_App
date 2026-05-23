@@ -756,7 +756,7 @@ public class GeminiNutritionService {
                 - Sadece JSON döndür.
                 """, targetKcal, goal);
 
-        GeminiClientResult result = aiProviderRouter.generate(
+        GeminiClientResult result = aiProviderRouter.generateText(
                 "ai/nutrition/weekly-plan",
                 userId,
                 nutritionModel,
