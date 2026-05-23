@@ -5,7 +5,7 @@ publish_to: 'none'
 # version: MAJOR.MINOR.PATCH+BUILD_NUMBER
 # MAJOR.MINOR.PATCH → App Store'da görünen versiyon (CFBundleShortVersionString)
 # BUILD_NUMBER      → App Store Connect'e her yüklemede artırılmalı (CFBundleVersion)
-version: 1.1.1+4
+version: 1.1.2+5
 
 environment:
   sdk: ^3.10.7

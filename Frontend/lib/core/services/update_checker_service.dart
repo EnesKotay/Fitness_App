@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const String _currentVersion = '1.1.1';
+const String _currentVersion = '1.1.2';
 const String _appStoreId = '6762379939';
 const String _appStoreUrl =
     'https://apps.apple.com/app/pusulafit/id$_appStoreId';
