@@ -1,5 +1,8 @@
 package com.fitness.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import com.fitness.entity.Notification;
 import com.fitness.entity.User;
 import com.fitness.repository.UserRepository;
@@ -14,7 +17,7 @@ public class NotificationCreatorService {
     @Inject
     UserRepository userRepository;
 
-    @Transactional
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void create(Long userId, String title, String message, String type) {
         User user = userRepository.findById(userId);
         if (user == null) return;
@@ -25,5 +28,14 @@ public class NotificationCreatorService {
         n.message = message;
         n.type = type;
         n.persist();
+    }
+
+    /** Bugün bu kullanıcıya bu tip bildirim gönderildi mi? */
+    @Transactional(Transactional.TxType.REQUIRES_NEW)
+    public boolean existsToday(Long userId, String type) {
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        return Notification.count(
+                "user.id = ?1 AND type = ?2 AND createdAt >= ?3",
+                userId, type, startOfDay) > 0;
     }
 }

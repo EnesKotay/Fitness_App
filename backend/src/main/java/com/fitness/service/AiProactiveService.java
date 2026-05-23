@@ -7,7 +7,6 @@ import java.util.List;
 import org.jboss.logging.Logger;
 
 import com.fitness.entity.Meal;
-import com.fitness.entity.Notification;
 import com.fitness.entity.User;
 import com.fitness.entity.WeightRecord;
 import com.fitness.entity.Workout;
@@ -37,8 +36,11 @@ public class AiProactiveService {
     @Inject
     SemanticMemoryService semanticMemoryService;
 
+    @Inject
+    NotificationCreatorService notificationCreatorService;
+
     @Scheduled(cron = "0 0 21 * * ?")
-    @Transactional
+    @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public void runDailyAnalysis() {
         LOG.info("Starting proactive daily AI analysis...");
         List<User> users = User.listAll();
@@ -51,7 +53,6 @@ public class AiProactiveService {
         }
     }
 
-    @Transactional
     public void analyzeAndNotify(User user) {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
@@ -144,10 +145,18 @@ public class AiProactiveService {
         }
 
         // — Trigger 11: Kilo kaybı hız trendi (hafta bazlı) —
-        checkWeightLossTrend(user);
+        try {
+            checkWeightLossTrend(user);
+        } catch (Exception e) {
+            LOG.warnf("checkWeightLossTrend failed for user %d: %s", user.id, e.getMessage());
+        }
 
         // — Trigger 12: Uzun süre giriş yapılmamış (3+ gün) —
-        checkInactiveUser(user);
+        try {
+            checkInactiveUser(user);
+        } catch (Exception e) {
+            LOG.warnf("checkInactiveUser failed for user %d: %s", user.id, e.getMessage());
+        }
     }
 
     private void checkWeightLossTrend(User user) {
@@ -243,12 +252,9 @@ public class AiProactiveService {
     // ─── AI mesajı üretimi ────────────────────────────────────────────────
 
     private void generateNotification(User user, String type, String context) {
-        // Aynı tip bildirim bugün zaten gönderildiyse tekrar göndermé
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        long existing = Notification.count(
-                "user.id = ?1 AND type = ?2 AND createdAt >= ?3",
-                user.id, type, startOfDay);
-        if (existing > 0) return;
+        // Aynı tip bildirim bugün zaten gönderildiyse tekrar gönderme
+        // existsToday kendi @Transactional context'inde çalışır (CDI proxy üzerinden)
+        if (notificationCreatorService.existsToday(user.id, type)) return;
 
         String prompt = "Sen akıllı bir fitness koçusun. Senaryo: " + context +
                 "\nKullanıcı adı: " + (user.name != null ? user.name : "Kullanıcı") +
@@ -256,6 +262,7 @@ public class AiProactiveService {
                 "Emoji kullan. Jenerik veya robotik olma.";
 
         try {
+            // AI çağrısı transaction dışında — gecikme/hata dış transaction'ı zehirlemez
             GeminiClientResult result = geminiClient.generateText(
                     "proactive_alert", user.id, "gemini-2.5-flash", "gemini-2.0-flash", prompt, false);
 
@@ -264,12 +271,8 @@ public class AiProactiveService {
                 if (msg.isEmpty()) return;
                 if (msg.length() > 250) msg = msg.substring(0, 250);
 
-                Notification notification = new Notification();
-                notification.user = user;
-                notification.title = titleForType(type);
-                notification.message = msg;
-                notification.type = type;
-                notification.persist();
+                // Kısa ve izole @Transactional — CDI proxy üzerinden çağrılır
+                notificationCreatorService.create(user.id, titleForType(type), msg, type);
                 LOG.infof("Proactive notification created userId=%d type=%s", user.id, type);
             }
         } catch (Exception e) {

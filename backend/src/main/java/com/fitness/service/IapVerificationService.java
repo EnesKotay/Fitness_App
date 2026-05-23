@@ -168,16 +168,22 @@ public class IapVerificationService {
                     )
             );
 
-            // Önce production, 21007 alırsak sandbox'a geç (TestFlight desteği)
+            // Önce konfigürasyondaki URL'yi dene, ardından otomatik yön düzelt
             String url = appleSandbox ? APPLE_SANDBOX_URL : APPLE_PROD_URL;
             JsonNode root = callApple(url, body);
 
             int status = root.path("status").asInt(-1);
 
-            // 21007: Receipt sandbox'a ait, production URL kullanıldı
+            // 21007: Sandbox receipt, production URL'ye gönderildi → sandbox'a geç
             if (status == 21007 && !appleSandbox) {
-                LOG.info("Apple: production receipt reddedildi (21007), sandbox deneniyor.");
+                LOG.info("Apple: sandbox receipt production'da reddedildi (21007), sandbox deneniyor.");
                 root = callApple(APPLE_SANDBOX_URL, body);
+                status = root.path("status").asInt(-1);
+            }
+            // 21008: Production receipt, sandbox URL'ye gönderildi → production'a geç
+            if (status == 21008 && appleSandbox) {
+                LOG.info("Apple: production receipt sandbox'ta reddedildi (21008), production deneniyor.");
+                root = callApple(APPLE_PROD_URL, body);
                 status = root.path("status").asInt(-1);
             }
 
@@ -244,8 +250,8 @@ public class IapVerificationService {
             case 21004 -> "Shared secret hatalı.";
             case 21005 -> "App Store geçici olarak kullanılamıyor.";
             case 21006 -> "Abonelik aktif değil.";
-            case 21007 -> "Sandbox receipt, production sunucusuna gönderildi.";
-            case 21008 -> "Production receipt, sandbox sunucusuna gönderildi.";
+            case 21007 -> "Sandbox receipt, production sunucusuna gönderildi. Lütfen tekrar dene.";
+            case 21008 -> "Production receipt, sandbox sunucusuna gönderildi. Lütfen tekrar dene.";
             case 21010 -> "Bu hesap bulunamadı.";
             default    -> "Bilinmeyen App Store hatası (status=" + status + ").";
         };
