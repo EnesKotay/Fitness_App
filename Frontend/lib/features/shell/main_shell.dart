@@ -6,6 +6,8 @@ import '../../core/routes/app_routes.dart';
 import '../../core/utils/storage_helper.dart';
 import '../../core/widgets/assistant_fab_visibility.dart';
 import '../../core/widgets/app_tour_overlay.dart';
+import '../../core/services/page_guide_service.dart';
+import '../../core/services/update_checker_service.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/screens/premium_hub_screen.dart';
 import '../home/screens/dashboard_screen.dart';
@@ -55,8 +57,15 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     MainShell.tabSwitchRequest.addListener(_handleExternalTabSwitch);
-    // Yeni kayıt olan kullanıcı için interaktif turu başlat
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _maybeCheckUpdate();
+      _maybeStartTour();
+    });
+  }
+
+  Future<void> _maybeCheckUpdate() async {
+    if (!mounted) return;
+    await UpdateCheckerService.checkAndPrompt(context);
   }
 
   Future<void> _maybeStartTour() async {
@@ -135,6 +144,8 @@ class _MainShellState extends State<MainShell> {
       onComplete: () async {
         await StorageHelper.saveAppTourSeen(true);
         await StorageHelper.savePendingAppTour(false);
+        // Tur zaten dashboard içeriğini kapsıyor; sayfa rehberini tekrar gösterme
+        await PageGuideService.markGuideSeen('dashboard');
       },
     );
   }
