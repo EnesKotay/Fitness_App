@@ -263,7 +263,8 @@ public class GeminiClient {
         ObjectNode generationConfig = objectMapper.createObjectNode()
                 .put("temperature", 0.4);
 
-        if (expectJson) {
+        // responseMimeType and tools (function calling) cannot be used together in Gemini API
+        if (expectJson && tools == null) {
             generationConfig.put("responseMimeType", "application/json");
         }
 

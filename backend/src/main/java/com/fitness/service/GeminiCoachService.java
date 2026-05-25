@@ -129,7 +129,7 @@ public class GeminiCoachService {
             String jsonText = aiProviderRouter.extractJsonFromResponse(userId, result.getOutputText());
             AiCoachResponse response = parseResponse(objectMapper.readTree(jsonText));
             sanitizeResponse(response, request);
-            validateResponse(response);
+            validateResponse(response);  // was missing — empty todayFocus silently returned before
             return response;
         } catch (IOException e) {
             throw new AiCoachServiceException(502, "Görüntü analizi işlenemedi.", e);

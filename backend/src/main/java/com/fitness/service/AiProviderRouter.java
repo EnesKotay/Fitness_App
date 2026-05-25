@@ -99,7 +99,7 @@ public class AiProviderRouter {
         if (isPremium(userId) && claudeClient.isAvailable()) {
             LOG.infof("Routing to Claude (premium) endpoint=%s userId=%d historyTurns=%d",
                     endpointName, userId, history != null ? history.size() : 0);
-            GeminiClientResult claudeResult = claudeClient.generateText(endpointName, userId, prompt, history, expectJson);
+            GeminiClientResult claudeResult = claudeClient.generateText(endpointName, userId, prompt, history, expectJson, tools);
             if (claudeResult.isSuccess()) {
                 return claudeResult;
             }

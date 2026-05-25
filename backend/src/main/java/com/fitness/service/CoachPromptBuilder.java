@@ -37,6 +37,22 @@ public class CoachPromptBuilder {
         4. TONE & FORMATTING: Be warm but professional. Start the `todayFocus` field with a relevant emoji. Use Markdown (**bold**) for key metrics in actionItems.
         5. NO REPETITION: If conversation history exists, do not say "Merhaba" again. Continue the flow seamlessly.
         6. TEMPORAL FLEXIBILITY: Answer for the exact time frame the user specifies. If they mention 'yarın' (tomorrow), 'hafta sonu' (weekend), 'akşam' (evening), 'sabah' (morning), or any future period — respond for THAT time. The user's daily data shows today's context, but never force a time-based frame unless the user explicitly asks about right now.
+        7. COACH-LIKE CONVERSATION: Do not sound like a canned FAQ. React to the user's exact words, recent history, and available trends. If the request is vague, give one useful next step and ask at most one short clarifying question.
+        8. PERSONALIZATION: Use memory, feedback, and trends quietly. Never say "according to your data" unless it helps. Make the answer feel remembered, not robotic.
+        """;
+
+    // Haftalık plan modu için özel talimat
+    private static final String WEEKLY_PLAN_INSTRUCTION = """
+        TASK: WEEKLY TRAINING PLAN
+        Generate a structured 7-day workout plan based on the user's goal, fitness level, and available equipment.
+        Use the user's context (workoutsPerWeek, focusAreas, injuries, bodyWeight) from the question.
+        RULES:
+        - todayFocus: 1-2 sentence summary of the week's approach (emoji + goal + key principle).
+        - actionItems: Exactly 7 entries, one per day (Pazartesi–Pazar). Format each as:
+          "📅 [DayName]: [Focus] — [Exercise1], [Exercise2], [Exercise3 with sets×reps]"
+          Rest days: "😴 [DayName]: Dinlenme — Hafif yürüyüş veya esneme önerilir"
+        - nutritionNote: One short protein/calorie tip aligned with the goal.
+        - Do NOT add SAVE_WORKOUT actions for weekly plans.
         """;
 
     // Katman 2: Output Format (JSON Şablonu ve Özel Aksiyon Kuralları)
@@ -90,7 +106,9 @@ public class CoachPromptBuilder {
         if (request.personalityInstruction != null && !request.personalityInstruction.isBlank()) {
             prompt.append("ADDITIONAL TONE INSTRUCTION: ").append(request.personalityInstruction.trim()).append("\n");
         }
-        if (request.taskMode != null && !request.taskMode.isBlank()) {
+        if ("weekly_plan".equals(request.taskMode)) {
+            prompt.append(WEEKLY_PLAN_INSTRUCTION).append("\n");
+        } else if (request.taskMode != null && !request.taskMode.isBlank()) {
             prompt.append("CURRENT LENS: ").append(request.taskMode.trim()).append(" (Focus on this aspect if the question is vague)\n");
         }
         prompt.append("\n").append(JSON_FORMAT_INSTRUCTION).append("\n");
@@ -112,6 +130,12 @@ public class CoachPromptBuilder {
         // 2c. FEEDBACK MEMORY (Kullanıcının beğenip beğenmediği yanıt stilleri)
         if (ctx.feedbackMemory != null && !ctx.feedbackMemory.isBlank()) {
             prompt.append(ctx.feedbackMemory).append("\n");
+        }
+
+        if (request.userMemory != null && !request.userMemory.isBlank()) {
+            prompt.append("--- CLIENT USER MEMORY SUMMARY ---\n")
+                    .append(sanitizeUserInput(request.userMemory, 1200))
+                    .append("\n");
         }
 
         // 3. KONUŞMA GEÇMİŞİ (Son 6 Mesaj - Token Tasarrufu)
@@ -151,6 +175,10 @@ public class CoachPromptBuilder {
             Example 3:
             User: "bugün nasılım?"
             {"todayFocus":"📊 Bugünkü verilerine göre: **%85** yolunda gidiyorsun! Kalori hedefin tutturulmuş, antrenman yapılmış. Eksik tek şey su — hedefe biraz daha var.","actionItems":["💧 250ml su iç","🌙 Yatmadan önce hafif protein al (yoğurt/süt)"],"nutritionNote":"","actions":[],"isAchievement":false}
+
+            Example 4:
+            User: "çok zorlanıyorum"
+            {"todayFocus":"🧭 Tamam, bugün hedefi büyütmeyelim. Senden istediğim tek şey: **10 dakikalık çok hafif bir başlangıç**. Bu, motivasyon beklemekten daha güvenilir.","actionItems":["🚶 5 dk rahat yürüyüş","💧 1 bardak su","✅ Sonra bana sadece 'bitti' yaz"],"nutritionNote":"","actions":[],"isAchievement":false}
             --- END EXAMPLES ---
             """);
 
@@ -177,6 +205,9 @@ public class CoachPromptBuilder {
             Weight: %s kg -> Target: %s kg (Change: %s kg/wk)
             Nutrition Today: %d kcal eaten / %s kcal target (P: %sg, C: %sg, F: %sg)
             Activity Today: %d workouts (%s min), %s steps
+            7-Day Trends: avg calories %s kcal, recent calories %s, avg water %s L, weekly weight change %s kg
+            Meals Today: %s
+            Workout Highlights: %s
             Training Setup: %s | Equipment: %s
             Profile: %s age, %s cm height, %s
             """,
@@ -186,6 +217,8 @@ public class CoachPromptBuilder {
             safeInt(s.calories), nullableInt(s.targetCalories),
             nullableInt(s.proteinGrams), nullableInt(s.carbsGrams), nullableInt(s.fatGrams),
             safeInt(s.workouts), nullableInt(s.workoutMinutes), nullableInt(s.steps),
+            nullableInt(s.avgCaloriesLast7Days), formatIntList(s.recentDaysCalories), nullableDouble(s.avgWaterLast7Days), nullableDouble(s.weeklyWeightChangeKg),
+            formatStringList(s.mealNames), formatStringList(s.workoutHighlights),
             locationLabel, equipmentLabel,
             nullableInt(s.userAge), nullableDouble(s.userHeightCm), s.userGender != null ? s.userGender : "unknown"
         );
@@ -262,18 +295,43 @@ public class CoachPromptBuilder {
     private String nullableInt(Integer value) { return value == null ? "-" : value.toString(); }
     private String nullableDouble(Double value) { return value == null ? "-" : String.format(Locale.US, "%.1f", value); }
 
+    private String formatIntList(List<Integer> values) {
+        if (values == null || values.isEmpty()) return "-";
+        return values.stream()
+                .limit(5)
+                .map(v -> v == null ? "-" : Integer.toString(v))
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatStringList(List<String> values) {
+        if (values == null || values.isEmpty()) return "-";
+        return values.stream()
+                .filter(v -> v != null && !v.isBlank())
+                .limit(6)
+                .map(v -> sanitizeUserInput(v, 80))
+                .collect(Collectors.joining(", "));
+    }
+
     /**
      * Kullanıcı girdisini prompt'a eklemeden önce temizler:
-     * - Null kontrolü
-     * - Uzunluk sınırı (maxLen karakter)
-     * - Satır sonu karakterlerini boşluğa çevirir (newline injection engeli)
+     * - Null byte ve Unicode control karakterleri kaldırır
+     * - Newline injection engeli (satır sonu → boşluk)
+     * - Prompt delimiter injection engeli (--- blokları kırpar)
+     * - Uzunluk sınırı
      */
     private String sanitizeUserInput(String input, int maxLen) {
         if (input == null || input.isBlank()) return "";
         String cleaned = input.trim()
+                // Newline injection — tüm satır sonu varyantları
                 .replace("\r\n", " ")
                 .replace("\r", " ")
-                .replace("\n", " ");
+                .replace("\n", " ")
+                // Null byte ve control karakterleri (U+0000–U+001F, U+007F)
+                .replaceAll("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]", "")
+                // Prompt delimiter injection: "---" bloklarını boz
+                .replace("---", "- - -")
+                // System prompt override girişimi: köşeli parantez kalıpları
+                .replaceAll("(?i)\\[SYSTEM\\]|\\[INST\\]|\\[/INST\\]|<\\|system\\|>|<\\|user\\|>", "");
         if (cleaned.length() > maxLen) {
             cleaned = cleaned.substring(0, maxLen);
         }

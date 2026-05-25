@@ -169,12 +169,27 @@ public class ClaudeClient {
             String prompt,
             List<NutritionAiRequest.ConversationTurn> history,
             boolean expectJson) {
+        return generateText(endpointName, userId, prompt, history, expectJson, null);
+    }
+
+    /**
+     * Generate text with optional Gemini-format tools. Tools are converted to Claude format internally.
+     * Tool-use responses are converted to {"functionCall": {...}} for compatibility with GeminiCoachService.
+     */
+    public GeminiClientResult generateText(
+            String endpointName,
+            Long userId,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            boolean expectJson,
+            JsonNode geminiTools) {
 
         long startTime = System.currentTimeMillis();
         int promptLength = prompt != null ? prompt.length() : 0;
 
         try {
-            String responseText = callClaude(endpointName, prompt, history, null, null, expectJson);
+            JsonNode claudeTools = convertGeminiToolsToClaude(geminiTools);
+            String responseText = callClaude(endpointName, prompt, history, null, null, expectJson, claudeTools);
             long latencyMs = System.currentTimeMillis() - startTime;
 
             LOG.infof("endpoint=%s status=ok userId=%s promptLength=%d historyTurns=%d latencyMs=%d modelUsed=%s provider=claude",
@@ -196,6 +211,47 @@ public class ClaudeClient {
                     .failure("claude:" + defaultModel, statusCode, errorMsg, latencyMs)
                     .build();
         }
+    }
+
+    /**
+     * Convert Gemini-format tool declarations to Claude format.
+     * Gemini: [{function_declarations: [{name, description, parameters: {type, properties, required}}]}]
+     * Claude: [{name, description, input_schema: {type, properties, required}}]
+     */
+    private JsonNode convertGeminiToolsToClaude(JsonNode geminiTools) {
+        if (geminiTools == null || !geminiTools.isArray() || geminiTools.isEmpty()) return null;
+        ArrayNode claudeTools = objectMapper.createArrayNode();
+        for (JsonNode toolGroup : geminiTools) {
+            JsonNode declarations = toolGroup.path("function_declarations");
+            if (!declarations.isArray()) continue;
+            for (JsonNode fn : declarations) {
+                ObjectNode claudeTool = objectMapper.createObjectNode();
+                claudeTool.put("name", fn.path("name").asText());
+                claudeTool.put("description", fn.path("description").asText());
+                JsonNode params = fn.path("parameters");
+                ObjectNode inputSchema = objectMapper.createObjectNode();
+                inputSchema.put("type", params.path("type").asText("object").toLowerCase());
+                if (params.has("properties")) inputSchema.set("properties", convertProperties(params.path("properties")));
+                if (params.has("required")) inputSchema.set("required", params.path("required"));
+                claudeTool.set("input_schema", inputSchema);
+                claudeTools.add(claudeTool);
+            }
+        }
+        return claudeTools.isEmpty() ? null : claudeTools;
+    }
+
+    private JsonNode convertProperties(JsonNode geminiProps) {
+        ObjectNode result = objectMapper.createObjectNode();
+        geminiProps.fields().forEachRemaining(entry -> {
+            ObjectNode prop = objectMapper.createObjectNode();
+            String type = entry.getValue().path("type").asText("string").toLowerCase();
+            prop.put("type", type);
+            if (entry.getValue().has("description")) {
+                prop.put("description", entry.getValue().path("description").asText());
+            }
+            result.set(entry.getKey(), prop);
+        });
+        return result;
     }
 
     /**
@@ -263,6 +319,18 @@ public class ClaudeClient {
             String mimeType,
             boolean expectJson)
             throws IOException, InterruptedException {
+        return callClaude(endpointName, prompt, history, imageBytes, mimeType, expectJson, null);
+    }
+
+    private String callClaude(
+            String endpointName,
+            String prompt,
+            List<NutritionAiRequest.ConversationTurn> history,
+            byte[] imageBytes,
+            String mimeType,
+            boolean expectJson,
+            JsonNode claudeTools)
+            throws IOException, InterruptedException {
 
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("model", defaultModel);
@@ -287,21 +355,30 @@ public class ClaudeClient {
         systemArray.add(systemBlock);
         payload.set("system", systemArray);
 
-        // Build messages array — prepend conversation history for multi-turn context
+        // Build messages array — prepend conversation history for multi-turn context.
+        // Hard limits: max 6 turns, 800 chars/user-turn, 1500 chars/assistant-turn,
+        // 6000 chars total history to stay well within Claude's context window.
         ArrayNode messages = objectMapper.createArrayNode();
         if (history != null && !history.isEmpty()) {
-            int maxHistory = Math.min(history.size(), 5); // last 5 turns max
-            int startIdx = history.size() - maxHistory;
+            int maxTurns = Math.min(history.size(), 6);
+            int startIdx = history.size() - maxTurns;
+            int totalHistoryChars = 0;
+            final int maxTotalHistoryChars = 6000;
             for (int i = startIdx; i < history.size(); i++) {
                 NutritionAiRequest.ConversationTurn turn = history.get(i);
                 if (turn.userMessage == null || turn.assistantMessage == null) continue;
+                String userMsg = truncate(turn.userMessage, 800);
+                String assistantMsg = truncate(turn.assistantMessage, 1500);
+                int turnChars = userMsg.length() + assistantMsg.length();
+                if (totalHistoryChars + turnChars > maxTotalHistoryChars) break;
+                totalHistoryChars += turnChars;
                 ObjectNode prevUser = objectMapper.createObjectNode();
                 prevUser.put("role", "user");
-                prevUser.put("content", turn.userMessage);
+                prevUser.put("content", userMsg);
                 messages.add(prevUser);
                 ObjectNode prevAssistant = objectMapper.createObjectNode();
                 prevAssistant.put("role", "assistant");
-                prevAssistant.put("content", turn.assistantMessage);
+                prevAssistant.put("content", assistantMsg);
                 messages.add(prevAssistant);
             }
         }
@@ -336,6 +413,11 @@ public class ClaudeClient {
         messages.add(userMessage);
         payload.set("messages", messages);
 
+        // Native tool support: pass tools if provided (e.g. saveUserMemory)
+        if (claudeTools != null && claudeTools.isArray() && !claudeTools.isEmpty()) {
+            payload.set("tools", claudeTools);
+        }
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(API_URL))
                 .timeout(Duration.ofMillis(timeoutMs))
@@ -360,6 +442,20 @@ public class ClaudeClient {
         JsonNode content = root.path("content");
 
         if (content.isArray() && !content.isEmpty()) {
+            // Check for tool_use blocks first — convert to Gemini-compatible functionCall format
+            // so GeminiCoachService can handle both providers uniformly.
+            for (JsonNode block : content) {
+                if ("tool_use".equals(block.path("type").asText())) {
+                    ObjectNode funcCallWrapper = objectMapper.createObjectNode();
+                    ObjectNode funcCall = objectMapper.createObjectNode();
+                    funcCall.put("name", block.path("name").asText());
+                    funcCall.set("args", block.path("input"));
+                    funcCallWrapper.set("functionCall", funcCall);
+                    return funcCallWrapper.toString();
+                }
+            }
+
+            // Regular text blocks
             StringBuilder sb = new StringBuilder();
             for (JsonNode block : content) {
                 if ("text".equals(block.path("type").asText())) {
@@ -373,6 +469,11 @@ public class ClaudeClient {
         }
 
         throw new IOException("Claude returned empty content");
+    }
+
+    private static String truncate(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() <= maxLen ? s : s.substring(0, maxLen);
     }
 
     private int extractStatusCode(Exception e) {

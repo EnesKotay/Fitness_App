@@ -4,11 +4,13 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 import com.fitness.entity.AiRateLimit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 
 /**
@@ -19,6 +21,7 @@ import jakarta.transaction.Transactional;
 @ApplicationScoped
 public class AiCoachRateLimiter {
 
+    private static final Logger LOG = Logger.getLogger(AiCoachRateLimiter.class);
     private static final String SCOPE = "coach";
 
     @Inject
@@ -65,16 +68,28 @@ public class AiCoachRateLimiter {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime windowStart = now.minusSeconds(windowSeconds);
 
-        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, SCOPE).firstResult();
+        // Pessimistic write lock: concurrent requests block here instead of racing.
+        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, SCOPE)
+                .withLock(LockModeType.PESSIMISTIC_WRITE)
+                .firstResult();
 
         if (limit == null) {
-            limit = new AiRateLimit();
-            limit.userId = userId;
-            limit.scope = SCOPE;
-            limit.requestCount = 1;
-            limit.windowStart = now;
-            limit.persist();
-            return true;
+            try {
+                limit = new AiRateLimit();
+                limit.userId = userId;
+                limit.scope = SCOPE;
+                limit.requestCount = 1;
+                limit.windowStart = now;
+                limit.persist();
+                return true;
+            } catch (Exception e) {
+                // Unique constraint violation: another transaction inserted first — re-read.
+                LOG.debugf("AiRateLimit insert conflict for userId=%d scope=%s, re-reading.", userId, SCOPE);
+                limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, SCOPE)
+                        .withLock(LockModeType.PESSIMISTIC_WRITE)
+                        .firstResult();
+                if (limit == null) throw e;
+            }
         }
 
         if (limit.windowStart.isBefore(windowStart)) {
