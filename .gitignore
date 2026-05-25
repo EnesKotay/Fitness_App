@@ -2,6 +2,9 @@
 **/.env
 !**/.env.example
 
+# Xcode build artifacts
+**/Platforms/
+
 # macOS
 .DS_Store
 **/.DS_Store

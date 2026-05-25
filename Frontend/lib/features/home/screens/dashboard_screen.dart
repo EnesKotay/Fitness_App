@@ -16,6 +16,8 @@ import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../auth/screens/premium_screen.dart';
+import '../../workout/providers/streak_provider.dart';
+import '../../workout/screens/achievements_screen.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../../core/services/app_review_service.dart';
 import '../../../core/services/page_guide_service.dart';
@@ -27,7 +29,7 @@ const Color _warmAccent = Color(0xFFFFA56E);
 const Color _freshGreen = Color(0xFF5FD8B7);
 const Color _softBlue = Color(0xFF7BCBFF);
 
-/// Ana sayfa (Dashboard) iÃ§eriÄŸi - gerÃ§ek veri: NutritionProvider, WorkoutProvider
+/// Ana sayfa (Dashboard) içeriği - gerçek veri: NutritionProvider, WorkoutProvider
 class DashboardScreen extends StatefulWidget {
   final VoidCallback? onAddMeal;
   final VoidCallback? onStartWorkout;
@@ -108,6 +110,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _checkFirstVisitGuide() async {
+    // Uygulama turu aktifken sayfa rehberini gösterme (aynı anda çakışır)
+    if (StorageHelper.getPendingAppTour() && !StorageHelper.getAppTourSeen()) {
+      return;
+    }
     if (await PageGuideService.hasSeenGuide('dashboard')) return;
     await PageGuideService.markGuideSeen('dashboard');
     if (mounted) await _showGuide();
@@ -488,7 +494,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String greetingText,
     required bool isPremium,
   }) {
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1242,6 +1247,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildMotivationCard({
+    required StreakProvider streakProvider,
+    required Color accent,
+    required VoidCallback onTap,
+  }) {
+    final progress = streakProvider.weeklyChallengeProgress;
+    final weeklyCount = streakProvider.weeklyWorkoutCount;
+    final weeklyTarget = streakProvider.weeklyWorkoutTarget;
+    final completed = streakProvider.weeklyChallengeCompleted;
+    final unlockedCount = streakProvider.unlockedBadges.length;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: _glassCard(
+        accentColor: completed ? _freshGreen : accent,
+        radius: 22,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: (completed ? _freshGreen : accent).withValues(
+                      alpha: 0.14,
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: (completed ? _freshGreen : accent).withValues(
+                        alpha: 0.26,
+                      ),
+                    ),
+                  ),
+                  child: Icon(
+                    completed ? Icons.verified_rounded : Icons.flag_rounded,
+                    color: completed ? _freshGreen : accent,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        completed
+                            ? 'Haftalık hedef tamam'
+                            : 'Bu hafta $weeklyTarget antrenman',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '$weeklyCount/$weeklyTarget antrenman · $unlockedCount rozet · ${streakProvider.taskStreak} gün görev serisi',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.52),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: 0.42),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 7,
+                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  completed ? _freshGreen : accent,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusErrorCard({
     required String message,
     required Color accent,
@@ -1457,7 +1561,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTodayPlanCard({
     required int mealCount,
     required double remainingKcal,
+    required int dailyProtein,
+    required int targetProtein,
     required bool hasWorkoutToday,
+    required int completedTasks,
+    required int totalTasks,
     required Color accent,
     required double waterLiters,
     VoidCallback? onMealTap,
@@ -1466,18 +1574,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     VoidCallback? onWaterTap,
   }) {
     final kcalText = remainingKcal.round();
-    final title = mealCount == 0
-        ? 'Bugünün planı hazır değil'
-        : hasWorkoutToday
-        ? 'Bugünün planı akıyor'
-        : 'Bugünün planını tamamla';
-    final subtitle = mealCount == 0
-        ? 'İlk öğünü ekle; ardından antrenman ve takip netleşsin.'
-        : !hasWorkoutToday
-        ? '$mealCount öğün kayıtlı. Şimdi kısa bir antrenman seçebilirsin.'
-        : kcalText >= 0
-        ? '$mealCount öğün ve antrenman kayıtlı. $kcalText kcal alan kaldı.'
-        : '$mealCount öğün ve antrenman kayıtlı. Kaloride biraz frene bas.';
+    final proteinGap = targetProtein - dailyProtein;
+    final taskGap = totalTasks - completedTasks;
+    late final String title;
+    late final String subtitle;
+
+    if (mealCount == 0) {
+      title = 'Sıradaki hamle: ilk öğün';
+      subtitle = 'İlk öğünü ekle; AI Koç günün kalanını daha net yönlendirsin.';
+    } else if (waterLiters < 1.25) {
+      title = 'Sıradaki hamle: su hedefi';
+      subtitle = '${waterLiters.toStringAsFixed(1)}L kaydın var. Bir bardak ekleyip ritmi koru.';
+    } else if (proteinGap > 20) {
+      title = 'Sıradaki hamle: protein';
+      subtitle = 'Yaklaşık $proteinGap g protein açığın var. Sonraki öğünü buna göre seç.';
+    } else if (!hasWorkoutToday) {
+      title = 'Sıradaki hamle: antrenman';
+      subtitle = '$mealCount öğün kayıtlı. Kısa bir seans günü tamamlar.';
+    } else if (taskGap > 0) {
+      title = 'Sıradaki hamle: görev serisi';
+      subtitle = '$completedTasks/$totalTasks görev tamam. En kısa kalan görevi bitir.';
+    } else if (kcalText >= 0) {
+      title = 'Bugünün planı akıyor';
+      subtitle = '$mealCount öğün ve antrenman kayıtlı. $kcalText kcal alan kaldı.';
+    } else {
+      title = 'Bugünün planı akıyor';
+      subtitle = '$mealCount öğün ve antrenman kayıtlı. Kaloride biraz frene bas.';
+    }
 
     Widget miniAction({
       required String label,
@@ -1840,6 +1963,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required int dailyCalories,
     required double progress,
     required Color primaryAccent,
+    VoidCallback? onRepeatMeal,
   }) {
     final hasEntries = todayEntries.isNotEmpty;
     return _glassCard(
@@ -1889,11 +2013,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          _buildActionPill(
-            icon: Icons.add_rounded,
-            label: 'Öğün Ekle',
-            onTap: widget.onAddMeal,
-            accent: primaryAccent,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildActionPill(
+                icon: Icons.add_rounded,
+                label: 'Öğün Ekle',
+                onTap: widget.onAddMeal,
+                accent: primaryAccent,
+              ),
+              if (!hasEntries && onRepeatMeal != null) ...[
+                const SizedBox(height: 7),
+                _buildActionPill(
+                  icon: Icons.replay_rounded,
+                  label: 'Son Öğün',
+                  onTap: onRepeatMeal,
+                  accent: const Color(0xFFEBC374),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -2057,6 +2195,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ) {
                       final targetCalories = dietProvider.effectiveTargetKcal
                           .round();
+                      final tasksController = context
+                          .watch<DailyTasksController>();
                       final dailyCalories = dietProvider.totals.totalKcal
                           .round();
                       final progress = targetCalories > 0
@@ -2176,7 +2316,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   remainingKcal:
                                       (targetCalories - dailyCalories)
                                           .toDouble(),
+                                  dailyProtein: dailyProtein,
+                                  targetProtein: targetProtein,
                                   hasWorkoutToday: hasWorkoutToday,
+                                  completedTasks:
+                                      tasksController.completedCount,
+                                  totalTasks: tasksController.totalCount,
                                   accent: effectiveAccent,
                                   waterLiters: dietProvider.waterLiters,
                                   onMealTap: widget.onAddMeal,
@@ -2190,36 +2335,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           if (_isAddingWater) return;
                                           setState(() => _isAddingWater = true);
                                           dietProvider.addWater(0.25);
-                                          final total = dietProvider.waterLiters;
+                                          final total =
+                                              dietProvider.waterLiters;
                                           if (mounted) {
                                             final isDone = total >= 2.0;
                                             ScaffoldMessenger.of(context)
                                               ..clearSnackBars()
-                                              ..showSnackBar(SnackBar(
-                                                content: Text(
-                                                  isDone
-                                                      ? '💧 Su hedefine ulaştın! Toplam: ${total.toStringAsFixed(1)}L'
-                                                      : '💧 +250ml eklendi · Toplam: ${total.toStringAsFixed(1)}L',
+                                              ..showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    isDone
+                                                        ? '💧 Su hedefine ulaştın! Toplam: ${total.toStringAsFixed(1)}L'
+                                                        : '💧 +250ml eklendi · Toplam: ${total.toStringAsFixed(1)}L',
+                                                  ),
+                                                  duration: const Duration(
+                                                    seconds: 2,
+                                                  ),
+                                                  backgroundColor: const Color(
+                                                    0xFF1A3A4A,
+                                                  ),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
                                                 ),
-                                                duration: const Duration(seconds: 2),
-                                                backgroundColor: const Color(0xFF1A3A4A),
-                                                behavior: SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(12),
-                                                ),
-                                              ));
+                                              );
                                             if (isDone) {
                                               unawaited(
                                                 context
-                                                    .read<DailyTasksController>()
+                                                    .read<
+                                                      DailyTasksController
+                                                    >()
                                                     .autoCompleteFirstUndoneByCategory(
                                                       TaskCategory.water,
                                                     ),
                                               );
                                             }
                                           }
-                                          await Future.delayed(const Duration(milliseconds: 800));
-                                          if (mounted) setState(() => _isAddingWater = false);
+                                          await Future.delayed(
+                                            const Duration(milliseconds: 800),
+                                          );
+                                          if (mounted) {
+                                            setState(
+                                              () => _isAddingWater = false,
+                                            );
+                                          }
                                         },
                                 )
                                 .animate()
@@ -2306,6 +2470,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                             const SizedBox(height: 12),
 
+                            Consumer<StreakProvider>(
+                              builder: (context, streakProvider, _) =>
+                                  _buildMotivationCard(
+                                        streakProvider: streakProvider,
+                                        accent: primaryAccent,
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => AchievementsScreen(
+                                                highlightBadgeId:
+                                                    'weekly_${streakProvider.weeklyWorkoutTarget}_workouts',
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 220.ms, duration: 320.ms)
+                                      .slideY(
+                                        begin: 0.06,
+                                        end: 0,
+                                        delay: 220.ms,
+                                        duration: 320.ms,
+                                        curve: Curves.easeOutCubic,
+                                      ),
+                            ),
+                            const SizedBox(height: 12),
+
                             // ── 4. Bugünkü antrenman ──
                             _buildTodayWorkoutCard(
                                   hasWorkouts: hasWorkoutToday,
@@ -2335,7 +2527,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         total: tasksCtrl.totalCount,
                                         tasks: tasksCtrl.tasks.take(3).toList(),
                                         accent: primaryAccent,
-                                        onToggle: tasksCtrl.toggleTaskDone,
+                                        onToggle: (taskId) async {
+                                          final allDone = await tasksCtrl
+                                              .toggleTaskDone(taskId);
+                                          if (allDone && context.mounted) {
+                                            await context
+                                                .read<StreakProvider>()
+                                                .onDailyTasksAllCompleted();
+                                          }
+                                        },
                                       )
                                       .animate()
                                       .fadeIn(delay: 320.ms, duration: 320.ms)
@@ -2355,6 +2555,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   dailyCalories: dailyCalories,
                                   progress: progress,
                                   primaryAccent: primaryAccent,
+                                  onRepeatMeal: () async {
+                                    final added = await dietProvider
+                                        .repeatMostRecentMeal();
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context)
+                                      ..clearSnackBars()
+                                      ..showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            added > 0
+                                                ? '$added kayıt son öğünden eklendi.'
+                                                : 'Tekrarlanacak son öğün bulunamadı.',
+                                          ),
+                                          backgroundColor: const Color(
+                                            0xFF1A3A4A,
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                      );
+                                  },
                                 )
                                 .animate()
                                 .fadeIn(delay: 400.ms, duration: 320.ms)

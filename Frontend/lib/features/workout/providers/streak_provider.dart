@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../core/utils/storage_helper.dart';
 
 /// Kullanıcının antrenman serisini (streak) ve başarılarını yönetir.
 class StreakProvider with ChangeNotifier {
@@ -11,15 +16,24 @@ class StreakProvider with ChangeNotifier {
   static const _kTaskStreakKey = 'task_streak';
   static const _kLongestTaskStreakKey = 'longest_task_streak';
   static const _kLastTaskCompletionDateKey = 'last_task_completion_date';
+  static const _kWorkoutDatesKey = 'workout_dates';
+  static const _kWeeklyWorkoutTargetKey = 'weekly_workout_target';
+  static const _kStatsUpdatedAtKey = 'motivation_stats_updated_at';
 
   int _currentStreak = 0;
   int _longestStreak = 0;
   int _totalWorkouts = 0;
   DateTime? _lastWorkoutDate;
   List<String> _unlockedBadges = [];
+  List<String> _workoutDates = [];
   int _taskStreak = 0;
   int _longestTaskStreak = 0;
   DateTime? _lastTaskCompletionDate;
+  int _weeklyWorkoutTarget = 3;
+  String? _activeScope;
+  Future<void> Function(Map<String, dynamic> stats)? _remoteSync;
+  bool _isApplyingRemote = false;
+  Timer? _syncDebounce;
 
   // Yeni kazanılan rozet (overlay tetikler)
   AchievementBadge? _justUnlockedBadge;
@@ -32,27 +46,59 @@ class StreakProvider with ChangeNotifier {
   AchievementBadge? get justUnlockedBadge => _justUnlockedBadge;
   int get taskStreak => _taskStreak;
   int get longestTaskStreak => _longestTaskStreak;
+  int get weeklyWorkoutTarget => _weeklyWorkoutTarget;
+  int get weeklyWorkoutCount => _workoutDates.where((raw) {
+    final date = DateTime.tryParse(raw);
+    return date != null && _isInCurrentWeek(date, DateTime.now());
+  }).length;
+  double get weeklyChallengeProgress => _weeklyWorkoutTarget <= 0
+      ? 0
+      : (weeklyWorkoutCount / _weeklyWorkoutTarget).clamp(0, 1).toDouble();
+  bool get weeklyChallengeCompleted =>
+      weeklyWorkoutCount >= _weeklyWorkoutTarget;
 
   bool get isOnFire => _currentStreak >= 3;
 
   /// SharedPreferences'tan yükle
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _currentStreak = prefs.getInt(_kStreakKey) ?? 0;
-    _longestStreak = prefs.getInt(_kLongestStreakKey) ?? 0;
-    _totalWorkouts = prefs.getInt(_kTotalWorkoutsKey) ?? 0;
-    _unlockedBadges = prefs.getStringList(_kUnlockedBadgesKey) ?? [];
-    _taskStreak = prefs.getInt(_kTaskStreakKey) ?? 0;
-    _longestTaskStreak = prefs.getInt(_kLongestTaskStreakKey) ?? 0;
-    final lastDateStr = prefs.getString(_kLastWorkoutDateKey);
+    _activeScope = StorageHelper.getUserStorageSuffix();
+    _currentStreak = prefs.getInt(_key(_kStreakKey)) ?? 0;
+    _longestStreak = prefs.getInt(_key(_kLongestStreakKey)) ?? 0;
+    _totalWorkouts = prefs.getInt(_key(_kTotalWorkoutsKey)) ?? 0;
+    _unlockedBadges = prefs.getStringList(_key(_kUnlockedBadgesKey)) ?? [];
+    _workoutDates = prefs.getStringList(_key(_kWorkoutDatesKey)) ?? [];
+    _taskStreak = prefs.getInt(_key(_kTaskStreakKey)) ?? 0;
+    _longestTaskStreak = prefs.getInt(_key(_kLongestTaskStreakKey)) ?? 0;
+    _weeklyWorkoutTarget = prefs.getInt(_key(_kWeeklyWorkoutTargetKey)) ?? 3;
+    final lastDateStr = prefs.getString(_key(_kLastWorkoutDateKey));
     if (lastDateStr != null) {
       _lastWorkoutDate = DateTime.tryParse(lastDateStr);
+    } else {
+      _lastWorkoutDate = null;
     }
-    final lastTaskDateStr = prefs.getString(_kLastTaskCompletionDateKey);
+    final lastTaskDateStr = prefs.getString(_key(_kLastTaskCompletionDateKey));
     if (lastTaskDateStr != null) {
       _lastTaskCompletionDate = DateTime.tryParse(lastTaskDateStr);
+    } else {
+      _lastTaskCompletionDate = null;
     }
     notifyListeners();
+  }
+
+  Future<void> bindAccount({
+    required int? userId,
+    required String? remoteStatsJson,
+    required Future<void> Function(Map<String, dynamic> stats)? onRemoteSync,
+  }) async {
+    _remoteSync = userId != null && userId > 0 ? onRemoteSync : null;
+    final scope = StorageHelper.getUserStorageSuffix();
+    if (_activeScope != scope) {
+      await init();
+    }
+    if (remoteStatsJson != null && remoteStatsJson.trim().isNotEmpty) {
+      await _mergeRemoteStats(remoteStatsJson);
+    }
   }
 
   /// Antrenman tamamlandığında çağrılır. Streak'i günceller.
@@ -85,6 +131,11 @@ class StreakProvider with ChangeNotifier {
 
     _lastWorkoutDate = today;
     _totalWorkouts++;
+    final todayKey = _dateKey(today);
+    if (!_workoutDates.contains(todayKey)) {
+      _workoutDates.add(todayKey);
+    }
+    _pruneOldWorkoutDates();
 
     if (_currentStreak > _longestStreak) {
       _longestStreak = _currentStreak;
@@ -93,6 +144,7 @@ class StreakProvider with ChangeNotifier {
     // Rozet kontrolü
     AchievementBadge? newBadge;
     newBadge ??= _checkMilestoneBadge();
+    newBadge ??= _checkWeeklyChallengeBadge();
 
     _justUnlockedBadge = newBadge;
 
@@ -246,34 +298,178 @@ class StreakProvider with ChangeNotifier {
 
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kStreakKey, _currentStreak);
-    await prefs.setInt(_kLongestStreakKey, _longestStreak);
-    await prefs.setInt(_kTotalWorkoutsKey, _totalWorkouts);
-    await prefs.setStringList(_kUnlockedBadgesKey, _unlockedBadges);
-    await prefs.setInt(_kTaskStreakKey, _taskStreak);
-    await prefs.setInt(_kLongestTaskStreakKey, _longestTaskStreak);
+    await prefs.setInt(_key(_kStreakKey), _currentStreak);
+    await prefs.setInt(_key(_kLongestStreakKey), _longestStreak);
+    await prefs.setInt(_key(_kTotalWorkoutsKey), _totalWorkouts);
+    await prefs.setStringList(_key(_kUnlockedBadgesKey), _unlockedBadges);
+    await prefs.setStringList(_key(_kWorkoutDatesKey), _workoutDates);
+    await prefs.setInt(_key(_kTaskStreakKey), _taskStreak);
+    await prefs.setInt(_key(_kLongestTaskStreakKey), _longestTaskStreak);
+    await prefs.setInt(_key(_kWeeklyWorkoutTargetKey), _weeklyWorkoutTarget);
+    await prefs.setString(
+      _key(_kStatsUpdatedAtKey),
+      DateTime.now().toIso8601String(),
+    );
     if (_lastWorkoutDate != null) {
       await prefs.setString(
-          _kLastWorkoutDateKey, _lastWorkoutDate!.toIso8601String());
+        _key(_kLastWorkoutDateKey),
+        _lastWorkoutDate!.toIso8601String(),
+      );
     }
     if (_lastTaskCompletionDate != null) {
       await prefs.setString(
-          _kLastTaskCompletionDateKey, _lastTaskCompletionDate!.toIso8601String());
+        _key(_kLastTaskCompletionDateKey),
+        _lastTaskCompletionDate!.toIso8601String(),
+      );
+    }
+    if (!_isApplyingRemote && _remoteSync != null) {
+      _syncDebounce?.cancel();
+      _syncDebounce = Timer(const Duration(seconds: 30), () {
+        final fn = _remoteSync;
+        if (fn != null) {
+          unawaited(fn(toRemoteStats()).catchError((_) {}));
+        }
+      });
     }
   }
 
+  @override
+  void dispose() {
+    _syncDebounce?.cancel();
+    super.dispose();
+  }
+
+  Map<String, dynamic> toRemoteStats() => {
+    'currentStreak': _currentStreak,
+    'longestStreak': _longestStreak,
+    'totalWorkouts': _totalWorkouts,
+    'lastWorkoutDate': _lastWorkoutDate?.toIso8601String(),
+    'unlockedBadges': _unlockedBadges,
+    'workoutDates': _workoutDates,
+    'taskStreak': _taskStreak,
+    'longestTaskStreak': _longestTaskStreak,
+    'lastTaskCompletionDate': _lastTaskCompletionDate?.toIso8601String(),
+    'weeklyWorkoutTarget': _weeklyWorkoutTarget,
+    'weeklyWorkoutCount': weeklyWorkoutCount,
+    'updatedAt': DateTime.now().toIso8601String(),
+  };
+
   Future<void> reset() async {
+    _syncDebounce?.cancel();
+    _syncDebounce = null;
     _currentStreak = 0;
     _longestStreak = 0;
     _totalWorkouts = 0;
     _lastWorkoutDate = null;
     _unlockedBadges = [];
+    _workoutDates = [];
     _justUnlockedBadge = null;
     _taskStreak = 0;
     _longestTaskStreak = 0;
     _lastTaskCompletionDate = null;
+    _weeklyWorkoutTarget = 3;
     notifyListeners();
     await _persist();
+  }
+
+  AchievementBadge? _checkWeeklyChallengeBadge() {
+    if (!weeklyChallengeCompleted) return null;
+    final badgeId = 'weekly_${_weeklyWorkoutTarget}_workouts';
+    final badge = AchievementBadge(
+      id: badgeId,
+      title: 'Haftalık Hedef Tamam!',
+      description: 'Bu hafta $_weeklyWorkoutTarget antrenman hedefini bitirdin.',
+      emoji: '🎯',
+      isStreak: false,
+    );
+    if (_unlockedBadges.contains(badge.id)) return null;
+    _unlockedBadges.add(badge.id);
+    return badge;
+  }
+
+  /// 90 günden eski workout tarihlerini listeden temizle.
+  void _pruneOldWorkoutDates() {
+    final cutoff = DateTime.now().subtract(const Duration(days: 90));
+    _workoutDates = _workoutDates.where((raw) {
+      final date = DateTime.tryParse(raw);
+      return date != null && date.isAfter(cutoff);
+    }).toList();
+  }
+
+  Future<void> _mergeRemoteStats(String raw) async {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      final remote = Map<String, dynamic>.from(decoded);
+      final prefs = await SharedPreferences.getInstance();
+      final localUpdatedAt = DateTime.tryParse(
+        prefs.getString(_key(_kStatsUpdatedAtKey)) ?? '',
+      );
+      final remoteUpdatedAt = DateTime.tryParse(
+        remote['updatedAt']?.toString() ?? '',
+      );
+      if (localUpdatedAt != null &&
+          remoteUpdatedAt != null &&
+          !remoteUpdatedAt.isAfter(localUpdatedAt)) {
+        return;
+      }
+
+      _isApplyingRemote = true;
+      _currentStreak = _asInt(remote['currentStreak'], _currentStreak);
+      _longestStreak = _asInt(remote['longestStreak'], _longestStreak);
+      _totalWorkouts = _asInt(remote['totalWorkouts'], _totalWorkouts);
+      _lastWorkoutDate =
+          DateTime.tryParse(remote['lastWorkoutDate']?.toString() ?? '') ??
+          _lastWorkoutDate;
+      _unlockedBadges = _asStringList(remote['unlockedBadges']).isEmpty
+          ? _unlockedBadges
+          : _asStringList(remote['unlockedBadges']);
+      _workoutDates = _asStringList(remote['workoutDates']).isEmpty
+          ? _workoutDates
+          : _asStringList(remote['workoutDates']);
+      _taskStreak = _asInt(remote['taskStreak'], _taskStreak);
+      _longestTaskStreak = _asInt(
+        remote['longestTaskStreak'],
+        _longestTaskStreak,
+      );
+      _lastTaskCompletionDate =
+          DateTime.tryParse(
+            remote['lastTaskCompletionDate']?.toString() ?? '',
+          ) ??
+          _lastTaskCompletionDate;
+      _weeklyWorkoutTarget = _asInt(
+        remote['weeklyWorkoutTarget'],
+        _weeklyWorkoutTarget,
+      );
+      await _persist();
+      _isApplyingRemote = false;
+      notifyListeners();
+    } catch (_) {
+      _isApplyingRemote = false;
+    }
+  }
+
+  String _key(String base) => '${base}_${StorageHelper.getUserStorageSuffix()}';
+
+  static String _dateKey(DateTime date) =>
+      DateTime(date.year, date.month, date.day).toIso8601String();
+
+  static bool _isInCurrentWeek(DateTime date, DateTime now) {
+    final currentDay = DateTime(now.year, now.month, now.day);
+    final start = currentDay.subtract(Duration(days: currentDay.weekday - 1));
+    final end = start.add(const Duration(days: 7));
+    final value = DateTime(date.year, date.month, date.day);
+    return !value.isBefore(start) && value.isBefore(end);
+  }
+
+  static int _asInt(dynamic value, int fallback) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static List<String> _asStringList(dynamic value) {
+    if (value is List) return value.map((item) => item.toString()).toList();
+    return const [];
   }
 }
 
