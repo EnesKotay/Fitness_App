@@ -44,6 +44,30 @@ public class User extends PanacheEntity {
     @Column(name = "gender")
     public String gender; // MALE, FEMALE, OTHER
 
+    @Column(name = "activity_level")
+    public String activityLevel; // sedentary, lightlyActive, ...
+
+    @Column(name = "goal")
+    public String goal; // bulk, cut, maintain, strength
+
+    @Column(name = "goal_history_json", columnDefinition = "TEXT")
+    public String goalHistoryJson;
+
+    @Column(name = "workout_location")
+    public String workoutLocation; // home, gym, outdoor
+
+    @Column(name = "equipment_type")
+    public String equipmentType; // bodyweight, dumbbell, fullGym
+
+    @Column(name = "nutrition_preferences_json", columnDefinition = "TEXT")
+    public String nutritionPreferencesJson;
+
+    @Column(name = "ai_memory_summary", columnDefinition = "TEXT")
+    public String aiMemorySummary;
+
+    @Column(name = "motivation_stats_json", columnDefinition = "TEXT")
+    public String motivationStatsJson;
+
     @Column(name = "premium_tier")
     public String premiumTier = "free"; // "free" or "premium"
 
@@ -58,6 +82,10 @@ public class User extends PanacheEntity {
 
     @Column(name = "premium_canceled_at")
     public LocalDateTime premiumCanceledAt;
+
+    // Apple App Store Server Notifications ile yenileme bildirimi eşleştirmesi için
+    @Column(name = "iap_original_transaction_id", unique = true)
+    public String iapOriginalTransactionId;
 
     @PrePersist
     public void prePersist() {

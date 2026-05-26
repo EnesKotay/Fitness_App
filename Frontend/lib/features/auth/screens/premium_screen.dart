@@ -729,7 +729,7 @@ class _PremiumScreenState extends State<PremiumScreen>
                     end: Alignment.bottomRight,
                   ),
                   icon: Icons.restaurant_menu_rounded,
-                  title: 'Oğün Planı',
+                  title: 'Öğün Planı',
                   subtitle: 'Makro Takibi',
                 ),
               ),
@@ -1233,7 +1233,7 @@ class _LaurelBranch extends StatelessWidget {
     if (!flipped) return branch;
     return Transform(
       alignment: Alignment.center,
-      transform: Matrix4.identity()..scale(-1.0, 1.0),
+      transform: Matrix4.diagonal3Values(-1.0, 1.0, 1.0),
       child: branch,
     );
   }

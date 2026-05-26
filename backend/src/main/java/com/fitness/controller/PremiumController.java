@@ -167,12 +167,25 @@ public class PremiumController {
             }
 
             // Doğrulama başarılı → premium aktifleştir
-            int months = "yearly".equalsIgnoreCase(result.planId()) ? 12 : 1;
+            // Receipt'ten gelen gerçek bitiş tarihi varsa onu kullan;
+            // yoksa (dev modu) plan süresine göre hesapla.
+            LocalDateTime expiresAt;
+            if (result.expiresAtMs() > 0) {
+                expiresAt = java.time.Instant.ofEpochMilli(result.expiresAtMs())
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDateTime();
+            } else {
+                int months = "yearly".equalsIgnoreCase(result.planId()) ? 12 : 1;
+                expiresAt = LocalDateTime.now().plusMonths(months);
+            }
             user.premiumTier = "premium";
             user.premiumPlan = result.planId();
-            user.premiumExpiresAt = LocalDateTime.now().plusMonths(months);
+            user.premiumExpiresAt = expiresAt;
             user.premiumCancelAtPeriodEnd = false;
             user.premiumCanceledAt = null;
+            if (result.originalTransactionId() != null && !result.originalTransactionId().isBlank()) {
+                user.iapOriginalTransactionId = result.originalTransactionId();
+            }
             user.persist();
 
             LOG.infof("IAP premium aktif — userId=%d plan=%s until=%s platform=%s txId=%s",

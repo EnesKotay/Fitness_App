@@ -86,14 +86,16 @@ public class IapVerificationService {
 
     public record IapVerifyResult(
             boolean valid,
-            String planId,      // doğrulanmış plan ID
+            String planId,                  // doğrulanmış plan ID ("monthly" | "yearly")
+            long expiresAtMs,               // receipt'ten gelen gerçek bitiş zamanı (epoch ms, 0 = bilinmiyor)
+            String originalTransactionId,   // Apple: S2S bildirimlerinde kullanıcı eşleştirmesi için
             String errorMessage
     ) {
-        static IapVerifyResult ok(String planId) {
-            return new IapVerifyResult(true, planId, null);
+        static IapVerifyResult ok(String planId, long expiresAtMs, String originalTxId) {
+            return new IapVerifyResult(true, planId, expiresAtMs, originalTxId, null);
         }
         static IapVerifyResult fail(String reason) {
-            return new IapVerifyResult(false, null, reason);
+            return new IapVerifyResult(false, null, 0, null, reason);
         }
     }
 
@@ -145,7 +147,7 @@ public class IapVerificationService {
             return IapVerifyResult.fail("Gecersiz plan ID.");
         }
         LOG.infof("[DEV] IAP kabul edildi — plan=%s txId=%s", req.planId(), req.transactionId());
-        return IapVerifyResult.ok(normalizedPlan);
+        return IapVerifyResult.ok(normalizedPlan, 0, req.transactionId());
     }
 
     // ─── Apple App Store ──────────────────────────────────────────────────────
@@ -219,8 +221,10 @@ public class IapVerificationService {
                 if (plan == null) {
                     return IapVerifyResult.fail("Receipt icindeki urun kimligi taninmiyor.");
                 }
-                LOG.infof("Apple receipt geçerli — productId=%s plan=%s", productId, plan);
-                return IapVerifyResult.ok(plan);
+                String originalTxId = latest.path("original_transaction_id").asText(null);
+                LOG.infof("Apple receipt geçerli — productId=%s plan=%s expiresMs=%d origTx=%s",
+                        productId, plan, expiresMs, originalTxId);
+                return IapVerifyResult.ok(plan, expiresMs, originalTxId);
             }
 
             return IapVerifyResult.fail("Receipt içinde abonelik bulunamadı.");
@@ -318,8 +322,8 @@ public class IapVerificationService {
             if (plan == null) {
                 return IapVerifyResult.fail("Gecersiz plan ID.");
             }
-            LOG.infof("Google Play token geçerli — subscriptionId=%s plan=%s", subscriptionId, plan);
-            return IapVerifyResult.ok(plan);
+            LOG.infof("Google Play token geçerli — subscriptionId=%s plan=%s expiryMs=%d", subscriptionId, plan, expiryMs);
+            return IapVerifyResult.ok(plan, expiryMs, null);
 
         } catch (Exception e) {
             LOG.errorf(e, "Google Play doğrulama hatası");
