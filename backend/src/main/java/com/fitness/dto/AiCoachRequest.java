@@ -19,6 +19,8 @@ public class AiCoachRequest {
     public String taskModeInstruction;
     /** Optional: last N turns of the conversation for context */
     public List<ConversationTurn> conversationHistory;
+    /** Optional: local long-term memory summary sent by the client. */
+    public String userMemory;
 
     public static class ConversationTurn {
         public String role;    // "user" | "assistant"
@@ -58,5 +60,6 @@ public class AiCoachRequest {
         public Integer tdee;
         public String workoutLocation;
         public String equipmentType;
+        public List<Integer> recentDaysCalories;
     }
 }
