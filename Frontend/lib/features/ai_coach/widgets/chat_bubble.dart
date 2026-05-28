@@ -30,6 +30,7 @@ class ChatBubble extends StatefulWidget {
 
 class _ChatBubbleState extends State<ChatBubble> {
   bool? _reaction; // null = yok, true = 👍, false = 👎
+  String? _reactionReason;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,11 @@ class _ChatBubbleState extends State<ChatBubble> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.summarize_rounded, size: 13, color: Color(0xFFEBC374)),
+                    const Icon(
+                      Icons.summarize_rounded,
+                      size: 13,
+                      color: Color(0xFFEBC374),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Konuşma özeti',
@@ -72,7 +77,10 @@ class _ChatBubbleState extends State<ChatBubble> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.message.content.replaceFirst(RegExp(r'^📝 Önceki konuşma özeti:\n+'), ''),
+                  widget.message.content.replaceFirst(
+                    RegExp(r'^📝 Önceki konuşma özeti:\n+'),
+                    '',
+                  ),
                   style: GoogleFonts.dmSans(
                     color: Colors.white.withValues(alpha: 0.62),
                     fontSize: 12.5,
@@ -88,30 +96,38 @@ class _ChatBubbleState extends State<ChatBubble> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Center(
-          child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A2540),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: const Color(0xFFEBC374).withValues(alpha: 0.2),
-                  ),
-                ),
-                child: Text(
-                  widget.message.content,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.65),
-                    fontSize: 12.5,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              )
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .scale(begin: const Offset(0.95, 0.95)),
+          child:
+              Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A2540),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: const Color(0xFFEBC374).withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      widget.message.content,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 12.5,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .scale(begin: const Offset(0.95, 0.95)),
         ),
       );
+    }
+
+    if (widget.message.isThinking) {
+      return const TypingBubble();
     }
 
     return Padding(
@@ -273,10 +289,15 @@ class _ChatBubbleState extends State<ChatBubble> {
                                       .structuredResponse!
                                       .actions!
                                       .isNotEmpty) ...[
-                                for (final a in widget.message.structuredResponse!.actions!)
+                                for (final a
+                                    in widget
+                                        .message
+                                        .structuredResponse!
+                                        .actions!)
                                   if (a.type == 'ADD_FOOD' && a.data != null)
                                     SmartMealLogCard(actionData: a.data!)
-                                  else if (a.type == 'SAVE_WORKOUT' && a.data != null)
+                                  else if (a.type == 'SAVE_WORKOUT' &&
+                                      a.data != null)
                                     SmartWorkoutSaveCard(actionData: a.data!)
                                   else
                                     Padding(
@@ -294,103 +315,156 @@ class _ChatBubbleState extends State<ChatBubble> {
               ),
               // Timestamp + reactions row
               if (!widget.message.isThinking)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, left: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _formatTime(widget.message.createdAt),
-                      style: GoogleFonts.dmSans(
-                        color: Colors.white.withValues(alpha: 0.22),
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w500,
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, left: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatTime(widget.message.createdAt),
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    if (!isError) ...[
-                      const SizedBox(width: 10),
-                      _buildReactionButton(
-                        icon: Icons.thumb_up_rounded,
-                        isActive: _reaction == true,
-                        activeColor: const Color(0xFF34D399),
-                        onTap: () {
-                          final next = _reaction == true ? null : true;
-                          setState(() => _reaction = next);
-                          if (next == true) {
-                            context.read<AiCoachController>().sendFeedback(
-                              widget.message,
-                              isPositive: true,
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      _buildReactionButton(
-                        icon: Icons.thumb_down_rounded,
-                        isActive: _reaction == false,
-                        activeColor: const Color(0xFFFF6B6B),
-                        onTap: () {
-                          final next = _reaction == false ? null : false;
-                          setState(() => _reaction = next);
-                          if (next == false) {
-                            context.read<AiCoachController>().sendFeedback(
-                              widget.message,
-                              isPositive: false,
-                            );
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      _buildReactionButton(
-                        icon: Icons.copy_rounded,
-                        isActive: false,
-                        activeColor: const Color(0xFF73D4FF),
-                        onTap: () =>
-                            _copyToClipboard(context, widget.message.content),
-                      ),
+                      if (!isError) ...[
+                        const SizedBox(width: 10),
+                        _buildReactionButton(
+                          icon: Icons.thumb_up_rounded,
+                          isActive: _reaction == true,
+                          activeColor: const Color(0xFF34D399),
+                          onTap: () {
+                            final next = _reaction == true ? null : true;
+                            setState(() {
+                              _reaction = next;
+                              _reactionReason = null;
+                            });
+                            if (next == true) {
+                              context.read<AiCoachController>().sendFeedback(
+                                widget.message,
+                                isPositive: true,
+                                reason: 'clear',
+                                coachingPreference:
+                                    'Kullanıcı net ve direkt koçluğu seviyor.',
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        _buildReactionButton(
+                          icon: Icons.thumb_down_rounded,
+                          isActive: _reaction == false,
+                          activeColor: const Color(0xFFFF6B6B),
+                          onTap: () {
+                            final next = _reaction == false ? null : false;
+                            setState(() {
+                              _reaction = next;
+                              _reactionReason = null;
+                            });
+                            if (next == false) {
+                              context.read<AiCoachController>().sendFeedback(
+                                widget.message,
+                                isPositive: false,
+                                reason: 'too_generic',
+                                coachingPreference:
+                                    'Ezbere cevap verme; daha kişisel ve uygulanabilir konuş.',
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        _buildReactionButton(
+                          icon: Icons.copy_rounded,
+                          isActive: false,
+                          activeColor: const Color(0xFF73D4FF),
+                          onTap: () =>
+                              _copyToClipboard(context, widget.message.content),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
               // Reaction feedback badge
               if (_reaction != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 2),
-                  child:
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  (_reaction!
-                                          ? const Color(0xFF34D399)
-                                          : const Color(0xFFFF6B6B))
-                                      .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color:
-                                    (_reaction!
-                                            ? const Color(0xFF34D399)
-                                            : const Color(0xFFFF6B6B))
-                                        .withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: Text(
-                              _reaction!
-                                  ? 'Geri bildirim için teşekkürler!'
-                                  : 'Daha iyi olacağız.',
-                              style: GoogleFonts.dmSans(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          )
-                          .animate()
-                          .fadeIn(duration: 200.ms)
-                          .slideY(begin: 0.3, end: 0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              (_reaction!
+                                      ? const Color(0xFF34D399)
+                                      : const Color(0xFFFF6B6B))
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color:
+                                (_reaction!
+                                        ? const Color(0xFF34D399)
+                                        : const Color(0xFFFF6B6B))
+                                    .withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Text(
+                          _reactionReason != null
+                              ? 'Not aldım: ${_feedbackReasonLabel(_reactionReason!)}'
+                              : _reaction!
+                              ? 'Neyi iyi buldun?'
+                              : 'Neyi düzeltmeliyim?',
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children:
+                            (_reaction!
+                                    ? const [
+                                        ('clear', 'Netti'),
+                                        ('practical', 'Pratikti'),
+                                        ('personal', 'Kişiseldi'),
+                                      ]
+                                    : const [
+                                        ('too_generic', 'Çok genel'),
+                                        ('too_long', 'Çok uzun'),
+                                        ('too_hard', 'Çok zor'),
+                                        ('not_actionable', 'Somut değil'),
+                                      ])
+                                .map(
+                                  (item) => _buildFeedbackChip(
+                                    label: item.$2,
+                                    active: _reactionReason == item.$1,
+                                    positive: _reaction!,
+                                    onTap: () {
+                                      setState(() => _reactionReason = item.$1);
+                                      context
+                                          .read<AiCoachController>()
+                                          .sendFeedback(
+                                            widget.message,
+                                            isPositive: _reaction!,
+                                            reason: item.$1,
+                                            coachingPreference:
+                                                _coachingPreferenceFor(item.$1),
+                                          );
+                                    },
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                    ],
+                  ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.3, end: 0),
                 ),
             ],
           ),
@@ -426,6 +500,77 @@ class _ChatBubbleState extends State<ChatBubble> {
     );
   }
 
+  Widget _buildFeedbackChip({
+    required String label,
+    required bool active,
+    required bool positive,
+    required VoidCallback onTap,
+  }) {
+    final color = positive ? const Color(0xFF34D399) : const Color(0xFFFF6B6B);
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: active ? 0.20 : 0.08),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: color.withValues(alpha: active ? 0.45 : 0.18),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.dmSans(
+            color: Colors.white.withValues(alpha: active ? 0.9 : 0.62),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _feedbackReasonLabel(String reason) {
+    switch (reason) {
+      case 'clear':
+        return 'net cevap';
+      case 'practical':
+        return 'pratik öneri';
+      case 'personal':
+        return 'kişisel yaklaşım';
+      case 'too_long':
+        return 'daha kısa';
+      case 'too_hard':
+        return 'daha kolay';
+      case 'not_actionable':
+        return 'daha somut';
+      case 'too_generic':
+      default:
+        return 'daha kişisel';
+    }
+  }
+
+  String _coachingPreferenceFor(String reason) {
+    switch (reason) {
+      case 'clear':
+        return 'Kullanıcı kısa, net ve direkt cevapları seviyor.';
+      case 'practical':
+        return 'Kullanıcı uygulanabilir, adım adım önerileri seviyor.';
+      case 'personal':
+        return 'Kullanıcı cevapların kendi verisine ve geçmişine bağlanmasını seviyor.';
+      case 'too_long':
+        return 'Cevapları daha kısa, yoğun ve taranabilir yaz.';
+      case 'too_hard':
+        return 'Önerileri daha kolay, sürdürülebilir ve başlangıç seviyesine yakın ver.';
+      case 'not_actionable':
+        return 'Her cevaba net bir sonraki aksiyon ekle.';
+      case 'too_generic':
+      default:
+        return 'Ezbere cevap verme; kullanıcının bağlamına özel, sohbet koçu gibi konuş.';
+    }
+  }
+
   Widget _buildUserRow(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -435,49 +580,50 @@ class _ChatBubbleState extends State<ChatBubble> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               GestureDetector(
-                onLongPress: () => _copyToClipboard(context, widget.message.content),
+                onLongPress: () =>
+                    _copyToClipboard(context, widget.message.content),
                 child: Container(
-                constraints: const BoxConstraints(maxWidth: 460),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A4580), Color(0xFF2B6CB0)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(22),
-                    topRight: Radius.circular(22),
-                    bottomLeft: Radius.circular(22),
-                    bottomRight: Radius.circular(4),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2B6CB0).withValues(alpha: 0.28),
-                      blurRadius: 18,
-                      spreadRadius: -4,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1A4580), Color(0xFF2B6CB0)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.message.imagePath != null)
-                      _buildSentImage(context),
-                    Text(
-                      widget.message.content,
-                      style: GoogleFonts.dmSans(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        fontSize: 14,
-                        height: 1.5,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(22),
+                      topRight: Radius.circular(22),
+                      bottomLeft: Radius.circular(22),
+                      bottomRight: Radius.circular(4),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2B6CB0).withValues(alpha: 0.28),
+                        blurRadius: 18,
+                        spreadRadius: -4,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.message.imagePath != null)
+                        _buildSentImage(context),
+                      Text(
+                        widget.message.content,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 4, right: 2),
@@ -502,14 +648,14 @@ class _ChatBubbleState extends State<ChatBubble> {
       mainAxisSize: MainAxisSize.min,
       children: List.generate(3, (i) {
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: 7,
-          height: 7,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEBC374),
-            shape: BoxShape.circle,
-          ),
-        )
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEBC374),
+                shape: BoxShape.circle,
+              ),
+            )
             .animate(onPlay: (c) => c.repeat())
             .fadeIn(delay: (i * 160).ms, duration: 320.ms)
             .then()
@@ -1187,80 +1333,42 @@ class _TypingBubbleState extends State<TypingBubble>
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Pulsing avatar
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFEBC374).withValues(alpha: 0.3),
-                          blurRadius: 18,
-                          spreadRadius: 3,
-                        ),
-                      ],
-                    ),
-                  )
-                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                  .scaleXY(
-                    begin: 0.85,
-                    end: 1.15,
-                    duration: 1800.ms,
-                    curve: Curves.easeInOut,
-                  ),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFEBC374), Color(0xFFC88934)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFEBC374).withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      spreadRadius: -2,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.auto_awesome_rounded,
-                    size: 15,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF141E30), Color(0xFF0F1822)],
+            width: 30,
+            height: 30,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [Color(0xFFEBC374), Color(0xFFC88934)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111A27),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
-                topRight: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+                topRight: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
               border: Border.all(
-                color: const Color(0xFFEBC374).withValues(alpha: 0.12),
+                color: const Color(0xFFEBC374).withValues(alpha: 0.16),
               ),
             ),
             child: Row(
@@ -1269,12 +1377,12 @@ class _TypingBubbleState extends State<TypingBubble>
                 Text(
                   'Analiz ediliyor',
                   style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: Colors.white.withValues(alpha: 0.58),
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 9),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -1284,15 +1392,13 @@ class _TypingBubbleState extends State<TypingBubble>
                       builder: (context, _) {
                         final v = _dotControllers[i].value;
                         return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                          width: 6,
-                          height: 6 + v * 7,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          width: 5,
+                          height: 5,
                           decoration: BoxDecoration(
-                            color: Color.lerp(
-                              const Color(0xFFEBC374).withValues(alpha: 0.25),
-                              const Color(0xFFEBC374),
-                              v,
-                            ),
+                            color: const Color(
+                              0xFFEBC374,
+                            ).withValues(alpha: 0.28 + (v * 0.52)),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         );

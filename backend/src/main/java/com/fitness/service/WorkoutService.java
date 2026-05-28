@@ -9,12 +9,17 @@ import java.util.stream.Collectors;
 
 import com.fitness.dto.WorkoutRequest;
 import com.fitness.dto.WorkoutResponse;
+import com.fitness.dto.WorkoutSessionExerciseRequest;
+import com.fitness.dto.WorkoutSessionRequest;
+import com.fitness.dto.WorkoutSessionResponse;
 import com.fitness.dto.WorkoutSetDto;
 import com.fitness.entity.User;
 import com.fitness.entity.Workout;
+import com.fitness.entity.WorkoutSession;
 import com.fitness.entity.WorkoutSet;
 import com.fitness.repository.UserRepository;
 import com.fitness.repository.WorkoutRepository;
+import com.fitness.repository.WorkoutSessionRepository;
 import com.fitness.repository.WorkoutSetRepository;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -29,6 +34,9 @@ public class WorkoutService {
 
     @Inject
     WorkoutSetRepository workoutSetRepository;
+
+    @Inject
+    WorkoutSessionRepository workoutSessionRepository;
     
     @Inject
     UserRepository userRepository;
@@ -76,6 +84,47 @@ public class WorkoutService {
         saveSetDetails(workout, request.setDetails);
 
         return toResponse(workout);
+    }
+
+    @Transactional
+    public WorkoutSessionResponse createWorkoutSession(Long userId, WorkoutSessionRequest request) {
+        User user = userRepository.findById(userId);
+        if (user == null) throw new RuntimeException("Kullanıcı bulunamadı!");
+        if (request == null) throw new RuntimeException("Seans verisi gerekli!");
+        if (request.exercises == null || request.exercises.isEmpty())
+            throw new RuntimeException("Seans en az bir egzersiz içermeli!");
+
+        String safeTitle = request.title == null ? "" : request.title.trim();
+        if (safeTitle.isEmpty()) throw new RuntimeException("Seans adı zorunlu!");
+
+        WorkoutSession session = new WorkoutSession();
+        session.user = user;
+        session.title = safeTitle;
+        session.startedAt = request.startedAt;
+        session.finishedAt = request.finishedAt != null ? request.finishedAt : java.time.LocalDateTime.now();
+        session.durationMinutes = request.durationMinutes;
+        session.plannedSetCount = request.plannedSetCount;
+        session.completedSetCount = request.completedSetCount;
+        session.difficulty = trimOrNull(request.difficulty);
+        session.notes = trimOrNull(request.notes);
+        workoutSessionRepository.persist(session);
+
+        List<Workout> workouts = new ArrayList<>();
+        for (WorkoutSessionExerciseRequest exercise : request.exercises) {
+            if (exercise == null) continue;
+            String safeName = exercise.name == null ? "" : exercise.name.trim();
+            if (safeName.isEmpty()) continue;
+
+            WorkoutRequest workoutRequest = toWorkoutRequest(session, exercise);
+            Workout workout = buildWorkout(user, workoutRequest);
+            workout.workoutSession = session;
+            workoutRepository.persist(workout);
+            saveSetDetails(workout, workoutRequest.setDetails);
+            workouts.add(workout);
+        }
+
+        if (workouts.isEmpty()) throw new RuntimeException("Kaydedilecek egzersiz bulunamadı!");
+        return toSessionResponse(session, workouts);
     }
 
     // ── Read ──────────────────────────────────────────────────────────────────
@@ -132,8 +181,12 @@ public class WorkoutService {
      */
     public Map<String, Object> getWorkoutStats(Long userId) {
         List<Workout> all = workoutRepository.findByUserIdOrderByWorkoutDateDesc(userId);
+        List<WorkoutSession> sessions = workoutSessionRepository.findByUserIdOrderByFinishedAtDesc(userId);
 
         long totalWorkouts = all.size();
+        long totalSessions = sessions.isEmpty()
+                ? all.stream().map(w -> w.workoutDate.toLocalDate()).distinct().count()
+                : sessions.size();
         long totalSets = all.stream().mapToLong(w -> w.sets != null ? w.sets : 0).sum();
         double totalVolume = all.stream()
                 .mapToDouble(w -> {
@@ -155,6 +208,7 @@ public class WorkoutService {
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalWorkouts", totalWorkouts);
+        stats.put("totalSessions", totalSessions);
         stats.put("totalSets", totalSets);
         stats.put("totalVolumeKg", Math.round(totalVolume));
         stats.put("totalCaloriesBurned", totalCalories);
@@ -235,9 +289,55 @@ public class WorkoutService {
             ws.setType   = dto.setType   != null ? dto.setType   : "NORMAL";
             ws.reps      = dto.reps;
             ws.weight    = dto.weight;
+            ws.rpe       = dto.rpe;
             workoutSetRepository.persist(ws);
             counter++;
         }
+    }
+
+    private Workout buildWorkout(User user, WorkoutRequest request) {
+        validateOptionalMetrics(request);
+        Workout workout = new Workout();
+        workout.user = user;
+        workout.name = request.name.trim();
+        workout.workoutType = trimOrNull(request.workoutType);
+        workout.durationMinutes = request.durationMinutes;
+        workout.caloriesBurned = request.caloriesBurned;
+        workout.sets = request.sets;
+        workout.reps = request.reps;
+        workout.weight = request.weight;
+        workout.workoutDate = request.workoutDate != null ? request.workoutDate : java.time.LocalDateTime.now();
+        workout.notes = trimOrNull(request.notes);
+        workout.muscleGroup = trimOrNull(request.muscleGroup);
+        workout.isSuperset = request.isSuperset != null && request.isSuperset;
+        workout.supersetPartner = trimOrNull(request.supersetPartner);
+        workout.difficulty = trimOrNull(request.difficulty);
+        workout.oneRepMax = resolveOneRepMax(request);
+        return workout;
+    }
+
+    private WorkoutRequest toWorkoutRequest(WorkoutSession session, WorkoutSessionExerciseRequest exercise) {
+        WorkoutRequest request = new WorkoutRequest();
+        request.name = exercise.name;
+        request.workoutType = exercise.workoutType;
+        request.muscleGroup = exercise.muscleGroup;
+        request.sets = exercise.completedSets != null && exercise.completedSets > 0
+                ? exercise.completedSets
+                : exercise.plannedSets;
+        request.reps = exercise.reps;
+        request.weight = exercise.weight;
+        request.durationMinutes = estimateExerciseDuration(request.sets, exercise.restSeconds);
+        request.workoutDate = session.finishedAt;
+        request.notes = exercise.notes;
+        request.difficulty = session.difficulty;
+        request.setDetails = exercise.setDetails;
+        return request;
+    }
+
+    private Integer estimateExerciseDuration(Integer sets, Integer restSeconds) {
+        if (sets == null || sets <= 0) return null;
+        int rest = restSeconds != null && restSeconds > 0 ? restSeconds : 90;
+        return Math.max(1, Math.round((sets * (rest + 45)) / 60.0f));
     }
 
     /**
@@ -262,6 +362,7 @@ public class WorkoutService {
     private WorkoutResponse toResponse(Workout workout) {
         WorkoutResponse r = new WorkoutResponse();
         r.id             = workout.id;
+        r.sessionId      = workout.workoutSession != null ? workout.workoutSession.id : null;
         r.name           = workout.name;
         r.workoutType    = workout.workoutType;
         r.durationMinutes = workout.durationMinutes;
@@ -284,9 +385,26 @@ public class WorkoutService {
         if (!sets.isEmpty()) {
             r.setDetails = sets.stream()
                     .sorted(Comparator.comparingInt(s -> s.setNumber))
-                    .map(s -> new WorkoutSetDto(s.setNumber, s.setType, s.reps, s.weight))
+                    .map(s -> new WorkoutSetDto(s.setNumber, s.setType, s.reps, s.weight, s.rpe))
                     .collect(Collectors.toList());
         }
+        return r;
+    }
+
+    private WorkoutSessionResponse toSessionResponse(WorkoutSession session, List<Workout> workouts) {
+        WorkoutSessionResponse r = new WorkoutSessionResponse();
+        r.id = session.id;
+        r.title = session.title;
+        r.startedAt = session.startedAt;
+        r.finishedAt = session.finishedAt;
+        r.durationMinutes = session.durationMinutes;
+        r.plannedSetCount = session.plannedSetCount;
+        r.completedSetCount = session.completedSetCount;
+        r.difficulty = session.difficulty;
+        r.notes = session.notes;
+        r.createdAt = session.createdAt;
+        r.updatedAt = session.updatedAt;
+        r.workouts = workouts.stream().map(this::toResponse).collect(Collectors.toList());
         return r;
     }
 

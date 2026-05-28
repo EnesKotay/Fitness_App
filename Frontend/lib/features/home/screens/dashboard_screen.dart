@@ -11,18 +11,22 @@ import '../../auth/providers/auth_provider.dart';
 import '../../tasks/controllers/daily_tasks_controller.dart';
 import '../../tasks/models/daily_task.dart';
 import '../../workout/providers/workout_provider.dart';
+import '../../../core/models/workout.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 import '../../workout/providers/streak_provider.dart';
+import '../../tracking/screens/tracking_screen.dart';
 import '../../workout/screens/achievements_screen.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../../core/services/app_review_service.dart';
 import '../../../core/services/page_guide_service.dart';
 import '../../../core/widgets/page_guide_overlay.dart';
 import '../../../core/widgets/page_guide_button.dart';
+import '../../workout/services/recovery_engine.dart';
+import '../../tracking/providers/tracking_provider.dart';
 import 'dart:async';
 
 const Color _warmAccent = Color(0xFFFFA56E);
@@ -94,6 +98,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       description:
           'Günün küçük hedeflerini tamamladıkça ilerleme çubuğu dolar.',
       tip: 'Asistan butonu → Günlük Görevler ile tamamını açabilirsin.',
+    ),
+    GuideStep(
+      emoji: '❤️',
+      title: 'Toparlanma Skoru',
+      description:
+          'Ana sayfanın alt bölümünde Toparlanma Skoru kartı bulunur. Bu kart 3 faktörden hesaplanan günlük hazırlık endeksini gösterir:\n\n'
+          '• 💪 Kas toparlanması (%55 etki)\n'
+          '• 🌙 Uyku süresi (%30 etki)\n'
+          '• 💧 Su tüketimi (%15 etki)\n\n'
+          'Karta dokunarak her faktörün detayını görebilirsin.',
+      tip:
+          'Uyku süresini slider\'dan gir — skor anında güncellenir. Kart sarı veya kırmızıysa bugün toparlanmayı öne al.',
     ),
     GuideStep(
       emoji: '✨',
@@ -297,9 +313,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _capitalizeFirst(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return text;
-    return trimmed[0].toUpperCase() + trimmed.substring(1);
+    return text.trim().split(' ').map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1)).join(' ');
   }
 
   String _todayDateString() {
@@ -890,7 +904,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     child: Text(
-                      '${_goalLabel(goal)} • %$progressPct',
+                      progressPct == 0 ? 'Başla →' : '${_goalLabel(goal)} • %$progressPct',
                       style: TextStyle(
                         color: calorieAccent,
                         fontWeight: FontWeight.w700,
@@ -903,25 +917,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          // Calorie Row
+          // ── Kalori ana satırı ──────────────────────────────────────────
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              // Büyük ring solda
+              SizedBox(
+                width: 56,
+                height: 56,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: 1.0,
+                      strokeWidth: 5,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, val, child) => CircularProgressIndicator(
+                        value: val,
+                        strokeWidth: 5,
+                        strokeCap: StrokeCap.round,
+                        valueColor: AlwaysStoppedAnimation(calorieAccent),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        '${(progress * 100).round()}%',
+                        style: TextStyle(
+                          color: calorieAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.local_fire_department_rounded,
-                          size: 14,
-                          color: calorieAccent,
-                        ),
+                        Icon(Icons.local_fire_department_rounded, size: 13, color: calorieAccent),
                         const SizedBox(width: 4),
                         Text(
                           'KALORİ',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
+                            color: Colors.white.withValues(alpha: 0.50),
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.2,
@@ -929,7 +977,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     RichText(
                       text: TextSpan(
                         children: [
@@ -937,15 +985,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             text: _formatInt(dailyCalories),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
                             ),
                           ),
                           TextSpan(
                             text: ' / ${_formatInt(targetCalories)} kcal',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.38),
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -955,63 +1004,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 4,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor: AlwaysStoppedAnimation(calorieAccent),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Protein Row
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 14),
+          // ── Protein bar satırı ─────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: BoxDecoration(
+              color: proteinAccent.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: proteinAccent.withValues(alpha: 0.14)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.fitness_center_rounded,
-                          size: 14,
-                          color: proteinAccent,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'PROTEİN',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
+                    Icon(Icons.fitness_center_rounded, size: 12, color: proteinAccent),
+                    const SizedBox(width: 5),
+                    Text(
+                      'PROTEİN',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.50),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    const Spacer(),
                     RichText(
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: dailyProtein.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
+                            text: '$dailyProtein',
+                            style: TextStyle(
+                              color: proteinAccent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
                           TextSpan(
                             text: ' / $targetProtein g',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.4),
-                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.35),
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1020,19 +1056,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  value: proteinProgress,
-                  strokeWidth: 4,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  valueColor: AlwaysStoppedAnimation(proteinAccent),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: proteinProgress.clamp(0.0, 1.0)),
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, val, child) => LinearProgressIndicator(
+                      value: val,
+                      minHeight: 6,
+                      backgroundColor: Colors.white.withValues(alpha: 0.07),
+                      valueColor: AlwaysStoppedAnimation(proteinAccent.withValues(alpha: 0.85)),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -1152,23 +1193,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: GestureDetector(
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+            padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: color.withValues(alpha: 0.18)),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, size: 12, color: color),
+                    Icon(icon, size: 11, color: color.withValues(alpha: 0.75)),
                     const SizedBox(width: 4),
                     Text(
                       label,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
+                        color: Colors.white.withValues(alpha: 0.40),
                         fontSize: 9.5,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -1176,13 +1218,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Text(
                   value,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: color,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -1329,16 +1374,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 7,
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  completed ? _freshGreen : accent,
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 7,
+                      backgroundColor: Colors.white.withValues(alpha: 0.08),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        completed ? _freshGreen : accent,
+                      ),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Text(
+                  completed ? '✓' : '%${(progress * 100).round()}',
+                  style: TextStyle(
+                    color: (completed ? _freshGreen : accent).withValues(alpha: 0.80),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1495,69 +1556,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTodayWorkoutCard({
-    required bool hasWorkouts,
-    required int workoutCount,
-    required List<String> workoutNames,
-    required Color accent,
-    VoidCallback? onTap,
-  }) {
-    return _glassCard(
-      accentColor: accent,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: 22,
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.fitness_center_rounded, color: accent, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hasWorkouts ? 'Bugünün Antrenmanı' : 'Bugün antrenman yok',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  hasWorkouts
-                      ? workoutNames.take(3).join(' · ')
-                      : 'Hedefine uygun bir antrenman başlat.',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          _buildActionPill(
-            icon: hasWorkouts ? Icons.open_in_new_rounded : Icons.add_rounded,
-            label: hasWorkouts ? 'Gör' : 'Başla',
-            onTap: onTap,
-            accent: accent,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTodayPlanCard({
     required int mealCount,
     required double remainingKcal,
@@ -1584,55 +1582,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
       subtitle = 'İlk öğünü ekle; AI Koç günün kalanını daha net yönlendirsin.';
     } else if (waterLiters < 1.25) {
       title = 'Sıradaki hamle: su hedefi';
-      subtitle = '${waterLiters.toStringAsFixed(1)}L kaydın var. Bir bardak ekleyip ritmi koru.';
+      subtitle =
+          '${waterLiters.toStringAsFixed(1)}L kaydın var. Bir bardak ekleyip ritmi koru.';
     } else if (proteinGap > 20) {
       title = 'Sıradaki hamle: protein';
-      subtitle = 'Yaklaşık $proteinGap g protein açığın var. Sonraki öğünü buna göre seç.';
+      subtitle =
+          'Yaklaşık $proteinGap g protein açığın var. Sonraki öğünü buna göre seç.';
     } else if (!hasWorkoutToday) {
       title = 'Sıradaki hamle: antrenman';
       subtitle = '$mealCount öğün kayıtlı. Kısa bir seans günü tamamlar.';
     } else if (taskGap > 0) {
       title = 'Sıradaki hamle: görev serisi';
-      subtitle = '$completedTasks/$totalTasks görev tamam. En kısa kalan görevi bitir.';
+      subtitle =
+          '$completedTasks/$totalTasks görev tamam. En kısa kalan görevi bitir.';
     } else if (kcalText >= 0) {
       title = 'Bugünün planı akıyor';
-      subtitle = '$mealCount öğün ve antrenman kayıtlı. $kcalText kcal alan kaldı.';
+      subtitle =
+          '$mealCount öğün ve antrenman kayıtlı. $kcalText kcal alan kaldı.';
     } else {
       title = 'Bugünün planı akıyor';
-      subtitle = '$mealCount öğün ve antrenman kayıtlı. Kaloride biraz frene bas.';
+      subtitle =
+          '$mealCount öğün ve antrenman kayıtlı. Kaloride biraz frene bas.';
     }
 
     Widget miniAction({
       required String label,
       required IconData icon,
       required VoidCallback? onTap,
+      required Color iconColor,
     }) {
       return Expanded(
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            height: 46,
+            height: 50,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.045),
+              color: iconColor.withValues(alpha: 0.07),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+              border: Border.all(color: iconColor.withValues(alpha: 0.15)),
             ),
-            child: Row(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: accent, size: 17),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
+                Icon(icon, color: iconColor, size: 18),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.80),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -1656,8 +1658,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: accent.withValues(alpha: 0.20)),
                 ),
-                child: Icon(Icons.route_rounded, color: accent, size: 21),
+                child: Icon(Icons.route_rounded, color: accent, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1669,7 +1672,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        fontSize: 15.5,
+                        fontSize: 15,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 3),
@@ -1678,9 +1682,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.58),
-                        fontSize: 12,
-                        height: 1.25,
+                        color: Colors.white.withValues(alpha: 0.52),
+                        fontSize: 11.5,
+                        height: 1.30,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1696,12 +1700,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: 'Öğün',
                 icon: Icons.restaurant_rounded,
                 onTap: onMealTap,
+                iconColor: const Color(0xFF30D158),
               ),
               const SizedBox(width: 8),
               miniAction(
                 label: 'Antrenman',
                 icon: Icons.fitness_center_rounded,
                 onTap: onWorkoutTap,
+                iconColor: const Color(0xFF5B9BFF),
               ),
               const SizedBox(width: 8),
               _waterMiniAction(
@@ -1714,6 +1720,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 label: 'Takip',
                 icon: Icons.trending_up_rounded,
                 onTap: onTrackingTap,
+                iconColor: const Color(0xFFBF5AF2),
               ),
             ],
           ),
@@ -1958,6 +1965,214 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'Günün dengeli ilerliyor; küçük kayıtları atlamadan devam et.';
   }
 
+  // ── Toparlanma Skoru ─────────────────────────────────────────────────────
+  Widget _buildRecoveryScoreCard({
+    required List<Workout> workouts,
+    required double waterLiters,
+    required double sleepHours,
+    required Color accent,
+    required VoidCallback onTrackingTap,
+    required VoidCallback? onWaterTap,
+    required VoidCallback? onSleepTap,
+    required VoidCallback? onWorkoutTap,
+  }) {
+    final fatigue = RecoveryEngine.computeAll(workouts);
+    final muscleAvg = fatigue.isEmpty
+        ? 1.0
+        : fatigue.values.map((s) => s.recoveryPercent).reduce((a, b) => a + b) / fatigue.length;
+    
+    final sleepScore = (sleepHours / 8.0).clamp(0.0, 1.0);
+    final hydrationScore = (waterLiters / 2.5).clamp(0.0, 1.0);
+    
+    final total = ((muscleAvg * 0.55 + sleepScore * 0.30 + hydrationScore * 0.15) * 100)
+        .round()
+        .clamp(0, 100);
+
+    final (scoreColor, scoreLabel, scoreMessage) = switch (total) {
+      >= 80 => (const Color(0xFF30D158), 'Hazır',     'Ağır antrenman için mükemmel bir gün 💪'),
+      >= 60 => (const Color(0xFF64D2FF), 'İyi',       'Toparlanma yolunda, planlı devam et.'),
+      >= 40 => (const Color(0xFFFFD60A), 'Orta',      'Biraz daha uyku veya suya ihtiyacın var.'),
+      _     => (const Color(0xFFFF6B6B), 'Yorgun',    'Lütfen dinlen, kasların yorgun.'),
+    };
+
+    Widget chip(String label, String valueStr, Color color, IconData icon, VoidCallback? onTap) {
+      return Expanded(
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: color.withValues(alpha: 0.8), size: 14),
+                const SizedBox(height: 6),
+                Text(
+                  valueStr,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return _glassCard(
+      accentColor: scoreColor,
+      radius: 22,
+      padding: const EdgeInsets.all(16),
+      onTap: onTrackingTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Şık dairesel progress
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: 1.0,
+                      strokeWidth: 5,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                    CircularProgressIndicator(
+                      value: total / 100,
+                      strokeWidth: 5,
+                      strokeCap: StrokeCap.round,
+                      valueColor: AlwaysStoppedAnimation(scoreColor),
+                    ),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$total',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              shadows: [
+                                Shadow(
+                                  color: scoreColor.withValues(alpha: 0.8),
+                                  blurRadius: 8,
+                                )
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '/100',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.4),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'Toparlanma',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: scoreColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            scoreLabel,
+                            style: TextStyle(
+                              color: scoreColor,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      scoreMessage,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.65),
+                        fontSize: 12.5,
+                        height: 1.3,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Alt 3 fizyolojik metrik
+          Row(
+            children: [
+              chip('Kas',  '%${(muscleAvg * 100).round()}',  const Color(0xFF30D158), Icons.fitness_center_rounded, onWorkoutTap),
+              const SizedBox(width: 8),
+              chip('Uyku', '${sleepHours.toStringAsFixed(1)}s', const Color(0xFFFF9F0A), Icons.nights_stay_rounded, onSleepTap),
+              const SizedBox(width: 8),
+              chip('Su',   '${waterLiters.toStringAsFixed(1)}L', const Color(0xFF64D2FF), Icons.water_drop_rounded, onWaterTap),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMealSummaryCard({
     required List<dynamic> todayEntries,
     required int dailyCalories,
@@ -2193,6 +2408,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       weightProvider,
                       child,
                     ) {
+                      final trackingProvider = context.watch<TrackingProvider>();
                       final targetCalories = dietProvider.effectiveTargetKcal
                           .round();
                       final tasksController = context
@@ -2311,6 +2527,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               const SizedBox(height: 12),
                             ],
 
+                            // ── 2. Hero: Kalori + Protein ──
+                            (isDietLoading && todayEntries.isEmpty)
+                                ? _buildSkeletonCard(
+                                    height: 190,
+                                    accent: effectiveAccent,
+                                  )
+                                : _buildHeroCard(
+                                        goal: goal,
+                                        calorieAccent: effectiveAccent,
+                                        proteinAccent: secondaryAccent,
+                                        progress: progress,
+                                        dailyCalories: dailyCalories,
+                                        targetCalories: targetCalories,
+                                        proteinProgress: proteinProgress,
+                                        dailyProtein: dailyProtein,
+                                        targetProtein: targetProtein,
+                                        dailyCarb: dailyCarb,
+                                        targetCarb: targetCarb,
+                                        dailyFat: dailyFat,
+                                        targetFat: targetFat,
+                                        onTapCalories: () =>
+                                            widget.onNavigateToTab?.call(3),
+                                        onTapProtein: () =>
+                                            widget.onNavigateToTab?.call(3),
+                                        onTapCard: () =>
+                                            widget.onNavigateToTab?.call(3),
+                                        onAddMeal: widget.onAddMeal,
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: 60.ms, duration: 320.ms)
+                                      .slideY(
+                                        begin: 0.06,
+                                        end: 0,
+                                        delay: 60.ms,
+                                        duration: 320.ms,
+                                        curve: Curves.easeOutCubic,
+                                      ),
+                            const SizedBox(height: 12),
+
                             _buildTodayPlanCard(
                                   mealCount: todayEntries.length,
                                   remainingKcal:
@@ -2387,53 +2642,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         },
                                 )
                                 .animate()
-                                .fadeIn(delay: 60.ms, duration: 300.ms)
+                                .fadeIn(delay: 80.ms, duration: 300.ms)
                                 .slideY(
                                   begin: 0.05,
                                   end: 0,
-                                  delay: 60.ms,
+                                  delay: 80.ms,
                                   duration: 300.ms,
                                   curve: Curves.easeOutCubic,
                                 ),
-                            const SizedBox(height: 12),
-
-                            // ── 2. Hero: Kalori + Protein ──
-                            (isDietLoading && todayEntries.isEmpty)
-                                ? _buildSkeletonCard(
-                                    height: 190,
-                                    accent: effectiveAccent,
-                                  )
-                                : _buildHeroCard(
-                                        goal: goal,
-                                        calorieAccent: effectiveAccent,
-                                        proteinAccent: secondaryAccent,
-                                        progress: progress,
-                                        dailyCalories: dailyCalories,
-                                        targetCalories: targetCalories,
-                                        proteinProgress: proteinProgress,
-                                        dailyProtein: dailyProtein,
-                                        targetProtein: targetProtein,
-                                        dailyCarb: dailyCarb,
-                                        targetCarb: targetCarb,
-                                        dailyFat: dailyFat,
-                                        targetFat: targetFat,
-                                        onTapCalories: () =>
-                                            widget.onNavigateToTab?.call(3),
-                                        onTapProtein: () =>
-                                            widget.onNavigateToTab?.call(3),
-                                        onTapCard: () =>
-                                            widget.onNavigateToTab?.call(3),
-                                        onAddMeal: widget.onAddMeal,
-                                      )
-                                      .animate()
-                                      .fadeIn(delay: 80.ms, duration: 320.ms)
-                                      .slideY(
-                                        begin: 0.06,
-                                        end: 0,
-                                        delay: 80.ms,
-                                        duration: 320.ms,
-                                        curve: Curves.easeOutCubic,
-                                      ),
                             const SizedBox(height: 12),
 
                             // ── 3. Hızlı durum: Streak | Antrenman | Kilo ──
@@ -2498,22 +2714,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(height: 12),
 
-                            // ── 4. Bugünkü antrenman ──
-                            _buildTodayWorkoutCard(
-                                  hasWorkouts: hasWorkoutToday,
-                                  workoutCount: todayWorkouts.length,
-                                  workoutNames: todayWorkouts
-                                      .map((w) => w.name)
-                                      .toList(),
+                            // ── 4. Toparlanma skoru ──
+                            _buildRecoveryScoreCard(
+                                  workouts: workoutProvider.workouts,
+                                  waterLiters: dietProvider.waterLiters,
+                                  sleepHours: trackingProvider.sleepHours,
                                   accent: primaryAccent,
-                                  onTap: () => widget.onNavigateToTab?.call(1),
+                                  onTrackingTap: () {
+                                    widget.onNavigateToTab?.call(2);
+                                  },
+                                  onSleepTap: () {
+                                    widget.onNavigateToTab?.call(2);
+                                  },
+                                  onWorkoutTap: () =>
+                                      widget.onNavigateToTab?.call(1),
+                                  onWaterTap: _isAddingWater
+                                      ? null
+                                      : () async {
+                                          if (_isAddingWater) return;
+                                          setState(() => _isAddingWater = true);
+                                          dietProvider.addWater(0.25);
+                                          final total =
+                                              dietProvider.waterLiters;
+                                          if (mounted) {
+                                            final isDone = total >= 2.0;
+                                            ScaffoldMessenger.of(context)
+                                              ..clearSnackBars()
+                                              ..showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    isDone
+                                                        ? '💧 Su hedefine ulaştın! Toplam: ${total.toStringAsFixed(1)}L'
+                                                        : '💧 +250ml eklendi · Toplam: ${total.toStringAsFixed(1)}L',
+                                                  ),
+                                                  behavior: SnackBarBehavior
+                                                      .floating,
+                                                  backgroundColor:
+                                                      AppColors.surfaceElevated,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12)),
+                                                  duration: const Duration(
+                                                      seconds: 2),
+                                                ),
+                                              );
+                                          }
+                                          await Future.delayed(
+                                              const Duration(milliseconds: 500));
+                                          if (mounted) {
+                                            setState(
+                                                () => _isAddingWater = false);
+                                          }
+                                        },
                                 )
                                 .animate()
-                                .fadeIn(delay: 240.ms, duration: 320.ms)
+                                .fadeIn(delay: 280.ms, duration: 320.ms)
                                 .slideY(
                                   begin: 0.06,
                                   end: 0,
-                                  delay: 240.ms,
+                                  delay: 280.ms,
                                   duration: 320.ms,
                                   curve: Curves.easeOutCubic,
                                 ),
@@ -2573,8 +2833,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           ),
                                           behavior: SnackBarBehavior.floating,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                         ),
                                       );

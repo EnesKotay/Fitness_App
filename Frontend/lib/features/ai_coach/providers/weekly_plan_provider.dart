@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/utils/storage_helper.dart';
 import 'package:dio/dio.dart';
 
 /// Haftalık AI antrenman planını yönetir.
@@ -26,10 +27,14 @@ class WeeklyPlanProvider with ChangeNotifier {
     return DateTime.now().difference(_planDate!).inDays >= 7;
   }
 
+  String get _planKey => '${_kPlanKey}_${StorageHelper.getUserStorageSuffix()}';
+  String get _planDateKey =>
+      '${_kPlanDateKey}_${StorageHelper.getUserStorageSuffix()}';
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString(_kPlanKey);
-    final dateStr = prefs.getString(_kPlanDateKey);
+    final json = prefs.getString(_planKey);
+    final dateStr = prefs.getString(_planDateKey);
     if (json != null) {
       try {
         _plan = WeeklyPlan.fromJson(jsonDecode(json));
@@ -94,14 +99,22 @@ class WeeklyPlanProvider with ChangeNotifier {
 
       final data = response.data;
       // AI'dan gelen yanıtı parse et veya text'i günlere ayır
-      final replyText = data is Map ? (data['reply'] ?? data['todayFocus'] ?? '') : data.toString();
+      final replyText = data is Map
+          ? (data['reply'] ?? data['todayFocus'] ?? '')
+          : data.toString();
 
-      _plan = _parsePlanFromText(replyText.toString(), workoutsPerWeek, focusAreas, goal);
+      _plan = _parsePlanFromText(
+        replyText.toString(),
+        workoutsPerWeek,
+        focusAreas,
+        goal,
+      );
       _planDate = DateTime.now();
 
       await _persist();
     } catch (e) {
-      _error = 'Plan oluşturulamadı. Lütfen internet bağlantınızı kontrol edin.';
+      _error =
+          'Plan oluşturulamadı. Lütfen internet bağlantınızı kontrol edin.';
       debugPrint('WeeklyPlanProvider.generatePlan: $e');
     }
 
@@ -110,15 +123,30 @@ class WeeklyPlanProvider with ChangeNotifier {
   }
 
   WeeklyPlan _parsePlanFromText(
-      String text, int workoutsPerWeek, String focusAreas, String goal) {
+    String text,
+    int workoutsPerWeek,
+    String focusAreas,
+    String goal,
+  ) {
     // 1. Önce JSON parse dene (backend structured response dönebilir)
     final jsonPlan = _tryParseJsonPlan(text);
     if (jsonPlan != null) return jsonPlan;
 
     // 2. AI metnini gün isimlerine göre böl ve egzersiz satırlarını çıkar
-    final dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+    final dayNames = [
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
+    ];
     final focusList = focusAreas.split(',').map((s) => s.trim()).toList();
-    final workoutDayIndices = List.generate(workoutsPerWeek, (i) => i * (7 ~/ workoutsPerWeek));
+    final workoutDayIndices = List.generate(
+      workoutsPerWeek,
+      (i) => i * (7 ~/ workoutsPerWeek),
+    );
 
     // AI yanıtını gün bölümlerine ayır
     final dayExercisesFromAI = _extractDayExercisesFromText(text, dayNames);
@@ -130,30 +158,33 @@ class WeeklyPlanProvider with ChangeNotifier {
       final focusLabel = isRest
           ? 'Dinlenme & Toparlanma'
           : (focusIndex >= 0 && focusIndex < focusList.length
-              ? focusList[focusIndex]
-              : focusList[focusIndex % focusList.length]);
+                ? focusList[focusIndex]
+                : focusList[focusIndex % focusList.length]);
 
       // AI'dan parse edilen egzersizler varsa kullan, yoksa fallback
       final aiExercises = dayExercisesFromAI[dayNames[i]];
       final exercises = isRest
           ? ['Hafif yürüyüş veya esneme önerilir']
           : (aiExercises != null && aiExercises.isNotEmpty
-              ? aiExercises
-              : _defaultExercises(focusLabel));
+                ? aiExercises
+                : _defaultExercises(focusLabel));
 
-      dayPlans.add(DayPlan(
-        dayName: dayNames[i],
-        isRestDay: isRest,
-        focus: focusLabel,
-        exercises: exercises,
-        notes: isRest
-            ? 'Kasların toparlanması için önemli.'
-            : 'Isınmayı atlama. Form > Ağırlık.',
-      ));
+      dayPlans.add(
+        DayPlan(
+          dayName: dayNames[i],
+          isRestDay: isRest,
+          focus: focusLabel,
+          exercises: exercises,
+          notes: isRest
+              ? 'Kasların toparlanması için önemli.'
+              : 'Isınmayı atlama. Form > Ağırlık.',
+        ),
+      );
     }
 
     // Özet: AI yanıtının ilk anlamlı paragrafını kullan
-    final summary = _extractSummary(text) ??
+    final summary =
+        _extractSummary(text) ??
         '$workoutsPerWeek günlük kişiselleştirilmiş antrenman planı — $goal ($focusAreas odaklı).';
 
     return WeeklyPlan(summary: summary, days: dayPlans);
@@ -177,7 +208,9 @@ class WeeklyPlanProvider with ChangeNotifier {
 
   /// AI metin yanıtından gün adlarına göre egzersiz satırlarını çıkarır.
   Map<String, List<String>> _extractDayExercisesFromText(
-      String text, List<String> dayNames) {
+    String text,
+    List<String> dayNames,
+  ) {
     final result = <String, List<String>>{};
     if (text.trim().isEmpty) return result;
 
@@ -186,7 +219,10 @@ class WeeklyPlanProvider with ChangeNotifier {
       r'(?:[-•*]\s+|^\d+[.)]\s*)(.+)',
       multiLine: true,
     );
-    final setRepPattern = RegExp(r'\d+\s*[×xX]\s*\d+|\d+\s*set|\d+\s*tekrar', caseSensitive: false);
+    final setRepPattern = RegExp(
+      r'\d+\s*[×xX]\s*\d+|\d+\s*set|\d+\s*tekrar',
+      caseSensitive: false,
+    );
 
     for (int i = 0; i < dayNames.length; i++) {
       final dayName = dayNames[i];
@@ -194,15 +230,22 @@ class WeeklyPlanProvider with ChangeNotifier {
 
       final startIdx = text.indexOf(dayName);
       if (startIdx == -1) continue;
-      final endIdx = nextDay != null ? text.indexOf(nextDay, startIdx + dayName.length) : text.length;
-      final section = text.substring(startIdx, endIdx == -1 ? text.length : endIdx);
+      final endIdx = nextDay != null
+          ? text.indexOf(nextDay, startIdx + dayName.length)
+          : text.length;
+      final section = text.substring(
+        startIdx,
+        endIdx == -1 ? text.length : endIdx,
+      );
 
       final exercises = exerciseLinePattern
           .allMatches(section)
           .map((m) => m.group(1)!.trim())
-          .where((line) =>
-              line.length > 3 &&
-              (setRepPattern.hasMatch(line) || line.length < 80))
+          .where(
+            (line) =>
+                line.length > 3 &&
+                (setRepPattern.hasMatch(line) || line.length < 80),
+          )
           .take(6)
           .toList();
 
@@ -215,7 +258,15 @@ class WeeklyPlanProvider with ChangeNotifier {
   String? _extractSummary(String text) {
     if (text.trim().isEmpty) return null;
     // İlk anlamlı paragrafı al (gün adı içermeyenler)
-    final dayNames = {'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'};
+    final dayNames = {
+      'Pazartesi',
+      'Salı',
+      'Çarşamba',
+      'Perşembe',
+      'Cuma',
+      'Cumartesi',
+      'Pazar',
+    };
     final paragraphs = text.split(RegExp(r'\n{2,}'));
     for (final para in paragraphs) {
       final clean = para.trim().replaceAll(RegExp(r'\s+'), ' ');
@@ -224,10 +275,12 @@ class WeeklyPlanProvider with ChangeNotifier {
       }
     }
     // Gün adı içermeyen ilk satır
-    final firstLine = text.split('\n').firstWhere(
-      (l) => l.trim().length > 20 && !dayNames.any((d) => l.contains(d)),
-      orElse: () => '',
-    );
+    final firstLine = text
+        .split('\n')
+        .firstWhere(
+          (l) => l.trim().length > 20 && !dayNames.any((d) => l.contains(d)),
+          orElse: () => '',
+        );
     if (firstLine.isNotEmpty) {
       return firstLine.trim().length > 300
           ? '${firstLine.trim().substring(0, 300)}...'
@@ -239,21 +292,51 @@ class WeeklyPlanProvider with ChangeNotifier {
   List<String> _defaultExercises(String focus) {
     final f = focus.toLowerCase();
     if (f.contains('göğüs') || f.contains('chest')) {
-      return ['Bench Press 4×8', 'İncline DB Press 3×10', 'Cable Fly 3×12', 'Push-up 3×15'];
+      return [
+        'Bench Press 4×8',
+        'İncline DB Press 3×10',
+        'Cable Fly 3×12',
+        'Push-up 3×15',
+      ];
     }
     if (f.contains('sırt') || f.contains('back')) {
-      return ['Pull-up 4×8', 'Barbell Row 4×8', 'Lat Pulldown 3×10', 'Cable Row 3×12'];
+      return [
+        'Pull-up 4×8',
+        'Barbell Row 4×8',
+        'Lat Pulldown 3×10',
+        'Cable Row 3×12',
+      ];
     }
     if (f.contains('bacak') || f.contains('leg')) {
-      return ['Squat 4×8', 'Romanian DL 3×10', 'Leg Press 3×12', 'Calf Raise 4×15'];
+      return [
+        'Squat 4×8',
+        'Romanian DL 3×10',
+        'Leg Press 3×12',
+        'Calf Raise 4×15',
+      ];
     }
     if (f.contains('omuz') || f.contains('shoulder')) {
-      return ['OHP 4×8', 'Lateral Raise 3×15', 'Front Raise 3×12', 'Face Pull 3×15'];
+      return [
+        'OHP 4×8',
+        'Lateral Raise 3×15',
+        'Front Raise 3×12',
+        'Face Pull 3×15',
+      ];
     }
     if (f.contains('kol') || f.contains('bicep') || f.contains('tricep')) {
-      return ['Barbell Curl 4×10', 'Hammer Curl 3×12', 'Tricep Pushdown 4×10', 'Skull Crusher 3×10'];
+      return [
+        'Barbell Curl 4×10',
+        'Hammer Curl 3×12',
+        'Tricep Pushdown 4×10',
+        'Skull Crusher 3×10',
+      ];
     }
-    return ['Compound lift 4×8', 'Accessory 3×10', 'Isolation 3×12', 'Core 3×15'];
+    return [
+      'Compound lift 4×8',
+      'Accessory 3×10',
+      'Isolation 3×12',
+      'Core 3×15',
+    ];
   }
 
   String _buildPrompt({
@@ -290,12 +373,26 @@ Salı: [Dinlenme/kas grubu]
   Future<void> _persist() async {
     if (_plan == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kPlanKey, jsonEncode(_plan!.toJson()));
-    await prefs.setString(_kPlanDateKey, (_planDate ?? DateTime.now()).toIso8601String());
+    await prefs.setString(_planKey, jsonEncode(_plan!.toJson()));
+    await prefs.setString(
+      _planDateKey,
+      (_planDate ?? DateTime.now()).toIso8601String(),
+    );
   }
 
-  void clearError() { _error = null; notifyListeners(); }
-  void clearPlan() { _plan = null; _planDate = null; notifyListeners(); }
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  Future<void> clearPlan() async {
+    _plan = null;
+    _planDate = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_planKey);
+    await prefs.remove(_planDateKey);
+    notifyListeners();
+  }
 }
 
 class WeeklyPlan {
@@ -304,16 +401,16 @@ class WeeklyPlan {
   WeeklyPlan({required this.summary, required this.days});
 
   factory WeeklyPlan.fromJson(Map<String, dynamic> json) => WeeklyPlan(
-        summary: json['summary'] ?? '',
-        days: (json['days'] as List? ?? [])
-            .map((d) => DayPlan.fromJson(d as Map<String, dynamic>))
-            .toList(),
-      );
+    summary: json['summary'] ?? '',
+    days: (json['days'] as List? ?? [])
+        .map((d) => DayPlan.fromJson(d as Map<String, dynamic>))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-        'summary': summary,
-        'days': days.map((d) => d.toJson()).toList(),
-      };
+    'summary': summary,
+    'days': days.map((d) => d.toJson()).toList(),
+  };
 }
 
 class DayPlan {
@@ -332,18 +429,18 @@ class DayPlan {
   });
 
   factory DayPlan.fromJson(Map<String, dynamic> json) => DayPlan(
-        dayName: json['dayName'] ?? '',
-        isRestDay: json['isRestDay'] ?? false,
-        focus: json['focus'] ?? '',
-        exercises: List<String>.from(json['exercises'] ?? []),
-        notes: json['notes'] ?? '',
-      );
+    dayName: json['dayName'] ?? '',
+    isRestDay: json['isRestDay'] ?? false,
+    focus: json['focus'] ?? '',
+    exercises: List<String>.from(json['exercises'] ?? []),
+    notes: json['notes'] ?? '',
+  );
 
   Map<String, dynamic> toJson() => {
-        'dayName': dayName,
-        'isRestDay': isRestDay,
-        'focus': focus,
-        'exercises': exercises,
-        'notes': notes,
-      };
+    'dayName': dayName,
+    'isRestDay': isRestDay,
+    'focus': focus,
+    'exercises': exercises,
+    'notes': notes,
+  };
 }

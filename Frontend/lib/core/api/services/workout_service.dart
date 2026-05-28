@@ -21,6 +21,24 @@ class WorkoutService {
     }
   }
 
+  Future<WorkoutSessionResponse> createWorkoutSession(
+    int userId,
+    WorkoutSessionRequest request,
+  ) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConstants.workoutSessions,
+        data: request.toJson(),
+      );
+      return WorkoutSessionResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(message: 'Antrenman seansı kaydedilemedi');
+    }
+  }
+
   /// Kullanıcının tüm antrenmanlarını getir
   Future<List<Workout>> getUserWorkouts(int userId) async {
     try {

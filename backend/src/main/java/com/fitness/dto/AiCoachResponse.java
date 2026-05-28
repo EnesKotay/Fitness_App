@@ -10,6 +10,8 @@ public class AiCoachResponse {
     // Quota info — backend is the single source of truth
     /** Remaining free requests for today. null for premium users. */
     public Integer remainingFreeRequests;
+    
+    public String memorySaved;
 
     // V5: Rich Data
     public List<AiCoachAction> actions;

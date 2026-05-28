@@ -1,53 +1,67 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const String _currentVersion = '1.1.2';
 const String _appStoreId = '6762379939';
-const String _appStoreUrl =
-    'https://apps.apple.com/app/pusulafit/id$_appStoreId';
+const String _playStorePackage = 'com.pusulafit.tracker';
 
-// SharedPreferences keys
+const String _appStoreUrl = 'https://apps.apple.com/app/pusulafit/id$_appStoreId';
+const String _playStoreUrl =
+    'https://play.google.com/store/apps/details?id=$_playStorePackage';
+
 const String _keyLastCheckedDate = 'update_last_checked_date';
-const String _keyDismissedVersion = 'update_dismissed_version';
+const String _keySnoozedUntil = 'update_snoozed_until';
+const int _snoozeDays = 3;
 
 class UpdateCheckerService {
   /// Uygulama açıldığında çağır.
   ///
-  /// - API'ye günde en fazla 1 kez istek atar
-  /// - Kullanıcı "Sonra" dediyse o sürüm için bir daha göstermez
-  /// - Daha yeni bir sürüm çıkarsa tekrar gösterir
+  /// - Günde en fazla 1 kez API isteği atar
+  /// - "3 Gün Sonra" seçilirse o kadar süre dialog göstermez
+  /// - Yeni sürümde snooze sıfırlanır
   static Future<void> checkAndPrompt(BuildContext context) async {
-    if (!Platform.isIOS) return;
+    if (!Platform.isIOS && !Platform.isAndroid) return;
 
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Günde 1 kez API çağrısı yap
+      // Günde 1 kez kontrol et
       final lastChecked = prefs.getString(_keyLastCheckedDate);
-      final today = DateTime.now().toIso8601String().substring(0, 10); // 'yyyy-MM-dd'
+      final today = DateTime.now().toIso8601String().substring(0, 10);
       if (lastChecked == today) return;
 
-      final storeVersion = await _fetchStoreVersion();
+      // Snooze aktif mi?
+      final snoozedUntil = prefs.getString(_keySnoozedUntil);
+      if (snoozedUntil != null) {
+        final snoozeDate = DateTime.tryParse(snoozedUntil);
+        if (snoozeDate != null && DateTime.now().isBefore(snoozeDate)) return;
+      }
+
+      final packageInfo = await PackageInfo.fromPlatform();
+      final currentVersion = packageInfo.version;
+
+      final storeVersion = Platform.isIOS
+          ? await _fetchAppStoreVersion()
+          : await _fetchPlayStoreVersion();
       if (storeVersion == null) return;
 
       await prefs.setString(_keyLastCheckedDate, today);
 
-      // Yeni sürüm yok
-      if (!_isNewerVersion(storeVersion, _currentVersion)) return;
-
-      // Bu sürüm için kullanıcı zaten "Sonra" dedi
-      final dismissed = prefs.getString(_keyDismissedVersion);
-      if (dismissed == storeVersion) return;
+      if (!_isNewerVersion(storeVersion, currentVersion)) return;
 
       if (context.mounted) {
         final didUpdate = await _showUpdateDialog(context, storeVersion);
         if (!didUpdate) {
-          // "Sonra" seçildi — bu sürümü hatırla, tekrar gösterme
-          await prefs.setString(_keyDismissedVersion, storeVersion);
+          final snoozeUntil =
+              DateTime.now().add(const Duration(days: _snoozeDays));
+          await prefs.setString(
+              _keySnoozedUntil, snoozeUntil.toIso8601String().substring(0, 10));
+        } else {
+          await prefs.remove(_keySnoozedUntil);
         }
       }
     } catch (_) {
@@ -55,73 +69,64 @@ class UpdateCheckerService {
     }
   }
 
-  static Future<String?> _fetchStoreVersion() async {
+  static Future<String?> _fetchAppStoreVersion() async {
     final uri = Uri.parse(
         'https://itunes.apple.com/lookup?id=$_appStoreId&country=tr');
     final response =
         await http.get(uri).timeout(const Duration(seconds: 5));
     if (response.statusCode != 200) return null;
-
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final results = data['results'] as List<dynamic>?;
     if (results == null || results.isEmpty) return null;
     return results.first['version'] as String?;
   }
 
-  /// true → kullanıcı "Güncelle"ye bastı, false → "Sonra"
+  static Future<String?> _fetchPlayStoreVersion() async {
+    try {
+      final uri = Uri.parse(
+          'https://play.google.com/store/apps/details?id=$_playStorePackage&hl=tr');
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'Mozilla/5.0'},
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200) return null;
+      final match =
+          RegExp(r'\[\[\["(\d+\.\d+(?:\.\d+)?)"\]\]').firstMatch(response.body);
+      return match?.group(1);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<bool> _showUpdateDialog(
       BuildContext context, String storeVersion) async {
-    final result = await showDialog<bool>(
+    final storeUrl =
+        Platform.isIOS ? _appStoreUrl : _playStoreUrl;
+
+    final result = await showCupertinoDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Text('🚀', style: TextStyle(fontSize: 24)),
-            SizedBox(width: 8),
-            Text(
-              'Yeni Sürüm Var!',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'PusulaFit $storeVersion sürümü çıktı!\n\n'
-          'Yeni özellikler ve iyileştirmeler için hemen güncelleyin.',
-          style: const TextStyle(color: Color(0xFFB0B0C0), fontSize: 14),
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Güncelleme var!'),
+        content: const Text(
+          'İyi haber! Uygulamanın yeni bir sürümü var.',
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
+            isDestructiveAction: false,
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text(
-              'Sonra',
-              style: TextStyle(color: Color(0xFF888899)),
-            ),
+            child: const Text('Daha Sonra'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFD89A6A),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () async {
               Navigator.of(ctx).pop(true);
-              final uri = Uri.parse(_appStoreUrl);
+              final uri = Uri.parse(storeUrl);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
             },
-            child: const Text(
-              'Güncelle',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-            ),
+            child: const Text('Güncelle'),
           ),
         ],
       ),

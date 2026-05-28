@@ -183,7 +183,7 @@ class ExerciseParserService {
           'trap',
           'shrug',
           'scapula',
-          'ust sirt',
+          'üst sirt',
           'trapez',
         ])) {
           return 'Üst Sırt';

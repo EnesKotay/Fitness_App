@@ -342,11 +342,13 @@ class CoachAdviceView {
   final String focus;
   final List<String> actions;
   final String nutritionNote;
+  final String? memoryFact;
 
   const CoachAdviceView({
     this.focus = '',
     this.actions = const <String>[],
     this.nutritionNote = '',
+    this.memoryFact,
   });
 }
 

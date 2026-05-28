@@ -13,7 +13,6 @@ import '../../../domain/entities/food_item.dart';
 import '../../../domain/entities/meal_type.dart';
 import '../../../presentation/pages/portion_add_page.dart';
 import '../../../presentation/state/diet_provider.dart';
-import '../../../services/premium_feature_gate.dart';
 import '../../domain/models/scanned_nutrition_result.dart';
 
 class LabelOcrScanPage extends StatefulWidget {

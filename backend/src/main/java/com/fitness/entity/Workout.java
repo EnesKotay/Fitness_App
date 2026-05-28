@@ -18,6 +18,10 @@ public class Workout extends PanacheEntity {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     public User user;
+
+    @ManyToOne
+    @JoinColumn(name = "workout_session_id")
+    public WorkoutSession workoutSession;
     
     @Column(nullable = false)
     public String name; // Antrenman adı

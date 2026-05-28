@@ -51,7 +51,8 @@ class _SettingsNotificationsScreenState
     _water = StorageHelper.getNotifWater();
     _workout = StorageHelper.getNotifWorkout();
     _dailySummary = StorageHelper.getNotifDailySummary();
-    _waterIntervalHours = await WaterReminderService.instance.getIntervalHours();
+    _waterIntervalHours = await WaterReminderService.instance
+        .getIntervalHours();
     final wt = StorageHelper.getNotifWorkoutTime();
     _workoutTime = TimeOfDay(hour: wt[0], minute: wt[1]);
 
@@ -78,8 +79,13 @@ class _SettingsNotificationsScreenState
     await StorageHelper.saveNotifWorkout(_workout);
     await StorageHelper.saveNotifDailySummary(_dailySummary);
     await StorageHelper.saveNotifWorkoutTime(
-        _workoutTime.hour, _workoutTime.minute);
-    await WaterReminderService.instance.setIntervalHours(_waterIntervalHours);
+      _workoutTime.hour,
+      _workoutTime.minute,
+    );
+    await WaterReminderService.instance.setIntervalHours(
+      _waterIntervalHours,
+      sync: false,
+    );
     await NotificationSchedulerService.instance.syncScheduledNotifications();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -92,21 +98,19 @@ class _SettingsNotificationsScreenState
   }
 
   Future<void> _persistMeal() async {
-    await MealReminderService.instance.setEnabled(_mealEnabled);
-    await MealReminderService.instance.setMealEnabled(
-      'breakfast',
-      _breakfastEnabled,
+    await MealReminderService.instance.saveSettings(
+      MealReminderSettings(
+        enabled: _mealEnabled,
+        breakfastEnabled: _breakfastEnabled,
+        lunchEnabled: _lunchEnabled,
+        dinnerEnabled: _dinnerEnabled,
+        snackEnabled: _snackEnabled,
+        breakfastTime: _breakfastTime,
+        lunchTime: _lunchTime,
+        dinnerTime: _dinnerTime,
+        snackTime: _snackTime,
+      ),
     );
-    await MealReminderService.instance.setMealEnabled('lunch', _lunchEnabled);
-    await MealReminderService.instance.setMealEnabled('dinner', _dinnerEnabled);
-    await MealReminderService.instance.setMealEnabled('snack', _snackEnabled);
-
-    await MealReminderService.instance.setMealTime('breakfast', _breakfastTime);
-    await MealReminderService.instance.setMealTime('lunch', _lunchTime);
-    await MealReminderService.instance.setMealTime('dinner', _dinnerTime);
-    await MealReminderService.instance.setMealTime('snack', _snackTime);
-    await NotificationSchedulerService.instance.syncScheduledNotifications();
-
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

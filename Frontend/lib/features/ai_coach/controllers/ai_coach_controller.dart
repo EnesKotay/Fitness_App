@@ -28,6 +28,7 @@ class ChatMessage {
   final bool isThinking;
   final String? taskMode;
   final String? personality;
+  final String? userPrompt;
 
   ChatMessage({
     required this.id,
@@ -41,6 +42,7 @@ class ChatMessage {
     this.isThinking = false,
     this.taskMode,
     this.personality,
+    this.userPrompt,
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
@@ -435,7 +437,8 @@ class AiCoachController extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<UserMemoryFact> get userMemoryFacts => List.unmodifiable(_userMemoryFacts);
+  List<UserMemoryFact> get userMemoryFacts =>
+      List.unmodifiable(_userMemoryFacts);
   AiUserMemoryService get memoryService => _memoryService;
 
   Future<void> saveMemoryFact(UserMemoryFact fact) async {
@@ -508,10 +511,12 @@ class AiCoachController extends ChangeNotifier {
         .toList();
     if (real.length < 2) return;
     final toSave = real
-        .map((m) => {
-              'role': m.role == ChatRole.user ? 'user' : 'assistant',
-              'content': m.content,
-            })
+        .map(
+          (m) => {
+            'role': m.role == ChatRole.user ? 'user' : 'assistant',
+            'content': m.content,
+          },
+        )
         .toList();
     await _sessionService.archiveSession(
       userId: uid,
@@ -559,15 +564,20 @@ class AiCoachController extends ChangeNotifier {
   Future<void> loadHistorySession(String date) async {
     final uid = _userId;
     if (uid == null) return;
-    final stored = await _sessionService.loadHistorySession(userId: uid, date: date);
+    final stored = await _sessionService.loadHistorySession(
+      userId: uid,
+      date: date,
+    );
     if (stored.isEmpty) return;
     _messages.clear();
     for (final m in stored) {
-      _messages.add(ChatMessage(
-        id: 'hist_${DateTime.now().microsecondsSinceEpoch}',
-        role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
-        content: m['content']!,
-      ));
+      _messages.add(
+        ChatMessage(
+          id: 'hist_${DateTime.now().microsecondsSinceEpoch}',
+          role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
+          content: m['content']!,
+        ),
+      );
     }
     notifyListeners();
   }
@@ -747,6 +757,7 @@ class AiCoachController extends ChangeNotifier {
           structuredResponse: response,
           taskMode: snapshot.taskMode.name,
           personality: snapshot.personality.name,
+          userPrompt: normalized,
         ),
       );
       notifyListeners();
@@ -764,6 +775,7 @@ class AiCoachController extends ChangeNotifier {
           structuredResponse: response,
           taskMode: snapshot.taskMode.name,
           personality: snapshot.personality.name,
+          userPrompt: normalized,
         );
         notifyListeners();
         i = end;
@@ -1064,15 +1076,37 @@ class AiCoachController extends ChangeNotifier {
   }
 
   /// Fire-and-forget feedback — called from ChatBubble when user taps 👍/👎.
-  void sendFeedback(ChatMessage message, {required bool isPositive}) {
-    unawaited(
-      _service.sendFeedback(
+  void sendFeedback(
+    ChatMessage message, {
+    required bool isPositive,
+    String? reason,
+    String? coachingPreference,
+  }) {
+    unawaited(() async {
+      await _service.sendFeedback(
         aiResponse: message.content,
         isPositive: isPositive,
         taskMode: message.taskMode,
         personality: message.personality,
-      ),
-    );
+        userQuestion: message.userPrompt,
+        reason: reason,
+        coachingPreference: coachingPreference,
+      );
+      final uid = _userId;
+      final fact = coachingPreference;
+      if (uid != null && fact != null && fact.trim().isNotEmpty) {
+        await _memoryService.saveFact(
+          uid,
+          UserMemoryFact(
+            category: 'feedback',
+            fact: 'AI koç tercihi: ${fact.trim()}',
+            savedAt: DateTime.now(),
+          ),
+        );
+        _userMemoryFacts = await _memoryService.getFacts(uid);
+        notifyListeners();
+      }
+    }());
   }
 
   @override

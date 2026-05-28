@@ -12,9 +12,10 @@ import '../datasources/hive_diet_storage.dart';
 abstract class NutritionRemoteGateway {
   Future<Meal> createMeal(int userId, MealRequest request);
   Future<List<Meal>> getMealsByDate(int userId, DateTime date);
-  Future<List<Meal>> getUserMeals(int userId);
+  Future<List<Meal>> getUserMeals(int userId, {int? limit});
   Future<Meal> updateMeal(int userId, int mealId, MealRequest request);
   Future<void> deleteMeal(int userId, int mealId);
+  Future<void> deleteAllMeals(int userId);
 }
 
 class NutritionRemoteGatewayImpl implements NutritionRemoteGateway {
@@ -36,11 +37,15 @@ class NutritionRemoteGatewayImpl implements NutritionRemoteGateway {
       _service.getMealsByDate(userId, date);
 
   @override
-  Future<List<Meal>> getUserMeals(int userId) => _service.getUserMeals(userId);
+  Future<List<Meal>> getUserMeals(int userId, {int? limit}) =>
+      _service.getUserMeals(userId, limit: limit);
 
   @override
   Future<Meal> updateMeal(int userId, int mealId, MealRequest request) =>
       _service.updateMeal(userId, mealId, request);
+
+  @override
+  Future<void> deleteAllMeals(int userId) => _service.deleteAllMeals(userId);
 }
 
 class LocalDiaryRepository implements DiaryRepository {
@@ -50,6 +55,15 @@ class LocalDiaryRepository implements DiaryRepository {
   final String? _tokenOverride;
   static const String _remoteIdPrefix = 'api_';
   static const String _metaPrefix = '__app_meta__:';
+  static const Duration _entriesCacheTtl = Duration(seconds: 20);
+  static const Duration _userMealsCacheTtl = Duration(seconds: 60);
+  final Map<String, _DayEntriesCache> _entriesCache = {};
+  final Map<String, Future<List<FoodEntry>>> _entriesInFlight = {};
+
+  // Dedup: /api/nutrition/me/meals paralel çağrılarını tek isteğe indirir
+  Future<List<Meal>>? _userMealsInFlight;
+  List<Meal>? _userMealsCache;
+  DateTime? _userMealsCachedAt;
 
   LocalDiaryRepository({
     HiveDietStorage? storage,
@@ -76,7 +90,9 @@ class LocalDiaryRepository implements DiaryRepository {
           _userId,
           _toMealRequest(entry),
         );
-        await _upsertLocal(_fromMeal(created));
+        final createdEntry = _fromMeal(created);
+        await _upsertLocal(createdEntry);
+        _invalidateDate(createdEntry.date);
         return;
       } catch (e) {
         debugPrint('LocalDiaryRepository.addEntry remote fallback: $e');
@@ -86,6 +102,7 @@ class LocalDiaryRepository implements DiaryRepository {
       final list = await _storage.getAllEntries();
       list.add(entry);
       await _storage.saveAllEntries(list);
+      _invalidateDate(entry.date);
     } catch (e) {
       debugPrint('LocalDiaryRepository.addEntry hatası: $e');
       rethrow;
@@ -94,6 +111,24 @@ class LocalDiaryRepository implements DiaryRepository {
 
   @override
   Future<List<FoodEntry>> getEntriesByDate(String date) async {
+    final cached = _freshCachedEntries(date);
+    if (cached != null) return cached;
+
+    final inFlight = _entriesInFlight[date];
+    if (inFlight != null) return inFlight;
+
+    final request = _fetchEntriesByDate(date);
+    _entriesInFlight[date] = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_entriesInFlight[date], request)) {
+        _entriesInFlight.remove(date);
+      }
+    }
+  }
+
+  Future<List<FoodEntry>> _fetchEntriesByDate(String date) async {
     if (_canUseRemote) {
       try {
         final parsedDate = DateTime.tryParse(date);
@@ -103,7 +138,11 @@ class LocalDiaryRepository implements DiaryRepository {
           final entries = meals.map(_fromMeal).toList()
             ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
           await _replaceLocalDay(date, entries);
-          return entries;
+          final merged = await _storage.getAllEntries();
+          final dayEntries = merged.where((e) => e.date == date).toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          _rememberEntries(date, dayEntries);
+          return List<FoodEntry>.of(dayEntries);
         }
       } catch (e) {
         debugPrint('LocalDiaryRepository.getEntriesByDate remote fallback: $e');
@@ -111,8 +150,10 @@ class LocalDiaryRepository implements DiaryRepository {
     }
     try {
       final list = await _storage.getAllEntries();
-      return list.where((e) => e.date == date).toList()
+      final dayEntries = list.where((e) => e.date == date).toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _rememberEntries(date, dayEntries);
+      return List<FoodEntry>.of(dayEntries);
     } catch (e) {
       debugPrint('LocalDiaryRepository.getEntriesByDate hatası: $e');
       return [];
@@ -144,6 +185,7 @@ class LocalDiaryRepository implements DiaryRepository {
 
   @override
   Future<void> deleteEntry(String entryId) async {
+    String? removedDate;
     if (_canUseRemote) {
       final remoteId = _parseRemoteId(entryId);
       if (remoteId != null) {
@@ -158,8 +200,15 @@ class LocalDiaryRepository implements DiaryRepository {
     }
     try {
       final list = await _storage.getAllEntries();
+      for (final entry in list) {
+        if (entry.id == entryId) {
+          removedDate = entry.date;
+          break;
+        }
+      }
       list.removeWhere((e) => e.id == entryId);
       await _storage.saveAllEntries(list);
+      if (removedDate != null) _invalidateDate(removedDate);
     } catch (e) {
       debugPrint('LocalDiaryRepository.deleteEntry hatası: $e');
       rethrow;
@@ -177,7 +226,9 @@ class LocalDiaryRepository implements DiaryRepository {
             remoteId,
             _toMealRequest(entry),
           );
-          await _upsertLocal(_fromMeal(updated));
+          final updatedEntry = _fromMeal(updated);
+          await _upsertLocal(updatedEntry);
+          _invalidateDate(updatedEntry.date);
           return;
         } catch (e) {
           debugPrint('LocalDiaryRepository.updateEntry remote failed: $e');
@@ -192,9 +243,18 @@ class LocalDiaryRepository implements DiaryRepository {
           );
           final createdEntry = _fromMeal(created);
           final list = await _storage.getAllEntries();
+          FoodEntry? oldEntry;
+          for (final localEntry in list) {
+            if (localEntry.id == entry.id) {
+              oldEntry = localEntry;
+              break;
+            }
+          }
           list.removeWhere((e) => e.id == entry.id);
           list.add(createdEntry);
           await _storage.saveAllEntries(list);
+          if (oldEntry != null) _invalidateDate(oldEntry.date);
+          _invalidateDate(createdEntry.date);
           return;
         } catch (e) {
           debugPrint(
@@ -211,6 +271,7 @@ class LocalDiaryRepository implements DiaryRepository {
       }
       list[index] = entry;
       await _storage.saveAllEntries(list);
+      _invalidateDate(entry.date);
     } catch (e) {
       debugPrint('LocalDiaryRepository.updateEntry hatası: $e');
       rethrow;
@@ -219,14 +280,46 @@ class LocalDiaryRepository implements DiaryRepository {
 
   @override
   Future<void> clearAllEntries() async {
+    if (_canUseRemote) {
+      try {
+        await _remote.deleteAllMeals(_userId);
+      } catch (e) {
+        debugPrint('LocalDiaryRepository.clearAllEntries remote failed: $e');
+        rethrow;
+      }
+    }
     await _storage.saveAllEntries([]);
+    _entriesCache.clear();
+    _entriesInFlight.clear();
+  }
+
+  /// Tek HTTP isteğiyle dönen meals listesi; paralel çağrılarda dedup yapar.
+  Future<List<Meal>> _fetchUserMeals() {
+    final now = DateTime.now();
+    final cached = _userMealsCache;
+    final cachedAt = _userMealsCachedAt;
+    if (cached != null &&
+        cachedAt != null &&
+        now.difference(cachedAt) < _userMealsCacheTtl) {
+      return Future.value(cached);
+    }
+    _userMealsInFlight ??= _remote.getUserMeals(_userId, limit: 240).then((meals) {
+      _userMealsCache = meals;
+      _userMealsCachedAt = DateTime.now();
+      _userMealsInFlight = null;
+      return meals;
+    }, onError: (e) {
+      _userMealsInFlight = null;
+      throw e;
+    });
+    return _userMealsInFlight!;
   }
 
   @override
   Future<List<String>> getRecentFoodIds(int limit) async {
     if (_canUseRemote) {
       try {
-        final meals = await _remote.getUserMeals(_userId);
+        final meals = await _fetchUserMeals();
         final seen = <String>{};
         final result = <String>[];
         for (final meal in meals) {
@@ -248,7 +341,7 @@ class LocalDiaryRepository implements DiaryRepository {
   Future<List<String>> getFrequentFoodIds(int limit) async {
     if (_canUseRemote) {
       try {
-        final meals = await _remote.getUserMeals(_userId);
+        final meals = await _fetchUserMeals();
         final counts = <String, int>{};
         for (final meal in meals) {
           final foodId = _extractFoodId(meal);
@@ -457,7 +550,7 @@ class LocalDiaryRepository implements DiaryRepository {
     List<FoodEntry> remoteDayEntries,
   ) async {
     final all = await _storage.getAllEntries();
-    all.removeWhere((e) => e.date == day);
+    all.removeWhere((e) => e.date == day && _parseRemoteId(e.id) != null);
     all.addAll(remoteDayEntries);
     await _storage.saveAllEntries(all);
   }
@@ -491,6 +584,35 @@ class LocalDiaryRepository implements DiaryRepository {
       await _storage.saveAllEntries(all);
     }
   }
+
+  List<FoodEntry>? _freshCachedEntries(String date) {
+    final cached = _entriesCache[date];
+    if (cached == null) return null;
+    if (DateTime.now().difference(cached.savedAt) > _entriesCacheTtl) {
+      _entriesCache.remove(date);
+      return null;
+    }
+    return List<FoodEntry>.of(cached.entries);
+  }
+
+  void _rememberEntries(String date, List<FoodEntry> entries) {
+    _entriesCache[date] = _DayEntriesCache(
+      savedAt: DateTime.now(),
+      entries: List<FoodEntry>.of(entries),
+    );
+  }
+
+  void _invalidateDate(String date) {
+    _entriesCache.remove(date);
+    _entriesInFlight.remove(date);
+  }
+}
+
+class _DayEntriesCache {
+  final DateTime savedAt;
+  final List<FoodEntry> entries;
+
+  const _DayEntriesCache({required this.savedAt, required this.entries});
 }
 
 class _EntryMeta {

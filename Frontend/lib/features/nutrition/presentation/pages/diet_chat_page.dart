@@ -8,7 +8,6 @@ import '../../domain/entities/food_item.dart';
 import '../state/diet_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/ai_safety_helper.dart';
-import '../../../../core/widgets/premium_state_badge.dart';
 import '../../models/nutrition_ai_response.dart';
 import '../widgets/meal_card.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -382,29 +381,79 @@ class _DietChatPageState extends State<DietChatPage> {
         } else {
           final buf = StringBuffer();
           buf.writeln(
-            'Bugünkü özet (${DateFormat('d MMM', 'tr_TR').format(date)}):',
-          );
-          buf.writeln('• Toplam: ${totals.totalKcal.round()} kcal');
-          if (targetKcal > 0) {
-            buf.writeln(
-              '• Kalan: ${(targetKcal - totals.totalKcal).round()} kcal',
-            );
-          }
-          buf.writeln(
-            '• Protein: ${totals.totalProtein.round()}g · Karb.: ${totals.totalCarb.round()}g · Yağ: ${totals.totalFat.round()}g',
+            '📊 Bugünkü Özet — ${DateFormat('d MMMM', 'tr_TR').format(date)}',
           );
           buf.writeln('');
+
+          // Kalori durumu
+          final remaining = (targetKcal - totals.totalKcal).round();
+          final pct = targetKcal > 0
+              ? ((totals.totalKcal / targetKcal) * 100).round()
+              : 0;
+          buf.writeln(
+            '🔥 Kalori: ${totals.totalKcal.round()} / $targetKcal kcal (%$pct)',
+          );
+          if (targetKcal > 0) {
+            if (remaining > 0) {
+              buf.writeln('   → $remaining kcal kaldı');
+            } else {
+              buf.writeln('   → Hedef aşıldı (${remaining.abs()} kcal fazla)');
+            }
+          }
+          buf.writeln('');
+
+          // Makrolar
+          final profile = provider.profile;
+          final proteinTarget = profile != null
+              ? (profile.weight * 1.8).round()
+              : 0;
+          buf.writeln('💪 Protein: ${totals.totalProtein.round()}g'
+              '${proteinTarget > 0 ? " / ${proteinTarget}g" : ""}');
+          buf.writeln(
+            '🌾 Karb: ${totals.totalCarb.round()}g · 🫒 Yağ: ${totals.totalFat.round()}g',
+          );
+          buf.writeln('');
+
+          // Öğünler
           for (final type in MealType.values) {
             final mealEntries = provider.entriesForMeal(type);
             if (mealEntries.isEmpty) continue;
-            buf.writeln('${type.label}:');
+            final mealKcal = mealEntries
+                .fold(0.0, (sum, e) => sum + e.calculatedKcal)
+                .round();
+            buf.writeln('${type.label} ($mealKcal kcal):');
             for (final e in mealEntries) {
               buf.writeln(
-                '  – ${e.foodName} (${e.grams.round()}g) · ${e.calculatedKcal.round()} kcal',
+                '  • ${e.foodName} (${e.grams.round()}g) · ${e.calculatedKcal.round()} kcal',
               );
             }
+            buf.writeln('');
           }
-          _addBot(buf.toString());
+
+          // Mini insight
+          final hour = DateTime.now().hour;
+          if (proteinTarget > 0 &&
+              totals.totalProtein < proteinTarget * 0.7 &&
+              hour < 21) {
+            final gap = (proteinTarget - totals.totalProtein.round());
+            buf.writeln(
+              '⚡ İpucu: Protein hedefine $gap g kaldı. Akşam öğününde protein ağırlıklı bir seçenek ekle.',
+            );
+          } else if (remaining > 300 && hour < 19) {
+            buf.writeln(
+              '⚡ İpucu: $remaining kcal alanın var. Gün içinde besleyici bir ara öğün ekleyebilirsin.',
+            );
+          } else if (remaining < -200) {
+            buf.writeln(
+              '⚡ İpucu: Kalori hedefini ${remaining.abs()} kcal geçtin. Kalan öğünlerde hafif ve lifli seçimler yap.',
+            );
+          } else if (totals.totalKcal > 0 && pct >= 90) {
+            buf.writeln(
+              '✅ İyi iş! Kalori hedefine çok yakınsın.',
+            );
+          }
+
+          _addBot(buf.toString().trimRight());
         }
         setState(() => _loading = false);
         return;
@@ -506,27 +555,66 @@ class _DietChatPageState extends State<DietChatPage> {
           if (_isPremium)
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF111827),
-                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFFD97706).withValues(alpha: 0.12),
+                    const Color(0xFF111827),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: const Color(0xFFD97706).withValues(alpha: 0.22),
+                  color: const Color(0xFFD97706).withValues(alpha: 0.28),
                 ),
               ),
               child: Row(
                 children: [
-                  const PremiumStateBadge(active: true, compact: true),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.workspace_premium_rounded,
+                      size: 15,
+                      color: Color(0xFFEBC374),
+                    ),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      'Premium aktif. AI Koç tam erişimle açık.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Premium Aktif',
+                          style: TextStyle(
+                            color: Color(0xFFEBC374),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        Text(
+                          'AI Koç Claude ile tam erişimde çalışıyor',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF30D158),
+                      shape: BoxShape.circle,
                     ),
                   ),
                 ],
@@ -642,110 +730,457 @@ class _DietChatPageState extends State<DietChatPage> {
     );
   }
 
+  // Kullanıcı durumuna göre dinamik öneri kartları oluşturur
+  List<({String text, IconData icon, Color color, String badge, String send})>
+      _buildDynamicSuggestions(DietProvider provider) {
+    final hour = DateTime.now().hour;
+    final remaining = provider.remainingKcal.round();
+    final protein = provider.totals.totalProtein.round();
+    final proteinTarget = provider.profile != null
+        ? (provider.profile!.weight * 1.8).round()
+        : 0;
+    final proteinGap = proteinTarget > 0 ? proteinTarget - protein : 0;
+    final hasMeals = provider.entries.isNotEmpty;
+    final waterLiters = provider.waterLiters;
+
+    final suggestions =
+        <({String text, IconData icon, Color color, String badge, String send})>[];
+
+    // 1. Saat bazlı öğün önerisi
+    if (!hasMeals || hour < 11) {
+      if (hour < 11) {
+        suggestions.add((
+          text: 'Kahvaltıya yulaf ezmesi veya omlet ekle',
+          icon: Icons.wb_sunny_rounded,
+          color: const Color(0xFFFF9F0A),
+          badge: 'Kahvaltı',
+          send: 'Sabah kahvaltısı için 200 kcal civarında, yüksek proteinli bir öneri ver',
+        ));
+      } else if (hour < 15) {
+        suggestions.add((
+          text: 'Öğle yemeğine ne ekleyeyim?',
+          icon: Icons.restaurant_rounded,
+          color: const Color(0xFF30D158),
+          badge: 'Öğle',
+          send: 'Öğle yemeği için sağlıklı ve doyurucu bir öneri ver, mevcut kalori durumuma göre',
+        ));
+      } else if (hour < 20) {
+        suggestions.add((
+          text: 'Akşam yemeği için öneri yap',
+          icon: Icons.dinner_dining_rounded,
+          color: const Color(0xFF5B9BFF),
+          badge: 'Akşam',
+          send: 'Akşam yemeği için kalori ve protein dengemi göz önünde tutarak öneri yap',
+        ));
+      } else {
+        suggestions.add((
+          text: 'Gece atıştırması için ne yiyebilirim?',
+          icon: Icons.nightlight_rounded,
+          color: const Color(0xFFBF5AF2),
+          badge: 'Gece',
+          send: 'Gece geç saatte hafif, düşük kalorili ama doyurucu bir atıştırmalık öner',
+        ));
+      }
+    }
+
+    // 2. Protein açığı varsa
+    if (proteinGap > 30) {
+      suggestions.add((
+        text: 'Protein hedefime $proteinGap g kaldı, ne yesem?',
+        icon: Icons.fitness_center_rounded,
+        color: const Color(0xFF32ADE6),
+        badge: 'Protein',
+        send: 'Protein hedefime $proteinGap gram kaldı. Hızlı protein tamamlamak için yüksek proteinli yemek öner',
+      ));
+    }
+
+    // 3. Su azsa
+    if (waterLiters < 1.2) {
+      suggestions.add((
+        text: 'Bugün çok az su içtim, hatırlat',
+        icon: Icons.water_drop_rounded,
+        color: const Color(0xFF64D2FF),
+        badge: 'Hidrasyon',
+        send: 'Bugün yeterli su içmedim. Su tüketimi ve sağlığı hakkında kısa bir hatırlatma yap',
+      ));
+    }
+
+    // 4. Kalori durumuna göre
+    if (remaining > 400 && hasMeals) {
+      suggestions.add((
+        text: 'Kalan $remaining kcal ile ne yiyebilirim?',
+        icon: Icons.pie_chart_rounded,
+        color: const Color(0xFF30D158),
+        badge: 'Kalori',
+        send: 'Bugün $remaining kcal alanım kaldı. Bu kalori ile besleyici ama hafif ne yiyebilirim?',
+      ));
+    } else if (remaining < -100) {
+      suggestions.add((
+        text: 'Kalori hedefimi aştım, ne yapmalıyım?',
+        icon: Icons.warning_amber_rounded,
+        color: const Color(0xFFFF9F0A),
+        badge: 'Dikkat',
+        send: 'Kalori hedefimi ${(-remaining)} kcal aştım. Nasıl telafi etmeliyim?',
+      ));
+    }
+
+    // 5. Günlük özet (her zaman ekle)
+    if (!hasMeals) {
+      suggestions.add((
+        text: 'Bugün ne yemeliyim? Planla',
+        icon: Icons.calendar_today_rounded,
+        color: const Color(0xFFBF5AF2),
+        badge: 'Günlük Plan',
+        send: 'Bugün için sağlıklı bir günlük beslenme planı öner, hedeflerime uygun',
+      ));
+    } else {
+      suggestions.add((
+        text: 'Bugün ne yedim, özet ver',
+        icon: Icons.summarize_rounded,
+        color: const Color(0xFFFF9F0A),
+        badge: 'Özet',
+        send: 'Bugün ne yedim, özet ver',
+      ));
+    }
+
+    // Minimum 4 kart garantisi
+    final fallbacks = [
+      (
+        text: 'Yüksek proteinli bir akşam yemeği öner',
+        icon: Icons.lightbulb_rounded,
+        color: const Color(0xFFBF5AF2),
+        badge: 'Öneri',
+        send: 'Yüksek proteinli bir akşam yemeği öner',
+      ),
+      (
+        text: 'Bugün kaç kalorim kaldı?',
+        icon: Icons.pie_chart_rounded,
+        color: const Color(0xFF32ADE6),
+        badge: 'Sorgula',
+        send: 'Bugün kaç kalorim kaldı, hedefime ne kadar kaldı açıkla',
+      ),
+      (
+        text: 'Öğle yemeğine 1 porsiyon döner ekle',
+        icon: Icons.restaurant_rounded,
+        color: const Color(0xFF30D158),
+        badge: 'Öğün Ekle',
+        send: 'Öğle yemeğine 1 porsiyon döner ekle',
+      ),
+    ];
+
+    for (final f in fallbacks) {
+      if (suggestions.length >= 4) break;
+      suggestions.add(f);
+    }
+
+    return suggestions.take(4).toList();
+  }
+
   Widget _buildEmptyState() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primary.withValues(alpha: 0.2),
-                    Colors.transparent,
+    final provider = Provider.of<DietProvider>(context, listen: false);
+    final suggestions = _buildDynamicSuggestions(provider);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Kompakt hero satırı ───────────────────────────────────────────
+          Row(
+            children: [
+              // İkon circle
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.30),
+                      AppColors.primary.withValues(alpha: 0.06),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.45),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
                   ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
                 ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.5),
-                  width: 2,
-                ),
-              ),
-              child: const Center(
-                child: Icon(
+                child: const Icon(
                   Icons.auto_awesome_rounded,
                   color: AppColors.primaryLight,
-                  size: 36,
+                  size: 26,
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Nasıl yardımcı olabilirim?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Nasıl yardımcı olabilirim?',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Öğün ekle, kalori sor veya tarif al.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Öğünlerini doğal dille yazabilir veya\nbeslenme hedeflerin hakkında sorular sorabilirsin.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 15,
-                height: 1.5,
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // ── 2×2 Yetenek grid ─────────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _capabilityCell(
+                  icon: Icons.add_circle_outline_rounded,
+                  label: 'Öğün Ekle',
+                  desc: 'Doğal dille yaz',
+                  color: const Color(0xFF30D158),
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            _buildSuggestionCard(
-              'Öğle yemeğine 1 porsiyon döner ve ayran ekle',
-              Icons.restaurant_rounded,
-            ),
-            const SizedBox(height: 12),
-            _buildSuggestionCard(
-              'Bugün kaç kalorim kaldı?',
-              Icons.pie_chart_rounded,
-            ),
-            const SizedBox(height: 12),
-            _buildSuggestionCard(
-              'Yüksek proteinli bir akşam yemeği öner',
-              Icons.lightbulb_rounded,
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _capabilityCell(
+                  icon: Icons.analytics_outlined,
+                  label: 'Kalori Sorgula',
+                  desc: 'Kalan & hedef',
+                  color: const Color(0xFF32ADE6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _capabilityCell(
+                  icon: Icons.lightbulb_outline_rounded,
+                  label: 'Tarif Öner',
+                  desc: 'Öğüne uygun',
+                  color: const Color(0xFFBF5AF2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _capabilityCell(
+                  icon: Icons.summarize_outlined,
+                  label: 'Günlük Özet',
+                  desc: 'Ne yedim bugün',
+                  color: const Color(0xFFFF9F0A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          // ── Bölüm başlığı ─────────────────────────────────────────────────
+          Row(
+            children: [
+              Container(
+                width: 16,
+                height: 1,
+                color: AppColors.primary.withValues(alpha: 0.45),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Hızlı başlangıç',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.30),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  height: 1,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── Dinamik öneri kartları ────────────────────────────────────────
+          ...suggestions.asMap().entries.map((entry) {
+            final s = entry.value;
+            final isLast = entry.key == suggestions.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+              child: _buildSuggestionCard(
+                text: s.text,
+                icon: s.icon,
+                color: s.color,
+                badge: s.badge,
+                sendText: s.send,
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
 
-  Widget _buildSuggestionCard(String text, IconData icon) {
+  Widget _capabilityCell({
+    required IconData icon,
+    required String label,
+    required String desc,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 15),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  desc,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionCard({
+    required String text,
+    required IconData icon,
+    required Color color,
+    required String badge,
+    String? sendText,
+  }) {
     return GestureDetector(
       onTap: () {
-        _controller.text = text;
+        _controller.text = sendText ?? text;
         _handleSend();
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(0, 11, 14, 11),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          color: Colors.white.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.primaryLight, size: 20),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 14,
+            // Renkli sol şerit
+            Container(
+              width: 3,
+              height: 36,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(99),
+                  bottomRight: Radius.circular(99),
                 ),
               ),
             ),
+            // İkon circle
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 14),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.80),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
             Icon(
               Icons.arrow_forward_ios_rounded,
-              color: Colors.white.withValues(alpha: 0.2),
-              size: 14,
+              color: Colors.white.withValues(alpha: 0.16),
+              size: 12,
             ),
           ],
         ),
@@ -1000,44 +1435,61 @@ class _DietChatPageState extends State<DietChatPage> {
   }
 
   Widget _buildQuickChips() {
-    final chips = [
-      ('Bugün ne yedim?', Icons.summarize_rounded),
-      ('Geri al', Icons.undo_rounded),
-      ('Protein kaynağı öner', Icons.fitness_center_rounded),
-      ('Akşama tavuk ekle', Icons.dinner_dining_rounded),
-      ('Kalori açığım ne kadar?', Icons.analytics_rounded),
+    const chips = [
+      (text: 'Bugün ne yedim?',     icon: Icons.summarize_rounded,       send: 'Bugün ne yedim, özet ver'),
+      (text: 'Geri al',             icon: Icons.undo_rounded,             send: 'Son eklediğimi geri al'),
+      (text: 'Protein öner',        icon: Icons.fitness_center_rounded,   send: 'Yüksek proteinli bir yemek öner'),
+      (text: 'Tavuk ekle',          icon: Icons.dinner_dining_rounded,    send: 'Akşama 200g tavuk göğsü ekle'),
+      (text: 'Kalori açığım?',      icon: Icons.analytics_rounded,        send: 'Bugünkü kalori açığım ne kadar?'),
     ];
-    return SizedBox(
-      height: 42,
-      child: ListView(
+
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: chips.map((chip) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: ActionChip(
-              avatar: Icon(chip.$2, size: 14, color: AppColors.primaryLight),
-              label: Text(
-                chip.$1,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        physics: const BouncingScrollPhysics(),
+        itemCount: chips.length,
+        separatorBuilder: (_, sep) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final chip = chips[i];
+          return GestureDetector(
+            onTap: () {
+              _controller.text = chip.send;
+              _handleSend();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.22),
                 ),
               ),
-              onPressed: () {
-                _controller.text = chip.$1;
-                _handleSend();
-              },
-              backgroundColor: Colors.white.withValues(alpha: 0.05),
-              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(chip.icon, size: 13, color: AppColors.primaryLight),
+                  const SizedBox(width: 6),
+                  Text(
+                    chip.text,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.80),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }

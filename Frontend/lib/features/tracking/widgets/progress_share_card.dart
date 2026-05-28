@@ -12,6 +12,7 @@ class ProgressShareCard extends StatelessWidget {
   final bool showCurrentWeight;
   final bool showGoal;
   final bool showChange;
+  final bool isStoryMode;
 
   const ProgressShareCard({
     super.key,
@@ -24,6 +25,7 @@ class ProgressShareCard extends StatelessWidget {
     this.showCurrentWeight = true,
     this.showGoal = true,
     this.showChange = true,
+    this.isStoryMode = false,
   });
 
   @override
@@ -37,9 +39,10 @@ class ProgressShareCard extends StatelessWidget {
         : true;
 
     return Container(
-      width: 360,
+      width: isStoryMode ? 540 : 360,
+      height: isStoryMode ? 960 : null,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(isStoryMode ? 40 : 28),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -47,6 +50,7 @@ class ProgressShareCard extends StatelessWidget {
         ),
       ),
       child: Stack(
+        fit: isStoryMode ? StackFit.expand : StackFit.loose,
         children: [
           // Arka plan glow efektleri
           Positioned(
@@ -85,9 +89,10 @@ class ProgressShareCard extends StatelessWidget {
           ),
           // İçerik
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isStoryMode ? 40 : 24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: isStoryMode ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: isStoryMode ? MainAxisAlignment.center : MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Üst: Logo + marka
@@ -158,20 +163,20 @@ class ProgressShareCard extends StatelessWidget {
                     children: [
                       Text(
                         currentWeightKg!.toStringAsFixed(1),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 52,
+                          fontSize: isStoryMode ? 72 : 52,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 10, left: 4),
+                      Padding(
+                        padding: EdgeInsets.only(bottom: isStoryMode ? 14 : 10, left: 6),
                         child: Text(
                           'kg',
                           style: TextStyle(
                             color: Colors.white54,
-                            fontSize: 20,
+                            fontSize: isStoryMode ? 28 : 20,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

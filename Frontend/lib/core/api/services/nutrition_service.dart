@@ -25,9 +25,12 @@ class NutritionService {
   }
 
   /// Kullanıcının tüm yemek kayıtlarını getir
-  Future<List<Meal>> getUserMeals(int userId) async {
+  Future<List<Meal>> getUserMeals(int userId, {int? limit}) async {
     try {
-      final response = await _apiClient.get(ApiConstants.meals);
+      final response = await _apiClient.get(
+        ApiConstants.meals,
+        queryParameters: limit == null ? null : {'limit': limit},
+      );
 
       final List<dynamic> data = response.data as List<dynamic>;
       return data
@@ -111,6 +114,18 @@ class NutritionService {
         rethrow;
       }
       throw ApiException(message: 'Yemek kaydı silinemedi');
+    }
+  }
+
+  /// Kullanıcının tüm yemek kayıtlarını sil
+  Future<void> deleteAllMeals(int userId) async {
+    try {
+      await _apiClient.delete(ApiConstants.meals);
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException(message: 'Yemek kayıtları silinemedi');
     }
   }
 }

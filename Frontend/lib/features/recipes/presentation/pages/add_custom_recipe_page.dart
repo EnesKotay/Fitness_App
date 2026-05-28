@@ -229,7 +229,7 @@ class _AddCustomRecipePageState extends State<AddCustomRecipePage> {
             ),
             const SizedBox(height: 24),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               dropdownColor: const Color(0xFF1A1D25),
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(

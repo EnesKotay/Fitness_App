@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/api/services/tracking_service.dart';
 import '../../../core/models/body_measurement.dart';
@@ -14,11 +15,34 @@ class TrackingProvider with ChangeNotifier {
   List<BodyMeasurement> _bodyMeasurements = [];
   bool _isLoading = false;
   String? _errorMessage;
+  double _sleepHours = 0.0;
+  static const _sleepPrefPrefix = 'sleep_hours_';
 
   // Getters
   List<BodyMeasurement> get bodyMeasurements => _bodyMeasurements;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  double get sleepHours => _sleepHours;
+
+  String get _todayKey {
+    final now = DateTime.now();
+    return '$_sleepPrefPrefix${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Uyku Verisini Yükle (Lokal)
+  Future<void> loadSleep() async {
+    final prefs = await SharedPreferences.getInstance();
+    _sleepHours = prefs.getDouble(_todayKey) ?? 0.0;
+    notifyListeners();
+  }
+
+  /// Uyku Verisini Kaydet (Lokal)
+  Future<void> saveSleep(double hours) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_todayKey, hours);
+    _sleepHours = hours;
+    notifyListeners();
+  }
 
   /// Vücut Ölçülerini Yükle
   Future<void> loadBodyMeasurements(int userId) async {
@@ -227,6 +251,7 @@ class TrackingProvider with ChangeNotifier {
     _bodyMeasurements = [];
     _isLoading = false;
     _errorMessage = null;
+    _sleepHours = 0.0;
     notifyListeners();
   }
 

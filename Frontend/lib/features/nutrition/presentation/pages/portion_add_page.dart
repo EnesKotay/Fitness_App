@@ -199,6 +199,13 @@ class _PortionAddPageState extends State<PortionAddPage>
                         calculatedCarb: _carb,
                         calculatedFat: _fat,
                       ),
+                      if (_calculatedKcal > 0) ...[
+                        const SizedBox(height: 10),
+                        _GoalContributionRow(
+                          kcal: _calculatedKcal,
+                          protein: _protein,
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       QuickPortionCard(
                         food: widget.food,
@@ -317,12 +324,14 @@ class _PortionAddPageState extends State<PortionAddPage>
             ],
           ),
           child: _isAdding
-              ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ? const Center(
+                  child: SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
                   ),
                 )
               : Row(
@@ -385,7 +394,7 @@ class _PortionAddPageState extends State<PortionAddPage>
     setState(() => _isAdding = true);
     try {
       final provider = Provider.of<DietProvider>(context, listen: false);
-      await provider.addEntry(
+      final entryId = await provider.addEntry(
         food: widget.food,
         grams: grams,
         mealType: _mealType,
@@ -395,11 +404,36 @@ class _PortionAddPageState extends State<PortionAddPage>
         unawaited(
           context.read<DailyTasksController>().autoCompleteFirstUndoneByCategory(TaskCategory.nutrition),
         );
-        AppSnack.showSuccess(context, 'Günlüğe eklendi.');
+        final messenger = ScaffoldMessenger.of(context);
         try {
           Navigator.of(context, rootNavigator: false).pop();
         } catch (_) {
           Navigator.of(context).pop();
+        }
+        if (entryId.isNotEmpty) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                '${widget.food.name} eklendi',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              backgroundColor: const Color(0xFF27AE60),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'Geri Al',
+                textColor: Colors.white,
+                onPressed: () {
+                  provider.deleteEntry(entryId);
+                },
+              ),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -408,5 +442,115 @@ class _PortionAddPageState extends State<PortionAddPage>
         AppSnack.showError(context, 'Eklenirken hata oluştu: ${e.toString()}');
       }
     }
+  }
+}
+
+/// Günlük kalori ve protein hedefine bu porsiyonun katkısını gösteren küçük şerit.
+class _GoalContributionRow extends StatelessWidget {
+  final double kcal;
+  final double protein;
+
+  const _GoalContributionRow({required this.kcal, required this.protein});
+
+  @override
+  Widget build(BuildContext context) {
+    final diet = context.watch<DietProvider>();
+    final targetKcal = diet.effectiveTargetKcal.clamp(1.0, double.infinity);
+    final targetProtein = diet.macroTargets.protein.clamp(1.0, double.infinity);
+    final alreadyKcal = diet.totals.totalKcal;
+
+    final kcalPct = (kcal / targetKcal * 100).clamp(0.0, 999.0);
+    final proteinPct = (protein / targetProtein * 100).clamp(0.0, 999.0);
+    final remainKcal = (targetKcal - alreadyKcal - kcal).clamp(0.0, targetKcal);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ContribChip(
+              label: 'Kalori',
+              pct: kcalPct,
+              color: const Color(0xFFFF6B6B),
+              suffix: '${kcal.round()} kcal',
+            ),
+          ),
+          Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.08)),
+          Expanded(
+            child: _ContribChip(
+              label: 'Protein',
+              pct: proteinPct,
+              color: const Color(0xFF5B9BFF),
+              suffix: '${protein.toStringAsFixed(1)}g',
+            ),
+          ),
+          Container(width: 1, height: 28, color: Colors.white.withValues(alpha: 0.08)),
+          Expanded(
+            child: _ContribChip(
+              label: 'Kalan',
+              pct: null,
+              color: const Color(0xFF4CD1A3),
+              suffix: '${remainKcal.round()} kcal',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContribChip extends StatelessWidget {
+  final String label;
+  final double? pct;
+  final Color color;
+  final String suffix;
+
+  const _ContribChip({
+    required this.label,
+    required this.pct,
+    required this.color,
+    required this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: 9.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          pct != null ? '%${pct!.round()}' : suffix,
+          style: TextStyle(
+            color: color,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (pct != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            suffix,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.30),
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }

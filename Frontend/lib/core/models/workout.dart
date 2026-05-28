@@ -2,6 +2,7 @@ import 'workout_set.dart';
 
 class Workout {
   final int id;
+  final int? sessionId;
   final String name;
   final String? workoutType;
   final int? durationMinutes;
@@ -24,6 +25,7 @@ class Workout {
 
   Workout({
     required this.id,
+    this.sessionId,
     required this.name,
     this.workoutType,
     this.durationMinutes,
@@ -59,33 +61,49 @@ class Workout {
 
     return Workout(
       id: id is num ? id.toInt() : int.tryParse(id?.toString() ?? '0') ?? 0,
+      sessionId: json['sessionId'] != null
+          ? (json['sessionId'] as num).toInt()
+          : null,
       name: name != null && name.isNotEmpty ? name : 'Antrenman',
-      workoutType:     json['workoutType']?.toString(),
-      durationMinutes: json['durationMinutes'] != null ? (json['durationMinutes'] as num).toInt() : null,
-      caloriesBurned:  json['caloriesBurned']  != null ? (json['caloriesBurned']  as num).toInt() : null,
-      sets:            json['sets']   != null ? (json['sets']   as num).toInt()    : null,
-      reps:            json['reps']   != null ? (json['reps']   as num).toInt()    : null,
-      weight:          json['weight'] != null ? (json['weight'] as num).toDouble() : null,
+      workoutType: json['workoutType']?.toString(),
+      durationMinutes: json['durationMinutes'] != null
+          ? (json['durationMinutes'] as num).toInt()
+          : null,
+      caloriesBurned: json['caloriesBurned'] != null
+          ? (json['caloriesBurned'] as num).toInt()
+          : null,
+      sets: json['sets'] != null ? (json['sets'] as num).toInt() : null,
+      reps: json['reps'] != null ? (json['reps'] as num).toInt() : null,
+      weight: json['weight'] != null
+          ? (json['weight'] as num).toDouble()
+          : null,
       workoutDate: _parseDate(workoutDateRaw) ?? DateTime.now(),
-      notes:       json['notes']?.toString(),
-      createdAt:   _parseDate(json['createdAt']?.toString()),
-      updatedAt:   _parseDate(json['updatedAt']?.toString()),
-      setDetails:     setDetails,
-      muscleGroup:    json['muscleGroup']?.toString(),
-      isSuperset:     json['isSuperset'] as bool?,
+      notes: json['notes']?.toString(),
+      createdAt: _parseDate(json['createdAt']?.toString()),
+      updatedAt: _parseDate(json['updatedAt']?.toString()),
+      setDetails: setDetails,
+      muscleGroup: json['muscleGroup']?.toString(),
+      isSuperset: json['isSuperset'] as bool?,
       supersetPartner: json['supersetPartner']?.toString(),
-      oneRepMax:  json['oneRepMax'] != null ? (json['oneRepMax'] as num).toDouble() : null,
+      oneRepMax: json['oneRepMax'] != null
+          ? (json['oneRepMax'] as num).toDouble()
+          : null,
       difficulty: json['difficulty']?.toString(),
     );
   }
 
   static DateTime? _parseDate(String? s) {
     if (s == null || s.isEmpty) return null;
-    try { return DateTime.parse(s); } catch (_) { return null; }
+    try {
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'sessionId': sessionId,
     'name': name,
     'workoutType': workoutType,
     'durationMinutes': durationMinutes,

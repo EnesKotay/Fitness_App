@@ -1,30 +1,32 @@
-# fitness
+# Fitness App
 
-Fitness ve beslenme takip uygulaması.
+Kişiselleştirilmiş antrenman ve beslenme deneyimi sunan, yapay zeka (Google Gemini) destekli fitness uygulaması.
 
-## AI (Gemini) Kurulumu
+## ✨ Öne Çıkan Özellikler
 
-Sohbet asistanı ve akıllı yemek önerisi için:
+- **🏋️ Antrenman Takibi:** Güç ve kardiyo egzersizlerinizi takip edin, setleri ve tekrarları kaydedin.
+- **🏆 Kişisel Rekorlar (PR):** Egzersiz bazlı maksimum ağırlıklarınızı (PR) ve gelişim trendinizi otomatik ölçer.
+- **❤️ Toparlanma Skoru:** Uyku, su tüketimi ve bölgesel kas yorgunluğunu analiz ederek antrenmana ne kadar hazır olduğunuzu hesaplar.
+- **🥗 Akıllı Beslenme:** Kalori ve makro hedeflerinizi takip edin, akıllı öneriler alın.
+- **🤖 AI Koç (Gemini):** Tüm antrenman, kilo ve beslenme verilerinizi sentezleyerek size o güne özel aksiyon planı ve tavsiyeler çıkarır.
 
-1. **API anahtarı al:** [Google AI Studio](https://aistudio.google.com/app/apikey) → "Create API key" (ücretsiz).
-2. **Proje kökünde** (pubspec.yaml ile aynı klasörde) `.env` dosyası oluştur.
-3. İçine ekle:
+## 🚀 AI (Gemini) Kurulumu
+
+Uygulamanın sohbet asistanı ve akıllı koçluk özelliklerinin çalışması için API anahtarı gereklidir:
+
+1. **API Anahtarı Al:** [Google AI Studio](https://aistudio.google.com/app/apikey) üzerinden "Create API key" ile ücretsiz anahtar oluşturun.
+2. **.env Dosyası:** Proje kök dizininde (pubspec.yaml ile aynı yerde) bir `.env` dosyası oluşturun.
+3. İçerisine anahtarınızı ekleyin:
    ```env
    GEMINI_API_KEY=buraya_aldigin_anahtari_yapistir
    ```
-4. Uygulamayı **proje klasöründen** çalıştır: `flutter run`.
+4. Projeyi çalıştırın: `flutter run`
 
-`.env` yoksa veya anahtar boşsa uygulama yine açılır; AI özellikleri devre dışı kalır.
+*(Not: `.env` dosyası yoksa veya anahtar girilmemişse uygulama çalışmaya devam eder ancak AI özellikleri (Yapay Zeka Koçu) pasif olur.)*
 
-## Getting Started
+## 🛠 Geliştirme (Getting Started)
 
-This project is a starting point for a Flutter application.
+- Projeyi klonladıktan sonra bağımlılıkları yüklemek için: `flutter pub get`
+- Uygulamayı çalıştırmak için: `flutter run`
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Daha fazla Flutter dokümantasyonu için: [docs.flutter.dev](https://docs.flutter.dev/)

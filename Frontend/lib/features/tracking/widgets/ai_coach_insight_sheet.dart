@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -100,14 +101,21 @@ class _AiCoachInsightSheetState extends State<AiCoachInsightSheet>
     });
     try {
       final aiService = context.read<AIService>();
+      // Backend 500 karakter sınırı — question'ı güvenli aralıkta tut.
+      const _maxLen = 480;
+      final question = widget.question.length > _maxLen
+          ? widget.question.substring(0, _maxLen)
+          : widget.question;
+
       final result = await aiService.getTrackingAdvice(
         goal: widget.goal,
-        question: widget.question,
+        question: question,
       );
       if (!mounted) return;
       final count = (result.focus.isNotEmpty ? 1 : 0) +
           (result.actions.isNotEmpty ? 1 : 0) +
-          (result.nutritionNote.isNotEmpty ? 1 : 0);
+          (result.nutritionNote.isNotEmpty ? 1 : 0) +
+          (result.memoryFact != null && result.memoryFact!.isNotEmpty ? 1 : 0);
       _initCardAnimations(count);
       setState(() {
         _advice = result;
@@ -137,6 +145,9 @@ class _AiCoachInsightSheetState extends State<AiCoachInsightSheet>
       }
       buf.writeln();
     }
+    if (_advice!.memoryFact != null && _advice!.memoryFact!.isNotEmpty) {
+      buf.writeln('HAFIZA\n${_advice!.memoryFact!}\n');
+    }
     if (_advice!.nutritionNote.isNotEmpty) {
       buf.writeln('BESLENME\n${_advice!.nutritionNote}');
     }
@@ -155,14 +166,18 @@ class _AiCoachInsightSheetState extends State<AiCoachInsightSheet>
     return Container(
       height: MediaQuery.of(context).size.height * 0.88,
       decoration: BoxDecoration(
-        color: const Color(0xFF0D0F14),
+        color: const Color(0xFF0D0F14).withValues(alpha: 0.85),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border(
           top: BorderSide(
               color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
         ),
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Column(
         children: [
           const SizedBox(height: 10),
           Center(
@@ -185,6 +200,8 @@ class _AiCoachInsightSheetState extends State<AiCoachInsightSheet>
                     : _buildContent(),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -399,6 +416,10 @@ class _AiCoachInsightSheetState extends State<AiCoachInsightSheet>
     if (_advice!.focus.isNotEmpty) {
       widgets.add(_animated(idx++, _FocusCard(text: _advice!.focus)));
     }
+    if (_advice!.memoryFact != null && _advice!.memoryFact!.isNotEmpty) {
+      if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 12));
+      widgets.add(_animated(idx++, _MemoryCard(text: _advice!.memoryFact!)));
+    }
     if (_advice!.actions.isNotEmpty) {
       if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 12));
       widgets.add(_animated(idx++, _ActionsCard(items: _advice!.actions)));
@@ -463,19 +484,22 @@ class _FocusCardState extends State<_FocusCard> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary.withValues(alpha: 0.16),
-            AppColors.primary.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: const Color(0xFF131820).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 20,
+            spreadRadius: -5,
+          )
+        ],
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Label row
@@ -549,6 +573,8 @@ class _FocusCardState extends State<_FocusCard> {
           }),
         ],
       ),
+        ),
+      ),
     );
   }
 }
@@ -564,11 +590,22 @@ class _ActionsCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF131820),
+        color: const Color(0xFF131820).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF30D158).withValues(alpha: 0.03),
+            blurRadius: 20,
+            spreadRadius: -5,
+          )
+        ],
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
@@ -664,6 +701,8 @@ class _ActionsCard extends StatelessWidget {
           }),
         ],
       ),
+        ),
+      ),
     );
   }
 }
@@ -686,12 +725,23 @@ class _NutritionCardState extends State<_NutritionCard> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1408),
+        color: const Color(0xFF1A1408).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
             color: const Color(0xFFFF9F0A).withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF9F0A).withValues(alpha: 0.03),
+            blurRadius: 20,
+            spreadRadius: -5,
+          )
+        ],
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
@@ -758,6 +808,117 @@ class _NutritionCardState extends State<_NutritionCard> {
             );
           }),
         ],
+      ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Memory Card ───────────────────────────────────────────────────────────────
+
+class _MemoryCard extends StatefulWidget {
+  final String text;
+  const _MemoryCard({required this.text});
+  @override
+  State<_MemoryCard> createState() => _MemoryCardState();
+}
+
+class _MemoryCardState extends State<_MemoryCard> {
+  bool _expanded = false;
+  static const _maxLines = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B101D).withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFBF5AF2).withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFBF5AF2).withValues(alpha: 0.05),
+            blurRadius: 20,
+            spreadRadius: -5,
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBF5AF2).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.psychology_rounded,
+                          color: Color(0xFFE580FF), size: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Hafızaya Kaydedildi',
+                      style: TextStyle(
+                        color: Color(0xFFE580FF),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                child: Text(
+                  widget.text,
+                  maxLines: _expanded ? null : _maxLines,
+                  overflow:
+                      _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFDDDDDD),
+                    fontSize: 13.5,
+                    height: 1.65,
+                  ),
+                ),
+              ),
+              LayoutBuilder(builder: (ctx, constraints) {
+                final tp = TextPainter(
+                  text: TextSpan(
+                      text: widget.text,
+                      style: const TextStyle(fontSize: 13.5, height: 1.65)),
+                  maxLines: _maxLines,
+                  textDirection: TextDirection.ltr,
+                )..layout(maxWidth: constraints.maxWidth - 32);
+                final overflows = tp.didExceedMaxLines;
+                if (!overflows && !_expanded) return const SizedBox(height: 14);
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  child: GestureDetector(
+                    onTap: () => setState(() => _expanded = !_expanded),
+                    child: Text(
+                      _expanded ? 'Daha az göster' : 'Devamını gör',
+                      style: const TextStyle(
+                        color: Color(0xFFE580FF),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
       ),
     );
   }

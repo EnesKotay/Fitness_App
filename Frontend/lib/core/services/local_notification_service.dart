@@ -28,6 +28,7 @@ class LocalNotificationService {
   static const int _mealSnackId = 203;
   static const int _workoutReminderId = 300;
   static const int _dailySummaryReminderId = 301;
+  static const int _morningRecoveryId = 302;
 
   static const _androidChannel = AndroidNotificationChannel(
     'fitness_reminders',
@@ -213,22 +214,90 @@ class LocalNotificationService {
   }) async {
     await init();
     await _plugin.cancel(_dailySummaryReminderId);
+
+    final quotes = [
+      {'title': '🌟 Bugün harika bir adım attın!', 'body': 'Yarın daha da güçlü olacaksın, harika ilerliyorsun, durma! 💪'},
+      {'title': '🔥 İstikrar başarının anahtarıdır.', 'body': 'Küçük adımlar, büyük sonuçlar doğurur. Günlük özetini kontrol et ve devam et!'},
+      {'title': '⚡ Sınırlarını aşmaya hazır mısın?', 'body': 'Kasların yorulur ama hedeflerin asla. Bugünkü durumunu hemen gör!'},
+      {'title': '📈 Harika bir gün daha bitti!', 'body': 'Bugünkü çabaların yarınki seni inşa ediyor. Gününü değerlendirmek için tıkla.'},
+      {'title': '🙏 Başarı disiplinle gelir.', 'body': 'Bugün gösterdiğin kararlılık için kendine teşekkür et ve özetini incele.'},
+      {'title': '🚀 Güçlenmek zaman alır.', 'body': 'Her gün %1 daha iyi olmak, seni zirveye taşıyacak. İlerlemeni hemen kaydet!'},
+    ];
+    final index = DateTime.now().second % quotes.length;
+    final randomQuote = quotes[index];
+
     await _scheduleDaily(
       id: _dailySummaryReminderId,
-      title: '📊 Gün sonu özeti',
-      body: 'Bugünkü kalori, su ve hareket durumunu hızlıca kontrol et.',
+      title: randomQuote['title']!,
+      body: randomQuote['body']!,
       hour: time.hour,
       minute: time.minute,
     );
-    debugPrint('LocalNotificationService: Gün sonu özeti planlandı');
+    debugPrint('LocalNotificationService: Gün sonu motivasyon özeti planlandı');
   }
 
   Future<void> cancelDailySummaryReminder() async {
     await _plugin.cancel(_dailySummaryReminderId);
   }
 
+  Future<void> scheduleMorningRecoveryReminder({
+    TimeOfDay time = const TimeOfDay(hour: 8, minute: 0),
+  }) async {
+    await init();
+    await _plugin.cancel(_morningRecoveryId);
+
+    final quotes = [
+      {'title': '🌅 Günaydın! Vücudun bugün ne kadar hazır?', 'body': 'Uyku ve toparlanma durumunu kontrol et, antrenman planını ona göre yap.'},
+      {'title': '🔋 Enerjini nasıl hissediyorsun?', 'body': 'Toparlanma skorunu kontrol et ve güne güçlü bir başlangıç yap!'},
+      {'title': '☀️ Yeni gün, yeni hedefler.', 'body': 'Kasların yeterince dinlendi mi? Öğrenmek için uygulamaya göz at.'},
+    ];
+    final index = DateTime.now().day % quotes.length;
+    final quote = quotes[index];
+
+    await _scheduleDaily(
+      id: _morningRecoveryId,
+      title: quote['title']!,
+      body: quote['body']!,
+      hour: time.hour,
+      minute: time.minute,
+    );
+    debugPrint('LocalNotificationService: Sabah toparlanma hatırlatıcısı planlandı');
+  }
+
+  Future<void> cancelMorningRecoveryReminder() async {
+    await _plugin.cancel(_morningRecoveryId);
+  }
+
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
+  }
+
+  Future<void> showRemoteNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    await init();
+    await _plugin.show(
+      40000 + id,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _androidChannel.id,
+          _androidChannel.name,
+          channelDescription: _androidChannel.description,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: false,
+          presentSound: true,
+        ),
+      ),
+    );
   }
 
   // ── Yardımcı ──────────────────────────────────────────────────────────────
@@ -273,7 +342,7 @@ class LocalNotificationService {
           presentSound: true,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time, // her gün tekrar et

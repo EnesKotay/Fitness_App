@@ -196,6 +196,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
 
   bool _isMultiAddMode = false;
   final Set<FoodItem> _selectedFoods = {};
+  bool _multiAddLoading = false;
+  bool _compactMode = false;
+  _SortMode _sortMode = _SortMode.relevance;
 
   /// Seçili kategori (null = Tümü). Popüler Besinler bu kategoriye göre filtrelenir.
   String? _selectedCategory;
@@ -487,28 +490,29 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
       );
     }
 
+    final displayList = _sortedList;
     return ListView.builder(
       key: const ValueKey('food-search-results'),
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.m,
         vertical: AppSpacing.s,
       ),
-      itemCount: _list.length + 1,
+      itemCount: displayList.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           return _buildSearchResultsHeader();
         }
-        final food = _list[index - 1];
+        final food = displayList[index - 1];
         final isSelected = _selectedFoods.contains(food);
-        return _isMultiAddMode
-            ? _buildMultiSelectTile(food, isSelected)
-            : _FoodListTile(
-                food: food,
-                selectedMealType: _effectiveMealType,
-                onTap: () => _openDetail(food),
-                onAddTap: () => _openPortion(food),
-                onQuickAdd: (grams) => _quickAdd(food, grams),
-              );
+        if (_isMultiAddMode) return _buildMultiSelectTile(food, isSelected);
+        if (_compactMode) return _buildCompactTile(food);
+        return _FoodListTile(
+          food: food,
+          selectedMealType: _effectiveMealType,
+          onTap: () => _openDetail(food),
+          onAddTap: () => _openPortion(food),
+          onQuickAdd: (grams) => _quickAdd(food, grams),
+        );
       },
     );
   }
@@ -655,7 +659,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -690,7 +694,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         title: const Text('Öğünü Sil', style: TextStyle(color: Colors.white)),
         content: Text(
           '${meal.name} silinecek. Emin misin?',
-          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
           TextButton(
@@ -913,7 +917,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           // --- Popüler Besinler ---
           if (_recommendedFoods.isNotEmpty) ...[
             _buildSectionHeader(
-              _selectedCategory ?? "Turkiye'de One Cikanlar",
+              _selectedCategory ?? "Türkiye'de Öne Çıkanlar",
               Icons.local_fire_department_rounded,
               AppColors.primary,
             ),
@@ -990,7 +994,9 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                                   ),
                                   const Spacer(),
                                   Text(
-                                    '${meal.items.length} ürün',
+                                    meal.totalKcal > 0
+                                        ? '${meal.items.length} ürün • ${meal.totalKcal.round()} kcal'
+                                        : '${meal.items.length} ürün',
                                     style: TextStyle(
                                       color: Colors.white.withValues(alpha: 0.5),
                                       fontSize: 11,
@@ -1373,22 +1379,105 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
+  List<FoodItem> get _sortedList {
+    final sorted = List<FoodItem>.from(_list);
+    switch (_sortMode) {
+      case _SortMode.relevance:
+        return sorted;
+      case _SortMode.kcalAsc:
+        sorted.sort((a, b) => a.kcalPer100g.compareTo(b.kcalPer100g));
+      case _SortMode.kcalDesc:
+        sorted.sort((a, b) => b.kcalPer100g.compareTo(a.kcalPer100g));
+      case _SortMode.proteinDesc:
+        sorted.sort((a, b) => b.proteinPer100g.compareTo(a.proteinPer100g));
+      case _SortMode.nameAsc:
+        sorted.sort((a, b) => a.name.compareTo(b.name));
+    }
+    return sorted;
+  }
+
   Widget _buildSearchResultsHeader() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader(
-            '${_list.length} sonuç bulundu',
-            Icons.manage_search_rounded,
-            AppColors.primaryLight,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 12, 10),
+            child: Row(
+              children: [
+                Container(width: 4, height: 20,
+                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 10),
+                Icon(Icons.manage_search_rounded, size: 16, color: AppColors.primaryLight.withValues(alpha: 0.85)),
+                const SizedBox(width: 8),
+                Text('${_list.length} sonuç',
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.4)),
+                const Spacer(),
+                // Kompakt/Geniş toggle
+                GestureDetector(
+                  onTap: () => setState(() => _compactMode = !_compactMode),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _compactMode ? AppColors.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _compactMode ? AppColors.primary.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Icon(_compactMode ? Icons.view_list_rounded : Icons.grid_view_rounded,
+                      size: 16, color: _compactMode ? AppColors.primaryLight : Colors.white54),
+                  ),
+                ),
+              ],
+            ),
           ),
+          // Sıralama chips
+          SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _sortChip(_SortMode.relevance, 'İlgili', Icons.tune_rounded),
+                const SizedBox(width: 6),
+                _sortChip(_SortMode.kcalAsc, 'Düşük Kcal', Icons.arrow_downward_rounded),
+                const SizedBox(width: 6),
+                _sortChip(_SortMode.kcalDesc, 'Yüksek Kcal', Icons.arrow_upward_rounded),
+                const SizedBox(width: 6),
+                _sortChip(_SortMode.proteinDesc, 'Protein ↑', Icons.bolt_rounded),
+                const SizedBox(width: 6),
+                _sortChip(_SortMode.nameAsc, 'A–Z', Icons.sort_by_alpha_rounded),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: _buildSmartFilterRow(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sortChip(_SortMode mode, String label, IconData icon) {
+    final selected = _sortMode == mode;
+    return GestureDetector(
+      onTap: () => setState(() => _sortMode = mode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: selected ? AppColors.primary.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 12, color: selected ? AppColors.primaryLight : Colors.white54),
+          const SizedBox(width: 4),
+          Text(label, style: GoogleFonts.inter(
+            color: selected ? AppColors.primaryLight : Colors.white70,
+            fontSize: 11.5, fontWeight: selected ? FontWeight.w700 : FontWeight.w600)),
+        ]),
       ),
     );
   }
@@ -1986,6 +2075,59 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
     );
   }
 
+  Widget _buildCompactTile(FoodItem food) {
+    final kcal = food.kcalPer100g;
+    final p = food.proteinPer100g;
+    final displayName = _foodDisplayName(food);
+    return GestureDetector(
+      onTap: () => _openDetail(food),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6, left: 2, right: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.38),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(displayName,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w700),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 10),
+            Text('P:${p.round()}g',
+              style: const TextStyle(color: Color(0xFF5B9BFF), fontSize: 11, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.secondary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(7),
+              ),
+              child: Text('${kcal.round()} kcal',
+                style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => _openPortion(food),
+              child: Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                ),
+                child: Icon(Icons.add_rounded, size: 16, color: AppColors.primaryLight),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState(bool isQueryEmpty) {
     return Center(
       child: Padding(
@@ -1995,10 +2137,10 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           children: [
             Icon(
               isQueryEmpty ? Icons.search_rounded : Icons.inbox_rounded,
-              size: 72,
-              color: AppColors.textTertiary.withValues(alpha: 0.3),
+              size: 64,
+              color: AppColors.textTertiary.withValues(alpha: 0.25),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Text(
               isQueryEmpty ? 'Aramaya başla' : 'Sonuç bulunamadı',
               style: const TextStyle(
@@ -2012,12 +2154,72 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             Text(
               isQueryEmpty
                   ? 'Yukarıya yemek adı yaz veya hızlı önerilere tıkla'
-                  : 'Bu arama için kayıt yok. Farklı bir kelime dene veya özel yemek ekle.',
+                  : '"${_query.value.trim()}" için kayıt yok.\nFarklı bir kelime dene veya özel yemek ekle.',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 13,
+                height: 1.5,
               ),
               textAlign: TextAlign.center,
+            ),
+            if (!isQueryEmpty) ...[
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _emptyStateCta(
+                    icon: Icons.add_rounded,
+                    label: 'Özel Yemek Ekle',
+                    color: AppColors.primary,
+                    onTap: () => Navigator.of(context, rootNavigator: false)
+                        .pushNamed('addCustomFood'),
+                  ),
+                  const SizedBox(width: 10),
+                  _emptyStateCta(
+                    icon: Icons.auto_awesome_rounded,
+                    label: 'AI ile Ara',
+                    color: const Color(0xFFA78BFA),
+                    onTap: () {
+                      setState(() => _isAISearch = true);
+                      if (_query.value.isNotEmpty) _search();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyStateCta({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -2101,12 +2303,14 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             icon: Icons.add_rounded,
             color: AppColors.primaryLight,
             onTap: () async {
+              final nav = Navigator.of(context, rootNavigator: false);
+              final rootNav = Navigator.of(context);
               try {
-                final added = await Navigator.of(context, rootNavigator: false).pushNamed<bool>('add_custom_food');
+                final added = await nav.pushNamed<bool>('add_custom_food');
                 if (added == true && mounted) _search();
               } catch (e) {
                 if (!mounted) return;
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AddCustomFoodPage()));
+                rootNav.push(MaterialPageRoute(builder: (_) => const AddCustomFoodPage()));
               }
             },
           ),
@@ -2157,9 +2361,10 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   }
 
   void _showQuickAddDialog(BuildContext context) {
+    final provider = Provider.of<DietProvider>(context, listen: false);
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         final kcalController = TextEditingController();
         final nameController = TextEditingController();
         return AlertDialog(
@@ -2183,6 +2388,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               TextField(
                 controller: kcalController,
                 keyboardType: TextInputType.number,
+                autofocus: true,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'Kalori (kcal)',
@@ -2197,7 +2403,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('İptal', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
@@ -2205,11 +2411,42 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 backgroundColor: Colors.orange,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: () {
-                if (kcalController.text.trim().isNotEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hızlı kalori eklendi (Demo)')));
+              onPressed: () async {
+                final kcal = double.tryParse(kcalController.text.replaceAll(',', '.'));
+                if (kcal == null || kcal <= 0) return;
+                Navigator.pop(dialogContext);
+                final name = nameController.text.trim().isEmpty
+                    ? 'Hızlı Kalori'
+                    : nameController.text.trim();
+                final food = FoodItem(
+                  id: 'quick_${DateTime.now().millisecondsSinceEpoch}',
+                  name: name,
+                  category: 'Özel',
+                  basis: const FoodBasis(amount: 100, unit: 'g'),
+                  nutrients: Nutrients(kcal: kcal, protein: 0, carb: 0, fat: 0),
+                );
+                final messenger = ScaffoldMessenger.of(context);
+                await provider.addEntry(
+                  food: food,
+                  grams: 100,
+                  mealType: _effectiveMealType,
+                  date: provider.selectedDate,
+                );
+                if (mounted) {
+                  messenger
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: Text('$name eklendi (${kcal.round()} kcal)',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                        backgroundColor: Colors.orange,
+                        behavior: SnackBarBehavior.floating,
+                        margin: const EdgeInsets.all(12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
                 }
-                Navigator.pop(context);
               },
               child: const Text('Ekle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
@@ -2217,6 +2454,55 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         );
       }
     );
+  }
+
+  Future<void> _commitMultiAdd() async {
+    if (_selectedFoods.isEmpty || _multiAddLoading) return;
+    setState(() => _multiAddLoading = true);
+    try {
+      final provider = Provider.of<DietProvider>(context, listen: false);
+      final items = _selectedFoods.map((food) {
+        final grams = DietProvider.getDefaultPortionForFood(food);
+        return (food: food, grams: grams);
+      }).toList();
+      await provider.addMultipleEntries(
+        items: items,
+        mealType: _effectiveMealType,
+        date: provider.selectedDate,
+      );
+      if (!mounted) return;
+      final count = items.length;
+      setState(() {
+        _multiAddLoading = false;
+        _isMultiAddMode = false;
+        _selectedFoods.clear();
+      });
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              '$count yemek günlüğe eklendi',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _multiAddLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Eklenirken hata: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildMultiAddFab() {
@@ -2238,43 +2524,47 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(28),
-          onTap: () {
-            if (_selectedFoods.isEmpty) return;
-            setState(() {
-              _isMultiAddMode = false;
-              _selectedFoods.clear();
-            });
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Seçilen öğeler eklendi (Demo)')));
-          },
+          onTap: _multiAddLoading ? null : () => _commitMultiAdd(),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${_selectedFoods.length} Ürün Seçildi',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Text(
-                      'Hepsini Ekle',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+            child: _multiAddLoading
+                ? const Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.check_circle_rounded, color: Colors.white),
-                  ],
-                ),
-              ],
-            ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${_selectedFoods.length} Ürün Seçildi',
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'Hepsini Ekle',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.check_circle_rounded, color: Colors.white),
+                        ],
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
@@ -2995,3 +3285,6 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     );
   }
 }
+
+enum _SortMode { relevance, kcalAsc, kcalDesc, proteinDesc, nameAsc }
+

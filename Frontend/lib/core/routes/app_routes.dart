@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import '../../features/ai_coach/models/ai_coach_models.dart';
 import '../../features/ai_coach/screens/ai_coach_screen.dart';
 import '../../features/ai_coach/screens/ai_memory_screen.dart';
+import '../../features/ai_coach/screens/weekly_check_in_screen.dart';
 import '../../features/ai_coach/screens/weekly_plan_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/profile_screen.dart';
 import '../../features/auth/screens/settings_help_screen.dart';
+import '../../features/auth/screens/settings_language_units_screen.dart';
 import '../../features/auth/screens/settings_notifications_screen.dart';
 import '../../features/auth/screens/settings_nutrition_screen.dart';
 import '../../features/workout/screens/achievements_screen.dart';
@@ -20,12 +22,14 @@ import '../../features/onboarding/onboarding_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/tasks/screens/daily_tasks_screen.dart';
 import '../../features/workout/providers/workout_provider.dart';
+import 'package:upgrader/upgrader.dart';
 
 class AppRoutes {
   AppRoutes._();
 
   static const aiCoach = '/ai-coach';
   static const aiMemory = '/ai-memory';
+  static const weeklyCheckIn = '/weekly-check-in';
   static const weeklyPlan = '/weekly-plan';
   static const dailyTasks = '/daily-tasks';
   static const home = '/home';
@@ -47,7 +51,16 @@ class AppRoutes {
     return {
       '/login': (context) => const LoginScreen(),
       '/onboarding': (context) => const OnboardingPage(),
-      home: (context) => _guard(context, const MainShell()),
+      home: (context) => _guard(
+        context,
+        UpgradeAlert(
+          upgrader: Upgrader(
+            languageCode: 'tr',
+            messages: UpgraderMessages(code: 'tr'),
+          ),
+          child: const MainShell(),
+        ),
+      ),
       aiCoach: (context) {
         final dietProvider = context.read<DietProvider>();
         final workout = context.read<WorkoutProvider>();
@@ -84,6 +97,7 @@ class AppRoutes {
         return _guard(context, AiCoachScreen(initialSummary: summary));
       },
       aiMemory: (context) => _guard(context, const AiMemoryScreen()),
+      weeklyCheckIn: (context) => _guard(context, const WeeklyCheckInScreen()),
       weeklyPlan: (context) => _guard(context, const WeeklyPlanScreen()),
       dailyTasks: (context) => _guard(context, const DailyTasksScreen()),
       '/profile': (context) => _guard(context, const ProfileScreen()),
@@ -92,6 +106,8 @@ class AppRoutes {
           _guard(context, const SettingsPasswordScreen()),
       '/settings-notifications': (context) =>
           _guard(context, const SettingsNotificationsScreen()),
+      '/settings-language-units': (context) =>
+          _guard(context, const SettingsLanguageUnitsScreen()),
       '/settings-privacy': (context) =>
           _guard(context, const SettingsPrivacyScreen()),
       '/settings-nutrition': (context) =>
@@ -99,8 +115,7 @@ class AppRoutes {
 
       '/settings-help': (context) =>
           _guard(context, const SettingsHelpScreen()),
-      '/achievements': (context) =>
-          _guard(context, const AchievementsScreen()),
+      '/achievements': (context) => _guard(context, const AchievementsScreen()),
       forgotPassword: (context) => const ForgotPasswordScreen(),
     };
   }

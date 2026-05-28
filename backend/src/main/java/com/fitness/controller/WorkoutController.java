@@ -5,6 +5,8 @@ import java.util.Map;
 
 import com.fitness.dto.WorkoutRequest;
 import com.fitness.dto.WorkoutResponse;
+import com.fitness.dto.WorkoutSessionRequest;
+import com.fitness.dto.WorkoutSessionResponse;
 import com.fitness.service.AuthService;
 import com.fitness.service.WorkoutService;
 
@@ -41,6 +43,15 @@ public class WorkoutController {
     public Response createWorkout(@Context HttpHeaders headers, @Valid WorkoutRequest request) {
         Long userId = getUserId(headers);
         WorkoutResponse res = workoutService.createWorkout(userId, request);
+        return Response.status(Response.Status.CREATED).entity(res).build();
+    }
+
+    /** POST /api/workouts/me/sessions — çok egzersizli seansı tek transaction ile kaydet */
+    @POST
+    @Path("/me/sessions")
+    public Response createWorkoutSession(@Context HttpHeaders headers, @Valid WorkoutSessionRequest request) {
+        Long userId = getUserId(headers);
+        WorkoutSessionResponse res = workoutService.createWorkoutSession(userId, request);
         return Response.status(Response.Status.CREATED).entity(res).build();
     }
 

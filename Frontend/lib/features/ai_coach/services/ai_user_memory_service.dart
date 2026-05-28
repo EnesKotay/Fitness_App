@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/api/services/auth_service.dart';
+
 class UserMemoryFact {
   final String category;
   final String fact;
@@ -13,18 +15,18 @@ class UserMemoryFact {
   });
 
   Map<String, dynamic> toJson() => {
-        'category': category,
-        'fact': fact,
-        'savedAt': savedAt.toIso8601String(),
-      };
+    'category': category,
+    'fact': fact,
+    'savedAt': savedAt.toIso8601String(),
+  };
 
   factory UserMemoryFact.fromJson(Map<String, dynamic> json) => UserMemoryFact(
-        category: json['category'] as String? ?? 'genel',
-        fact: json['fact'] as String? ?? '',
-        savedAt: json['savedAt'] != null
-            ? DateTime.tryParse(json['savedAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-      );
+    category: json['category'] as String? ?? 'genel',
+    fact: json['fact'] as String? ?? '',
+    savedAt: json['savedAt'] != null
+        ? DateTime.tryParse(json['savedAt'] as String) ?? DateTime.now()
+        : DateTime.now(),
+  );
 }
 
 class AiUserMemoryService {
@@ -34,7 +36,9 @@ class AiUserMemoryService {
   Future<List<UserMemoryFact>> getFacts(int userId) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('$_keyPrefix$userId');
-    if (raw == null || raw.isEmpty) return [];
+    if (raw == null || raw.isEmpty) {
+      return _restoreFromAccount(userId);
+    }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return [];
@@ -71,7 +75,36 @@ class AiUserMemoryService {
 
   Future<void> _persist(int userId, List<UserMemoryFact> facts) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('$_keyPrefix$userId', jsonEncode(facts.map((f) => f.toJson()).toList()));
+    final encoded = jsonEncode(facts.map((f) => f.toJson()).toList());
+    await prefs.setString('$_keyPrefix$userId', encoded);
+    try {
+      await AuthService().updateMeProfile({'aiMemorySummary': encoded});
+    } catch (_) {}
+  }
+
+  Future<List<UserMemoryFact>> _restoreFromAccount(int userId) async {
+    try {
+      final user = await AuthService().getMe();
+      final raw = user.aiMemorySummary;
+      if (raw == null || raw.trim().isEmpty) return [];
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      final facts = decoded
+          .whereType<Map>()
+          .map((m) => UserMemoryFact.fromJson(Map<String, dynamic>.from(m)))
+          .where((f) => f.fact.isNotEmpty)
+          .toList();
+      if (facts.isNotEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          '$_keyPrefix$userId',
+          jsonEncode(facts.map((f) => f.toJson()).toList()),
+        );
+      }
+      return facts;
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Build a concise context string to include in AI requests.
@@ -88,11 +121,10 @@ class AiUserMemoryService {
       final fact = map['fact']?.toString() ?? '';
       if (fact.isEmpty) return;
       final category = map['category']?.toString() ?? 'genel';
-      await saveFact(userId, UserMemoryFact(
-        category: category,
-        fact: fact,
-        savedAt: DateTime.now(),
-      ));
+      await saveFact(
+        userId,
+        UserMemoryFact(category: category, fact: fact, savedAt: DateTime.now()),
+      );
     } catch (_) {}
   }
 }

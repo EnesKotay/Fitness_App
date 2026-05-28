@@ -11,6 +11,14 @@ public class UserResponse {
     public Double targetWeight;
     public LocalDateTime birthDate;
     public String gender;
+    public String activityLevel;
+    public String goal;
+    public String goalHistoryJson;
+    public String workoutLocation;
+    public String equipmentType;
+    public String nutritionPreferencesJson;
+    public String aiMemorySummary;
+    public String motivationStatsJson;
     public String premiumTier;
     public LocalDateTime premiumExpiresAt;
     public String premiumPlan;

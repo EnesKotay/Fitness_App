@@ -612,7 +612,7 @@ class _AnimatedBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
-      builder: (_, __) => CustomPaint(
+      builder: (_, _) => CustomPaint(
         painter: _BgPainter(controller.value),
         size: Size.infinite,
       ),

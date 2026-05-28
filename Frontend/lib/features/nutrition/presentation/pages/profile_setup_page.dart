@@ -7,6 +7,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/entities/nutrition_preferences.dart';
 import '../state/diet_provider.dart';
+import '../../../../core/preferences/app_preferences.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/services/local_notification_service.dart';
 
@@ -172,9 +173,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       if (!mounted) return;
       _nameFormKey.currentState?.validate();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Devam etmek için profil adını tamamla.'),
-        ),
+        const SnackBar(content: Text('Devam etmek için profil adını tamamla.')),
       );
       return;
     }
@@ -203,6 +202,13 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       await dietProvider.saveNutritionPreferences(_nutritionPreferences);
       await StorageHelper.saveWorkoutLocation(_workoutLocation);
       await StorageHelper.saveEquipmentType(_equipmentType);
+
+      if (!ctx.mounted) return;
+      // İlk kurulumda profil sadece localde kalırsa uygulama silinip yeniden
+      // kurulduğunda hesap profilini geri getiremeyiz. Bu yüzden tamamlandı
+      // saymadan önce backend senkronunun başarılı olmasını bekliyoruz.
+      await ctx.read<AuthProvider>().updateProfileFromDiet(profile);
+
       await StorageHelper.savePendingInitialProfileSetup(false);
 
       if (widget.navigateToHomeOnSave) {
@@ -214,15 +220,6 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
         } catch (e) {
           debugPrint('Bildirim izni hatası: $e');
         }
-      }
-
-      if (ctx.mounted) {
-        unawaited(
-          ctx
-              .read<AuthProvider>()
-              .updateProfileFromDiet(profile)
-              .catchError((e) => debugPrint('Backend sync hatası: $e')),
-        );
       }
 
       if (ctx.mounted) {
@@ -435,13 +432,14 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   }
 
   Widget _buildBiometricsStep() {
+    final appPrefs = context.watch<AppPreferences>();
+    final imperial = appPrefs.usesImperial;
     return _StepShell(
       key: const ValueKey('biometrics'),
       icon: Icons.monitor_weight_outlined,
       accent: _kGreen,
       title: 'Vücut\nÖlçülerin',
-      subtitle:
-          'Doğru kalori ve hedef önerileri için temel ölçüleri ayarla.',
+      subtitle: 'Doğru kalori ve hedef önerileri için temel ölçüleri ayarla.',
       child: Column(
         children: [
           _NumberTile(
@@ -450,37 +448,45 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
             value: _age.toDouble(),
             min: 10,
             max: 100,
+            allowManualEntry: true,
             onChanged: (v) => setState(() => _age = v.toInt()),
           ),
           const SizedBox(height: 14),
           _NumberTile(
-            label: 'Boy',
-            unit: 'cm',
+            label: imperial ? 'Height' : 'Boy',
+            unit: AppUnits.heightUnitFor(appPrefs),
             value: _height,
-            min: 100,
-            max: 250,
+            min: imperial ? 39 : 100,
+            max: imperial ? 98 : 250,
+            allowManualEntry: true,
+            valueToDisplay: (v) => AppUnits.cmToDisplay(v, appPrefs),
+            displayToValue: (v) => AppUnits.cmFromDisplay(v, appPrefs),
             onChanged: (v) => setState(() => _height = v),
           ),
           const SizedBox(height: 14),
           _NumberTile(
-            label: 'Kilo',
-            unit: 'kg',
+            label: imperial ? 'Weight' : 'Kilo',
+            unit: AppUnits.weightUnitFor(appPrefs),
             value: _weight,
-            min: 30,
-            max: 200,
-            step: 0.1,
+            min: imperial ? 66 : 30,
+            max: imperial ? 440 : 200,
+            step: imperial ? 0.5 : 0.1,
             allowManualEntry: true,
+            valueToDisplay: (v) => AppUnits.kgToDisplay(v, appPrefs),
+            displayToValue: (v) => AppUnits.kgFromDisplay(v, appPrefs),
             onChanged: (v) => setState(() => _weight = v),
           ),
           const SizedBox(height: 14),
           _NumberTile(
-            label: 'Hedef Kilo',
-            unit: 'kg',
+            label: imperial ? 'Goal Weight' : 'Hedef Kilo',
+            unit: AppUnits.weightUnitFor(appPrefs),
             value: _targetWeight,
-            min: 30,
-            max: 200,
-            step: 0.1,
+            min: imperial ? 66 : 30,
+            max: imperial ? 440 : 200,
+            step: imperial ? 0.5 : 0.1,
             allowManualEntry: true,
+            valueToDisplay: (v) => AppUnits.kgToDisplay(v, appPrefs),
+            displayToValue: (v) => AppUnits.kgFromDisplay(v, appPrefs),
             onChanged: (v) => setState(() => _targetWeight = v),
           ),
         ],
@@ -502,8 +508,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               selected: _gender == Gender.male,
               emoji: '♂',
               label: 'Erkek',
-              description:
-                  'Kas kütlesi ve enerji hesabı buna göre uyarlanır.',
+              description: 'Kas kütlesi ve enerji hesabı buna göre uyarlanır.',
               accent: const Color(0xFF5DA9FF),
               onTap: () => setState(() => _gender = Gender.male),
             ),
@@ -514,8 +519,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
               selected: _gender == Gender.female,
               emoji: '♀',
               label: 'Kadın',
-              description:
-                  'Hedef kalori ve analizler buna göre hesaplanır.',
+              description: 'Hedef kalori ve analizler buna göre hesaplanır.',
               accent: const Color(0xFFFF7EB6),
               onTap: () => setState(() => _gender = Gender.female),
             ),
@@ -630,8 +634,7 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
                   final next = !_nutritionPreferences.vegan;
                   _nutritionPreferences = _nutritionPreferences.copyWith(
                     vegan: next,
-                    vegetarian:
-                        next ? true : _nutritionPreferences.vegetarian,
+                    vegetarian: next ? true : _nutritionPreferences.vegetarian,
                   );
                 }),
               ),
@@ -816,53 +819,53 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
   // ── Yardımcılar ───────────────────────────────────────────────────────────
 
   IconData _activityIcon(ActivityLevel l) => switch (l) {
-        ActivityLevel.sedentary => Icons.weekend,
-        ActivityLevel.lightlyActive => Icons.directions_walk,
-        ActivityLevel.moderatelyActive => Icons.fitness_center,
-        ActivityLevel.veryActive => Icons.directions_run,
-        ActivityLevel.extraActive => Icons.sports_gymnastics,
-      };
+    ActivityLevel.sedentary => Icons.weekend,
+    ActivityLevel.lightlyActive => Icons.directions_walk,
+    ActivityLevel.moderatelyActive => Icons.fitness_center,
+    ActivityLevel.veryActive => Icons.directions_run,
+    ActivityLevel.extraActive => Icons.sports_gymnastics,
+  };
 
   String _activityLabel(ActivityLevel l) => switch (l) {
-        ActivityLevel.sedentary => 'Hareketsiz',
-        ActivityLevel.lightlyActive => 'Az Hareketli',
-        ActivityLevel.moderatelyActive => 'Orta Hareketli',
-        ActivityLevel.veryActive => 'Çok Hareketli',
-        ActivityLevel.extraActive => 'Ekstra Hareketli',
-      };
+    ActivityLevel.sedentary => 'Hareketsiz',
+    ActivityLevel.lightlyActive => 'Az Hareketli',
+    ActivityLevel.moderatelyActive => 'Orta Hareketli',
+    ActivityLevel.veryActive => 'Çok Hareketli',
+    ActivityLevel.extraActive => 'Ekstra Hareketli',
+  };
 
   String _activityHint(ActivityLevel l) => switch (l) {
-        ActivityLevel.sedentary => 'Çoğunlukla oturarak geçen günler.',
-        ActivityLevel.lightlyActive =>
-          'Hafif tempo, kısa yürüyüşler (haftada 1-3 spor).',
-        ActivityLevel.moderatelyActive =>
-          'Düzenli egzersiz ve aktif günlük rutin (haftada 3-5).',
-        ActivityLevel.veryActive =>
-          'Yoğun antrenman veya sürekli hareketli yaşam (6-7 gün).',
-        ActivityLevel.extraActive =>
-          'Ağır fiziksel tempo + yüksek enerji ihtiyacı.',
-      };
+    ActivityLevel.sedentary => 'Çoğunlukla oturarak geçen günler.',
+    ActivityLevel.lightlyActive =>
+      'Hafif tempo, kısa yürüyüşler (haftada 1-3 spor).',
+    ActivityLevel.moderatelyActive =>
+      'Düzenli egzersiz ve aktif günlük rutin (haftada 3-5).',
+    ActivityLevel.veryActive =>
+      'Yoğun antrenman veya sürekli hareketli yaşam (6-7 gün).',
+    ActivityLevel.extraActive =>
+      'Ağır fiziksel tempo + yüksek enerji ihtiyacı.',
+  };
 
   IconData _goalIcon(Goal g) => switch (g) {
-        Goal.cut => Icons.trending_down_rounded,
-        Goal.maintain => Icons.balance_rounded,
-        Goal.bulk => Icons.trending_up_rounded,
-        Goal.strength => Icons.fitness_center_rounded,
-      };
+    Goal.cut => Icons.trending_down_rounded,
+    Goal.maintain => Icons.balance_rounded,
+    Goal.bulk => Icons.trending_up_rounded,
+    Goal.strength => Icons.fitness_center_rounded,
+  };
 
   String _goalLabel(Goal g) => switch (g) {
-        Goal.cut => 'Kilo Ver (Definasyon)',
-        Goal.maintain => 'Kilomu Koru',
-        Goal.bulk => 'Kilo Al (Hacim)',
-        Goal.strength => 'Güç Artışı (Kuvvet)',
-      };
+    Goal.cut => 'Kilo Ver (Definasyon)',
+    Goal.maintain => 'Kilomu Koru',
+    Goal.bulk => 'Kilo Al (Hacim)',
+    Goal.strength => 'Güç Artışı (Kuvvet)',
+  };
 
   String _goalHint(Goal g) => switch (g) {
-        Goal.cut => 'Yağ oranını düşürmeye odaklanan plan.',
-        Goal.maintain => 'Mevcut formunu dengeli şekilde koru.',
-        Goal.bulk => 'Kas kütlesi ve toplam ağırlığı artır.',
-        Goal.strength => 'Kuvvet performansını önceliklendiren yaklaşım.',
-      };
+    Goal.cut => 'Yağ oranını düşürmeye odaklanan plan.',
+    Goal.maintain => 'Mevcut formunu dengeli şekilde koru.',
+    Goal.bulk => 'Kas kütlesi ve toplam ağırlığı artır.',
+    Goal.strength => 'Kuvvet performansını önceliklendiren yaklaşım.',
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -903,8 +906,10 @@ class _StepShellState extends State<_StepShell>
       vsync: this,
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _slide = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     _ctrl.forward();
   }
 
@@ -992,6 +997,8 @@ class _NumberTile extends StatefulWidget {
   final double max;
   final double step;
   final bool allowManualEntry;
+  final double Function(double value)? valueToDisplay;
+  final double Function(double displayValue)? displayToValue;
   final ValueChanged<double> onChanged;
 
   const _NumberTile({
@@ -1002,6 +1009,8 @@ class _NumberTile extends StatefulWidget {
     required this.max,
     this.step = 1,
     this.allowManualEntry = false,
+    this.valueToDisplay,
+    this.displayToValue,
     required this.onChanged,
   });
 
@@ -1040,15 +1049,20 @@ class _NumberTileState extends State<_NumberTile> {
     return stepped.clamp(widget.min, widget.max);
   }
 
+  double _displayValue() =>
+      widget.valueToDisplay?.call(widget.value) ?? widget.value;
+
+  double _storedValue(double displayValue) =>
+      widget.displayToValue?.call(displayValue) ?? displayValue;
+
   // Caller must pass an already-snapped value — never calls _snap internally
   // to avoid floating-point drift from double-snapping.
-  String _fmt(double snapped) =>
-      widget.step >= 1
-          ? snapped.round().toString()
-          : snapped.toStringAsFixed(1);
+  String _fmt(double snapped) => widget.step >= 1
+      ? snapped.round().toString()
+      : snapped.toStringAsFixed(1);
 
   void _startEdit() {
-    final current = _snap(widget.value);
+    final current = _snap(_displayValue());
     final text = _fmt(current);
     _editCtrl.value = TextEditingValue(
       text: text,
@@ -1078,7 +1092,7 @@ class _NumberTileState extends State<_NumberTile> {
         ),
       );
     }
-    widget.onChanged(_snap(clamped));
+    widget.onChanged(_storedValue(_snap(clamped)));
   }
 
   // Slider sürüklenince açık inline field'ı kapat — iki input çakışmasın.
@@ -1087,12 +1101,12 @@ class _NumberTileState extends State<_NumberTile> {
       _focusNode.unfocus();
       if (mounted) setState(() => _editing = false);
     }
-    widget.onChanged(_snap(v));
+    widget.onChanged(_storedValue(_snap(v)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final snapped = _snap(widget.value);
+    final snapped = _snap(_displayValue());
     final divisions = ((widget.max - widget.min) / widget.step).round();
     final displayText = '${_fmt(snapped)} ${widget.unit}';
 
@@ -1277,8 +1291,9 @@ class _InlineField extends StatelessWidget {
               child: TextField(
                 controller: controller,
                 focusNode: focusNode,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 textInputAction: TextInputAction.done,
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
@@ -1362,9 +1377,7 @@ class _ChoiceTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(
-                  alpha: selected ? 0.08 : 0.04,
-                ),
+                color: Colors.white.withValues(alpha: selected ? 0.08 : 0.04),
                 borderRadius: BorderRadius.circular(13),
               ),
               alignment: Alignment.center,
@@ -1405,11 +1418,7 @@ class _ChoiceTile extends StatelessWidget {
             AnimatedOpacity(
               opacity: selected ? 1 : 0,
               duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.check_circle_rounded,
-                color: accent,
-                size: 20,
-              ),
+              child: Icon(Icons.check_circle_rounded, color: accent, size: 20),
             ),
           ],
         ),

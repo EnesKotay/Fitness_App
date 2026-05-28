@@ -305,10 +305,29 @@ class AuthProvider with ChangeNotifier {
       'targetWeight': profile.targetWeight,
       'birthDate': birthDate.toIso8601String(),
       'gender': profile.gender == Gender.female ? 'FEMALE' : 'MALE',
+      'activityLevel': profile.activityLevel.name,
+      'goal': profile.goal.name,
+      'workoutLocation': StorageHelper.getWorkoutLocation(),
+      'equipmentType': StorageHelper.getEquipmentType(),
     };
+    final nutritionPreferences = StorageHelper.getNutritionPreferences();
+    if (nutritionPreferences != null) {
+      payload['nutritionPreferencesJson'] = jsonEncode(nutritionPreferences);
+    }
     final updated = await _authService.updateMeProfile(payload);
     _user = updated;
     await StorageHelper.saveUserName(updated.name);
+    notifyListeners();
+  }
+
+  Future<void> updateMotivationStats(Map<String, dynamic> stats) async {
+    final current = _user;
+    if (current == null || current.id <= 0) return;
+    final encoded = jsonEncode(stats);
+    final updated = await _authService.updateMeProfile({
+      'motivationStatsJson': encoded,
+    });
+    _user = updated;
     notifyListeners();
   }
 
@@ -347,9 +366,18 @@ class AuthProvider with ChangeNotifier {
         name: current.name,
         createdAt: current.createdAt,
         height: current.height,
+        weight: current.weight,
         targetWeight: current.targetWeight,
         birthDate: current.birthDate,
         gender: current.gender,
+        activityLevel: current.activityLevel,
+        goal: current.goal,
+        goalHistoryJson: current.goalHistoryJson,
+        workoutLocation: current.workoutLocation,
+        equipmentType: current.equipmentType,
+        nutritionPreferencesJson: current.nutritionPreferencesJson,
+        aiMemorySummary: current.aiMemorySummary,
+        motivationStatsJson: current.motivationStatsJson,
         premiumTier: 'free',
       );
     } else {

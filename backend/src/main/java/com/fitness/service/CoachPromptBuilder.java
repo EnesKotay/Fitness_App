@@ -84,6 +84,10 @@ public class CoachPromptBuilder {
         {"label": "💪 Antrenmanı Kaydet", "type": "SAVE_WORKOUT", "data": "{\"name\":\"Ev Antrenmanı\",\"workoutType\":\"STRENGTH\",\"muscleGroup\":\"FULL_BODY\",\"durationMinutes\":45}"}
         Adjust name/muscleGroup/durationMinutes to match the actual plan you gave.
 
+        SAVE_MEMORY RULE:
+        4. If the user shares an important physical condition, injury, diet preference, or long-term progress milestone that should be remembered for future planning, add ONE action:
+        {"label": "Hafızaya Kaydet", "type": "SAVE_MEMORY", "data": "<the important fact to remember>"}
+
         Otherwise, leave "actions" empty.
         """;
 

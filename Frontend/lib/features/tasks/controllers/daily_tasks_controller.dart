@@ -5,6 +5,22 @@ import '../storage/daily_task_storage.dart';
 
 enum DailyTasksFilter { all, todo, done }
 
+class DailyTaskMilestone {
+  const DailyTaskMilestone({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.isUnlocked,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String icon;
+  final bool isUnlocked;
+}
+
 class DailyTasksController extends ChangeNotifier {
   DailyTasksController({
     DailyTaskStorage? storage,
@@ -59,6 +75,73 @@ class DailyTasksController extends ChangeNotifier {
 
   int get totalCount => _tasks.length;
   int get completedCount => _tasks.where((task) => task.isDone).length;
+  double get completionRatio =>
+      totalCount == 0 ? 0.0 : completedCount / totalCount;
+
+  String get progressTitle {
+    if (totalCount == 0) return 'Bugüne bir hedef koy';
+    if (completedCount == totalCount) return 'Günlük set tamam';
+    if (completionRatio >= 0.5) return 'Ritim yakalandı';
+    return 'İlk hamleyi seç';
+  }
+
+  String get progressSubtitle {
+    if (totalCount == 0) {
+      return 'Su, öğün veya antrenman için küçük bir görev ekle.';
+    }
+    final remaining = totalCount - completedCount;
+    if (remaining == 0) {
+      return 'Bugünün tüm görevleri bitti. Seri için harika kayıt.';
+    }
+    return '$remaining görev kaldı. En kısa olanı şimdi bitir.';
+  }
+
+  List<DailyTaskMilestone> get milestones {
+    final categoriesDone = _tasks
+        .where((task) => task.isDone)
+        .map((task) => task.category)
+        .toSet();
+    return <DailyTaskMilestone>[
+      DailyTaskMilestone(
+        id: 'first_task',
+        title: 'İlk Adım',
+        description: 'İlk görevi tamamla',
+        icon: '1',
+        isUnlocked: completedCount >= 1,
+      ),
+      DailyTaskMilestone(
+        id: 'half_day',
+        title: 'Ritim',
+        description: 'Görevlerin yarısını bitir',
+        icon: '50%',
+        isUnlocked: totalCount > 0 && completionRatio >= 0.5,
+      ),
+      DailyTaskMilestone(
+        id: 'balanced_day',
+        title: 'Denge',
+        description: 'Spor, beslenme ve suya dokun',
+        icon: '3',
+        isUnlocked:
+            categoriesDone.contains(TaskCategory.sport) &&
+            categoriesDone.contains(TaskCategory.nutrition) &&
+            categoriesDone.contains(TaskCategory.water),
+      ),
+      DailyTaskMilestone(
+        id: 'perfect_day',
+        title: 'Tam Gün',
+        description: 'Tüm görevleri tamamla',
+        icon: '100%',
+        isUnlocked: totalCount > 0 && completedCount == totalCount,
+      ),
+    ];
+  }
+
+  DailyTaskMilestone? get nextMilestone {
+    for (final milestone in milestones) {
+      if (!milestone.isUnlocked) return milestone;
+    }
+    return null;
+  }
 
   Map<String, DailyTask> get tasksByNormalizedTitle {
     final map = <String, DailyTask>{};
@@ -146,9 +229,9 @@ class DailyTasksController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleTaskDone(String taskId) async {
+  Future<bool> toggleTaskDone(String taskId) async {
     final index = _tasks.indexWhere((task) => task.id == taskId);
-    if (index == -1) return;
+    if (index == -1) return false;
     final current = _tasks[index];
     final nextValue = !current.isDone;
     await _storage.toggleDone(_selectedDate, taskId, nextValue);
@@ -158,6 +241,7 @@ class DailyTasksController extends ChangeNotifier {
         )
         .toList();
     notifyListeners();
+    return _tasks.isNotEmpty && _tasks.every((task) => task.isDone);
   }
 
   /// Belirtilen kategorideki ilk tamamlanmamış görevi otomatik tamamlar.
@@ -171,14 +255,12 @@ class DailyTasksController extends ChangeNotifier {
       }
     }
     if (target == null) return false;
-    await toggleTaskDone(target.id);
-    return true;
+    return toggleTaskDone(target.id);
   }
 
   Future<void> removeRecurringTemplate(String id) async {
     await _storage.removeRecurringTemplate(id);
-    _recurringTemplates =
-        _recurringTemplates.where((t) => t.id != id).toList();
+    _recurringTemplates = _recurringTemplates.where((t) => t.id != id).toList();
     notifyListeners();
   }
 

@@ -58,8 +58,10 @@ class NotificationSchedulerService {
 
     if (StorageHelper.getNotifDailySummary()) {
       await notifications.scheduleDailySummaryReminder();
+      await notifications.scheduleMorningRecoveryReminder(); // Sabah da toparlanma skoru at
     } else {
       await notifications.cancelDailySummaryReminder();
+      await notifications.cancelMorningRecoveryReminder();
     }
 
     debugPrint('NotificationSchedulerService: Bildirim planı senkronlandı');

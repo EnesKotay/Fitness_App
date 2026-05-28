@@ -1,11 +1,12 @@
 part of 'workout_screen.dart';
 
-class _RegionCard extends StatelessWidget {
+class _RegionCard extends StatefulWidget {
   final String label;
   final Color color;
   final IconData icon;
   final String imageUrl;
   final VoidCallback onTap;
+  final int? exerciseCount;
 
   const _RegionCard({
     required this.label,
@@ -13,24 +14,76 @@ class _RegionCard extends StatelessWidget {
     required this.icon,
     required this.imageUrl,
     required this.onTap,
+    this.exerciseCount,
   });
 
   @override
+  State<_RegionCard> createState() => _RegionCardState();
+}
+
+class _RegionCardState extends State<_RegionCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      reverseDuration: const Duration(milliseconds: 200),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.94,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+    // Egzersiz sayısını katalogdan al (veya dışarıdan geçirilebilir)
+    final count =
+        widget.exerciseCount ??
+        buildExerciseCatalogForGroup(
+          ExerciseParserService.normalizeMuscleGroupCode(widget.label),
+        ).length;
+
+    return GestureDetector(
+      onTapDown: (_) => _pressCtrl.forward(),
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+            border: Border.all(
+              color: widget.color.withValues(alpha: 0.6),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.25),
-                blurRadius: 14,
-                offset: const Offset(0, 5),
+                color: widget.color.withValues(alpha: 0.35),
+                blurRadius: 20,
+                spreadRadius: 2,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.15),
+                blurRadius: 40,
+                spreadRadius: -5,
               ),
             ],
           ),
@@ -38,36 +91,38 @@ class _RegionCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              imageUrl.startsWith('assets/')
-                  ? Image.asset(imageUrl, fit: BoxFit.cover)
+              // Arka plan resmi
+              widget.imageUrl.startsWith('assets/')
+                  ? Image.asset(widget.imageUrl, fit: BoxFit.cover)
                   : CachedNetworkImage(
-                      imageUrl: imageUrl,
+                      imageUrl: widget.imageUrl,
                       fit: BoxFit.cover,
                       placeholder: (_, _) =>
-                          Container(color: color.withValues(alpha: 0.3)),
+                          Container(color: widget.color.withValues(alpha: 0.3)),
                       errorWidget: (_, _, _) => Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [
-                              color.withValues(alpha: 0.4),
-                              color.withValues(alpha: 0.2),
+                              widget.color.withValues(alpha: 0.4),
+                              widget.color.withValues(alpha: 0.15),
                             ],
                           ),
                         ),
                       ),
                     ),
+              // Koyu gradient
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                     colors: [
-                      Colors.black.withValues(alpha: 0.1),
-                      Colors.black.withValues(alpha: 0.72),
+                      Colors.black.withValues(alpha: 0.05),
+                      Colors.black.withValues(alpha: 0.78),
                     ],
-                    stops: const [0.2, 1.0],
+                    stops: const [0.1, 1.0],
                   ),
                 ),
               ),
@@ -77,31 +132,72 @@ class _RegionCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Üst: ikon badge
                     Align(
                       alignment: Alignment.topRight,
                       child: Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.85),
+                          color: widget.color.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: widget.color.withValues(alpha: 0.45),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Icon(icon, color: Colors.white, size: 16),
+                        child: Icon(widget.icon, color: Colors.white, size: 16),
                       ),
                     ),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black87,
-                            offset: Offset(0, 1),
-                            blurRadius: 4,
+                    // Alt: label + egzersiz sayısı
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.label,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.1,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black87,
+                                offset: Offset(0, 1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (count > 0) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: widget.color.withValues(alpha: 0.4),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              '$count hareket',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: widget.color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -114,7 +210,33 @@ class _RegionCard extends StatelessWidget {
   }
 }
 
-class _ExerciseCard extends StatelessWidget {
+/// Kas grubuna göre uygun ikon döner
+IconData _iconForMuscleGroup(String? muscleGroup) {
+  switch ((muscleGroup ?? '').toUpperCase()) {
+    case 'CHEST':
+      return Icons.self_improvement_rounded;
+    case 'BACK':
+      return Icons.back_hand_rounded;
+    case 'LEGS':
+    case 'GLUTES':
+      return Icons.directions_walk_rounded;
+    case 'SHOULDERS':
+      return Icons.accessibility_new_rounded;
+    case 'BICEPS':
+    case 'TRICEPS':
+    case 'ARMS':
+      return Icons.fitness_center_rounded;
+    case 'CORE':
+    case 'ABS':
+      return Icons.circle_outlined;
+    case 'CARDIO':
+      return Icons.directions_run_rounded;
+    default:
+      return Icons.fitness_center_rounded;
+  }
+}
+
+class _ExerciseCard extends StatefulWidget {
   final Exercise exercise;
   final Color accentColor;
   final String? subRegionLabel;
@@ -132,165 +254,226 @@ class _ExerciseCard extends StatelessWidget {
   });
 
   @override
+  State<_ExerciseCard> createState() => _ExerciseCardState();
+}
+
+class _ExerciseCardState extends State<_ExerciseCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      reverseDuration: const Duration(milliseconds: 180),
+      lowerBound: 0.0,
+      upperBound: 1.0,
+    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          highlightColor: accentColor.withValues(alpha: 0.08),
-          splashColor: accentColor.withValues(alpha: 0.06),
-          child: Row(
-            children: [
-              // Left accent bar
-              Container(
-                width: 3,
-                height: 72,
+    final accentColor = widget.accentColor;
+    final exercise = widget.exercise;
+    final subRegionLabel = widget.subRegionLabel;
+    final isFavorite = widget.isFavorite;
+
+    return GestureDetector(
+      onTapDown: (_) => _pressCtrl.forward(),
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
                 decoration: BoxDecoration(
-                  color: accentColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              // Icon
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.fitness_center_rounded,
-                  color: accentColor,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        exercise.name,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          if (subRegionLabel != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: accentColor.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                subRegionLabel!,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  color: accentColor,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          if (exercise.description != null &&
-                              exercise.description!.trim().isNotEmpty)
-                            Expanded(
-                              child: Text(
-                                exercise.description!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white.withValues(alpha: 0.45),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      if (exercise.tips != null &&
-                          exercise.tips!.trim().isNotEmpty) ...[
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb_outline_rounded,
-                              size: 11,
-                              color: Colors.amber.withValues(alpha: 0.75),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'İpucu var',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                color: Colors.amber.withValues(alpha: 0.75),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              // Right actions
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: onFavoriteTap,
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Icon(
-                          isFavorite
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          size: 20,
-                          color: isFavorite
-                              ? Colors.amber
-                              : Colors.white.withValues(alpha: 0.22),
+                    // Sol renk çizgisi
+                    Container(
+                      width: 3,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
                         ),
                       ),
                     ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: Colors.white.withValues(alpha: 0.2),
+                    const SizedBox(width: 14),
+                    // Kas grubuna göre ikon
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: accentColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Icon(
+                        _iconForMuscleGroup(exercise.muscleGroup),
+                        color: accentColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // İçerik
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              exercise.name,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                if (subRegionLabel != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: accentColor.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      subRegionLabel!,
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: accentColor,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                if (exercise.description != null &&
+                                    exercise.description!.trim().isNotEmpty)
+                                  Expanded(
+                                    child: Text(
+                                      exercise.description!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.45,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (exercise.tips != null &&
+                                exercise.tips!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.lightbulb_outline_rounded,
+                                    size: 11,
+                                    color: Colors.amber.withValues(alpha: 0.75),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'İpucu var',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.75,
+                                      ),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Sağ: favori + chevron
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: widget.onFavoriteTap,
+                            behavior: HitTestBehavior.opaque,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              transitionBuilder: (child, anim) =>
+                                  ScaleTransition(scale: anim, child: child),
+                              child: Icon(
+                                isFavorite
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                key: ValueKey(isFavorite),
+                                size: 22,
+                                color: isFavorite
+                                    ? Colors.amber
+                                    : Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: accentColor.withValues(alpha: 0.4),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -311,267 +494,356 @@ class _HistoryCard extends StatelessWidget {
     this.onRepeat,
   });
 
+  Color _muscleColor() {
+    final group = workout.muscleGroup?.toUpperCase() ?? '';
+    return kMuscleGroupInfo[group]?.color ?? const Color(0xFF2E7D32);
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateStr = DateFormat(
-      'd MMMM, EEEE',
+      'd MMM, EEEE',
       'tr_TR',
     ).format(workout.workoutDate);
     final timeStr = DateFormat('HH:mm').format(workout.workoutDate);
+    final accent = _muscleColor();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      color: const Color(0xFF141414),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+    // Volüm hesabı
+    final double? volume =
+        (workout.weight != null && workout.sets != null && workout.reps != null)
+        ? (workout.weight! * workout.sets! * workout.reps!)
+        : null;
+
+    return Dismissible(
+      key: ValueKey('history_${workout.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text(
+              'Sil',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: InkWell(
-        onTap: onEdit,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      confirmDismiss: (_) async {
+        onDelete();
+        return false; // gerçek silme onDelete içinde yapılıyor
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131313),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: accent.withValues(alpha: 0.18)),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onEdit,
+            borderRadius: BorderRadius.circular(20),
+            splashColor: accent.withValues(alpha: 0.06),
+            highlightColor: accent.withValues(alpha: 0.04),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                workout.name,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                  // ── Başlık satırı ────────────────────────────────────────
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sol renk çizgisi
+                      Container(
+                        width: 4,
+                        height: 52,
+                        margin: const EdgeInsets.only(right: 14, top: 2),
+                        decoration: BoxDecoration(
+                          color: accent,
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: accent.withValues(alpha: 0.5),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
-                            if (workout.oneRepMax != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: Colors.amber.withValues(alpha: 0.4),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    workout.name,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.2,
+                                    ),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text(
-                                      '🏆',
-                                      style: TextStyle(fontSize: 10),
+                                if (workout.oneRepMax != null) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
                                     ),
-                                    const SizedBox(width: 3),
-                                    Text(
-                                      '${workout.oneRepMax!.toStringAsFixed(1)} kg',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.amber,
-                                        fontWeight: FontWeight.w700,
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.amber.withValues(
+                                          alpha: 0.45,
+                                        ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$dateStr • $timeStr',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        if (workout.isSuperset == true &&
-                            workout.supersetPartner != null) ...[
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.link_rounded,
-                                size: 12,
-                                color: Colors.purpleAccent.withValues(
-                                  alpha: 0.8,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Superset: ${workout.supersetPartner}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.purpleAccent.withValues(
-                                    alpha: 0.8,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text(
+                                          '🏆',
+                                          style: TextStyle(fontSize: 10),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${workout.oneRepMax!.toStringAsFixed(1)} kg',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.amber,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: Colors.white.withValues(alpha: 0.5),
-                    ),
-                    color: const Color(0xFF1F1F1F),
-                    onSelected: (val) {
-                      if (val == 'edit') onEdit();
-                      if (val == 'delete') onDelete();
-                      if (val == 'repeat') onRepeat?.call();
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'repeat',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.replay_rounded,
-                              color: Colors.greenAccent,
-                              size: 18,
+                                ],
+                              ],
                             ),
-                            SizedBox(width: 10),
-                            Text(
-                              'Tekrarla',
-                              style: TextStyle(color: Colors.greenAccent),
+                            const SizedBox(height: 3),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 11,
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$dateStr • $timeStr',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: Colors.white.withValues(alpha: 0.38),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Text(
-                          'Düzenle',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Sil', style: TextStyle(color: Colors.red)),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  if (workout.workoutType != null)
-                    _InfoTag(
-                      label: workout.workoutType!,
-                      icon: Icons.category,
-                      color: const Color(0xFF2E7D32),
-                    ),
-                  if (workout.sets != null)
-                    _InfoTag(
-                      label: '${workout.sets} Set',
-                      icon: Icons.layers_rounded,
-                      color: Colors.orange,
-                    ),
-                  if (workout.reps != null)
-                    _InfoTag(
-                      label: '${workout.reps} Tekrar',
-                      icon: Icons.repeat_rounded,
-                      color: Colors.purple,
-                    ),
-                  if (workout.durationMinutes != null &&
-                      workout.durationMinutes! > 0)
-                    _InfoTag(
-                      label: '${workout.durationMinutes} dk',
-                      icon: Icons.timer_rounded,
-                      color: Colors.blue,
-                    ),
-                ],
-              ),
-              if (workout.notes != null && workout.notes!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 14),
+                  // ── İstatistik satırı ────────────────────────────────────
+                  Row(
+                    children: [
+                      if (workout.weight != null)
+                        _StatPill(
+                          label: '${workout.weight!.toStringAsFixed(1)} kg',
+                          icon: Icons.monitor_weight_outlined,
+                          color: accent,
+                        ),
+                      if (workout.sets != null) ...[
+                        if (workout.weight != null) const SizedBox(width: 8),
+                        _StatPill(
+                          label: '${workout.sets}×${workout.reps ?? '?'}',
+                          icon: Icons.layers_rounded,
+                          color: Colors.orange,
+                        ),
+                      ],
+                      if (volume != null && volume > 0) ...[
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          label: '${(volume / 1000).toStringAsFixed(1)}t vol',
+                          icon: Icons.bar_chart_rounded,
+                          color: Colors.purple,
+                        ),
+                      ],
+                      if (workout.durationMinutes != null &&
+                          workout.durationMinutes! > 0) ...[
+                        const SizedBox(width: 8),
+                        _StatPill(
+                          label: '${workout.durationMinutes} dk',
+                          icon: Icons.timer_rounded,
+                          color: Colors.blue,
+                        ),
+                      ],
+                      const Spacer(),
+                      // ── Inline aksiyonlar ──────────────────────────────
+                      if (onRepeat != null)
+                        GestureDetector(
+                          onTap: onRepeat,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF2E7D32,
+                              ).withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(
+                                  0xFF2E7D32,
+                                ).withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.replay_rounded,
+                                  size: 14,
+                                  color: Color(0xFF66BB6A),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Tekrarla',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF66BB6A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  child: Text(
-                    workout.notes!,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontStyle: FontStyle.italic,
+                  if (workout.isSuperset == true &&
+                      workout.supersetPartner != null) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.link_rounded,
+                          size: 12,
+                          color: Colors.purpleAccent,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Superset: ${workout.supersetPartner}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.purpleAccent,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              // Paylaş butonu
-              GestureDetector(
-                onTap: () {
-                  final setInfo = workout.sets != null
-                      ? '${workout.sets} set × ${workout.reps ?? '?'} tekrar'
-                      : '';
-                  final weightInfo = workout.weight != null
-                      ? ' — ${workout.weight!.toStringAsFixed(1)} kg'
-                      : '';
-                  final rmInfo = workout.oneRepMax != null
-                      ? '\n🏆 1RM: ${workout.oneRepMax!.toStringAsFixed(1)} kg'
-                      : '';
-                  final durInfo = workout.durationMinutes != null
-                      ? '\n⏱ ${workout.durationMinutes} dk'
-                      : '';
-                  final text =
-                      '💪 ${workout.name}\n$setInfo$weightInfo$rmInfo$durInfo\n\nPusulaFit ile kaydedildi.';
-                  final box = context.findRenderObject() as RenderBox?;
-                  if (box != null) {
-                    Share.share(
-                      text,
-                      sharePositionOrigin:
-                          box.localToGlobal(Offset.zero) & box.size,
-                    );
-                  } else {
-                    Share.share(text);
-                  }
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(
-                      Icons.share_rounded,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Paylaş',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        fontSize: 12,
+                  ],
+                  if (workout.notes != null && workout.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 9,
+                      ),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.05),
+                        ),
+                      ),
+                      child: Text(
+                        workout.notes!,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: Colors.white.withValues(alpha: 0.55),
+                          fontStyle: FontStyle.italic,
+                          height: 1.4,
+                        ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  const _StatPill({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -622,9 +894,21 @@ class _MuscleGroupChart extends StatelessWidget {
   final List<Workout> workouts;
   const _MuscleGroupChart({required this.workouts});
 
+  static const _groupColors = <String, Color>{
+    'CHEST': Color(0xFF1E88E5),
+    'BACK': Color(0xFF00ACC1),
+    'LEGS': Color(0xFFE53935),
+    'SHOULDERS': Color(0xFFFFB300),
+    'BICEPS': Color(0xFF8E24AA),
+    'TRICEPS': Color(0xFF6D4C41),
+    'CORE': Color(0xFF43A047),
+    'GLUTES': Color(0xFFFF7043),
+    'ARMS': Color(0xFF5C6BC0),
+    'CARDIO': Color(0xFFEC407A),
+  };
+
   @override
   Widget build(BuildContext context) {
-    // Kas grubu sayısını hesapla
     final counts = <String, int>{};
     for (final w in workouts) {
       final mg = w.muscleGroup ?? w.workoutType ?? 'Diğer';
@@ -634,22 +918,11 @@ class _MuscleGroupChart extends StatelessWidget {
 
     final sorted = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    final max = sorted.first.value.toDouble();
-
-    const accent = Color(0xFF2E7D32);
-    final groupColors = <String, Color>{
-      'CHEST': const Color(0xFF1E88E5),
-      'BACK': const Color(0xFF00ACC1),
-      'LEGS': const Color(0xFFE53935),
-      'SHOULDERS': const Color(0xFFFFB300),
-      'BICEPS': const Color(0xFF8E24AA),
-      'TRICEPS': const Color(0xFF6D4C41),
-      'CORE': const Color(0xFF43A047),
-      'GLUTES': const Color(0xFFFF7043),
-    };
+    final total = counts.values.fold<int>(0, (a, b) => a + b);
+    final top = sorted.take(6).toList();
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFF141414),
         borderRadius: BorderRadius.circular(20),
@@ -658,11 +931,15 @@ class _MuscleGroupChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.bar_chart_rounded, color: accent, size: 18),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(
+                Icons.donut_large_rounded,
+                color: Color(0xFF2E7D32),
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Text(
                 'Kas Grubu Dağılımı',
                 style: TextStyle(
                   color: Colors.white,
@@ -672,81 +949,237 @@ class _MuscleGroupChart extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          ...sorted.take(6).map((entry) {
-            final color = groupColors[entry.key] ?? accent;
-            final pct = entry.value / max;
-            final label = kMuscleGroupInfo[entry.key]?.label ?? entry.key;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 90,
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 12,
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // ── Mini donut görünümü ────────────────────────────────────
+              SizedBox(
+                width: 80,
+                height: 80,
+                child: CustomPaint(
+                  painter: _DonutPainter(
+                    segments: top
+                        .map(
+                          (e) => (
+                            value: e.value.toDouble(),
+                            color:
+                                _groupColors[e.key] ?? const Color(0xFF2E7D32),
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: pct,
-                            minHeight: 8,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.07,
-                            ),
-                            valueColor: AlwaysStoppedAnimation<Color>(color),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${entry.value}',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                        )
+                        .toList(),
                   ),
-                ],
+                  child: Center(
+                    child: Text(
+                      '$total',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            );
-          }),
+              const SizedBox(width: 18),
+              // ── Bar listesi ────────────────────────────────────────────
+              Expanded(
+                child: Column(
+                  children: top.map((entry) {
+                    final color =
+                        _groupColors[entry.key] ?? const Color(0xFF2E7D32);
+                    final pct = entry.value / sorted.first.value;
+                    final label =
+                        kMuscleGroupInfo[entry.key]?.label ?? entry.key;
+                    final percent = ((entry.value / total) * 100).round();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: color.withValues(alpha: 0.5),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          SizedBox(
+                            width: 58,
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.72),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: pct,
+                                minHeight: 6,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.06,
+                                ),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  color,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$percent%',
+                            style: TextStyle(
+                              color: color,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
+class _DonutPainter extends CustomPainter {
+  final List<({double value, Color color})> segments;
+
+  const _DonutPainter({required this.segments});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final strokeWidth = 14.0;
+    final rect = Rect.fromCircle(
+      center: center,
+      radius: radius - strokeWidth / 2,
+    );
+
+    final total = segments.fold<double>(0.0, (sum, s) => sum + s.value);
+    if (total == 0) return;
+
+    double startAngle = -90 * (3.14159 / 180);
+    for (final seg in segments) {
+      final sweepAngle = (seg.value / total) * 2 * 3.14159;
+      final paint = Paint()
+        ..color = seg.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawArc(rect, startAngle, sweepAngle - 0.03, false, paint);
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DonutPainter old) => old.segments != segments;
+}
+
 // ── Deload Banner ─────────────────────────────────────────────────────────────
 
-class _DeloadBanner extends StatelessWidget {
+class _DeloadBanner extends StatefulWidget {
   const _DeloadBanner();
 
   @override
+  State<_DeloadBanner> createState() => _DeloadBannerState();
+}
+
+class _DeloadBannerState extends State<_DeloadBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.4)),
+    return AnimatedBuilder(
+      animation: _pulseAnim,
+      builder: (context, child) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF0D2744).withValues(alpha: _pulseAnim.value),
+              const Color(0xFF091929),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: Colors.blueAccent.withValues(
+              alpha: 0.3 + _pulseAnim.value * 0.3,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blueAccent.withValues(
+                alpha: 0.08 * _pulseAnim.value,
+              ),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: child,
       ),
       child: Row(
         children: [
-          const Icon(Icons.bed_rounded, color: Colors.blueAccent, size: 22),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.blueAccent.withValues(alpha: 0.3),
+              ),
+            ),
+            child: const Icon(
+              Icons.bedtime_rounded,
+              color: Colors.lightBlueAccent,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,17 +1187,19 @@ class _DeloadBanner extends StatelessWidget {
                 const Text(
                   'Deload Haftası Zamanı?',
                   style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
+                    color: Colors.lightBlueAccent,
+                    fontWeight: FontWeight.w800,
                     fontSize: 13,
+                    letterSpacing: 0.1,
                   ),
                 ),
+                const SizedBox(height: 3),
                 Text(
                   'Son 6 günde sürekli antrenman yaptın. Hafif bir toparlanma haftası performansını artırabilir.',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: Colors.white.withValues(alpha: 0.58),
                     fontSize: 12,
-                    height: 1.4,
+                    height: 1.45,
                   ),
                 ),
               ],
@@ -794,55 +1229,248 @@ typedef _TemplateData = ({
   String description,
 });
 
-typedef _QuickStartPreset = ({String label, TemplateData templateData});
+typedef _QuickStartExercise = ({String name, int sets, int reps});
+
+typedef _QuickStartPreset = ({
+  String label,
+  TemplateData templateData,
+  String? muscleGroup,
+  List<_QuickStartExercise> exercises,
+});
 
 const List<_QuickStartPreset> _kQuickStartPresets = [
+  // ── PUSH (İtiş) ──────────────────────────────────────────────────────────
   (
-    label: 'Üst Vücut',
+    label: 'İtiş (Push) Hipertrofi',
+    muscleGroup: 'CHEST',
+    exercises: [
+      (name: 'Bench Press', sets: 4, reps: 8),
+      (name: 'Overhead Press (Barbell)', sets: 4, reps: 8),
+      (name: 'Incline Dumbbell Press', sets: 3, reps: 10),
+      (name: 'Dumbbell Lateral Raise', sets: 4, reps: 15),
+      (name: 'Tricep Pushdown', sets: 3, reps: 12),
+      (name: 'Skull Crusher', sets: 3, reps: 12),
+    ],
     templateData: (
       exerciseName: 'Bench Press',
       sets: 4,
       reps: 8,
-      workoutName: 'Üst Vücut Hızlı Başlangıç',
-      duration: 40,
+      workoutName: 'İtiş (Push) Hipertrofi',
+      duration: 55,
       muscleGroup: 'CHEST',
       difficulty: 'Orta',
     ),
   ),
+  // ── PULL (Çekiş) ─────────────────────────────────────────────────────────
   (
-    label: 'Bacak',
+    label: 'Çekiş (Pull) Hipertrofi',
+    muscleGroup: 'BACK',
+    exercises: [
+      (name: 'Deadlift', sets: 3, reps: 5),
+      (name: 'Pull-Up', sets: 4, reps: 8),
+      (name: 'Barbell Row', sets: 4, reps: 10),
+      (name: 'Face Pull', sets: 3, reps: 15),
+      (name: 'Barbell Curl', sets: 3, reps: 10),
+      (name: 'Hammer Curl', sets: 3, reps: 12),
+    ],
+    templateData: (
+      exerciseName: 'Deadlift',
+      sets: 3,
+      reps: 5,
+      workoutName: 'Çekiş (Pull) Hipertrofi',
+      duration: 60,
+      muscleGroup: 'BACK',
+      difficulty: 'İleri',
+    ),
+  ),
+  // ── LEGS (Bacak) ─────────────────────────────────────────────────────────
+  (
+    label: 'Bacak (Legs) Güç',
+    muscleGroup: 'LEGS',
+    exercises: [
+      (name: 'Back Squat', sets: 4, reps: 6),
+      (name: 'Romanian Deadlift', sets: 4, reps: 8),
+      (name: 'Leg Press', sets: 3, reps: 12),
+      (name: 'Walking Lunge', sets: 3, reps: 10),
+      (name: 'Seated Leg Curl', sets: 3, reps: 15),
+      (name: 'Standing Calf Raise', sets: 4, reps: 20),
+    ],
     templateData: (
       exerciseName: 'Back Squat',
       sets: 4,
       reps: 6,
-      workoutName: 'Bacak Güç Seansı',
-      duration: 50,
+      workoutName: 'Bacak (Legs) Güç & Hacim',
+      duration: 65,
       muscleGroup: 'LEGS',
       difficulty: 'İleri',
     ),
   ),
+  // ── UPPER BODY (Üst Vücut) ───────────────────────────────────────────────
   (
-    label: 'Full Body',
+    label: 'Üst Vücut (Upper)',
+    muscleGroup: 'CHEST',
+    exercises: [
+      (name: 'Bench Press', sets: 4, reps: 6),
+      (name: 'Barbell Row', sets: 4, reps: 8),
+      (name: 'Overhead Press (Dumbbell)', sets: 3, reps: 10),
+      (name: 'Wide Grip Lat Pulldown', sets: 3, reps: 10),
+      (name: 'Dumbbell Curl', sets: 3, reps: 12),
+      (name: 'Tricep Extension (Dumbbell)', sets: 3, reps: 12),
+    ],
     templateData: (
-      exerciseName: 'Romanian Deadlift',
+      exerciseName: 'Bench Press',
+      sets: 4,
+      reps: 6,
+      workoutName: 'Üst Vücut Kompakt Seans',
+      duration: 50,
+      muscleGroup: 'CHEST',
+      difficulty: 'Orta',
+    ),
+  ),
+  // ── LOWER BODY (Alt Vücut) ───────────────────────────────────────────────
+  (
+    label: 'Alt Vücut (Lower)',
+    muscleGroup: 'LEGS',
+    exercises: [
+      (name: 'Front Squat', sets: 4, reps: 8),
+      (name: 'Deadlift (Stiff-Leg)', sets: 3, reps: 10),
+      (name: 'Bulgarian Split Squat', sets: 3, reps: 10),
+      (name: 'Hip Thrust', sets: 4, reps: 12),
+      (name: 'Seated Calf Raise', sets: 3, reps: 15),
+    ],
+    templateData: (
+      exerciseName: 'Front Squat',
+      sets: 4,
+      reps: 8,
+      workoutName: 'Alt Vücut Kompakt Seans',
+      duration: 45,
+      muscleGroup: 'LEGS',
+      difficulty: 'Orta',
+    ),
+  ),
+  // ── FULL BODY (Tüm Vücut) ────────────────────────────────────────────────
+  (
+    label: 'Full Body (Temel)',
+    muscleGroup: 'FULL BODY',
+    exercises: [
+      (name: 'Back Squat', sets: 3, reps: 8),
+      (name: 'Bench Press', sets: 3, reps: 8),
+      (name: 'Pull-Up', sets: 3, reps: 8),
+      (name: 'Overhead Press (Barbell)', sets: 3, reps: 10),
+      (name: 'Romanian Deadlift', sets: 3, reps: 10),
+      (name: 'Plank', sets: 3, reps: 60),
+    ],
+    templateData: (
+      exerciseName: 'Back Squat',
       sets: 3,
       reps: 8,
-      workoutName: 'Full Body Hızlı Seans',
+      workoutName: 'Full Body Temel Güç',
+      duration: 60,
+      muscleGroup: 'FULL BODY',
+      difficulty: 'Başlangıç',
+    ),
+  ),
+  // ── CORE & ABS ───────────────────────────────────────────────────────────
+  (
+    label: 'Core & Karın',
+    muscleGroup: 'CORE',
+    exercises: [
+      (name: 'Hanging Leg Raise', sets: 4, reps: 15),
+      (name: 'Cable Crunch', sets: 4, reps: 15),
+      (name: 'Russian Twist', sets: 3, reps: 20),
+      (name: 'Ab Wheel Rollout', sets: 3, reps: 10),
+      (name: 'Plank', sets: 3, reps: 60),
+    ],
+    templateData: (
+      exerciseName: 'Hanging Leg Raise',
+      sets: 4,
+      reps: 15,
+      workoutName: 'Çelik Karın (Core) Seansı',
+      duration: 25,
+      muscleGroup: 'CORE',
+      difficulty: 'Orta',
+    ),
+  ),
+  // ── GLUTES (Kalça) ───────────────────────────────────────────────────────
+  (
+    label: 'Kalça (Glutes)',
+    muscleGroup: 'GLUTES',
+    exercises: [
+      (name: 'Hip Thrust', sets: 4, reps: 10),
+      (name: 'Romanian Deadlift', sets: 4, reps: 12),
+      (name: 'Glute Kickback (Cable)', sets: 3, reps: 15),
+      (name: 'Hip Abduction (Machine)', sets: 3, reps: 20),
+      (name: 'Bulgarian Split Squat', sets: 3, reps: 10),
+    ],
+    templateData: (
+      exerciseName: 'Hip Thrust',
+      sets: 4,
+      reps: 10,
+      workoutName: 'Kalça Odaklı Büyüme',
       duration: 45,
-      muscleGroup: 'BACK',
+      muscleGroup: 'GLUTES',
+      difficulty: 'Orta',
+    ),
+  ),
+  // ── ARMS (Kollar) ────────────────────────────────────────────────────────
+  (
+    label: 'Kol (Arms) Pump',
+    muscleGroup: 'ARMS',
+    exercises: [
+      (name: 'Barbell Curl', sets: 4, reps: 10),
+      (name: 'Skull Crusher', sets: 4, reps: 10),
+      (name: 'Hammer Curl', sets: 3, reps: 12),
+      (name: 'Tricep Pushdown', sets: 3, reps: 15),
+      (name: 'Preacher Curl', sets: 3, reps: 12),
+      (name: 'Overhead Tricep Extension', sets: 3, reps: 12),
+    ],
+    templateData: (
+      exerciseName: 'Barbell Curl',
+      sets: 4,
+      reps: 10,
+      workoutName: 'Kol (Arms) Pump',
+      duration: 35,
+      muscleGroup: 'ARMS',
       difficulty: 'Orta',
     ),
   ),
   (
-    label: 'Cardio',
+    label: 'Ev (Ağırlıksız)',
+    muscleGroup: 'FULL BODY',
+    exercises: [
+      (name: 'Push-Up', sets: 4, reps: 15),
+      (name: 'Squat', sets: 4, reps: 20),
+      (name: 'Walking Lunge', sets: 3, reps: 12),
+      (name: 'Plank', sets: 3, reps: 60),
+    ],
     templateData: (
-      exerciseName: 'Air Bike Interval',
-      sets: 6,
-      reps: 2,
-      workoutName: 'Cardio Interval Seansı',
-      duration: 20,
-      muscleGroup: 'CORE',
+      exerciseName: 'Push-Up',
+      sets: 4,
+      reps: 15,
+      workoutName: 'Ev İçi Kondisyon',
+      duration: 30,
+      muscleGroup: 'FULL BODY',
       difficulty: 'Başlangıç',
+    ),
+  ),
+  (
+    label: 'İtme (Push)',
+    muscleGroup: 'CHEST',
+    exercises: [
+      (name: 'Bench Press', sets: 4, reps: 8),
+      (name: 'Overhead Press (Barbell)', sets: 4, reps: 8),
+      (name: 'Incline Dumbbell Press', sets: 3, reps: 10),
+      (name: 'Lateral Raise', sets: 3, reps: 15),
+      (name: 'Tricep Pushdown', sets: 3, reps: 12),
+    ],
+    templateData: (
+      exerciseName: 'Bench Press',
+      sets: 4,
+      reps: 8,
+      workoutName: 'Hipertrofi İtme',
+      duration: 55,
+      muscleGroup: 'CHEST',
+      difficulty: 'Orta',
     ),
   ),
 ];
@@ -1135,6 +1763,178 @@ const List<_TemplateData> _kWorkoutTemplates = [
     ],
     description:
         'Tüm büyük kas gruplarını tek seansta çalıştıran dengeli full body programı. Haftada 3 kez uygulamak için idealdir; squat ile başla, core ile bitir.',
+  ),
+  (
+    name: 'Dev Kol Günü',
+    subtitle: 'Pump Günü',
+    difficulty: 'İleri',
+    difficultyColor: Color(0xFFE53935),
+    color: Color(0xFF8E24AA),
+    colorDark: Color(0xFF4A148C),
+    icon: Icons.sports_martial_arts,
+    estimatedMinutes: 50,
+    muscles: ['Biceps', 'Triceps', 'Brachialis', 'Ön Kol'],
+    exercises: [
+      (
+        name: 'Barbell Curl',
+        volume: '4×8-10',
+        tip: 'Vücudunu sallama, dirsekler sabit',
+      ),
+      (
+        name: 'Skull Crusher',
+        volume: '4×10-12',
+        tip: 'Triceps uzun başı için alna doğru indir',
+      ),
+      (
+        name: 'Incline Dumbbell Curl',
+        volume: '3×12',
+        tip: 'Kollar tamamen sarksın, tepe noktasında sık',
+      ),
+      (
+        name: 'Overhead Dumbbell Extension',
+        volume: '3×12',
+        tip: 'Maksimum esneme (stretch) yakala',
+      ),
+      (
+        name: 'Hammer Curl',
+        volume: '3×12-15',
+        tip: 'Ön kol hacmi için nötr tutuş',
+      ),
+      (
+        name: 'Tricep Pushdown',
+        volume: '3×15',
+        tip: 'Halatla dışa doğru açarak kilitle',
+      ),
+    ],
+    description:
+        'Kollarını patlama noktasına getirecek izole bir pump programı. Biseps ve trisepsi ardışık süpersetler halinde de yapabilirsin.',
+  ),
+  (
+    name: 'Ev (Dumbbell)',
+    subtitle: 'Pratik Seans',
+    difficulty: 'Başlangıç',
+    difficultyColor: Color(0xFF43A047),
+    color: Color(0xFF00897B),
+    colorDark: Color(0xFF004D40),
+    icon: Icons.home_rounded,
+    estimatedMinutes: 45,
+    muscles: ['Göğüs', 'Bacak', 'Sırt', 'Omuz', 'Core'],
+    exercises: [
+      (
+        name: 'Dumbbell Goblet Squat',
+        volume: '4×12',
+        tip: 'Göğsü dik tut, derin çömel',
+      ),
+      (
+        name: 'Push-Up',
+        volume: '4×Maks',
+        tip: 'Dirsekleri vücuda yakın tut (45 derece)',
+      ),
+      (
+        name: 'Single Arm Dumbbell Row',
+        volume: '4×10 (her kol)',
+        tip: 'Sırt düz, dambılı kalçaya doğru çek',
+      ),
+      (
+        name: 'Dumbbell Shoulder Press',
+        volume: '3×12',
+        tip: 'Oturarak veya ayakta, core sıkı',
+      ),
+      (
+        name: 'Dumbbell Romanian Deadlift',
+        volume: '3×12',
+        tip: 'Kalçayı geriye it, hamstringleri hisset',
+      ),
+      (name: 'Plank', volume: '3×60 sn', tip: 'Tüm vücudu sık, nefesini tutma'),
+    ],
+    description:
+        'Sadece vücut ağırlığı ve bir çift dambıl ile evde tüm kaslarını çalıştırabileceğin son derece verimli bir full body programı.',
+  ),
+  (
+    name: 'Fonksiyonel Kondisyon',
+    subtitle: 'HIIT & Ter Günü',
+    difficulty: 'Orta',
+    difficultyColor: Color(0xFFF9A825),
+    color: Color(0xFFFF6D00),
+    colorDark: Color(0xFFE65100),
+    icon: Icons.monitor_heart_rounded,
+    estimatedMinutes: 40,
+    muscles: ['Core', 'Bacak', 'Kardiyovasküler'],
+    exercises: [
+      (
+        name: 'Kettlebell Swing',
+        volume: '4×20',
+        tip: 'Kolları değil, kalça patlayıcılığını kullan',
+      ),
+      (
+        name: 'Burpee',
+        volume: '4×10',
+        tip: 'Hızlıca yere in ve sıçrayarak kalk',
+      ),
+      (
+        name: 'Mountain Climber',
+        volume: '4×40 sn',
+        tip: 'Nabzı yüksek tut, dizleri göğse çek',
+      ),
+      (name: 'Box Jump', volume: '3×10', tip: 'Yumuşak kon, patlayıcı sıçra'),
+      (
+        name: 'Farmer\'s Walk',
+        volume: '3×45 sn',
+        tip: 'Omuzlar geride, core kaya gibi sert',
+      ),
+      (
+        name: 'Battle Rope Slam',
+        volume: '3×30 sn',
+        tip: 'Tüm gücünle halatları yere çarp',
+      ),
+    ],
+    description:
+        'Yağ yakımını maksimize eden, atletik performansı ve kalp-damar sağlığını geliştiren yüksek yoğunluklu (HIIT) istasyon programı.',
+  ),
+  (
+    name: 'Güç: Powerlifting Temel',
+    subtitle: 'Ağır Antrenman',
+    difficulty: 'İleri',
+    difficultyColor: Color(0xFFE53935),
+    color: Color(0xFF455A64),
+    colorDark: Color(0xFF263238),
+    icon: Icons.fitness_center_rounded,
+    estimatedMinutes: 80,
+    muscles: ['Sırt', 'Göğüs', 'Bacak', 'Omuz', 'Core'],
+    exercises: [
+      (
+        name: 'Back Squat',
+        volume: '5×5',
+        tip: 'Isınmaya özen göster, ağır ve teknik çalış',
+      ),
+      (
+        name: 'Bench Press',
+        volume: '5×5',
+        tip: 'Ayaklarla yeri it (leg drive), barda gerilim yarat',
+      ),
+      (
+        name: 'Deadlift',
+        volume: '3×5',
+        tip: 'Belt kullanabilirsin, formu asla bozma',
+      ),
+      (
+        name: 'Overhead Press (Barbell)',
+        volume: '4×6',
+        tip: 'Strict press, bacaklardan güç alma',
+      ),
+      (
+        name: 'Barbell Row',
+        volume: '4×8',
+        tip: 'Sırt kalınlığı ve bench stabilizasyonu için',
+      ),
+      (
+        name: 'Weighted Plank',
+        volume: '3×45 sn',
+        tip: 'Sırta ağırlık plakası koy, core dayanıklılığı',
+      ),
+    ],
+    description:
+        'Temel hareketlerde (Big 3) maksimal kuvvetini artırmayı hedefleyen klasik 5×5 mantığına dayalı, uzun dinlenme aralıklı güç programı.',
   ),
 ];
 
@@ -1998,21 +2798,30 @@ class _TodayWorkoutActionCard extends StatelessWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [accent.withValues(alpha: 0.20), const Color(0xFF141414)],
+          colors: [
+            accent.withValues(alpha: 0.25),
+            const Color(0xFF141420),
+          ],
         ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: accent.withValues(alpha: 0.28)),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: 0.07),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            color: accent.withValues(alpha: 0.15),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
         ],
       ),
@@ -2022,15 +2831,22 @@ class _TodayWorkoutActionCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 56,
+                height: 56,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: accent.withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.2),
+                      blurRadius: 12,
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: accent, size: 24),
+                child: Icon(icon, color: accent, size: 28),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2039,19 +2855,19 @@ class _TodayWorkoutActionCard extends StatelessWidget {
                       'BUGÜN NE YAPMALIYIM?',
                       style: TextStyle(
                         color: accent,
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
+                        letterSpacing: 1.0,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -0.2,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ],
@@ -2059,19 +2875,19 @@ class _TodayWorkoutActionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             detail,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.66),
-              fontSize: 13,
-              height: 1.38,
-              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
@@ -2080,40 +2896,43 @@ class _TodayWorkoutActionCard extends StatelessWidget {
                   icon: const Icon(
                     Icons.play_arrow_rounded,
                     color: Colors.white,
+                    size: 24,
                   ),
                   label: const Text(
                     'Antrenmana Başla',
                     style: TextStyle(
                       color: Colors.white,
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accent,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 0,
+                    elevation: 8,
+                    shadowColor: accent.withValues(alpha: 0.5),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               OutlinedButton(
                 onPressed: onExplore,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: accent.withValues(alpha: 0.5)),
+                  side: BorderSide(color: accent.withValues(alpha: 0.6), width: 1.5),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 13,
+                    horizontal: 16,
+                    vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: Text(
                   'Bölge Seç',
-                  style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+                  style: TextStyle(color: accent, fontSize: 15, fontWeight: FontWeight.w800),
                 ),
               ),
             ],
@@ -2322,22 +3141,36 @@ class _WeeklyBalanceCard extends StatelessWidget {
 
 class _TodayProgramCard extends StatelessWidget {
   final List<WorkoutProgram> programs;
+  final WorkoutProgram? activeProgram;
+  final Set<String> completedDayIds;
   final void Function(WorkoutProgram program, ProgramDay day) onStartDay;
 
-  const _TodayProgramCard({required this.programs, required this.onStartDay});
+  const _TodayProgramCard({
+    required this.programs,
+    required this.activeProgram,
+    required this.completedDayIds,
+    required this.onStartDay,
+  });
 
   @override
   Widget build(BuildContext context) {
-    WorkoutProgram? program;
-    for (final item in programs) {
-      if (item.days.isNotEmpty) {
-        program = item;
-        break;
-      }
-    }
+    final program = activeProgram ?? _pickProgramForToday(programs);
     if (program == null) return const SizedBox.shrink();
     final selectedProgram = program;
-    final dayIndex = (DateTime.now().weekday - 1) % selectedProgram.days.length;
+    final startDay = DateTime(
+      selectedProgram.createdAt.year,
+      selectedProgram.createdAt.month,
+      selectedProgram.createdAt.day,
+    );
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final completedForProgram = completedDayIds
+        .where((id) => id.startsWith('${selectedProgram.id}_'))
+        .length;
+    final daysElapsed = today.difference(startDay).inDays;
+    final dayIndex = completedForProgram > 0
+        ? completedForProgram % selectedProgram.days.length
+        : (daysElapsed < 0 ? 0 : daysElapsed) % selectedProgram.days.length;
     final day = selectedProgram.days[dayIndex];
     final first = day.exercises.isEmpty ? null : day.exercises.first;
     final accent = first == null
@@ -2374,7 +3207,7 @@ class _TodayProgramCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${day.exercises.length} hareket bugün için hazır',
+                  '${dayIndex + 1}. gün • ${day.exercises.length} hareket bugün için hazır',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.55),
                     fontSize: 12,
@@ -2396,6 +3229,12 @@ class _TodayProgramCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  WorkoutProgram? _pickProgramForToday(List<WorkoutProgram> programs) {
+    final withDays = programs.where((program) => program.days.isNotEmpty);
+    if (withDays.isEmpty) return null;
+    return withDays.reduce((a, b) => a.createdAt.isAfter(b.createdAt) ? a : b);
   }
 }
 
@@ -2447,257 +3286,6 @@ class _HistoryFilterBar extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActiveWorkoutSessionSheet extends StatefulWidget {
-  final String title;
-  final List<_SessionExercisePlan> plans;
-  final VoidCallback onFinish;
-
-  const _ActiveWorkoutSessionSheet({
-    required this.title,
-    required this.plans,
-    required this.onFinish,
-  });
-
-  @override
-  State<_ActiveWorkoutSessionSheet> createState() =>
-      _ActiveWorkoutSessionSheetState();
-}
-
-class _ActiveWorkoutSessionSheetState
-    extends State<_ActiveWorkoutSessionSheet> {
-  late final Set<String> _completedSets = <String>{};
-  Timer? _timer;
-  int _remaining = 0;
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _toggleSet(String key, int restSeconds) {
-    setState(() {
-      if (_completedSets.contains(key)) {
-        _completedSets.remove(key);
-      } else {
-        _completedSets.add(key);
-        _startRest(restSeconds);
-      }
-    });
-  }
-
-  void _startRest(int seconds) {
-    _timer?.cancel();
-    _remaining = seconds;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() {
-        _remaining--;
-        if (_remaining <= 0) {
-          _remaining = 0;
-          timer.cancel();
-        }
-      });
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final totalSets = widget.plans.fold<int>(0, (sum, plan) => sum + plan.sets);
-    final progress = totalSets == 0 ? 0.0 : _completedSets.length / totalSets;
-    final minutes = (_remaining ~/ 60).toString().padLeft(2, '0');
-    final seconds = (_remaining % 60).toString().padLeft(2, '0');
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.86,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, controller) => Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF111111),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-        ),
-        child: ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                const Icon(Icons.timer_rounded, color: Color(0xFF66BB6A)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                if (_remaining > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$minutes:$seconds',
-                      style: const TextStyle(
-                        color: Color(0xFF66BB6A),
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: Colors.white.withValues(alpha: 0.08),
-                valueColor: const AlwaysStoppedAnimation(Color(0xFF2E7D32)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${_completedSets.length}/$totalSets set tamamlandı',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...widget.plans.asMap().entries.map((entry) {
-              final exerciseIndex = entry.key;
-              final plan = entry.value;
-              final color =
-                  kMuscleGroupInfo[plan.muscleGroup]?.color ??
-                  const Color(0xFF66BB6A);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withValues(alpha: 0.18)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: List.generate(plan.sets, (setIndex) {
-                        final key = '$exerciseIndex-$setIndex';
-                        final done = _completedSets.contains(key);
-                        return InkWell(
-                          onTap: () => _toggleSet(key, plan.restSeconds),
-                          borderRadius: BorderRadius.circular(12),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 160),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: done
-                                  ? color.withValues(alpha: 0.22)
-                                  : Colors.white.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: done
-                                    ? color.withValues(alpha: 0.55)
-                                    : Colors.white.withValues(alpha: 0.08),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  done
-                                      ? Icons.check_circle_rounded
-                                      : Icons.radio_button_unchecked_rounded,
-                                  color: done ? color : Colors.white38,
-                                  size: 15,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  '${setIndex + 1}. set · ${plan.reps} tekrar',
-                                  style: TextStyle(
-                                    color: done ? Colors.white : Colors.white60,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: widget.onFinish,
-                icon: const Icon(Icons.save_rounded, color: Colors.white),
-                label: const Text(
-                  'Kayda Geçir',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -2941,66 +3529,129 @@ class _WeeklyVolumeChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = _weeklyData();
     final maxVol = data.map((d) => d.volume).fold(0.0, (a, b) => a > b ? a : b);
-    if (maxVol == 0) return const SizedBox.shrink();
+    
+    // Calculate weekly summary
+    final now = DateTime.now();
+    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final thisWeekWorkouts = workouts.where((w) {
+      final d = DateTime(w.workoutDate.year, w.workoutDate.month, w.workoutDate.day);
+      return !d.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day));
+    }).toList();
+    
+    final totalWorkouts = thisWeekWorkouts.length;
+    final totalVolume = data.map((d) => d.volume).fold(0.0, (a, b) => a + b);
+    final totalDuration = thisWeekWorkouts.map((w) => w.durationMinutes ?? 0).fold(0, (a, b) => a + b);
+
+    if (maxVol == 0 && totalWorkouts == 0) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: const Color(0xFF141420),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
+            blurRadius: 24,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Haftalık Antrenman Hacmi',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.insights_rounded, color: Color(0xFF66BB6A), size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Haftalık Özet',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _buildSummaryItem(
+                label: 'Volüm',
+                value: '${(totalVolume / 1000).toStringAsFixed(1)}t',
+                icon: Icons.monitor_weight_rounded,
+                color: Colors.purpleAccent,
+              ),
+              _buildSummaryItem(
+                label: 'Süre',
+                value: '${(totalDuration / 60).floor()}s ${totalDuration % 60}d',
+                icon: Icons.timer_rounded,
+                color: Colors.blueAccent,
+              ),
+              _buildSummaryItem(
+                label: 'Antrenman',
+                value: '$totalWorkouts',
+                icon: Icons.fitness_center_rounded,
+                color: Colors.orangeAccent,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           SizedBox(
-            height: 86,
+            height: 100,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: data.map((d) {
-                final barH = maxVol > 0 ? (d.volume / maxVol) * 64 : 0.0;
+                final barH = maxVol > 0 ? (d.volume / maxVol) * 80 : 0.0;
                 final isToday = data.last == d;
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 400),
-                          height: barH.clamp(2.0, 64.0),
+                          height: barH.clamp(2.0, 80.0),
                           decoration: BoxDecoration(
                             color: isToday
-                                ? const Color(0xFF2E7D32)
-                                : const Color(
-                                    0xFF2E7D32,
-                                  ).withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(4),
+                                ? const Color(0xFF66BB6A)
+                                : const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: isToday ? [
+                              BoxShadow(
+                                color: const Color(0xFF66BB6A).withValues(alpha: 0.5),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              )
+                            ] : null,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           d.label,
                           maxLines: 1,
                           overflow: TextOverflow.clip,
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 10,
                             color: isToday
                                 ? Colors.white
                                 : Colors.white.withValues(alpha: 0.4),
                             fontWeight: isToday
-                                ? FontWeight.w700
-                                : FontWeight.w400,
+                                ? FontWeight.w800
+                                : FontWeight.w500,
                           ),
                         ),
                       ],
@@ -3008,6 +3659,39 @@ class _WeeklyVolumeChart extends StatelessWidget {
                   ),
                 );
               }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem({required String label, required String value, required IconData icon, required Color color}) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
             ),
           ),
         ],
@@ -3031,6 +3715,66 @@ class _WeeklyStreakRow extends StatelessWidget {
     required this.prCount,
   });
 
+  /// Güncel streak (art arda gün sayısı)
+  int _currentStreak() {
+    if (workouts.isEmpty) return 0;
+    final now = DateTime.now();
+    final workedDays =
+        workouts
+            .map(
+              (w) => DateTime(
+                w.workoutDate.year,
+                w.workoutDate.month,
+                w.workoutDate.day,
+              ),
+            )
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
+
+    int streak = 0;
+    DateTime cursor = DateTime(now.year, now.month, now.day);
+
+    for (final day in workedDays) {
+      final diff = cursor.difference(day).inDays;
+      if (diff == 0 || diff == 1) {
+        streak++;
+        cursor = day.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  /// En uzun streak
+  int _longestStreak() {
+    if (workouts.isEmpty) return 0;
+    final days =
+        workouts
+            .map(
+              (w) => DateTime(
+                w.workoutDate.year,
+                w.workoutDate.month,
+                w.workoutDate.day,
+              ),
+            )
+            .toSet()
+            .toList()
+          ..sort();
+
+    int longest = 1, current = 1;
+    for (int i = 1; i < days.length; i++) {
+      if (days[i].difference(days[i - 1]).inDays == 1) {
+        current++;
+        if (current > longest) longest = current;
+      } else {
+        current = 1;
+      }
+    }
+    return longest;
+  }
+
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFF2E7D32);
@@ -3038,6 +3782,8 @@ class _WeeklyStreakRow extends StatelessWidget {
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     const dayLabels = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    final currentStreak = _currentStreak();
+    final longestStreak = _longestStreak();
 
     final workedDays = workouts
         .where(
@@ -3054,11 +3800,78 @@ class _WeeklyStreakRow extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Column(
         children: [
+          // ── Üst satır: başlık + streak badge ───────────────────────────
+          Row(
+            children: [
+              Text(
+                'Bu Hafta',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.40),
+                  letterSpacing: 0.4,
+                ),
+              ),
+              const Spacer(),
+              if (currentStreak >= 2)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2E7D32).withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔥', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 5),
+                      Text(
+                        '$currentStreak gün seri',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (currentStreak == longestStreak && longestStreak >= 3) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Rekor',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.amber,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // ── Haftanın günleri ────────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(7, (i) {
@@ -3077,43 +3890,45 @@ class _WeeklyStreakRow extends StatelessWidget {
                     dayLabels[i],
                     style: TextStyle(
                       fontSize: 10,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: isToday
                           ? accentLight
-                          : Colors.white.withValues(alpha: 0.35),
+                          : Colors.white.withValues(alpha: 0.30),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    width: 32,
-                    height: 32,
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 34,
+                    height: 34,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: hasWorkout
                           ? accent
                           : isToday
-                          ? accent.withValues(alpha: 0.12)
-                          : Colors.white.withValues(
-                              alpha: isFuture ? 0.0 : 0.04,
-                            ),
+                          ? accent.withValues(alpha: 0.14)
+                          : Colors.white.withValues(alpha: isFuture ? 0.0 : 0.04),
                       border: Border.all(
                         color: isToday
                             ? accentLight
                             : hasWorkout
-                            ? accent
-                            : Colors.white.withValues(
-                                alpha: isFuture ? 0.06 : 0.1,
-                              ),
+                            ? accentLight.withValues(alpha: 0.45)
+                            : Colors.white.withValues(alpha: isFuture ? 0.05 : 0.09),
                         width: isToday ? 2 : 1,
                       ),
+                      boxShadow: hasWorkout
+                          ? [
+                              BoxShadow(
+                                color: accent.withValues(alpha: 0.38),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: hasWorkout
-                        ? const Icon(
-                            Icons.check_rounded,
-                            size: 15,
-                            color: Colors.white,
-                          )
+                        ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
                         : isToday
                         ? Container(
                             width: 6,
@@ -3128,9 +3943,7 @@ class _WeeklyStreakRow extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(
-                                alpha: isFuture ? 0.2 : 0.35,
-                              ),
+                              color: Colors.white.withValues(alpha: isFuture ? 0.18 : 0.32),
                             ),
                           ),
                   ),
@@ -3139,31 +3952,50 @@ class _WeeklyStreakRow extends StatelessWidget {
             }),
           ),
           const SizedBox(height: 14),
-          // ── Stat pills ──────────────────────────────────────────────────
+          // ── Separator ───────────────────────────────────────────────────
+          Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
+          const SizedBox(height: 12),
+          // ── 4 eşit stat kutusu ──────────────────────────────────────────
           Row(
             children: [
-              _StreakStatPill(
-                icon: Icons.local_fire_department_rounded,
-                iconColor: Colors.orange.shade400,
-                bgColor: Colors.orange.withValues(alpha: 0.1),
-                value: '$thisWeekCount',
-                label: 'bu hafta',
-              ),
-              const Spacer(),
-              _StreakStatPill(
-                icon: Icons.fitness_center_rounded,
-                iconColor: const Color(0xFF1E88E5),
-                bgColor: const Color(0xFF1E88E5).withValues(alpha: 0.08),
-                value: '$totalCount',
-                label: 'toplam',
+              Expanded(
+                child: _StreakStatPill(
+                  icon: Icons.local_fire_department_rounded,
+                  iconColor: Colors.orange.shade400,
+                  bgColor: Colors.orange.withValues(alpha: 0.10),
+                  value: '$thisWeekCount',
+                  label: 'Bu hafta',
+                ),
               ),
               const SizedBox(width: 8),
-              _StreakStatPill(
-                icon: Icons.emoji_events_rounded,
-                iconColor: Colors.amber,
-                bgColor: Colors.amber.withValues(alpha: 0.08),
-                value: '$prCount',
-                label: 'PR',
+              Expanded(
+                child: _StreakStatPill(
+                  icon: Icons.bolt_rounded,
+                  iconColor: Colors.amberAccent,
+                  bgColor: Colors.amberAccent.withValues(alpha: 0.08),
+                  value: longestStreak >= 2 ? '$longestStreak' : '-',
+                  label: 'En uzun',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StreakStatPill(
+                  icon: Icons.fitness_center_rounded,
+                  iconColor: const Color(0xFF1E88E5),
+                  bgColor: const Color(0xFF1E88E5).withValues(alpha: 0.08),
+                  value: '$totalCount',
+                  label: 'Toplam',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StreakStatPill(
+                  icon: Icons.emoji_events_rounded,
+                  iconColor: Colors.amber,
+                  bgColor: Colors.amber.withValues(alpha: 0.08),
+                  value: '$prCount',
+                  label: 'PR',
+                ),
               ),
             ],
           ),
@@ -3193,31 +4025,37 @@ class _StreakStatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: iconColor.withValues(alpha: 0.12)),
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: iconColor),
-          const SizedBox(width: 5),
+          Icon(icon, size: 14, color: iconColor),
+          const SizedBox(height: 4),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              height: 1.0,
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.45),
-              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.38),
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -4008,6 +4846,1528 @@ class _DayListTile extends StatelessWidget {
             ),
           ),
           child: const Text('Başlat', style: TextStyle(fontSize: 12)),
+        ),
+      ),
+    );
+  }
+}
+
+// ── YENİ: Modernize Edilmiş UI Bileşenleri ─────────────────────────────────────
+
+// ── Ortak Bölüm Başlığı ──────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: iconColor.withValues(alpha: 0.20)),
+          ),
+          child: Icon(icon, color: iconColor, size: 17),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.38),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        ?trailing,
+      ],
+    );
+  }
+}
+
+class _DynamicHeroSection extends StatelessWidget {
+  final List<Workout> workouts;
+  final TodayWorkoutSuggestion? suggestion;
+  final List<WorkoutProgram> programs;
+  final WorkoutProgram? activeProgram;
+  final Set<String> completedDayIds;
+  final VoidCallback onStartSuggested;
+  final void Function(WorkoutProgram, ProgramDay) onStartProgramDay;
+  final VoidCallback onExplore;
+
+  const _DynamicHeroSection({
+    required this.workouts,
+    required this.suggestion,
+    required this.programs,
+    required this.activeProgram,
+    required this.completedDayIds,
+    required this.onStartSuggested,
+    required this.onStartProgramDay,
+    required this.onExplore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasProgramForToday =
+        (activeProgram?.days.isNotEmpty ?? false) ||
+        programs.any((program) => program.days.isNotEmpty);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            icon: Icons.electric_bolt_rounded,
+            iconColor: Color(0xFF66BB6A),
+            title: 'Bugün Ne Çalışayım?',
+            subtitle: 'Toparlanmana göre önerildi',
+          ),
+          const SizedBox(height: 14),
+          if (hasProgramForToday)
+            _TodayProgramCard(
+              programs: programs,
+              activeProgram: activeProgram,
+              completedDayIds: completedDayIds,
+              onStartDay: onStartProgramDay,
+            )
+          else
+            _TodayWorkoutActionCard(
+              workouts: workouts,
+              suggestion: suggestion,
+              onStart: onStartSuggested,
+              onExplore: onExplore,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickActionsRow extends StatelessWidget {
+  final bool isPremium;
+  final List<WorkoutProgram> programs;
+  final List<FavoriteExerciseEntry> favorites;
+  final void Function(_TemplateData) onStartTemplate;
+  final void Function(_TemplateData) onSaveTemplate;
+  final VoidCallback onCreateProgramTap;
+  final void Function(WorkoutProgram) onProgramTap;
+  final void Function(FavoriteExerciseEntry) onFavoriteTap;
+  final VoidCallback onUpgradePressed;
+
+  const _QuickActionsRow({
+    required this.isPremium,
+    required this.programs,
+    required this.favorites,
+    required this.onStartTemplate,
+    required this.onSaveTemplate,
+    required this.onCreateProgramTap,
+    required this.onProgramTap,
+    required this.onFavoriteTap,
+    required this.onUpgradePressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: _SectionHeader(
+            icon: Icons.dashboard_customize_rounded,
+            iconColor: Colors.blueAccent,
+            title: 'Hızlı Aksiyonlar',
+            subtitle: 'Şablon, program ve favoriler',
+          ),
+        ),
+        const SizedBox(height: 14),
+        SizedBox(
+          height: 52,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              // Şablonlar
+              _buildActionPill(
+                icon: Icons.list_alt_rounded,
+                label: 'Şablonlar',
+                color: Colors.orange,
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (ctx) => Container(
+                      height: MediaQuery.of(context).size.height * 0.75,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF111111),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 16),
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.only(
+                                top: 20,
+                                bottom: 40,
+                              ),
+                              child: _WorkoutTemplatesSection(
+                                isPremium: isPremium,
+                                compactTitle: false,
+                                onStartPressed: (t) {
+                                  Navigator.pop(ctx);
+                                  onStartTemplate(t);
+                                },
+                                onSavePressed: (t) {
+                                  Navigator.pop(ctx);
+                                  onSaveTemplate(t);
+                                },
+                                onUpgradePressed: () {
+                                  Navigator.pop(ctx);
+                                  onUpgradePressed();
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              // Kendi Programın
+              _buildActionPill(
+                icon: Icons.add_moderator_rounded,
+                label: 'Program Oluştur',
+                color: Colors.purpleAccent,
+                onTap: onCreateProgramTap,
+              ),
+              const SizedBox(width: 10),
+              // Favoriler
+              if (favorites.isNotEmpty)
+                _buildActionPill(
+                  icon: Icons.star_rounded,
+                  label: 'Favoriler (${favorites.length})',
+                  color: Colors.amber,
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (ctx) => Container(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF111111),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.white24,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: _FavoritesQuickStrip(
+                                  favorites: favorites,
+                                  onTap: (f) {
+                                    Navigator.pop(ctx);
+                                    onFavoriteTap(f);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InsightsCarouselSection extends StatelessWidget {
+  final List<Workout> workouts;
+  final Map<String, FatigueStatus> recoveryStatuses;
+  final Map<String, dynamic> stats;
+  final void Function(_SessionExercisePlan) onStartProgression;
+  final void Function(String) onSelectGroup;
+
+  const _InsightsCarouselSection({
+    required this.workouts,
+    required this.recoveryStatuses,
+    required this.stats,
+    required this.onStartProgression,
+    required this.onSelectGroup,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (workouts.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purpleAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.insights_rounded,
+                    color: Colors.purpleAccent,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Analiz ve İlerleme',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.purpleAccent.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_graph_rounded,
+                      size: 32,
+                      color: Colors.purpleAccent.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Henüz Veri Yok',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Antrenman yaptıkça kas gelişimi, toparlanma ve güç analizi grafiklerin burada belirecek.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purpleAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.insights_rounded,
+                  color: Colors.purpleAccent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Analiz ve İlerleme',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 300, // Carousel yüksekliği biraz daha genişletildi
+          child: PageView(
+            controller: PageController(viewportFraction: 0.92),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              // 1. İlerleme Fırsatı
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: _ProgressionSpotlightCard(
+                    workouts: workouts,
+                    onStart: onStartProgression,
+                  ),
+                ),
+              ),
+              // 2. Toparlanma Insights
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: _RecoveryInsightsCard(
+                    workoutSuggestion: null, // Hero'da kullanıldığı için
+                    recoveryStatuses: recoveryStatuses,
+                    totalWorkouts:
+                        (stats['totalWorkouts'] as num?)?.toInt() ??
+                        workouts.length,
+                    totalSets:
+                        (stats['totalSets'] as num?)?.toInt() ??
+                        workouts.fold<int>(0, (sum, w) => sum + (w.sets ?? 0)),
+                    totalCaloriesBurned:
+                        (stats['totalCaloriesBurned'] as num?)?.toInt() ??
+                        workouts.fold<int>(
+                          0,
+                          (sum, w) => sum + (w.caloriesBurned ?? 0),
+                        ),
+                    onSelectGroup: onSelectGroup,
+                  ),
+                ),
+              ),
+              // 3. Kas Dengesi
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: _WeeklyBalanceCard(
+                    workouts: workouts,
+                    onSelectGroup: onSelectGroup,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Center(
+          child: Text(
+            'Grafikler arasında geçiş yapmak için kaydır',
+            style: TextStyle(color: Colors.white30, fontSize: 10),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Hazır Programlar Bölümü ───────────────────────────────────────────────────
+
+class _PresetProgramsSection extends StatefulWidget {
+  final void Function(WorkoutProgram program) onAddProgram;
+
+  const _PresetProgramsSection({required this.onAddProgram});
+
+  @override
+  State<_PresetProgramsSection> createState() => _PresetProgramsSectionState();
+}
+
+class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
+  String _filter = 'Tümü';
+
+  static const _filters = ['Tümü', 'Başlangıç', 'Orta', 'İleri', '3 Gün', '4 Gün', '6 Gün', 'Ev'];
+
+  List<PresetProgramMeta> get _filtered {
+    if (_filter == 'Tümü') return kPresetPrograms;
+    if (_filter == 'Ev') return kPresetPrograms.where((p) => p.tags.contains('Ev')).toList();
+    if (_filter.endsWith(' Gün')) {
+      final days = int.tryParse(_filter.split(' ').first) ?? 0;
+      return kPresetPrograms.where((p) => p.daysPerWeek == days).toList();
+    }
+    return kPresetPrograms.where((p) => p.level.startsWith(_filter)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final programs = _filtered;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Başlık ──────────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9F0A).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFF9F0A).withValues(alpha: 0.20)),
+                ),
+                child: const Icon(Icons.auto_stories_rounded, color: Color(0xFFFF9F0A), size: 17),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Hazır Programlar',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                  ),
+                  Text(
+                    '${kPresetPrograms.length} bilimsel program, ekle ve başla',
+                    style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.38), fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // ── Filtre çipleri ───────────────────────────────────────────────────
+        SizedBox(
+          height: 32,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            physics: const BouncingScrollPhysics(),
+            itemCount: _filters.length,
+            separatorBuilder: (_, sep) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final f = _filters[i];
+              final selected = _filter == f;
+              return GestureDetector(
+                onTap: () => setState(() => _filter = f),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0xFFFF9F0A).withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: selected
+                          ? const Color(0xFFFF9F0A).withValues(alpha: 0.50)
+                          : Colors.white.withValues(alpha: 0.09),
+                    ),
+                  ),
+                  child: Text(
+                    f,
+                    style: TextStyle(
+                      color: selected ? const Color(0xFFFF9F0A) : Colors.white.withValues(alpha: 0.45),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // ── Program kartları ─────────────────────────────────────────────────
+        if (programs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Text(
+              'Bu filtrede program bulunamadı.',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
+            ),
+          )
+        else
+          SizedBox(
+            height: 230,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              physics: const BouncingScrollPhysics(),
+              itemCount: programs.length,
+              separatorBuilder: (_, sep) => const SizedBox(width: 12),
+              itemBuilder: (context, i) {
+                final meta = programs[i];
+                return Consumer<WorkoutProgramProvider>(
+                  builder: (ctx, provider, child) {
+                    final isAdded = provider.programs.any((p) => p.id == meta.id);
+                    return _PresetProgramCard(
+                      meta: meta,
+                      isAdded: isAdded,
+                      onTap: () => _showPreview(context, meta, isAdded),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showPreview(BuildContext context, PresetProgramMeta meta, bool isAdded) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PresetProgramPreviewSheet(
+        meta: meta,
+        isAdded: isAdded,
+        onAdd: () {
+          Navigator.of(context).pop();
+          widget.onAddProgram(meta.program);
+        },
+      ),
+    );
+  }
+}
+
+// ── Preset Program Kart ───────────────────────────────────────────────────────
+
+class _PresetProgramCard extends StatelessWidget {
+  final PresetProgramMeta meta;
+  final bool isAdded;
+  final VoidCallback onTap;
+
+  const _PresetProgramCard({
+    required this.meta,
+    required this.isAdded,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 210,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isAdded
+                ? const Color(0xFF30D158).withValues(alpha: 0.40)
+                : meta.accentColor.withValues(alpha: 0.22),
+          ),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              meta.accentColor.withValues(alpha: 0.12),
+              const Color(0xFF0E0E18),
+            ],
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Üst renkli hero bölgesi ───────────────────────────────────
+            Container(
+              height: 90,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    meta.accentColor.withValues(alpha: 0.28),
+                    meta.accentColor.withValues(alpha: 0.08),
+                  ],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // Büyük arka plan ikonunu
+                  Positioned(
+                    right: -10,
+                    bottom: -10,
+                    child: Icon(
+                      meta.icon,
+                      size: 80,
+                      color: meta.accentColor.withValues(alpha: 0.10),
+                    ),
+                  ),
+                  // İkon + rozet satırı
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 12, 0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.18),
+                            ),
+                          ),
+                          child: Icon(meta.icon, color: Colors.white, size: 20),
+                        ),
+                        const Spacer(),
+                        if (isAdded)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF30D158).withValues(alpha: 0.20),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF30D158).withValues(alpha: 0.40),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check_rounded,
+                                    size: 9, color: Color(0xFF30D158)),
+                                const SizedBox(width: 3),
+                                const Text('Eklendi',
+                                    style: TextStyle(
+                                      color: Color(0xFF30D158),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                    )),
+                              ],
+                            ),
+                          )
+                        else if (meta.badge != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Text(
+                              meta.badge!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Alt kısım: seviye badge
+                  Positioned(
+                    bottom: 10,
+                    left: 14,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: meta.levelColor.withValues(alpha: 0.20),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: meta.levelColor.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        meta.level,
+                        style: TextStyle(
+                          color: meta.levelColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── İçerik ────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    meta.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    meta.shortDesc,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Spacer(),
+            // ── Alt bilgi şeridi ───────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  _cardStat(Icons.calendar_today_rounded, '${meta.daysPerWeek}g/h'),
+                  const SizedBox(width: 10),
+                  _cardStat(Icons.timer_outlined, '${meta.avgSessionMinutes}dk'),
+                  const SizedBox(width: 10),
+                  _cardStat(Icons.fitness_center_rounded, '${meta.totalExercises} hk'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cardStat(IconData icon, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 10, color: Colors.white.withValues(alpha: 0.35)),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.50),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Preset Program Preview Sheet ──────────────────────────────────────────────
+
+class _PresetProgramPreviewSheet extends StatefulWidget {
+  final PresetProgramMeta meta;
+  final bool isAdded;
+  final VoidCallback onAdd;
+
+  const _PresetProgramPreviewSheet({
+    required this.meta,
+    required this.isAdded,
+    required this.onAdd,
+  });
+
+  @override
+  State<_PresetProgramPreviewSheet> createState() =>
+      _PresetProgramPreviewSheetState();
+}
+
+class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> {
+  int _expandedDay = 0;
+
+  // Kas grubuna göre renk
+  static Color _muscleColor(String mg) {
+    switch (mg.toUpperCase()) {
+      case 'CHEST':     return const Color(0xFF5B9BFF);
+      case 'BACK':      return const Color(0xFF30D158);
+      case 'LEGS':      return const Color(0xFFFF9F0A);
+      case 'SHOULDERS': return const Color(0xFFBF5AF2);
+      case 'BICEPS':    return const Color(0xFF32ADE6);
+      case 'TRICEPS':   return const Color(0xFFFF6B6B);
+      case 'CORE':      return const Color(0xFFFFD60A);
+      case 'GLUTES':    return const Color(0xFFFF2D55);
+      default:          return const Color(0xFF8E8E93);
+    }
+  }
+
+  static String _muscleShort(String mg) {
+    switch (mg.toUpperCase()) {
+      case 'CHEST':     return 'Göğüs';
+      case 'BACK':      return 'Sırt';
+      case 'LEGS':      return 'Bacak';
+      case 'SHOULDERS': return 'Omuz';
+      case 'BICEPS':    return 'Biseps';
+      case 'TRICEPS':   return 'Triseps';
+      case 'CORE':      return 'Core';
+      case 'GLUTES':    return 'Kalça';
+      case 'FULL BODY': return 'Full';
+      case 'ARMS':      return 'Kol';
+      default:          return mg;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = widget.meta;
+    final days = meta.program.days;
+    final bottom = MediaQuery.of(context).padding.bottom;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.94,
+      maxChildSize: 0.97,
+      minChildSize: 0.5,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF13131E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          children: [
+            // ── Handle ──────────────────────────────────────────────────────
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // ── Hero header ──────────────────────────────────────────────────
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: meta.accentColor.withValues(alpha: 0.20)),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    meta.accentColor.withValues(alpha: 0.18),
+                    meta.accentColor.withValues(alpha: 0.04),
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: meta.accentColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: meta.accentColor.withValues(alpha: 0.30)),
+                    ),
+                    child: Icon(meta.icon, color: meta.accentColor, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: meta.levelColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: meta.levelColor.withValues(alpha: 0.30)),
+                              ),
+                              child: Text(
+                                meta.level,
+                                style: TextStyle(color: meta.levelColor, fontSize: 9, fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                            if (widget.isAdded) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF30D158).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.30)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.check_rounded, size: 9, color: Color(0xFF30D158)),
+                                    SizedBox(width: 3),
+                                    Text('Zaten Eklendi', style: TextStyle(color: Color(0xFF30D158), fontSize: 9, fontWeight: FontWeight.w800)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          meta.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          meta.goal,
+                          style: TextStyle(
+                            color: meta.accentColor.withValues(alpha: 0.85),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── 4 istatistik ────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(
+                children: [
+                  _statBox(Icons.calendar_today_rounded, '${meta.daysPerWeek}', 'gün/hafta', meta.accentColor),
+                  const SizedBox(width: 8),
+                  _statBox(Icons.timer_outlined, '${meta.avgSessionMinutes}dk', 'seans', meta.accentColor),
+                  const SizedBox(width: 8),
+                  _statBox(Icons.fitness_center_rounded, '${meta.totalExercises}', 'toplam hk', meta.accentColor),
+                  const SizedBox(width: 8),
+                  _statBox(Icons.timelapse_rounded, '${meta.durationWeeks}', 'hafta', meta.accentColor),
+                ],
+              ),
+            ),
+
+            // ── Açıklama ────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(
+                meta.description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 12.5,
+                  height: 1.55,
+                ),
+              ),
+            ),
+
+            // ── Program günleri başlığı ──────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: Row(
+                children: [
+                  Container(
+                    height: 1,
+                    width: 24,
+                    color: meta.accentColor.withValues(alpha: 0.40),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Program Günleri',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.07),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${days.length} gün',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Gün listesi ─────────────────────────────────────────────────
+            Expanded(
+              child: ListView.separated(
+                controller: controller,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                itemCount: days.length,
+                separatorBuilder: (_, sep) => const SizedBox(height: 8),
+                itemBuilder: (ctx, i) {
+                  final day = days[i];
+                  final isOpen = _expandedDay == i;
+                  // Egzersizlerdeki benzersiz kas grubu renkleri
+                  final muscleColors = day.exercises
+                      .map((e) => _muscleColor(e.muscleGroup))
+                      .toSet()
+                      .take(4)
+                      .toList();
+
+                  return GestureDetector(
+                    onTap: () => setState(() => _expandedDay = isOpen ? -1 : i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      decoration: BoxDecoration(
+                        color: isOpen
+                            ? meta.accentColor.withValues(alpha: 0.07)
+                            : Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isOpen
+                              ? meta.accentColor.withValues(alpha: 0.28)
+                              : Colors.white.withValues(alpha: 0.07),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Gün başlığı satırı
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: isOpen
+                                        ? meta.accentColor.withValues(alpha: 0.20)
+                                        : meta.accentColor.withValues(alpha: 0.10),
+                                    shape: BoxShape.circle,
+                                    border: isOpen
+                                        ? Border.all(color: meta.accentColor.withValues(alpha: 0.40))
+                                        : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${i + 1}',
+                                      style: TextStyle(
+                                        color: meta.accentColor,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        day.name,
+                                        style: TextStyle(
+                                          color: isOpen ? Colors.white : Colors.white.withValues(alpha: 0.85),
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Kas grubu renk noktaları
+                                      Row(
+                                        children: [
+                                          ...muscleColors.map((c) => Container(
+                                            width: 6,
+                                            height: 6,
+                                            margin: const EdgeInsets.only(right: 4),
+                                            decoration: BoxDecoration(
+                                              color: c,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          )),
+                                          Text(
+                                            '${day.exercises.length} hareket',
+                                            style: TextStyle(
+                                              color: Colors.white.withValues(alpha: 0.35),
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  isOpen
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  color: Colors.white.withValues(alpha: 0.30),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Egzersiz listesi (açılınca)
+                          if (isOpen) ...[
+                            Container(
+                              height: 1,
+                              margin: const EdgeInsets.symmetric(horizontal: 12),
+                              color: Colors.white.withValues(alpha: 0.06),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                              child: Column(
+                                children: day.exercises.asMap().entries.map((entry) {
+                                  final idx = entry.key;
+                                  final ex = entry.value;
+                                  final mColor = _muscleColor(ex.muscleGroup);
+                                  final mShort = _muscleShort(ex.muscleGroup);
+                                  final isLast = idx == day.exercises.length - 1;
+
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        // Kas rengi sol şerit
+                                        Container(
+                                          width: 3,
+                                          height: ex.note.isEmpty ? 32 : 44,
+                                          decoration: BoxDecoration(
+                                            color: mColor,
+                                            borderRadius: BorderRadius.circular(99),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      ex.name,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 12.5,
+                                                        fontWeight: FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  // Set×Tekrar badge
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                                    decoration: BoxDecoration(
+                                                      color: mColor.withValues(alpha: 0.12),
+                                                      borderRadius: BorderRadius.circular(7),
+                                                    ),
+                                                    child: Text(
+                                                      '${ex.sets}×${ex.reps}',
+                                                      style: TextStyle(
+                                                        color: mColor,
+                                                        fontSize: 11,
+                                                        fontWeight: FontWeight.w900,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  // Dinlenme
+                                                  Text(
+                                                    '${ex.restSeconds}s',
+                                                    style: TextStyle(
+                                                      color: Colors.white.withValues(alpha: 0.28),
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                    decoration: BoxDecoration(
+                                                      color: mColor.withValues(alpha: 0.10),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: Text(
+                                                      mShort,
+                                                      style: TextStyle(
+                                                        color: mColor.withValues(alpha: 0.80),
+                                                        fontSize: 9,
+                                                        fontWeight: FontWeight.w700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (ex.note.isNotEmpty) ...[
+                                                    const SizedBox(width: 6),
+                                                    Expanded(
+                                                      child: Text(
+                                                        ex.note,
+                                                        style: TextStyle(
+                                                          color: Colors.white.withValues(alpha: 0.38),
+                                                          fontSize: 10,
+                                                          fontStyle: FontStyle.italic,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // ── Ekle / Zaten Eklendi butonu ──────────────────────────────────
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, bottom + 16),
+              child: widget.isAdded
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF30D158).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.35)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF30D158), size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Program Zaten Eklendi',
+                            style: TextStyle(
+                              color: Color(0xFF30D158),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: widget.onAdd,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [meta.accentColor, meta.accentColor.withValues(alpha: 0.72)],
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: meta.accentColor.withValues(alpha: 0.38),
+                              blurRadius: 18,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Bu Programı Ekle',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statBox(IconData icon, String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.16)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.38),
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

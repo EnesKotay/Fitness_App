@@ -9,4 +9,11 @@ public class ProfileUpdateRequest {
     public Double targetWeight;
     public LocalDateTime birthDate;
     public String gender;
+    public String activityLevel;
+    public String goal;
+    public String workoutLocation;
+    public String equipmentType;
+    public String nutritionPreferencesJson;
+    public String aiMemorySummary;
+    public String motivationStatsJson;
 }

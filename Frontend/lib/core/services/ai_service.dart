@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../constants/api_constants.dart';
+import '../utils/storage_helper.dart';
 import '../../features/nutrition/models/nutrition_ai_response.dart';
 import '../../features/nutrition/ai_scan/domain/models/scanned_nutrition_result.dart';
 import '../../features/nutrition/ai_scan/domain/models/scanned_meal_result.dart';
@@ -168,7 +169,10 @@ class AIService {
     List<Map<String, String>>? conversationHistory,
   }) async {
     final payload = <String, dynamic>{'task': task, 'message': message};
-    final context = <String, dynamic>{...?nutritionContext};
+    final context = <String, dynamic>{
+      ..._localeNutritionContext(),
+      ...?nutritionContext,
+    };
     final summary = contextSummary?.trim();
     if (summary != null &&
         summary.isNotEmpty &&
@@ -197,6 +201,36 @@ class AIService {
     }
 
     return NutritionAiResponseModel.fromJson(raw);
+  }
+
+  Map<String, dynamic> _localeNutritionContext() {
+    final deviceLocale = PlatformDispatcher.instance.locale;
+    final storedLanguage = StorageHelper.getAppLanguageCode();
+    final storedUnits = StorageHelper.getAppUnitSystem();
+    final storedRegion = StorageHelper.getAppMarketRegion();
+    final isUsDevice = deviceLocale.countryCode == 'US';
+    final languageCode = storedLanguage == 'en'
+        ? 'en'
+        : storedLanguage == 'tr'
+        ? 'tr'
+        : (isUsDevice ? 'en' : 'tr');
+    final usesImperial =
+        storedUnits == 'imperial' || (storedUnits != 'metric' && isUsDevice);
+    final marketRegion = storedRegion == 'us'
+        ? 'US'
+        : storedRegion == 'tr'
+        ? 'TR'
+        : (isUsDevice ? 'US' : 'TR');
+
+    return {
+      'locale': languageCode == 'en' ? 'en-US' : 'tr-TR',
+      'preferredLanguage': languageCode,
+      'unitSystem': usesImperial ? 'imperial' : 'metric',
+      'marketRegion': marketRegion,
+      'foodCulture': marketRegion == 'US'
+          ? 'The user is in the United States. Prefer common US grocery store foods and meal language: Greek yogurt, oatmeal, egg whites, turkey/chicken wraps, chicken rice bowls, peanut butter, protein bars, cottage cheese, bagels, berries, tuna pouches, burrito bowls. Use imperial units in user-facing text (lb, in, fl oz, oz, cups, tbsp) while keeping calories/macros precise. Avoid Turkish meal defaults unless the user asks. Prefer practical high-protein meals that can be made in 10 minutes when possible.'
+          : 'Prefer Turkish grocery staples and meal language: yoğurt, kefir, yulaf, tavuk pilav, bulgur, ayran, lor, sebze yemekleri. Use kg/cm/L/g when units are user-facing.',
+    };
   }
 
   int? _extractRetryAfterFromMessage(String message) {
@@ -396,6 +430,7 @@ class AIService {
                   .toList() ??
               [],
           nutritionNote: data['nutritionNote'] ?? '',
+          memoryFact: data['memorySaved']?.toString(),
         );
       }
       throw ApiException(message: 'Beklenmeyen yanıt formatı');

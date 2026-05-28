@@ -21,4 +21,10 @@ public class AiFeedbackRepository implements PanacheRepository<AiFeedback> {
                 .page(0, limit)
                 .list();
     }
+
+    public List<AiFeedback> findRecentByUser(Long userId, int limit) {
+        return find("userId = ?1 order by createdAt desc", userId)
+                .page(0, limit)
+                .list();
+    }
 }

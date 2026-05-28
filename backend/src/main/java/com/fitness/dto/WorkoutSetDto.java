@@ -10,13 +10,19 @@ public class WorkoutSetDto {
     public String  setType;   // "NORMAL" varsayılan
     public Integer reps;
     public Double  weight;
+    public Double  rpe;
 
     public WorkoutSetDto() {}
 
     public WorkoutSetDto(Integer setNumber, String setType, Integer reps, Double weight) {
+        this(setNumber, setType, reps, weight, null);
+    }
+
+    public WorkoutSetDto(Integer setNumber, String setType, Integer reps, Double weight, Double rpe) {
         this.setNumber = setNumber;
         this.setType   = setType != null ? setType : "NORMAL";
         this.reps      = reps;
         this.weight    = weight;
+        this.rpe       = rpe;
     }
 }

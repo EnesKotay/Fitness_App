@@ -108,8 +108,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   // ── colour helpers ────────────────────────────────────────────────────────
   static const _green = Color(0xFF00E676);
-  static const _bg    = Color(0xFF080B0F);
-  static const _card  = Color(0xFF0E1318);
+  static const _bg = Color(0xFF080B0F);
+  static const _card = Color(0xFF0E1318);
   static const _cardBorder = Color(0xFF1C2530);
 
   Color get _accentColor {
@@ -118,7 +118,6 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     }
     return _green;
   }
-
 
   // ── lifecycle ────────────────────────────────────────────────────────────
 
@@ -184,7 +183,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         _nameC.text = tmpl.workoutName;
         _durationC.text = tmpl.duration.toString();
         if (tmpl.muscleGroup != null) {
-          _typeC.text = kMuscleGroupInfo[tmpl.muscleGroup]?.label ?? tmpl.muscleGroup!;
+          _typeC.text =
+              kMuscleGroupInfo[tmpl.muscleGroup]?.label ?? tmpl.muscleGroup!;
         }
         final sets = List.generate(
           tmpl.sets,
@@ -394,7 +394,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   }
 
   List<Workout> _historyForSelectedExercise(WorkoutProvider provider) {
-    final selected = (_selectedExerciseName ?? _nameC.text).trim().toLowerCase();
+    final selected = (_selectedExerciseName ?? _nameC.text)
+        .trim()
+        .toLowerCase();
     if (selected.isEmpty) return provider.workouts;
     final remoteHistory = provider.exerciseHistory.where(
       (workout) => workout.name.trim().toLowerCase() == selected,
@@ -418,7 +420,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   double _totalVolume() {
     double total = 0;
     for (final set in _sets) {
-      final weight = double.tryParse(set.weightC.text.trim().replaceAll(',', '.')) ?? 0;
+      final weight =
+          double.tryParse(set.weightC.text.trim().replaceAll(',', '.')) ?? 0;
       final reps = int.tryParse(set.repsC.text.trim()) ?? 0;
       total += weight * reps;
     }
@@ -440,12 +443,19 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     }).length;
   }
 
-  Workout? _latestWorkoutForExercise(WorkoutProvider provider, String exerciseName) {
+  Workout? _latestWorkoutForExercise(
+    WorkoutProvider provider,
+    String exerciseName,
+  ) {
     if (exerciseName.trim().isEmpty) return null;
-    final matches = provider.workouts
-        .where((workout) => workout.name.toLowerCase() == exerciseName.toLowerCase())
-        .toList()
-      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    final matches =
+        provider.workouts
+            .where(
+              (workout) =>
+                  workout.name.toLowerCase() == exerciseName.toLowerCase(),
+            )
+            .toList()
+          ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
     return matches.isEmpty ? null : matches.first;
   }
 
@@ -455,10 +465,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         : (workout.sets ?? 1);
     final maxWeight = workout.setDetails?.isNotEmpty == true
         ? workout.setDetails!
-            .map((set) => set.weight ?? 0)
-            .fold<double>(0.0, (a, b) => a > b ? a : b)
+              .map((set) => set.weight ?? 0)
+              .fold<double>(0.0, (a, b) => a > b ? a : b)
         : (workout.weight ?? 0);
-    final reps = workout.reps ??
+    final reps =
+        workout.reps ??
         ((workout.setDetails?.isNotEmpty ?? false)
             ? workout.setDetails!.first.reps ?? 0
             : 0);
@@ -483,6 +494,23 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     });
     _retiredSetEntries.addAll(previous);
     HapticFeedback.mediumImpact();
+  }
+
+  void _adjustAllWeights(double delta) {
+    var changed = false;
+    setState(() {
+      for (final set in _sets) {
+        final raw = set.weightC.text.trim().replaceAll(',', '.');
+        final current = double.tryParse(raw);
+        if (current == null && delta < 0) continue;
+        final next = ((current ?? 0) + delta).clamp(0.0, 500.0);
+        set.weightC.text = next % 1 == 0
+            ? next.toStringAsFixed(0)
+            : next.toStringAsFixed(1);
+        changed = true;
+      }
+    });
+    if (changed) HapticFeedback.selectionClick();
   }
 
   Future<bool> _confirmEmptySets(int emptySetCount) async {
@@ -633,10 +661,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   bool _checkPlateau(WorkoutProvider prov, String exerciseName) {
     if (exerciseName.isEmpty) return false;
-    final matches = prov.workouts
-        .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
-        .toList()
-      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    final matches =
+        prov.workouts
+            .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
+            .toList()
+          ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
     if (matches.length < 3) return false;
     final maxWeights = matches.take(3).map((w) {
       if (w.setDetails != null && w.setDetails!.isNotEmpty) {
@@ -915,7 +944,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         .toList();
     final totalSets = validSets.isEmpty ? 1 : validSets.length;
     final totalReps = validSets.fold(
-      0, (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0));
+      0,
+      (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0),
+    );
     final avgReps = validSets.isEmpty
         ? int.tryParse(_sets.first.repsC.text.trim())
         : (totalReps / validSets.length).round();
@@ -934,7 +965,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     // Toplam hacim (kg × tekrar)
     double totalVolume = 0;
     for (final s in _sets) {
-      final w = double.tryParse(s.weightC.text.trim().replaceAll(',', '.')) ?? 0;
+      final w =
+          double.tryParse(s.weightC.text.trim().replaceAll(',', '.')) ?? 0;
       final r = int.tryParse(s.repsC.text.trim()) ?? 0;
       totalVolume += w * r;
     }
@@ -948,6 +980,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         setType: _dartSetTypeToApi(s.setType),
         reps: int.tryParse(s.repsC.text.trim()),
         weight: double.tryParse(s.weightC.text.trim().replaceAll(',', '.')),
+        rpe: s.rpe.toDouble(),
       );
     }).toList();
 
@@ -966,7 +999,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     final isNewPR =
         oneRM != null && (_previousPR == null || oneRM > _previousPR!);
 
-    final durationMinutes = int.tryParse(_durationC.text.trim()) ??
+    final durationMinutes =
+        int.tryParse(_durationC.text.trim()) ??
         (_swElapsed.inSeconds > 0 ? (_swElapsed.inSeconds / 60).ceil() : null);
     final caloriesBurned = int.tryParse(_caloriesC.text.trim());
 
@@ -1002,7 +1036,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
     if (ok) {
       unawaited(
-        context.read<DailyTasksController>().autoCompleteFirstUndoneByCategory(TaskCategory.sport),
+        context.read<DailyTasksController>().autoCompleteFirstUndoneByCategory(
+          TaskCategory.sport,
+        ),
       );
       FocusManager.instance.primaryFocus?.unfocus();
       _swTimer?.cancel();
@@ -1112,15 +1148,15 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   // ── AppBar ───────────────────────────────────────────────────────────────
 
   PreferredSizeWidget _buildAppBar() {
-    final title = widget.workout == null ? 'Antrenman Kaydet' : 'Antrenmanı Düzenle';
+    final title = widget.workout == null
+        ? 'Antrenman Kaydet'
+        : 'Antrenmanı Düzenle';
     return PreferredSize(
       preferredSize: const Size.fromHeight(56),
       child: Container(
         decoration: BoxDecoration(
           color: _bg,
-          border: Border(
-            bottom: BorderSide(color: _cardBorder, width: 0.5),
-          ),
+          border: Border(bottom: BorderSide(color: _cardBorder, width: 0.5)),
         ),
         child: AppBar(
           backgroundColor: Colors.transparent,
@@ -1151,7 +1187,10 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                   shape: BoxShape.circle,
                   color: _accentColor,
                   boxShadow: [
-                    BoxShadow(color: _accentColor.withValues(alpha: 0.6), blurRadius: 8),
+                    BoxShadow(
+                      color: _accentColor.withValues(alpha: 0.6),
+                      blurRadius: 8,
+                    ),
                   ],
                 ),
               ),
@@ -1178,19 +1217,21 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   Widget _buildStepIndicator() {
     const labels = ['Egzersiz', 'Setler', 'Kaydet'];
-    const icons  = [Icons.sports_gymnastics_rounded, Icons.repeat_rounded, Icons.save_rounded];
+    const icons = [
+      Icons.sports_gymnastics_rounded,
+      Icons.repeat_rounded,
+      Icons.save_rounded,
+    ];
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
       decoration: BoxDecoration(
         color: _card,
-        border: Border(
-          bottom: BorderSide(color: _cardBorder, width: 0.5),
-        ),
+        border: Border(bottom: BorderSide(color: _cardBorder, width: 0.5)),
       ),
       child: Row(
         children: List.generate(3, (i) {
           final active = i == _step;
-          final done   = i < _step;
+          final done = i < _step;
           final accent = _accentColor;
           return Expanded(
             child: Row(
@@ -1203,15 +1244,15 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 350),
                         curve: Curves.easeOutCubic,
-                        width:  active ? 44 : 36,
+                        width: active ? 44 : 36,
                         height: active ? 44 : 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: done
                               ? accent
                               : active
-                                  ? accent.withValues(alpha: 0.18)
-                                  : Colors.white.withValues(alpha: 0.05),
+                              ? accent.withValues(alpha: 0.18)
+                              : Colors.white.withValues(alpha: 0.05),
                           border: Border.all(
                             color: done || active ? accent : _cardBorder,
                             width: active ? 2 : 1.5,
@@ -1219,7 +1260,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           boxShadow: (done || active)
                               ? [
                                   BoxShadow(
-                                    color: accent.withValues(alpha: active ? 0.3 : 0.15),
+                                    color: accent.withValues(
+                                      alpha: active ? 0.3 : 0.15,
+                                    ),
                                     blurRadius: active ? 14 : 6,
                                     spreadRadius: active ? 1 : 0,
                                   ),
@@ -1227,7 +1270,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                               : null,
                         ),
                         child: done
-                            ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                            ? const Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              )
                             : Icon(
                                 icons[i],
                                 size: active ? 20 : 16,
@@ -1242,10 +1289,12 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           color: active
                               ? Colors.white
                               : done
-                                  ? accent
-                                  : Colors.white30,
+                              ? accent
+                              : Colors.white30,
                           fontSize: active ? 11 : 10,
-                          fontWeight: active ? FontWeight.w700 : FontWeight.w400,
+                          fontWeight: active
+                              ? FontWeight.w700
+                              : FontWeight.w400,
                           letterSpacing: 0.2,
                         ),
                         child: Text(labels[i]),
@@ -1287,11 +1336,14 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
   // ── STEP 1 — Exercise Picker ────────────────────────────────────────────────
 
   Widget _buildStep1() {
-    final favoriteEntries = StorageHelper.getFavoriteExercises().where((favorite) {
-      if (_selectedMuscleGroup == null) return true;
-      final group = _normalizeMuscleGroupCode(favorite.muscleGroup);
-      return group.isEmpty || group == _selectedMuscleGroup;
-    }).take(4).toList();
+    final favoriteEntries = StorageHelper.getFavoriteExercises()
+        .where((favorite) {
+          if (_selectedMuscleGroup == null) return true;
+          final group = _normalizeMuscleGroupCode(favorite.muscleGroup);
+          return group.isEmpty || group == _selectedMuscleGroup;
+        })
+        .take(4)
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -1309,7 +1361,12 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.06), height: 1)),
+            Expanded(
+              child: Divider(
+                color: Colors.white.withValues(alpha: 0.06),
+                height: 1,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -1338,9 +1395,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? info.color.withValues(alpha: 0.18)
-                      : _card,
+                  color: selected ? info.color.withValues(alpha: 0.18) : _card,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: selected ? info.color : _cardBorder,
@@ -1369,7 +1424,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                       info.label,
                       style: TextStyle(
                         color: selected ? Colors.white : Colors.white38,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w400,
                         fontSize: 10,
                       ),
                       textAlign: TextAlign.center,
@@ -1486,16 +1543,25 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                     unawaited(_primeExerciseInsights(favorite.name));
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.amber.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.28)),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.28),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 12),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber,
+                          size: 12,
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           favorite.name,
@@ -1569,11 +1635,12 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 selectedExerciseName: _selectedExerciseName,
                 accentColor: _accentColor,
                 workoutProv: workoutProv,
-                latestWorkoutSummaryCallback: (WorkoutProvider prov, String exName) {
-                  final latest = _latestWorkoutForExercise(prov, exName);
-                  if (latest == null) return null;
-                  return _workoutCompactSummary(latest);
-                },
+                latestWorkoutSummaryCallback:
+                    (WorkoutProvider prov, String exName) {
+                      final latest = _latestWorkoutForExercise(prov, exName);
+                      if (latest == null) return null;
+                      return _workoutCompactSummary(latest);
+                    },
                 onExerciseSelected: (newSelected) {
                   setState(() {
                     _selectedExerciseName = newSelected;
@@ -1851,6 +1918,27 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
           ],
         ),
 
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _quickWeightButton(
+                label: '-2.5 kg',
+                icon: Icons.remove_rounded,
+                onTap: () => _adjustAllWeights(-2.5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _quickWeightButton(
+                label: '+2.5 kg',
+                icon: Icons.add_rounded,
+                onTap: () => _adjustAllWeights(2.5),
+              ),
+            ),
+          ],
+        ),
+
         const SizedBox(height: 16),
 
         // ── 1RM badge ──────────────────────────────────────────────────────
@@ -2020,7 +2108,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               ),
               const SizedBox(width: 12),
               Text(
-                totalVolume > 0 ? '≈ ${totalVolume.toStringAsFixed(0)} kg' : 'Hacim —',
+                totalVolume > 0
+                    ? '≈ ${totalVolume.toStringAsFixed(0)} kg'
+                    : 'Hacim —',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.38),
                   fontSize: 11,
@@ -2088,12 +2178,12 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               onToggleDone: () => _markSetDone(idx),
               onSetTypeChanged: () => setState(() {}),
               onCopyNextClicked: () {
-                 final next = _sets[idx + 1];
-                 setState(() {
-                   next.weightC.text = s.weightC.text;
-                   next.repsC.text = s.repsC.text;
-                   next.setType = s.setType;
-                 });
+                final next = _sets[idx + 1];
+                setState(() {
+                  next.weightC.text = s.weightC.text;
+                  next.repsC.text = s.repsC.text;
+                  next.setType = s.setType;
+                });
               },
               onRpeChanged: () => setState(() {}),
               onChanged: () => setState(() {}),
@@ -2187,10 +2277,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 ),
               ),
               const Spacer(),
-              Text(
-                hint.trendEmoji,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(hint.trendEmoji, style: const TextStyle(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 10),
@@ -2269,6 +2356,24 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     );
   }
 
+  Widget _quickWeightButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white.withValues(alpha: 0.74),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   Widget _swBtn({
     required IconData icon,
     required String label,
@@ -2307,12 +2412,25 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
 
   Widget _buildStep3() {
     // Canlı hesaplamalar
-    final validSets = _sets.where((s) => s.repsC.text.trim().isNotEmpty).toList();
-    final totalReps = validSets.fold(0, (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0));
+    final validSets = _sets
+        .where((s) => s.repsC.text.trim().isNotEmpty)
+        .toList();
+    final totalReps = validSets.fold(
+      0,
+      (sum, s) => sum + (int.tryParse(s.repsC.text.trim()) ?? 0),
+    );
     final totalVolume = _totalVolume();
-    final maxW = validSets.isEmpty ? 0.0 : validSets
-        .map((s) => double.tryParse(s.weightC.text.trim().replaceAll(',', '.')) ?? 0.0)
-        .fold<double>(0.0, (a, b) => a > b ? a : b);
+    final maxW = validSets.isEmpty
+        ? 0.0
+        : validSets
+              .map(
+                (s) =>
+                    double.tryParse(
+                      s.weightC.text.trim().replaceAll(',', '.'),
+                    ) ??
+                    0.0,
+              )
+              .fold<double>(0.0, (a, b) => a > b ? a : b);
     final oneRM = _calc1RM();
     final avgRpe = _averageRpe();
     final completedCount = _completedSetCount();
@@ -2320,23 +2438,30 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     final durationDisplay = _durationC.text.trim().isNotEmpty
         ? '${_durationC.text.trim()} dk'
         : durationSecs > 0
-            ? _formatDuration(_swElapsed)
-            : '—';
+        ? _formatDuration(_swElapsed)
+        : '—';
 
     // Önceki antrenman karşılaştırma
     final prov = Provider.of<WorkoutProvider>(context, listen: false);
     final exerciseName = (_selectedExerciseName ?? _nameC.text).trim();
-    final prevMatches = prov.workouts
-        .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
-        .toList()
-      ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    final prevMatches =
+        prov.workouts
+            .where((w) => w.name.toLowerCase() == exerciseName.toLowerCase())
+            .toList()
+          ..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
     final prevWorkout = prevMatches.isNotEmpty ? prevMatches.first : null;
     double prevMaxW = 0;
     int prevTotalReps = 0;
     if (prevWorkout != null) {
-      if (prevWorkout.setDetails != null && prevWorkout.setDetails!.isNotEmpty) {
-        prevMaxW = prevWorkout.setDetails!.map((s) => s.weight ?? 0.0).fold<double>(0.0, (a, b) => a > b ? a : b);
-        prevTotalReps = prevWorkout.setDetails!.fold(0, (sum, s) => sum + (s.reps ?? 0));
+      if (prevWorkout.setDetails != null &&
+          prevWorkout.setDetails!.isNotEmpty) {
+        prevMaxW = prevWorkout.setDetails!
+            .map((s) => s.weight ?? 0.0)
+            .fold<double>(0.0, (a, b) => a > b ? a : b);
+        prevTotalReps = prevWorkout.setDetails!.fold(
+          0,
+          (sum, s) => sum + (s.reps ?? 0),
+        );
       } else {
         prevMaxW = prevWorkout.weight ?? 0;
         prevTotalReps = (prevWorkout.reps ?? 0) * (prevWorkout.sets ?? 1);
@@ -2350,7 +2475,6 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // ══════════════════════════════════════════════════════════════
             // ÖZET KARTI
             // ══════════════════════════════════════════════════════════════
@@ -2393,7 +2517,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                         Expanded(
                           child: Text(
                             _nameC.text.isEmpty
-                                ? (exerciseName.isEmpty ? 'Egzersiz' : exerciseName)
+                                ? (exerciseName.isEmpty
+                                      ? 'Egzersiz'
+                                      : exerciseName)
                                 : _nameC.text,
                             style: const TextStyle(
                               color: Colors.white,
@@ -2410,7 +2536,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.orange.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
@@ -2418,15 +2546,19 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.link_rounded,
-                                    color: Colors.orange, size: 11),
+                                const Icon(
+                                  Icons.link_rounded,
+                                  color: Colors.orange,
+                                  size: 11,
+                                ),
                                 const SizedBox(width: 3),
                                 Text(
                                   'SS',
                                   style: const TextStyle(
-                                      color: Colors.orange,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700),
+                                    color: Colors.orange,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ],
                             ),
@@ -2443,8 +2575,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Row(
                       children: [
-                        _metricTile('SET', _sets.length.toString(),
-                            Icons.repeat_rounded),
+                        _metricTile(
+                          'SET',
+                          _sets.length.toString(),
+                          Icons.repeat_rounded,
+                        ),
                         _verticalDivider(),
                         _metricTile(
                           'TEKRAR',
@@ -2464,8 +2599,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           'HACİM',
                           totalVolume > 0
                               ? totalVolume >= 1000
-                                  ? '${(totalVolume / 1000).toStringAsFixed(1)}t'
-                                  : '${totalVolume.toStringAsFixed(0)}kg'
+                                    ? '${(totalVolume / 1000).toStringAsFixed(1)}t'
+                                    : '${totalVolume.toStringAsFixed(0)}kg'
                               : '—',
                           Icons.stacked_bar_chart_rounded,
                         ),
@@ -2479,7 +2614,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                   Container(
                     margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(14),
@@ -2502,7 +2639,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           text: durationDisplay,
                           textColor: Colors.white.withValues(alpha: 0.5),
                         ),
-                        if (_durationC.text.trim().isNotEmpty || durationSecs > 0)
+                        if (_durationC.text.trim().isNotEmpty ||
+                            durationSecs > 0)
                           _summaryTagPill(
                             label: durationSecs > 0
                                 ? 'Kronometre senkron'
@@ -2526,17 +2664,23 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                     Container(
                       margin: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.035),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.07)),
+                          color: Colors.white.withValues(alpha: 0.07),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.compare_arrows_rounded,
-                              color: Colors.white30, size: 15),
+                          Icon(
+                            Icons.compare_arrows_rounded,
+                            color: Colors.white30,
+                            size: 15,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Önceki  ${DateFormat("d MMM", "tr_TR").format(prevWorkout.workoutDate)}',
@@ -2547,17 +2691,19 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                           ),
                           const Spacer(),
                           _comparisonBadge(
-                            prevMaxW > 0 ? '${prevMaxW.toStringAsFixed(prevMaxW % 1 == 0 ? 0 : 1)} kg' : '—',
+                            prevMaxW > 0
+                                ? '${prevMaxW.toStringAsFixed(prevMaxW % 1 == 0 ? 0 : 1)} kg'
+                                : '—',
                             maxW > prevMaxW
                                 ? Colors.greenAccent
                                 : maxW < prevMaxW
-                                    ? Colors.redAccent
-                                    : Colors.white38,
+                                ? Colors.redAccent
+                                : Colors.white38,
                             maxW > prevMaxW
                                 ? '↑'
                                 : maxW < prevMaxW
-                                    ? '↓'
-                                    : '=',
+                                ? '↓'
+                                : '=',
                           ),
                           const SizedBox(width: 12),
                           _comparisonBadge(
@@ -2565,13 +2711,13 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                             totalReps > prevTotalReps
                                 ? Colors.greenAccent
                                 : totalReps < prevTotalReps
-                                    ? Colors.redAccent
-                                    : Colors.white38,
+                                ? Colors.redAccent
+                                : Colors.white38,
                             totalReps > prevTotalReps
                                 ? '↑'
                                 : totalReps < prevTotalReps
-                                    ? '↓'
-                                    : '=',
+                                ? '↓'
+                                : '=',
                           ),
                         ],
                       ),
@@ -2696,7 +2842,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 15),
+                  horizontal: 16,
+                  vertical: 15,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(14),
@@ -2713,8 +2861,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                         color: _accentColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(Icons.calendar_today_rounded,
-                          color: _accentColor, size: 16),
+                      child: Icon(
+                        Icons.calendar_today_rounded,
+                        color: _accentColor,
+                        size: 16,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -2731,8 +2882,10 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          DateFormat('d MMMM yyyy, EEEE', 'tr_TR')
-                              .format(_pickedDate),
+                          DateFormat(
+                            'd MMMM yyyy, EEEE',
+                            'tr_TR',
+                          ).format(_pickedDate),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -2742,9 +2895,11 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                       ],
                     ),
                     const Spacer(),
-                    Icon(Icons.chevron_right_rounded,
-                        color: Colors.white.withValues(alpha: 0.25),
-                        size: 20),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: Colors.white.withValues(alpha: 0.25),
+                      size: 20,
+                    ),
                   ],
                 ),
               ),
@@ -2760,20 +2915,23 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
               maxLines: 4,
               maxLength: 300,
               style: const TextStyle(
-                  color: Colors.white, fontSize: 14, height: 1.5),
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.5,
+              ),
               decoration: InputDecoration(
-                hintText:
-                    'Bu antrenmanda neler hissettin? Özel notlar...',
+                hintText: 'Bu antrenmanda neler hissettin? Özel notlar...',
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.25),
                   fontSize: 13,
                 ),
                 prefixIcon: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 14, right: 10, top: 14),
-                  child: Icon(Icons.sticky_note_2_rounded,
-                      color: Colors.white.withValues(alpha: 0.25),
-                      size: 18),
+                  padding: const EdgeInsets.only(left: 14, right: 10, top: 14),
+                  child: Icon(
+                    Icons.sticky_note_2_rounded,
+                    color: Colors.white.withValues(alpha: 0.25),
+                    size: 18,
+                  ),
                 ),
                 prefixIconConstraints: const BoxConstraints(),
                 filled: true,
@@ -2785,7 +2943,8 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.09)),
+                    color: Colors.white.withValues(alpha: 0.09),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
@@ -2849,9 +3008,22 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(arrow, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(
+          arrow,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(width: 3),
-        Text(text, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 11,
+          ),
+        ),
       ],
     );
   }
@@ -2910,7 +3082,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: sel ? color.withValues(alpha: 0.22) : Colors.white.withValues(alpha: 0.04),
+            color: sel
+                ? color.withValues(alpha: 0.22)
+                : Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: sel ? color : Colors.white.withValues(alpha: 0.1),
@@ -3044,8 +3218,7 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -3055,14 +3228,14 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
     final isLast = _step == 2;
     return Container(
       padding: EdgeInsets.fromLTRB(
-        16, 12, 16,
+        16,
+        12,
+        16,
         12 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
         color: _card,
-        border: Border(
-          top: BorderSide(color: _cardBorder, width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: _cardBorder, width: 0.5)),
       ),
       child: Row(
         children: [
@@ -3145,7 +3318,9 @@ class _AddWorkoutPageState extends State<AddWorkoutPage>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
-                                isLast ? Icons.save_rounded : Icons.arrow_forward_rounded,
+                                isLast
+                                    ? Icons.save_rounded
+                                    : Icons.arrow_forward_rounded,
                                 color: Colors.white,
                                 size: 14,
                               ),
@@ -3272,7 +3447,9 @@ class _SaveSummarySheetState extends State<_SaveSummarySheet>
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           padding: EdgeInsets.fromLTRB(
-            24, 20, 24,
+            24,
+            20,
+            24,
             24 + MediaQuery.of(context).padding.bottom,
           ),
           child: Column(
@@ -3296,7 +3473,10 @@ class _SaveSummarySheetState extends State<_SaveSummarySheet>
               if (widget.isNewPR) ...[
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -3376,7 +3556,9 @@ class _SaveSummarySheetState extends State<_SaveSummarySheet>
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -3389,22 +3571,38 @@ class _SaveSummarySheetState extends State<_SaveSummarySheet>
                         _statTile('💪 Tekrar', '${widget.totalReps}', accent),
                       ],
                     ),
-                    if ((widget.maxWeight > 0) || widget.durationMinutes != null || widget.caloriesBurned != null) ...[
+                    if ((widget.maxWeight > 0) ||
+                        widget.durationMinutes != null ||
+                        widget.caloriesBurned != null) ...[
                       const SizedBox(height: 14),
                       const Divider(color: Colors.white10, height: 1),
                       const SizedBox(height: 14),
                       Row(
                         children: [
                           if (widget.maxWeight > 0)
-                            _statTile('🏋️ Max', '${widget.maxWeight.toStringAsFixed(widget.maxWeight % 1 == 0 ? 0 : 1)} kg', Colors.white70),
-                          if (widget.maxWeight > 0 && widget.durationMinutes != null)
+                            _statTile(
+                              '🏋️ Max',
+                              '${widget.maxWeight.toStringAsFixed(widget.maxWeight % 1 == 0 ? 0 : 1)} kg',
+                              Colors.white70,
+                            ),
+                          if (widget.maxWeight > 0 &&
+                              widget.durationMinutes != null)
                             _divider(),
                           if (widget.durationMinutes != null)
-                            _statTile('⏱ Süre', '${widget.durationMinutes} dk', Colors.white70),
-                          if (widget.durationMinutes != null && widget.caloriesBurned != null)
+                            _statTile(
+                              '⏱ Süre',
+                              '${widget.durationMinutes} dk',
+                              Colors.white70,
+                            ),
+                          if (widget.durationMinutes != null &&
+                              widget.caloriesBurned != null)
                             _divider(),
                           if (widget.caloriesBurned != null)
-                            _statTile('🔥 Kalori', '${widget.caloriesBurned} kcal', Colors.white70),
+                            _statTile(
+                              '🔥 Kalori',
+                              '${widget.caloriesBurned} kcal',
+                              Colors.white70,
+                            ),
                         ],
                       ),
                     ],
@@ -3412,7 +3610,11 @@ class _SaveSummarySheetState extends State<_SaveSummarySheet>
                       const SizedBox(height: 14),
                       const Divider(color: Colors.white10, height: 1),
                       const SizedBox(height: 14),
-                      _statTile('🥇 1RM (Epley)', '${widget.oneRM!.toStringAsFixed(1)} kg', accent),
+                      _statTile(
+                        '🥇 1RM (Epley)',
+                        '${widget.oneRM!.toStringAsFixed(1)} kg',
+                        accent,
+                      ),
                     ],
                   ],
                 ),

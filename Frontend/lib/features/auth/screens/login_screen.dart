@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/utils/storage_helper.dart';
@@ -9,6 +8,7 @@ import '../../nutrition/data/datasources/hive_diet_storage.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/data/repositories/weight_repository_impl.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
+import '../../workout/data/hive_workout_repository.dart';
 import '../../tracking/providers/tracking_provider.dart';
 import '../../workout/providers/workout_provider.dart';
 import '../providers/auth_provider.dart';
@@ -72,9 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _loadingTimer?.cancel();
     _loadingTimer = Timer(const Duration(seconds: 6), () {
       if (mounted) {
-        setState(
-          () => _loadingMsg = 'Sunucu başlatılıyor, lütfen bekleyin...',
-        );
+        setState(() => _loadingMsg = 'Sunucu başlatılıyor, lütfen bekleyin...');
       }
     });
   }
@@ -160,6 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _onSuccess(BuildContext ctx, String oldSuffix) async {
     await HiveDietStorage.closeBoxesForSuffix(oldSuffix);
     await HiveWeightRepository.closeBoxesForSuffix(oldSuffix);
+    await HiveWorkoutRepository.closeBoxesForSuffix(oldSuffix);
     if (!ctx.mounted) return;
 
     final diet = Provider.of<DietProvider>(ctx, listen: false);
@@ -173,6 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
     workout.reset();
 
     await diet.init();
+    await StorageHelper.ensureKvkkConsentsInitialized();
     if (!ctx.mounted) return;
 
     // Social login (Google/Apple) ile ilk kez giren kullanıcının profili yoktur.
@@ -197,6 +197,9 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const _LoginCardHeader(),
+              const SizedBox(height: 20),
+
               // ── E-posta ─────────────────────────────────────
               _FloatingField(
                 controller: _emailCtrl,
@@ -250,9 +253,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 18,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(5),
-                            color: _remember
-                                ? _kAccent
-                                : Colors.transparent,
+                            color: _remember ? _kAccent : Colors.transparent,
                             border: Border.all(
                               color: _remember
                                   ? _kAccent
@@ -319,48 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 28),
 
               // ── Divider ─────────────────────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.transparent,
-                            Colors.white.withValues(alpha: 0.12),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Text(
-                      'veya',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.35),
-                        letterSpacing: 0.8,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 1,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.12),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              const _DividerLabel(label: 'veya'),
               const SizedBox(height: 18),
 
               // ── Sosyal butonlar ──────────────────────────────
@@ -368,12 +328,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: 'Google ile devam et',
                 icon: const _GoogleIcon(),
                 onPressed: auth.isLoading ? null : _handleGoogle,
+                borderColor: const Color(0xFF4285F4).withValues(alpha: 0.30),
               ),
               if (_showApple) ...[
                 const SizedBox(height: 10),
                 _SocialButton(
                   label: 'Apple ile devam et',
-                  icon: const Icon(Icons.apple, color: Colors.white, size: 18),
+                  icon: const Icon(Icons.apple, color: Colors.white, size: 20),
                   onPressed: auth.isLoading ? null : _handleApple,
                 ),
               ],
@@ -382,29 +343,44 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         bottomContent: Column(
           children: [
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const RegisterScreen()),
-              ),
-              child: RichText(
-                text: TextSpan(
-                  text: 'Hesabınız yok mu?  ',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                ),
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
                   ),
-                  children: const [
-                    TextSpan(
-                      text: 'Kayıt Ol',
-                      style: TextStyle(
-                        color: _kAccentLight,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                        decorationColor: _kAccentLight,
-                      ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0E0F13).withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
                     ),
-                  ],
+                  ),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Hesabınız yok mu?  ',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.58),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: 'Kayıt Ol',
+                          style: TextStyle(
+                            color: _kAccentLight,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -462,6 +438,144 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+class _LoginCardHeader extends StatelessWidget {
+  const _LoginCardHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                _kAccentLight.withValues(alpha: 0.22),
+                _kAccent.withValues(alpha: 0.08),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _kAccentLight.withValues(alpha: 0.18)),
+          ),
+          child: const Icon(
+            Icons.shield_outlined,
+            color: _kAccentLight,
+            size: 22,
+          ),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Hesabına giriş yap',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Planların ve ilerlemen seninle.',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.48),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.045),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline_rounded,
+                color: Colors.white.withValues(alpha: 0.58),
+                size: 13,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Güvenli',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.62),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DividerLabel extends StatelessWidget {
+  const _DividerLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _DividerLine(reverse: true)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.36),
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const Expanded(child: _DividerLine()),
+      ],
+    );
+  }
+}
+
+class _DividerLine extends StatelessWidget {
+  const _DividerLine({this.reverse = false});
+
+  final bool reverse;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = [Colors.transparent, Colors.white.withValues(alpha: 0.12)];
+    return Container(
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: reverse ? colors.reversed.toList() : colors,
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Floating input alanı ──────────────────────────────────────────────────
 class _FloatingField extends StatelessWidget {
   final TextEditingController controller;
@@ -491,22 +605,21 @@ class _FloatingField extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: focused
-            ? Colors.white.withValues(alpha: 0.07)
-            : Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        color: focused ? const Color(0xFF202127) : const Color(0xFF18191F),
         border: Border.all(
           color: focused
-              ? _kAccent.withValues(alpha: 0.7)
-              : Colors.white.withValues(alpha: 0.09),
-          width: focused ? 1.5 : 1.0,
+              ? _kAccentLight.withValues(alpha: 0.72)
+              : Colors.white.withValues(alpha: 0.08),
+          width: focused ? 1.4 : 1.0,
         ),
         boxShadow: focused
             ? [
                 BoxShadow(
-                  color: _kAccent.withValues(alpha: 0.2),
-                  blurRadius: 18,
-                  spreadRadius: -4,
+                  color: _kAccent.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  spreadRadius: -8,
+                  offset: const Offset(0, 8),
                 ),
               ]
             : [],
@@ -526,7 +639,7 @@ class _FloatingField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.28),
+            color: Colors.white.withValues(alpha: 0.34),
             fontSize: 15,
             fontWeight: FontWeight.w400,
           ),
@@ -545,7 +658,7 @@ class _FloatingField extends StatelessWidget {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
-            vertical: 18,
+            vertical: 17,
           ),
           errorStyle: const TextStyle(fontSize: 11.5),
         ),
@@ -585,9 +698,10 @@ class _PremiumButtonState extends State<_PremiumButton>
       duration: const Duration(milliseconds: 100),
       vsync: this,
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
   }
 
   @override
@@ -656,7 +770,7 @@ class _PremiumButtonState extends State<_PremiumButton>
                 if (!widget.isLoading)
                   AnimatedBuilder(
                     animation: _shimmerCtrl,
-                    builder: (_, __) {
+                    builder: (_, _) {
                       // İlk %19 içinde (700ms / 3700ms) geç, geri kalanı bekle
                       final t = _shimmerCtrl.value;
                       final x = t < 0.19 ? -1.0 + (t / 0.19) * 3.0 : 99.0;
@@ -722,47 +836,88 @@ class _ShimmerPainter extends CustomPainter {
 }
 
 // ─── Sosyal buton ─────────────────────────────────────────────────────────
-class _SocialButton extends StatelessWidget {
+class _SocialButton extends StatefulWidget {
   final String label;
   final Widget icon;
   final VoidCallback? onPressed;
+  final Color? borderColor;
 
   const _SocialButton({
     required this.label,
     required this.icon,
     required this.onPressed,
+    this.borderColor,
   });
 
   @override
+  State<_SocialButton> createState() => _SocialButtonState();
+}
+
+class _SocialButtonState extends State<_SocialButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      duration: const Duration(milliseconds: 90),
+      vsync: this,
+    );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.97,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        splashColor: Colors.white.withValues(alpha: 0.04),
-        highlightColor: Colors.white.withValues(alpha: 0.02),
+    final borderCol =
+        widget.borderColor ?? Colors.white.withValues(alpha: 0.11);
+    return GestureDetector(
+      onTapDown: (_) {
+        if (widget.onPressed != null) _pressCtrl.forward();
+      },
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onPressed?.call();
+      },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _scaleAnim,
         child: Container(
-          height: 52,
+          height: 54,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: Colors.white.withValues(alpha: 0.04),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
-              width: 1.0,
-            ),
+            borderRadius: BorderRadius.circular(18),
+            color: const Color(0xFF111217),
+            border: Border.all(color: borderCol, width: 1.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.24),
+                blurRadius: 14,
+                spreadRadius: -10,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              icon,
+              widget.icon,
               const SizedBox(width: 10),
               Text(
-                label,
+                widget.label,
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.82),
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.88),
                   letterSpacing: 0.1,
                 ),
               ),
@@ -774,28 +929,69 @@ class _SocialButton extends StatelessWidget {
   }
 }
 
-// ─── Google ikonu ──────────────────────────────────────────────────────────
+// ─── Google ikonu (brand renklerle) ───────────────────────────────────────
 class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        'G',
-        style: TextStyle(
-          color: Color(0xFF1A73E8),
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
+    return CustomPaint(size: const Size(22, 22), painter: _GoogleLogoPainter());
   }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2;
+
+    // Beyaz daire zemin
+    canvas.drawCircle(Offset(cx, cy), r, Paint()..color = Colors.white);
+
+    final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72);
+
+    void drawArc(double start, double sweep, Color color) {
+      canvas.drawArc(
+        rect,
+        start,
+        sweep,
+        true,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
+      // Merkez beyaz daire — G şekli için
+      canvas.drawCircle(
+        Offset(cx, cy),
+        r * 0.44,
+        Paint()..color = Colors.white,
+      );
+    }
+
+    const pi = math.pi;
+    // Kırmızı (üst sağ)
+    drawArc(-pi / 6, pi * 2 / 3, const Color(0xFFEA4335));
+    // Sarı (alt)
+    drawArc(pi / 2, pi * 2 / 3, const Color(0xFFFBBC05));
+    // Yeşil (sol)
+    drawArc(pi * 7 / 6, pi * 2 / 3, const Color(0xFF34A853));
+    // Mavi (üst sol + sağ gövde)
+    drawArc(-pi * 5 / 6, pi * 2 / 3, const Color(0xFF4285F4));
+
+    // Mavi sağ çıkıntı (Google G)
+    final gPath = Path()
+      ..moveTo(cx, cy)
+      ..lineTo(cx + r * 0.72, cy)
+      ..lineTo(cx + r * 0.72, cy - r * 0.28)
+      ..lineTo(cx + r * 0.28, cy - r * 0.28)
+      ..close();
+    canvas.drawPath(gPath, Paint()..color = const Color(0xFF4285F4));
+
+    // Merkez temizle
+    canvas.drawCircle(Offset(cx, cy), r * 0.44, Paint()..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

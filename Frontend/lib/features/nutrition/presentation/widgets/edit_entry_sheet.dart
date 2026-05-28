@@ -62,11 +62,11 @@ class _EditEntrySheetState extends State<EditEntrySheet> {
     _selectedMealType = widget.entry.mealType;
 
     final ratio = widget.entry.grams > 0 ? widget.entry.grams / 100 : 1;
-    double _safe(double v) => v.isNaN || v.isInfinite ? 0.0 : v;
-    _per100Kcal = _safe(ratio > 0 ? widget.entry.calculatedKcal / ratio : 0);
-    _per100Protein = _safe(ratio > 0 ? widget.entry.protein / ratio : 0);
-    _per100Carb = _safe(ratio > 0 ? widget.entry.carb / ratio : 0);
-    _per100Fat = _safe(ratio > 0 ? widget.entry.fat / ratio : 0);
+    double safe(double v) => v.isNaN || v.isInfinite ? 0.0 : v;
+    _per100Kcal = safe(ratio > 0 ? widget.entry.calculatedKcal / ratio : 0);
+    _per100Protein = safe(ratio > 0 ? widget.entry.protein / ratio : 0);
+    _per100Carb = safe(ratio > 0 ? widget.entry.carb / ratio : 0);
+    _per100Fat = safe(ratio > 0 ? widget.entry.fat / ratio : 0);
   }
 
   @override
@@ -75,7 +75,7 @@ class _EditEntrySheetState extends State<EditEntrySheet> {
     super.dispose();
   }
 
-  double get _currentGrams => double.tryParse(_gramsController.text) ?? 0;
+  double get _currentGrams => double.tryParse(_gramsController.text.replaceAll(',', '.')) ?? 0;
   double get _previewKcal => _per100Kcal * _currentGrams / 100;
   double get _previewProtein => _per100Protein * _currentGrams / 100;
   double get _previewCarb => _per100Carb * _currentGrams / 100;

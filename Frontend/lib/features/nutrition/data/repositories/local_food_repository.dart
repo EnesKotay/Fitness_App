@@ -271,6 +271,23 @@ class LocalFoodRepository implements FoodRepository {
       'cheese burger': 'cheeseburger',
       'tavuk burger': 'chicken burger',
       'chicken burger': 'tavuk burger',
+      'greek yogurt': 'plain greek yogurt',
+      'yogurt': 'greek yogurt',
+      'egg white': 'egg whites',
+      'egg whites': 'liquid egg whites',
+      'oats': 'oatmeal',
+      'rolled oats': 'oatmeal',
+      'protein shake': 'whey protein',
+      'protein powder': 'whey protein',
+      'turkey sandwich': 'turkey wrap',
+      'turkey wrap': 'turkey tortilla wrap',
+      'chicken bowl': 'chicken burrito bowl',
+      'burrito bowl': 'chicken burrito bowl',
+      'rice bowl': 'chicken rice bowl',
+      'cottage cheese': 'low fat cottage cheese',
+      'peanut butter': 'natural peanut butter',
+      'tuna': 'tuna pouch',
+      'salmon': 'salmon fillet',
     };
 
     for (final entry in directReplacements.entries) {
@@ -745,6 +762,12 @@ class LocalFoodRepository implements FoodRepository {
     if (food.tags.any((tag) => tag == 'trcore')) {
       score += 36;
     }
+    if (food.tags.any((tag) => tag == 'us-common')) {
+      score += 30;
+    }
+    if (food.raw.category == 'US Staples' || food.raw.category == 'US Meals') {
+      score += 10;
+    }
     if (food.raw.category == 'Kahvaltılık' ||
         food.raw.category == 'Yemek' ||
         food.raw.category == 'Et / Protein' ||
@@ -931,7 +954,9 @@ class LocalFoodRepository implements FoodRepository {
         if (nTag == normalizedQuery) {
           currentTagScore = 30;
         } else if (nTag.contains(normalizedQuery) ||
-            normalizedQuery.contains(nTag)) {
+            _isWholeWord(normalizedQuery, nTag)) {
+          // _isWholeWord: "un" tagı "lahmacun" sorgusunda eşleşmez çünkü
+          // "un" orada bağımsız kelime değil (substring değil, sınır kontrolü)
           currentTagScore = 15;
         }
         if (currentTagScore > maxTagScore) {

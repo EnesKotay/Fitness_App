@@ -8,24 +8,10 @@ class AiCustomizedPlanMapper {
   static List<PlannedMeal> toPlannedMeals(
     List<CustomizedDailyPlanMealModel> dailyPlan,
   ) {
-    final byMealType = <MealType, PlannedMeal>{};
-
-    for (final meal in dailyPlan) {
-      if (meal.food.trim().isEmpty) continue;
-      final nextMeal = _toPlannedMeal(meal);
-      final existing = byMealType[nextMeal.mealType];
-      byMealType[nextMeal.mealType] = existing == null
-          ? nextMeal
-          : _mergePlannedMeals(existing, nextMeal);
-    }
-
-    return [
-      if (byMealType.containsKey(MealType.breakfast))
-        byMealType[MealType.breakfast]!,
-      if (byMealType.containsKey(MealType.lunch)) byMealType[MealType.lunch]!,
-      if (byMealType.containsKey(MealType.dinner)) byMealType[MealType.dinner]!,
-      if (byMealType.containsKey(MealType.snack)) byMealType[MealType.snack]!,
-    ];
+    return dailyPlan
+        .where((meal) => meal.food.trim().isNotEmpty)
+        .map(_toPlannedMeal)
+        .toList();
   }
 
   static MealType mealTypeFromAiPlanMeal(CustomizedDailyPlanMealModel meal) {
@@ -67,26 +53,6 @@ class AiCustomizedPlanMapper {
                 .map((item) => item.trim())
                 .where((item) => item.isNotEmpty)
                 .toList(),
-    );
-  }
-
-  static PlannedMeal _mergePlannedMeals(
-    PlannedMeal existing,
-    PlannedMeal next,
-  ) {
-    return existing.copyWith(
-      name: existing.name == next.name
-          ? existing.name
-          : '${existing.name} • ${next.name}',
-      kcal: existing.kcal + next.kcal,
-      portionGrams: existing.portionGrams + next.portionGrams,
-      ingredients: [
-        ...existing.ingredients,
-        ...next.ingredients.where(
-          (item) => !existing.ingredients.contains(item),
-        ),
-      ],
-      clearFoodId: true,
     );
   }
 

@@ -1,0 +1,338 @@
+{
+  "foods": [
+    {
+      "id": "us_common_greek_yogurt_plain",
+      "name": "Plain Greek Yogurt",
+      "category": "US Staples",
+      "basis": {"amount": 170, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 100, "protein": 17, "carb": 6, "fat": 0},
+      "servings": [
+        {"id": "cup_170", "label": "1 container (170 g)", "grams": 170, "isDefault": true},
+        {"id": "s_100", "label": "100 g", "grams": 100, "isDefault": false}
+      ],
+      "aliases": ["greek yogurt", "nonfat greek yogurt", "yogurt"],
+      "tags": ["us-common", "breakfast", "high protein", "snack"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_oatmeal_dry",
+      "name": "Oatmeal",
+      "category": "US Staples",
+      "basis": {"amount": 40, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 150, "protein": 5, "carb": 27, "fat": 3},
+      "servings": [
+        {"id": "half_cup", "label": "1/2 cup dry (40 g)", "grams": 40, "isDefault": true},
+        {"id": "s_100", "label": "100 g", "grams": 100, "isDefault": false}
+      ],
+      "aliases": ["rolled oats", "oats", "instant oatmeal"],
+      "tags": ["us-common", "breakfast", "carb"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_chicken_breast",
+      "name": "Chicken Breast",
+      "category": "US Staples",
+      "basis": {"amount": 113, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 187, "protein": 35, "carb": 0, "fat": 4},
+      "servings": [
+        {"id": "four_oz", "label": "4 oz cooked (113 g)", "grams": 113, "isDefault": true},
+        {"id": "s_100", "label": "100 g", "grams": 100, "isDefault": false}
+      ],
+      "aliases": ["grilled chicken", "chicken breast cooked", "chicken"],
+      "tags": ["us-common", "high protein", "lunch", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_egg_whites",
+      "name": "Egg Whites",
+      "category": "US Staples",
+      "basis": {"amount": 100, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 52, "protein": 11, "carb": 1, "fat": 0},
+      "servings": [
+        {"id": "three_whites", "label": "3 egg whites (100 g)", "grams": 100, "isDefault": true}
+      ],
+      "aliases": ["liquid egg whites", "egg white"],
+      "tags": ["us-common", "breakfast", "high protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_turkey_wrap",
+      "name": "Turkey Wrap",
+      "category": "US Meals",
+      "basis": {"amount": 1, "unit": "portion"},
+      "nutrientsPerBasis": {"kcal": 360, "protein": 28, "carb": 38, "fat": 11},
+      "servings": [
+        {"id": "portion", "label": "1 wrap", "grams": 220, "isDefault": true}
+      ],
+      "aliases": ["turkey tortilla wrap", "turkey sandwich wrap"],
+      "tags": ["us-common", "lunch", "high protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_chicken_rice_bowl",
+      "name": "Chicken Rice Bowl",
+      "category": "US Meals",
+      "basis": {"amount": 1, "unit": "portion"},
+      "nutrientsPerBasis": {"kcal": 520, "protein": 42, "carb": 58, "fat": 12},
+      "servings": [
+        {"id": "bowl", "label": "1 bowl", "grams": 420, "isDefault": true}
+      ],
+      "aliases": ["chicken bowl", "rice bowl", "chicken and rice"],
+      "tags": ["us-common", "lunch", "dinner", "high protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_protein_bar",
+      "name": "Protein Bar",
+      "category": "US Snacks",
+      "basis": {"amount": 60, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 210, "protein": 20, "carb": 22, "fat": 7},
+      "servings": [
+        {"id": "bar", "label": "1 bar (60 g)", "grams": 60, "isDefault": true}
+      ],
+      "aliases": ["protein snack bar", "high protein bar"],
+      "tags": ["us-common", "snack", "high protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_peanut_butter",
+      "name": "Peanut Butter",
+      "category": "US Staples",
+      "basis": {"amount": 32, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 190, "protein": 7, "carb": 7, "fat": 16},
+      "servings": [
+        {"id": "two_tbsp", "label": "2 tbsp (32 g)", "grams": 32, "isDefault": true},
+        {"id": "one_tbsp", "label": "1 tbsp (16 g)", "grams": 16, "isDefault": false}
+      ],
+      "aliases": ["natural peanut butter", "pb"],
+      "tags": ["us-common", "snack", "calorie dense"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_cottage_cheese",
+      "name": "Cottage Cheese",
+      "category": "US Staples",
+      "basis": {"amount": 113, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 100, "protein": 13, "carb": 4, "fat": 4},
+      "servings": [
+        {"id": "half_cup", "label": "1/2 cup (113 g)", "grams": 113, "isDefault": true}
+      ],
+      "aliases": ["low fat cottage cheese"],
+      "tags": ["us-common", "high protein", "snack"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_bagel",
+      "name": "Bagel",
+      "category": "US Staples",
+      "basis": {"amount": 1, "unit": "piece"},
+      "nutrientsPerBasis": {"kcal": 280, "protein": 10, "carb": 56, "fat": 2},
+      "servings": [
+        {"id": "one_bagel", "label": "1 medium bagel", "grams": 105, "isDefault": true}
+      ],
+      "aliases": ["plain bagel"],
+      "tags": ["us-common", "breakfast", "carb"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_berries",
+      "name": "Mixed Berries",
+      "category": "US Staples",
+      "basis": {"amount": 140, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 70, "protein": 1, "carb": 17, "fat": 0},
+      "servings": [
+        {"id": "one_cup", "label": "1 cup (140 g)", "grams": 140, "isDefault": true}
+      ],
+      "aliases": ["berries", "blueberries strawberries"],
+      "tags": ["us-common", "fruit", "breakfast", "snack"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_tuna_pouch",
+      "name": "Tuna Pouch",
+      "category": "US Staples",
+      "basis": {"amount": 74, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 80, "protein": 17, "carb": 0, "fat": 1},
+      "servings": [
+        {"id": "pouch", "label": "1 pouch (74 g)", "grams": 74, "isDefault": true}
+      ],
+      "aliases": ["tuna packet", "canned tuna", "tuna"],
+      "tags": ["us-common", "high protein", "lunch"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_whey_protein",
+      "name": "Whey Protein",
+      "category": "US Supplements",
+      "basis": {"amount": 30, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 120, "protein": 24, "carb": 3, "fat": 2},
+      "servings": [
+        {"id": "scoop", "label": "1 scoop (30 g)", "grams": 30, "isDefault": true}
+      ],
+      "aliases": ["protein powder", "whey shake"],
+      "tags": ["us-common", "supplement", "high protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_lean_ground_beef",
+      "name": "Lean Ground Beef",
+      "category": "US Staples",
+      "basis": {"amount": 113, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 220, "protein": 26, "carb": 0, "fat": 12},
+      "servings": [
+        {"id": "four_oz", "label": "4 oz cooked (113 g)", "grams": 113, "isDefault": true}
+      ],
+      "aliases": ["93 percent lean beef", "ground beef"],
+      "tags": ["us-common", "high protein", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_salmon_fillet",
+      "name": "Salmon Fillet",
+      "category": "US Staples",
+      "basis": {"amount": 113, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 230, "protein": 25, "carb": 0, "fat": 14},
+      "servings": [
+        {"id": "four_oz", "label": "4 oz cooked (113 g)", "grams": 113, "isDefault": true}
+      ],
+      "aliases": ["salmon", "grilled salmon"],
+      "tags": ["us-common", "high protein", "omega 3", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_brown_rice",
+      "name": "Brown Rice",
+      "category": "US Staples",
+      "basis": {"amount": 158, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 216, "protein": 5, "carb": 45, "fat": 2},
+      "servings": [
+        {"id": "one_cup", "label": "1 cup cooked (158 g)", "grams": 158, "isDefault": true}
+      ],
+      "aliases": ["rice", "cooked brown rice"],
+      "tags": ["us-common", "carb", "lunch", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_sweet_potato",
+      "name": "Sweet Potato",
+      "category": "US Staples",
+      "basis": {"amount": 130, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 112, "protein": 2, "carb": 26, "fat": 0},
+      "servings": [
+        {"id": "medium", "label": "1 medium (130 g)", "grams": 130, "isDefault": true}
+      ],
+      "aliases": ["baked sweet potato", "yam"],
+      "tags": ["us-common", "carb", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_whole_wheat_tortilla",
+      "name": "Whole Wheat Tortilla",
+      "category": "US Staples",
+      "basis": {"amount": 50, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 150, "protein": 5, "carb": 25, "fat": 4},
+      "servings": [
+        {"id": "one_tortilla", "label": "1 tortilla (50 g)", "grams": 50, "isDefault": true}
+      ],
+      "aliases": ["tortilla", "wrap tortilla"],
+      "tags": ["us-common", "wrap", "lunch"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_avocado",
+      "name": "Avocado",
+      "category": "US Staples",
+      "basis": {"amount": 75, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 120, "protein": 2, "carb": 6, "fat": 11},
+      "servings": [
+        {"id": "half", "label": "1/2 avocado (75 g)", "grams": 75, "isDefault": true}
+      ],
+      "aliases": ["half avocado"],
+      "tags": ["us-common", "healthy fat", "breakfast", "lunch"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_almonds",
+      "name": "Almonds",
+      "category": "US Snacks",
+      "basis": {"amount": 28, "unit": "g"},
+      "nutrientsPerBasis": {"kcal": 164, "protein": 6, "carb": 6, "fat": 14},
+      "servings": [
+        {"id": "one_oz", "label": "1 oz (28 g)", "grams": 28, "isDefault": true}
+      ],
+      "aliases": ["raw almonds", "nuts"],
+      "tags": ["us-common", "snack", "healthy fat"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_skim_milk",
+      "name": "Skim Milk",
+      "category": "US Staples",
+      "basis": {"amount": 240, "unit": "ml"},
+      "nutrientsPerBasis": {"kcal": 83, "protein": 8, "carb": 12, "fat": 0},
+      "servings": [
+        {"id": "one_cup", "label": "1 cup (240 ml)", "grams": 240, "isDefault": true}
+      ],
+      "aliases": ["nonfat milk", "fat free milk"],
+      "tags": ["us-common", "drink", "protein"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    },
+    {
+      "id": "us_common_chipotle_style_bowl",
+      "name": "Chicken Burrito Bowl",
+      "category": "US Meals",
+      "basis": {"amount": 1, "unit": "portion"},
+      "nutrientsPerBasis": {"kcal": 650, "protein": 45, "carb": 70, "fat": 20},
+      "servings": [
+        {"id": "bowl", "label": "1 bowl", "grams": 500, "isDefault": true}
+      ],
+      "aliases": ["chipotle style bowl", "burrito bowl", "chicken burrito bowl"],
+      "tags": ["us-common", "restaurant style", "lunch", "dinner"],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null
+    }
+  ]
+}

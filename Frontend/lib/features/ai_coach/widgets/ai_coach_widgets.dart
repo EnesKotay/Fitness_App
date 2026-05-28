@@ -7,6 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../workout/providers/workout_provider.dart';
+import '../../../core/models/workout_models.dart';
 
 // ─── Typing Indicator ─────────────────────────────────────────────────────────
 
@@ -410,6 +413,61 @@ class SmartWorkoutSaveCard extends StatefulWidget {
 
 class _SmartWorkoutSaveCardState extends State<SmartWorkoutSaveCard> {
   bool _saved = false;
+  bool _saving = false;
+
+  Future<void> _save(Map<String, dynamic> data) async {
+    if (_saved || _saving) return;
+    setState(() => _saving = true);
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final workoutProv = Provider.of<WorkoutProvider>(context, listen: false);
+    final userId = auth.user?.id ?? 0;
+
+    final request = WorkoutRequest(
+      name: data['name']?.toString() ?? 'Antrenman',
+      workoutType: data['workoutType']?.toString() ?? 'strength',
+      muscleGroup: data['muscleGroup']?.toString(),
+      durationMinutes: (data['durationMinutes'] as num?)?.toInt(),
+      caloriesBurned: (data['caloriesBurned'] as num?)?.toInt(),
+      sets: (data['sets'] as num?)?.toInt(),
+      reps: (data['reps'] as num?)?.toInt(),
+      notes: data['notes']?.toString(),
+      workoutDate: DateTime.now(),
+    );
+
+    final ok = await workoutProv.createWorkout(userId, request);
+    if (!mounted) return;
+
+    HapticFeedback.lightImpact();
+    if (ok) {
+      setState(() {
+        _saved = true;
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '💪 "${request.name}" antrenmanı kaydedildi!',
+            style: GoogleFonts.dmSans(),
+          ),
+          backgroundColor: const Color(0xFF1A3A2A),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            workoutProv.errorMessage ?? 'Kaydetme başarısız, tekrar deneyin.',
+            style: GoogleFonts.dmSans(),
+          ),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -427,22 +485,7 @@ class _SmartWorkoutSaveCardState extends State<SmartWorkoutSaveCard> {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: GestureDetector(
-        onTap: _saved
-            ? null
-            : () {
-                HapticFeedback.lightImpact();
-                setState(() => _saved = true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '💪 "$name" antrenmanı kaydedildi!',
-                      style: GoogleFonts.dmSans(),
-                    ),
-                    backgroundColor: const Color(0xFF1A3A2A),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
+        onTap: (_saved || _saving) ? null : () => _save(data),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.all(14),
@@ -502,7 +545,16 @@ class _SmartWorkoutSaveCardState extends State<SmartWorkoutSaveCard> {
                   ],
                 ),
               ),
-              if (!_saved)
+              if (_saved)
+                Text(
+                  '✓ Kaydedildi',
+                  style: GoogleFonts.dmSans(
+                    color: const Color(0xFF73D4FF).withValues(alpha: 0.7),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -515,23 +567,25 @@ class _SmartWorkoutSaveCardState extends State<SmartWorkoutSaveCard> {
                       color: const Color(0xFF73D4FF).withValues(alpha: 0.4),
                     ),
                   ),
-                  child: Text(
-                    'Kaydet',
-                    style: GoogleFonts.dmSans(
-                      color: const Color(0xFF73D4FF),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  '✓ Kaydedildi',
-                  style: GoogleFonts.dmSans(
-                    color: const Color(0xFF73D4FF).withValues(alpha: 0.7),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(
+                              Color(0xFF73D4FF),
+                            ),
+                          ),
+                        )
+                      : Text(
+                          'Kaydet',
+                          style: GoogleFonts.dmSans(
+                            color: const Color(0xFF73D4FF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
             ],
           ),

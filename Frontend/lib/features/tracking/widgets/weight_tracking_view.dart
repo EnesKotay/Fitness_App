@@ -1,8 +1,16 @@
+import 'dart:ui' as ui;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
+import 'package:confetti/confetti.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_snack.dart';
@@ -16,11 +24,173 @@ import 'neon_line_chart.dart';
 import 'history_list.dart';
 import 'weight_ruler_picker.dart';
 import 'ai_coach_insight_sheet.dart';
+import 'goal_timeline_card.dart';
+import 'consistency_heatmap.dart';
+
+class _GoalStatusLine extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String hint;
+
+  const _GoalStatusLine({
+    required this.color,
+    required this.label,
+    required this.hint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.85),
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text(
+            '$label · $hint',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.48),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GoalProgressTrack extends StatelessWidget {
+  final double progress;
+  final Color color;
+  final String startLabel;
+  final String centerLabel;
+  final String endLabel;
+
+  const _GoalProgressTrack({
+    required this.progress,
+    required this.color,
+    required this.startLabel,
+    required this.centerLabel,
+    required this.endLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeProgress = progress.clamp(0.0, 1.0);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 12,
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: safeProgress),
+                duration: const Duration(milliseconds: 1100),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) => FractionallySizedBox(
+                  widthFactor: value,
+                  child: Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.0, end: safeProgress),
+                duration: const Duration(milliseconds: 1100),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) => Align(
+                  alignment: Alignment((value * 2) - 1, 0),
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                startLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.34),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                centerLabel,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.58),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                endLabel,
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.34),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
 class WeightTrackingView extends StatefulWidget {
   const WeightTrackingView({super.key});
 
   static void showEntrySheet(BuildContext context, {WeightEntry? existing}) {
+    final appPrefs = context.read<AppPreferences>();
     final isEdit = existing != null;
     final initialDate = existing?.date ?? DateTime.now();
     final dateController = TextEditingController(
@@ -33,6 +203,7 @@ class WeightTrackingView extends StatefulWidget {
         context.read<DietProvider>().profile?.weightKg ??
         70.0;
     double currentWeight = fallbackWeight;
+    final unit = AppUnits.weightUnitFor(appPrefs);
     bool isSaving = false;
 
     showModalBottomSheet(
@@ -88,8 +259,9 @@ class WeightTrackingView extends StatefulWidget {
                   if (picked != null) {
                     setSheetState(() {
                       selectedDate = picked;
-                      dateController.text =
-                          DateFormat('d.MM.yyyy').format(picked);
+                      dateController.text = DateFormat(
+                        'd.MM.yyyy',
+                      ).format(picked);
                     });
                   }
                 },
@@ -133,7 +305,10 @@ class WeightTrackingView extends StatefulWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    currentWeight.toStringAsFixed(1),
+                    AppUnits.kgToDisplay(
+                      currentWeight,
+                      appPrefs,
+                    ).toStringAsFixed(1),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 52,
@@ -142,9 +317,9 @@ class WeightTrackingView extends StatefulWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Text(
-                    'kg',
-                    style: TextStyle(
+                  Text(
+                    unit,
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -156,10 +331,12 @@ class WeightTrackingView extends StatefulWidget {
               SizedBox(
                 height: 100,
                 child: WeightRulerPicker(
-                  initialValue: currentWeight,
-                  minValue: 30,
-                  maxValue: 250,
-                  onChanged: (v) => setSheetState(() => currentWeight = v),
+                  initialValue: AppUnits.kgToDisplay(currentWeight, appPrefs),
+                  minValue: appPrefs.usesImperial ? 66 : 30,
+                  maxValue: appPrefs.usesImperial ? 550 : 250,
+                  onChanged: (v) => setSheetState(
+                    () => currentWeight = AppUnits.kgFromDisplay(v, appPrefs),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -241,14 +418,21 @@ class WeightTrackingView extends StatefulWidget {
 }
 
 class _WeightTrackingViewState extends State<WeightTrackingView> {
+  final GlobalKey _chartKey = GlobalKey();
   final ValueNotifier<int> _chartRangeIndex = ValueNotifier<int>(1);
   final ValueNotifier<HistoryFilter> _historyFilter =
       ValueNotifier<HistoryFilter>(HistoryFilter.all);
   Map<String, DiaryTotals> _chartNutritionTotals = const {};
 
+  late ConfettiController _confettiController;
+  double? _lastKnownWeight;
+
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _loadChartNutritionTotals();
@@ -257,6 +441,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
 
   @override
   void dispose() {
+    _confettiController.dispose();
     _chartRangeIndex.dispose();
     _historyFilter.dispose();
     super.dispose();
@@ -301,7 +486,35 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
           );
         }
         if (isEmpty) return _buildEmptyState(context, provider);
-        return _buildMainContent(context, provider);
+
+        final current = provider.latestEntry?.weightKg;
+        final goal = context.read<DietProvider>().profile?.targetWeight;
+        if (current != null && goal != null && (current - goal).abs() < 0.1) {
+          if (_lastKnownWeight != current) {
+            _lastKnownWeight = current;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _confettiController.play();
+            });
+          }
+        } else {
+          _lastKnownWeight = current;
+        }
+
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            _buildMainContent(context, provider),
+            ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirection: math.pi / 2,
+              maxBlastForce: 5,
+              minBlastForce: 2,
+              emissionFrequency: 0.05,
+              numberOfParticles: 50,
+              gravity: 0.1,
+            ),
+          ],
+        );
       },
     );
   }
@@ -317,16 +530,15 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          SliverToBoxAdapter(
-            child: _buildWeightGoalCard(context, provider),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
-          SliverToBoxAdapter(
-            child: _buildHeroCard(context, provider),
-          ),
+          SliverToBoxAdapter(child: _buildStreakBanner(context, provider)),
+          const SliverToBoxAdapter(child: SizedBox(height: 10)),
+          SliverToBoxAdapter(child: _buildWeightGoalCard(context, provider)),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
           SliverToBoxAdapter(
-            child: _buildSectionHeader('Grafik', icon: Icons.show_chart_rounded),
+            child: _buildSectionHeader(
+              'Grafik',
+              icon: Icons.show_chart_rounded,
+            ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 10)),
           SliverPadding(
@@ -335,7 +547,11 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
               child: _buildChartCard(context, provider),
             ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          const SliverToBoxAdapter(child: SizedBox(height: 14)),
+          SliverToBoxAdapter(
+            child: _buildTrackingDetailsPanel(context, provider),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 18)),
           SliverToBoxAdapter(
             child: _buildSectionHeader('Geçmiş', icon: Icons.history_rounded),
           ),
@@ -388,437 +604,349 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
     );
   }
 
-  // ── Kilo + Hedef Özet Kartı ────────────────────────────────────────────────
+  // ── Streak Banner ──────────────────────────────────────────────────────────
+
+  Widget _buildStreakBanner(BuildContext context, WeightProvider provider) {
+    final streak = provider.currentStreak;
+    if (streak == 0) return const SizedBox.shrink();
+
+    final color = streak >= 7
+        ? const Color(0xFFFFB300)
+        : streak >= 3
+        ? const Color(0xFFFF9F43)
+        : const Color(0xFF48BB78);
+
+    final emoji = streak >= 14
+        ? '🔥🔥'
+        : streak >= 7
+        ? '🔥'
+        : '✅';
+    final msg = streak >= 14
+        ? '$streak günlük dev seri! Efsane!'
+        : streak >= 7
+        ? '$streak gün! Harika gidiyorsun'
+        : '$streak gün kilo takibi serisi';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.15),
+              color.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    msg,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  // Bugün kayıt girilmişse farklı mesaj göster
+                  Builder(
+                    builder: (context) {
+                      final today = DateTime.now();
+                      final todayEntry = provider.entries.firstWhere(
+                        (e) =>
+                            e.date.year == today.year &&
+                            e.date.month == today.month &&
+                            e.date.day == today.day,
+                        orElse: () => provider.entries.last,
+                      );
+                      final hasEntryToday =
+                          provider.entries.isNotEmpty &&
+                          todayEntry.date.year == today.year &&
+                          todayEntry.date.month == today.month &&
+                          todayEntry.date.day == today.day;
+
+                      return Text(
+                        hasEntryToday
+                            ? '✓ Bugün kilo kaydın tamam!'
+                            : 'Serini kırmamak için bugün de kilo gir',
+                        style: TextStyle(
+                          color: hasEntryToday
+                              ? color.withValues(alpha: 0.7)
+                              : Colors.white.withValues(alpha: 0.40),
+                          fontSize: 11,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: color.withValues(alpha: 0.4)),
+              ),
+              child: Text(
+                '$streak 🔥',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Kilo + Hedef Özet Kartı ───────────────────────────────────────────────
 
   Widget _buildWeightGoalCard(BuildContext context, WeightProvider provider) {
     final diet = context.watch<DietProvider>();
+    final appPrefs = context.watch<AppPreferences>();
     final current = provider.latestEntry?.weightKg;
-    final startWeight =
-        provider.firstEntry?.weightKg ?? diet.profile?.weightKg;
+    final startWeight = provider.firstEntry?.weightKg ?? diet.profile?.weightKg;
     final goal = diet.profile?.targetWeight;
-
-    double progress = 0.0;
-    if (current != null && goal != null && startWeight != null) {
-      final total = (startWeight - goal).abs();
-      final done = (startWeight - current).abs();
-      progress = total > 0.0 ? (done / total).clamp(0.0, 1.0) : 0.0;
-    }
+    final weekly = provider.weeklyChange;
+    final total = provider.totalChange;
 
     final bool goalReached =
         current != null && goal != null && (current - goal).abs() < 0.1;
-    final Color progressColor =
-        goalReached ? AppColors.success : AppColors.primary;
+    final hasGoalProgress =
+        goal != null && current != null && startWeight != null;
+
+    double progress = 0.0;
+    double remainingToGoal = 0.0;
+    double directionalChange = 0.0;
+    bool movedAwayFromGoal = false;
+    if (hasGoalProgress) {
+      final totalDiff = (goal - startWeight).abs();
+      directionalChange = goal > startWeight
+          ? current - startWeight
+          : startWeight - current;
+      progress = totalDiff > 0
+          ? (directionalChange / totalDiff).clamp(0.0, 1.0)
+          : 0.0;
+      remainingToGoal = (current - goal).abs();
+      movedAwayFromGoal = directionalChange < -0.05 && !goalReached;
+    }
+
+    final accentColor = goalReached
+        ? AppColors.success.withValues(alpha: 0.82)
+        : const Color(0xFF9AA4B2);
+    final goalStatusText = goalReached
+        ? 'Hedef tamam'
+        : movedAwayFromGoal
+        ? 'Rotayı düzelt'
+        : '${(progress * 100).round()}% tamam';
+    final goalHint = goal == null || current == null
+        ? 'Hedef belirleyince ilerleme burada görünür'
+        : goalReached
+        ? 'Bu hedefi koruma zamanı'
+        : '${AppUnits.formatWeight(remainingToGoal, appPrefs)} kaldı';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: const Color(0xFF13131F),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.14),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Üst satır: Kilo (sol) + Hedef kutusu (sağ) ──
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sol: Mevcut kilo
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Güncel Kilo',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.3,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'GÜNCEL KİLO',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.40),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            current != null
-                                ? current.toStringAsFixed(1)
-                                : '--.-',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1.5,
-                              height: 1.0,
+                        const SizedBox(height: 5),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            TweenAnimationBuilder<double>(
+                              tween: Tween(
+                                begin: (current ?? 0) - 1,
+                                end: current ?? 0,
+                              ),
+                              duration: const Duration(milliseconds: 900),
+                              curve: Curves.easeOutCubic,
+                              builder: (_, val, _) => Text(
+                                current != null
+                                    ? AppUnits.kgToDisplay(
+                                        val,
+                                        appPrefs,
+                                      ).toStringAsFixed(1)
+                                    : '--.-',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 46,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.0,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'kg',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(width: 5),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                AppUnits.weightUnitFor(appPrefs),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 7),
+                        _GoalStatusLine(
+                          color: accentColor,
+                          label: goalStatusText,
+                          hint: goalHint,
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
-                  // Sağ: Hedef kutusu
+
                   if (goal != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                        horizontal: 13,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
-                        color: goalReached
-                            ? AppColors.success.withValues(alpha: 0.1)
-                            : AppColors.primary.withValues(alpha: 0.08),
+                        color: Colors.white.withValues(alpha: 0.035),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: goalReached
-                              ? AppColors.success.withValues(alpha: 0.25)
-                              : AppColors.primary.withValues(alpha: 0.18),
+                          color: Colors.white.withValues(alpha: 0.10),
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                goalReached
-                                    ? Icons.emoji_events_rounded
-                                    : Icons.flag_rounded,
-                                size: 11,
-                                color: goalReached
-                                    ? AppColors.success
-                                    : AppColors.primaryLight,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                goalReached ? 'Ulaştın!' : 'Hedef',
-                                style: TextStyle(
-                                  color: goalReached
-                                      ? AppColors.success
-                                      : Colors.white.withValues(alpha: 0.4),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
                           Text(
-                            '${goal.toStringAsFixed(1)} kg',
+                            'HEDEF',
                             style: TextStyle(
-                              color: goalReached
-                                  ? AppColors.success
-                                  : AppColors.primaryLight,
-                              fontSize: 18,
+                              color: accentColor.withValues(alpha: 0.72),
+                              fontSize: 9,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          if (current != null && !goalReached) ...[
-                            const SizedBox(height: 1),
-                            Text(
-                              '${(current - goal).abs().toStringAsFixed(1)} kg kaldı',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.35),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          const SizedBox(height: 3),
+                          Text(
+                            goalReached
+                                ? 'Ulaştın'
+                                : AppUnits.formatWeight(goal, appPrefs),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.86),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
                             ),
-                          ],
+                          ),
                         ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.07)),
-                      ),
-                      child: Text(
-                        'Hedef yok',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
                       ),
                     ),
                 ],
               ),
 
-              if (goal != null && startWeight != null) ...[
+              if (hasGoalProgress && !goalReached) ...[
                 const SizedBox(height: 16),
-                // ── İlerleme çubuğu (gradient) ──
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final barWidth = constraints.maxWidth;
-                    return Stack(
-                      children: [
-                        Container(
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        Container(
-                          height: 5,
-                          width: barWidth * progress,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: goalReached
-                                  ? [AppColors.success, AppColors.success]
-                                  : [AppColors.primary, AppColors.primaryLight],
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: progressColor.withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Başlangıç: ${startWeight.toStringAsFixed(1)} kg',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      '%${(progress * 100).toStringAsFixed(0)} tamamlandı',
-                      style: TextStyle(
-                        color: progressColor.withValues(alpha: 0.75),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                _GoalProgressTrack(
+                  progress: progress,
+                  color: accentColor,
+                  startLabel: AppUnits.formatWeight(startWeight, appPrefs),
+                  centerLabel: movedAwayFromGoal
+                      ? 'Hedeften uzaklaşıyor'
+                      : '${(progress * 100).round()}%',
+                  endLabel: AppUnits.formatWeight(goal, appPrefs),
                 ),
               ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildGoalStat(
-      String label, String value, IconData icon, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 11, color: color.withValues(alpha: 0.7)),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
+              const SizedBox(height: 14),
+              Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+              const SizedBox(height: 8),
 
-  // ── Hero kartı ─────────────────────────────────────────────────────────────
-
-  Widget _buildHeroCard(BuildContext context, WeightProvider provider) {
-    final diet = context.watch<DietProvider>();
-    final target = diet.profile?.targetWeight;
-    final current = provider.latestEntry?.weightKg;
-    final weekly = provider.weeklyChange;
-    final streak = provider.currentStreak;
-    final goalDate =
-        target != null ? provider.calculateEstimatedGoalDate(target) : null;
-
-    String headline = 'Bugün kayıt düzenini koru';
-    IconData headlineIcon = Icons.insights_rounded;
-    Color accentColor = AppColors.primaryLight;
-
-    if (current != null && target != null && (current - target).abs() > 0.1) {
-      final diff = current - target;
-      if (diff > 0) {
-        headline = 'Hedefe ${diff.toStringAsFixed(1)} kg kaldı';
-        headlineIcon = Icons.flag_rounded;
-      } else {
-        headline = 'Hedefinin ${(-diff).toStringAsFixed(1)} kg altındasın';
-        headlineIcon = Icons.celebration_rounded;
-        accentColor = AppColors.success;
-      }
-    } else if (weekly.abs() >= 0.05) {
-      if (weekly < 0) {
-        headline = 'Son 7 günde ${(-weekly).toStringAsFixed(1)} kg verdin';
-        headlineIcon = Icons.trending_down_rounded;
-        accentColor = AppColors.success;
-      } else {
-        headline = 'Son 7 günde +${weekly.toStringAsFixed(1)} kg';
-        headlineIcon = Icons.trending_up_rounded;
-        accentColor = AppColors.warning;
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: accentColor.withValues(alpha: 0.18)),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [accentColor, accentColor.withValues(alpha: 0.2)],
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              IntrinsicHeight(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: accentColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(13),
-                            border: Border.all(
-                              color: accentColor.withValues(alpha: 0.22),
-                            ),
-                          ),
-                          child: Icon(headlineIcon, color: accentColor, size: 22),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'GÜNCEL DURUM',
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.35),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                headline,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    _statItem(
+                      label: '7 Gün',
+                      value: weekly == 0
+                          ? '±0'
+                          : '${weekly > 0 ? "+" : "-"}${AppUnits.formatWeight(weekly.abs(), appPrefs)}',
+                      icon: weekly <= 0
+                          ? Icons.trending_down_rounded
+                          : Icons.trending_up_rounded,
+                      color: weekly == 0
+                          ? Colors.white.withValues(alpha: 0.42)
+                          : weekly < 0
+                          ? Colors.white.withValues(alpha: 0.62)
+                          : Colors.white.withValues(alpha: 0.62),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMetric(
-                            Icons.local_fire_department_rounded,
-                            'Seri',
-                            streak > 0 ? '$streak gün' : 'Yok',
-                            streak >= 3
-                                ? const Color(0xFFFFB300)
-                                : Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMetric(
-                            Icons.show_chart_rounded,
-                            '7 Gün',
-                            '${weekly >= 0 ? '+' : ''}${weekly.toStringAsFixed(1)} kg',
-                            weekly <= 0 ? AppColors.success : AppColors.warning,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMetric(
-                            Icons.flag_rounded,
-                            'Hedef',
-                            goalDate != null
-                                ? DateFormat('d MMM', 'tr_TR').format(goalDate)
-                                : 'Belirsiz',
-                            goalDate != null
-                                ? AppColors.primaryLight
-                                : Colors.white60,
-                          ),
-                        ),
-                      ],
+                    _verticalDivider(),
+                    _statItem(
+                      label: 'Toplam',
+                      value: total == 0
+                          ? '±0'
+                          : '${total > 0 ? "+" : "-"}${AppUnits.formatWeight(total.abs(), appPrefs)}',
+                      icon: Icons.show_chart_rounded,
+                      color: total == 0
+                          ? Colors.white.withValues(alpha: 0.42)
+                          : total < 0
+                          ? Colors.white.withValues(alpha: 0.62)
+                          : Colors.white.withValues(alpha: 0.62),
                     ),
-                    const SizedBox(height: 14),
-                    _buildAiButton(context),
+                    if (goal != null && current != null && !goalReached) ...[
+                      _verticalDivider(),
+                      _statItem(
+                        label: 'Hedefe',
+                        value: AppUnits.formatWeight(remainingToGoal, appPrefs),
+                        icon: Icons.flag_rounded,
+                        color: accentColor,
+                      ),
+                    ],
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              _buildAiButton(context),
             ],
           ),
         ),
@@ -826,82 +954,78 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
     );
   }
 
-  Widget _buildMetric(
-    IconData icon,
-    String label,
-    String value,
-    Color valueColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.035),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 11, color: valueColor.withValues(alpha: 0.7)),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
+  Widget _statItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 58),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color.withValues(alpha: 0.72)),
+            const SizedBox(height: 5),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.42),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  Widget _verticalDivider() => Container(
+    width: 1,
+    margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+    color: Colors.white.withValues(alpha: 0.06),
+  );
 
   Widget _buildAiButton(BuildContext context) {
     return InkWell(
       onTap: () => _openAiAnalysis(context),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF8E2DE2).withValues(alpha: 0.28),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: AppColors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.26)),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+            Icon(Icons.auto_awesome, color: AppColors.primaryLight, size: 17),
             SizedBox(width: 8),
             Text(
               'Kilo Yorumu Al',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryLight,
                 fontWeight: FontWeight.w700,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
           ],
@@ -913,8 +1037,9 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
   void _openAiAnalysis(BuildContext context) {
     final profile = context.read<DietProvider>().profile;
     final wp = context.read<WeightProvider>();
+    final appPrefs = context.read<AppPreferences>();
     final targetStr = profile?.targetWeight != null
-        ? '${profile!.targetWeight} kg'
+        ? AppUnits.formatWeight(profile!.targetWeight!, appPrefs)
         : 'Bilinmiyor';
 
     final weightCtx = StringBuffer();
@@ -923,19 +1048,25 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
     final weekly = wp.weeklyChange;
     final recent = wp.entries
         .take(5)
-        .map((e) =>
-            '${e.date.day}.${e.date.month}: ${e.weightKg.toStringAsFixed(1)} kg')
+        .map(
+          (e) =>
+              '${e.date.day}.${e.date.month}: ${AppUnits.formatWeight(e.weightKg, appPrefs)}',
+        )
         .join(', ');
 
     if (current != null) {
-      weightCtx.write('Güncel kilo: ${current.weightKg.toStringAsFixed(1)} kg. ');
+      weightCtx.write(
+        'Güncel kilo: ${AppUnits.formatWeight(current.weightKg, appPrefs)}. ',
+      );
     }
     if (first != null) {
-      weightCtx.write('İlk kayıt: ${first.weightKg.toStringAsFixed(1)} kg. ');
+      weightCtx.write(
+        'İlk kayıt: ${AppUnits.formatWeight(first.weightKg, appPrefs)}. ',
+      );
     }
     if (weekly.abs() >= 0.05) {
       weightCtx.write(
-        'Haftalık değişim: ${weekly > 0 ? "+" : ""}${weekly.toStringAsFixed(1)} kg. ',
+        'Haftalık değişim: ${weekly > 0 ? "+" : ""}${AppUnits.formatWeight(weekly.abs(), appPrefs)}. ',
       );
     }
     if (recent.isNotEmpty) weightCtx.write('Son kayıtlar: $recent. ');
@@ -944,109 +1075,200 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AiCoachInsightSheet(
-        goal: 'Hedef Kilo: $targetStr',
-        question:
-            '${weightCtx}Son zamanlardaki vücut değişimlerim ve kilo takibim doğrultusunda gidişatımı puanlayıp, bugüne dair odaklanmam gereken kritik 3 maddeyi söyler misin?',
-      ),
+      builder: (_) {
+        const suffix = 'Kilo gidişatımı değerlendir, bugün için 3 kritik öneri ver.';
+        final ctxStr = weightCtx.toString();
+        final maxCtx = 480 - suffix.length;
+        final safeCtx = ctxStr.length > maxCtx ? ctxStr.substring(0, maxCtx) : ctxStr;
+        return AiCoachInsightSheet(
+          goal: 'Hedef Kilo: $targetStr',
+          question: '$safeCtx$suffix',
+        );
+      },
     );
   }
 
   // ── Grafik ─────────────────────────────────────────────────────────────────
 
-  Widget _buildChartCard(BuildContext context, WeightProvider provider) {
-    final events = _buildChartEvents(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 3,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, Color(0xFF7BCBFF)],
-                ),
-              ),
+  Widget _buildTrackingDetailsPanel(
+    BuildContext context,
+    WeightProvider provider,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14),
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          collapsedShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          backgroundColor: Colors.white.withValues(alpha: 0.035),
+          collapsedBackgroundColor: Colors.white.withValues(alpha: 0.035),
+          iconColor: AppColors.primaryLight,
+          collapsedIconColor: Colors.white54,
+          leading: const Icon(
+            Icons.tune_rounded,
+            size: 18,
+            color: AppColors.primaryLight,
+          ),
+          title: const Text(
+            'Detaylar',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+          subtitle: Text(
+            'Hız koçu, hedef zaman çizelgesi ve istikrar haritası',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.42),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          children: [
+            _buildTrendInsightCard(context, provider),
+            const SizedBox(height: 12),
+            GoalTimelineCard(
+              weightProvider: provider,
+              dietProvider: context.watch<DietProvider>(),
+              appPrefs: context.watch<AppPreferences>(),
+            ),
+            const SizedBox(height: 12),
             Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(
-                            Icons.show_chart_rounded,
-                            size: 20,
-                            color: AppColors.primary,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'İlerleme',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                      _buildRangeChips(),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ValueListenableBuilder<int>(
-                    valueListenable: _chartRangeIndex,
-                    builder: (_, index, _) => NeonLineChart(
-                      provider: provider,
-                      selectedFilterIndex: index,
-                      events: events,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _legendDot(AppColors.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Günlük',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      _legendDot(const Color(0xFFFFC107)),
-                      const SizedBox(width: 6),
-                      Text(
-                        '7 Gün Ort.',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.55),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (events.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    _buildEventLegend(events),
-                  ],
-                ],
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ConsistencyHeatmap(provider: provider),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartCard(BuildContext context, WeightProvider provider) {
+    final events = _buildChartEvents(context);
+    return RepaintBoundary(
+      key: _chartKey,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 3,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, Color(0xFF7BCBFF)],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        runSpacing: 12,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.show_chart_rounded,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'İlerleme',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                onPressed: () => _exportChart(context),
+                                icon: const Icon(
+                                  Icons.ios_share_rounded,
+                                  size: 16,
+                                  color: AppColors.primaryLight,
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Grafiği Paylaş',
+                              ),
+                            ],
+                          ),
+                          _buildRangeChips(),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _chartRangeIndex,
+                      builder: (_, index, _) => NeonLineChart(
+                        provider: provider,
+                        selectedFilterIndex: index,
+                        events: events,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _legendDot(AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Günlük',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        _legendDot(const Color(0xFFFFC107)),
+                        const SizedBox(width: 6),
+                        Text(
+                          '7 Gün Ort.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (events.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      _buildEventLegend(events),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1062,20 +1284,24 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
         byKey['${_dateKey(e.date)}-${e.label}'] = e;
 
     for (final w in workouts) {
-      add(TrackingChartEvent(
-        date: w.workoutDate,
-        label: 'Antrenman',
-        color: const Color(0xFF64B5F6),
-        icon: Icons.fitness_center_rounded,
-      ));
+      add(
+        TrackingChartEvent(
+          date: w.workoutDate,
+          label: 'Antrenman',
+          color: const Color(0xFF64B5F6),
+          icon: Icons.fitness_center_rounded,
+        ),
+      );
     }
     for (final m in measurements) {
-      add(TrackingChartEvent(
-        date: m.date,
-        label: 'Ölçü',
-        color: const Color(0xFFAB47BC),
-        icon: Icons.straighten_rounded,
-      ));
+      add(
+        TrackingChartEvent(
+          date: m.date,
+          label: 'Ölçü',
+          color: const Color(0xFFAB47BC),
+          icon: Icons.straighten_rounded,
+        ),
+      );
     }
 
     final calorieTarget = diet.effectiveTargetKcal;
@@ -1084,12 +1310,14 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
         final t = item.value;
         if (t.totalKcal >= calorieTarget * 1.12 &&
             t.totalKcal >= calorieTarget + 150) {
-          add(TrackingChartEvent(
-            date: DateTime.tryParse(item.key) ?? DateTime.now(),
-            label: 'Yüksek kalori',
-            color: AppColors.warning,
-            icon: Icons.local_fire_department_rounded,
-          ));
+          add(
+            TrackingChartEvent(
+              date: DateTime.tryParse(item.key) ?? DateTime.now(),
+              label: 'Yüksek kalori',
+              color: AppColors.warning,
+              icon: Icons.local_fire_department_rounded,
+            ),
+          );
         }
       }
     }
@@ -1099,7 +1327,9 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
 
   Widget _buildEventLegend(List<TrackingChartEvent> events) {
     final unique = <String, TrackingChartEvent>{};
-    for (final e in events) { unique.putIfAbsent(e.label, () => e); }
+    for (final e in events) {
+      unique.putIfAbsent(e.label, () => e);
+    }
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1132,10 +1362,10 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
   }
 
   Widget _legendDot(Color color) => Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
+    width: 8,
+    height: 8,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 
   Widget _buildRangeChips() {
     return Row(
@@ -1259,7 +1489,11 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
                 selected,
               ),
               const SizedBox(width: 8),
-              _filterChip('Manuel kayıtlar', HistoryFilter.manualOnly, selected),
+              _filterChip(
+                'Manuel kayıtlar',
+                HistoryFilter.manualOnly,
+                selected,
+              ),
             ],
           ),
         );
@@ -1267,7 +1501,11 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
     );
   }
 
-  Widget _filterChip(String label, HistoryFilter filter, HistoryFilter selected) {
+  Widget _filterChip(
+    String label,
+    HistoryFilter filter,
+    HistoryFilter selected,
+  ) {
     final isSelected = filter == selected;
     return GestureDetector(
       onTap: () {
@@ -1304,6 +1542,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
 
   Widget _buildEmptyState(BuildContext context, WeightProvider provider) {
     final diet = context.read<DietProvider>();
+    final appPrefs = context.read<AppPreferences>();
     final profile = diet.profile;
     final healthyRange = profile?.healthyWeightRange;
 
@@ -1369,12 +1608,17 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
                         children: [
                           _infoBox(
                             'Başlangıç',
-                            '${profile.weightKg.toStringAsFixed(1)} kg',
+                            AppUnits.formatWeight(profile.weightKg, appPrefs),
                           ),
                           const SizedBox(width: 12),
                           _infoBox(
                             'Hedef',
-                            '${profile.targetWeight?.toStringAsFixed(1) ?? "--"} kg',
+                            profile.targetWeight != null
+                                ? AppUnits.formatWeight(
+                                    profile.targetWeight!,
+                                    appPrefs,
+                                  )
+                                : '--',
                             color: const Color(0xFF00F5A0),
                           ),
                         ],
@@ -1382,7 +1626,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
                       if (healthyRange != null) ...[
                         const SizedBox(height: 12),
                         Text(
-                          'Sağlıklı aralık: ${healthyRange.min.toStringAsFixed(1)} – ${healthyRange.max.toStringAsFixed(1)} kg',
+                          'Sağlıklı aralık: ${AppUnits.formatWeight(healthyRange.min, appPrefs)} – ${AppUnits.formatWeight(healthyRange.max, appPrefs)}',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.4),
                             fontSize: 12,
@@ -1484,7 +1728,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Kaydı sil?', style: TextStyle(color: Colors.white)),
         content: Text(
-          '${entry.weightKg.toStringAsFixed(1)} kg silinecek.',
+          '${AppUnits.formatWeight(entry.weightKg, context.read<AppPreferences>())} silinecek.',
           style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
         ),
         actions: [
@@ -1524,6 +1768,177 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _exportChart(BuildContext context) async {
+    try {
+      final boundary =
+          _chartKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      if (boundary.debugNeedsPaint) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Grafik hazırlanıyor, lütfen tekrar deneyin.'),
+          ),
+        );
+        return;
+      }
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+
+      final bytes = byteData.buffer.asUint8List();
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/kilo_grafigi.png');
+      await file.writeAsBytes(bytes);
+
+      final xFile = XFile(file.path);
+      await Share.shareXFiles([xFile], text: 'İşte kilo ilerleme grafiğim! 💪');
+    } catch (e) {
+      debugPrint('Grafik dışa aktarma hatası: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Grafik paylaşılamadı: $e')));
+      }
+    }
+  }
+
+  Widget _buildTrendInsightCard(BuildContext context, WeightProvider provider) {
+    final weekly = provider.weeklyChange;
+    if (provider.entries.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    final absWeekly = weekly.abs();
+    final isLosing = weekly < 0;
+    final isStable = absWeekly < 0.1;
+
+    String title = '';
+    String description = '';
+    Color statusColor = Colors.white;
+    IconData icon = Icons.speed_rounded;
+
+    if (isStable) {
+      title = 'Denge Dönemi';
+      description =
+          'Kilonuz son bir haftada oldukça sabit seyrediyor. Kas kazanımı veya kilo koruma dönemi için mükemmel bir zemin!';
+      statusColor = AppColors.primaryLight;
+      icon = Icons.insights_rounded;
+    } else if (isLosing) {
+      if (absWeekly > 1.2) {
+        title = 'Hızlı Düşüş';
+        description =
+            'Haftalık -${absWeekly.toStringAsFixed(1)} kg kaybettiniz. Bu tempo biraz hızlı olabilir, kas kütlenizi korumak için kalori açığını hafifçe azaltabilirsiniz.';
+        statusColor = AppColors.warning;
+        icon = Icons.warning_amber_rounded;
+      } else if (absWeekly >= 0.3) {
+        title = 'İdeal Kilo Kaybı';
+        description =
+            'Haftalık -${absWeekly.toStringAsFixed(1)} kg ile mükemmel bir hızdasınız! Sürdürülebilir yağ yakımı ve kas koruması için en sağlıklı tempo.';
+        statusColor = AppColors.success;
+        icon = Icons.check_circle_outline_rounded;
+      } else {
+        title = 'Stabil Kademeli Düşüş';
+        description =
+            'Haftalık -${absWeekly.toStringAsFixed(1)} kg ile yavaş ama kararlı bir düşüş. Unutmayın, yavaş kayıplar en kalıcı olanlardır!';
+        statusColor = const Color(0xFF64D2FF);
+        icon = Icons.trending_down_rounded;
+      }
+    } else {
+      if (absWeekly > 0.8) {
+        title = 'Hızlı Kilo Artışı';
+        description =
+            'Haftalık +${absWeekly.toStringAsFixed(1)} kg artış var. Yağlanmayı azaltmak adına kalori fazlasını biraz kısmayı düşünebilirsiniz.';
+        statusColor = AppColors.warning;
+        icon = Icons.warning_amber_rounded;
+      } else if (absWeekly >= 0.2) {
+        title = 'İdeal Hacim Kazanımı';
+        description =
+            'Haftalık +${absWeekly.toStringAsFixed(1)} kg ile kas kütlesi kazanımı için ideal tempoda büyüyorsunuz. Harika!';
+        statusColor = AppColors.success;
+        icon = Icons.offline_bolt_rounded;
+      } else {
+        title = 'Hafif Kilo Artışı';
+        description =
+            'Haftalık +${absWeekly.toStringAsFixed(1)} kg ile yavaş ve kontrollü bir artış. Temiz büyüme (lean bulk) hedefleri için harika.';
+        statusColor = const Color(0xFF64D2FF);
+        icon = Icons.trending_up_rounded;
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: statusColor.withValues(alpha: 0.22)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: statusColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Hız Koçu:',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

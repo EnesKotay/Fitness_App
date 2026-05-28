@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/domain/entities/weight_entry.dart';
@@ -21,7 +22,7 @@ class TrackingChartEvent {
   final IconData icon;
 }
 
-class NeonLineChart extends StatelessWidget {
+class NeonLineChart extends StatefulWidget {
   final WeightProvider provider;
   final int selectedFilterIndex;
   final List<TrackingChartEvent> events;
@@ -32,6 +33,13 @@ class NeonLineChart extends StatelessWidget {
     required this.selectedFilterIndex,
     this.events = const [],
   });
+
+  @override
+  State<NeonLineChart> createState() => _NeonLineChartState();
+}
+
+class _NeonLineChartState extends State<NeonLineChart> {
+  int? _lastTouchedIndex;
 
   static double _chartHeight(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -55,21 +63,18 @@ class NeonLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Data preparation now delegates to Provider (or assumes Provider has sorted data)
     int days = 7;
-    if (selectedFilterIndex == 1) {
+    if (widget.selectedFilterIndex == 1) {
       days = 30;
     }
-    if (selectedFilterIndex == 2) {
+    if (widget.selectedFilterIndex == 2) {
       days = 90;
     }
-    if (selectedFilterIndex == 3) {
-      days = 365 * 10; // Tümü: 10 yıl yeterli olacaktır
+    if (widget.selectedFilterIndex == 3) {
+      days = 365 * 10;
     }
 
-    // Utilize helpers - provider entries are already sorted newest first by default in our update
-    // But for chart we often need Oldest -> Newest to draw left to right.
-    final filtered = provider.getFilteredEntries(days);
+    final filtered = widget.provider.getFilteredEntries(days);
 
     // Reverse for Chart (Left=Old, Right=New)
     // We create a new list to avoid mutating the provider's list if we were using it directly
@@ -137,7 +142,7 @@ class NeonLineChart extends StatelessWidget {
       chartEntries.last.date.month,
       chartEntries.last.date.day,
     );
-    final visibleEvents = events.where((event) {
+    final visibleEvents = widget.events.where((event) {
       final day = DateTime(event.date.year, event.date.month, event.date.day);
       return !day.isBefore(firstChartDay) && !day.isAfter(lastChartDay);
     }).toList();
@@ -149,9 +154,33 @@ class NeonLineChart extends StatelessWidget {
         child: Consumer<DietProvider>(
           builder: (context, dietProvider, _) {
             final targetWeight = dietProvider.profile?.targetWeight;
+            final currentWeight = widget.provider.latestEntry?.weightKg;
+            final weeklyChange = widget.provider.weeklyChange;
+            
+            FlSpot? predictionSpot;
+            if (targetWeight != null && currentWeight != null && spots.isNotEmpty) {
+              if (targetWeight < currentWeight && weeklyChange < -0.05) {
+                final weeks = (currentWeight - targetWeight) / (-weeklyChange);
+                if (weeks < 52) { // 1 yıl içinde
+                  final predDate = DateTime.now().add(Duration(days: (weeks * 7).round()));
+                  predictionSpot = FlSpot(predDate.millisecondsSinceEpoch.toDouble(), targetWeight);
+                }
+              } else if (targetWeight > currentWeight && weeklyChange > 0.05) {
+                final weeks = (targetWeight - currentWeight) / weeklyChange;
+                if (weeks < 52) {
+                  final predDate = DateTime.now().add(Duration(days: (weeks * 7).round()));
+                  predictionSpot = FlSpot(predDate.millisecondsSinceEpoch.toDouble(), targetWeight);
+                }
+              }
+            }
+
+            final minX = spots.first.x;
+            final maxX = predictionSpot != null ? predictionSpot.x : spots.last.x;
 
             return LineChart(
               LineChartData(
+                minX: minX,
+                maxX: maxX,
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
@@ -302,8 +331,41 @@ class NeonLineChart extends StatelessWidget {
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(show: false),
                   ),
+                  if (predictionSpot != null)
+                    LineChartBarData(
+                      spots: [spots.last, predictionSpot],
+                      isCurved: false,
+                      color: AppColors.primaryLight.withValues(alpha: 0.8),
+                      barWidth: 2,
+                      dashArray: [5, 5],
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          if (index == 0) return FlDotCirclePainter(radius: 0, color: Colors.transparent);
+                          return FlDotCirclePainter(
+                            radius: 4,
+                            color: AppColors.surface,
+                            strokeWidth: 2,
+                            strokeColor: AppColors.primaryLight,
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(show: false),
+                    ),
                 ],
                 lineTouchData: LineTouchData(
+                  touchCallback: (FlTouchEvent event, LineTouchResponse? touchResponse) {
+                    if (touchResponse != null && touchResponse.lineBarSpots != null && touchResponse.lineBarSpots!.isNotEmpty) {
+                      final spotIndex = touchResponse.lineBarSpots!.first.spotIndex;
+                      if (_lastTouchedIndex != spotIndex) {
+                        _lastTouchedIndex = spotIndex;
+                        HapticFeedback.selectionClick();
+                      }
+                    } else if (event is FlPanEndEvent || event is FlTapUpEvent) {
+                      _lastTouchedIndex = null;
+                    }
+                  },
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipColor: (_) => const Color(0xFF2E3236),
                     getTooltipItems: (touchedSpots) {

@@ -50,7 +50,8 @@ class AiCoachService {
             .map((turn) => turn.toJson())
             .toList(),
         'question': userPrompt,
-        if (userMemory != null && userMemory.isNotEmpty) 'userMemory': userMemory,
+        if (userMemory != null && userMemory.isNotEmpty)
+          'userMemory': userMemory,
       };
 
       Response<dynamic> response;
@@ -128,6 +129,9 @@ class AiCoachService {
     required bool isPositive,
     String? taskMode,
     String? personality,
+    String? userQuestion,
+    String? reason,
+    String? coachingPreference,
   }) async {
     try {
       final token = StorageHelper.getToken();
@@ -146,6 +150,9 @@ class AiCoachService {
           'reaction': isPositive ? 'POSITIVE' : 'NEGATIVE',
           'taskMode': taskMode,
           'personality': personality,
+          'userQuestion': userQuestion,
+          'reason': reason,
+          'coachingPreference': coachingPreference,
         },
       );
     } catch (_) {

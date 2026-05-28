@@ -62,7 +62,7 @@ public class GeminiCoachService {
             prompt,
             null,
             true,
-            buildCoachTools()
+            null // Removed Native Function Calling for memory
         );
 
         if (!result.isSuccess()) throw mapFailure(result);
@@ -71,23 +71,20 @@ public class GeminiCoachService {
             String jsonText = aiProviderRouter.extractJsonFromResponse(userId, result.getOutputText());
             JsonNode parsed = objectMapper.readTree(jsonText);
             
-            // Aşama 1 ve 4: Native Function Calling Yakalama (Semantik Hafıza)
-            if (parsed.has("functionCall")) {
-                JsonNode funcCall = parsed.get("functionCall");
-                if ("saveUserMemory".equals(funcCall.path("name").asText())) {
-                    String fact = funcCall.path("args").path("fact").asText();
-                    saveSemanticMemory(userId, fact);
-                    
-                    AiCoachResponse funcResponse = new AiCoachResponse();
-                    funcResponse.todayFocus = "Bunu hafızama kaydettim! Gelecekteki planlamalarımda dikkate alacağım. 🧠";
-                    funcResponse.actionItems = List.of("Kalıcı Hafızaya Eklenen Bilgi: " + fact);
-                    funcResponse.actions = new ArrayList<>();
-                    funcResponse.media = new ArrayList<>();
-                    return funcResponse;
+            AiCoachResponse response = parseResponse(parsed);
+            
+            // Handle SAVE_MEMORY internally from JSON instead of Native Function Calling
+            if (response.actions != null) {
+                java.util.Iterator<AiCoachResponse.AiCoachAction> iterator = response.actions.iterator();
+                while (iterator.hasNext()) {
+                    AiCoachResponse.AiCoachAction action = iterator.next();
+                    if ("SAVE_MEMORY".equals(action.type) && action.data != null && !action.data.isBlank()) {
+                        saveSemanticMemory(userId, action.data);
+                        response.memorySaved = action.data;
+                        iterator.remove(); // Do not send this action to the frontend UI buttons
+                    }
                 }
             }
-
-            AiCoachResponse response = parseResponse(parsed);
             sanitizeResponse(response, request);
             validateResponse(response);
             return response;
@@ -136,23 +133,7 @@ public class GeminiCoachService {
         }
     }
 
-    private JsonNode buildCoachTools() {
-        var toolsArray = objectMapper.createArrayNode();
-        var tools = objectMapper.createObjectNode();
-        var functionDeclarations = tools.putArray("function_declarations");
-
-        var saveMemory = functionDeclarations.addObject();
-        saveMemory.put("name", "saveUserMemory");
-        saveMemory.put("description", "Kullanıcının fiziksel durumu, sakatlıkları veya diyet tercihleri hakkında gelecekte planlama yaparken kesinlikle hatırlanması gereken kritik bir bilgiyi hafızaya kaydeder. Örneğin: 'Sağ dizimde menisküs var', 'Vegan besleniyorum', 'Bel fıtığım var'.");
-        var params = saveMemory.putObject("parameters");
-        params.put("type", "OBJECT");
-        var props = params.putObject("properties");
-        props.putObject("fact").put("type", "STRING").put("description", "Hatırlanması gereken kısa ve öz bilgi");
-        params.putArray("required").add("fact");
-
-        toolsArray.add(tools);
-        return toolsArray;
-    }
+    // Removed buildCoachTools() as we now use JSON actions for memory.
 
     @Transactional
     public void saveSemanticMemory(Long userId, String fact) {

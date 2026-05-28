@@ -131,6 +131,14 @@ class OfflineSyncService {
             final workoutId = payload['id'] as int;
             await workoutService.deleteWorkout(userId, workoutId);
           }
+        } else if (item.entityType == 'workout_session') {
+          final workoutService = WorkoutService();
+          if (item.action == 'create') {
+            await workoutService.createWorkoutSession(
+              userId,
+              WorkoutSessionRequest.fromJson(payload as Map<String, dynamic>),
+            );
+          }
         } else if (item.entityType == 'body_measurement') {
           final trackingService = TrackingService();
           if (item.action == 'create') {

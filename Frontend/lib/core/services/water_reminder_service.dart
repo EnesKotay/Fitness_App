@@ -6,7 +6,6 @@ import 'local_notification_service.dart';
 /// Su hatırlatıcı servisi.
 /// Kaydedilen aralığa göre cihaz içi su hatırlatıcılarını planlar.
 class WaterReminderService {
-  static const String _enabledKey = 'water_reminder_enabled';
   static const String _intervalKey = 'water_reminder_interval_hours';
 
   String _userKey(String base) =>
@@ -22,14 +21,12 @@ class WaterReminderService {
 
   /// Hatırlatıcı açık mı?
   Future<bool> isEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_userKey(_enabledKey)) ?? false;
+    return StorageHelper.getNotifWater();
   }
 
   /// Hatırlatıcıyı aç/kapat.
   Future<void> setEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_userKey(_enabledKey), enabled);
+    await StorageHelper.saveNotifWater(enabled);
     if (enabled && StorageHelper.getNotifEnabled()) {
       final hours = await getIntervalHours();
       await LocalNotificationService.instance.scheduleWaterReminders(hours);
@@ -49,12 +46,12 @@ class WaterReminderService {
   }
 
   /// Hatırlatma aralığını değiştir.
-  Future<void> setIntervalHours(int hours) async {
+  Future<void> setIntervalHours(int hours, {bool sync = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final clamped = hours.clamp(1, 6);
     await prefs.setInt(_userKey(_intervalKey), clamped);
     final enabled = await isEnabled();
-    if (enabled && StorageHelper.getNotifEnabled()) {
+    if (sync && enabled && StorageHelper.getNotifEnabled()) {
       await LocalNotificationService.instance.scheduleWaterReminders(clamped);
     }
     debugPrint('WaterReminderService: Aralık ${clamped}s olarak ayarlandı');

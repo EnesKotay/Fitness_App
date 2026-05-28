@@ -42,11 +42,19 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
     'dinner',
     'snack',
   ];
+  static const List<String> _optionalSlotKeys = [
+    'snack2',
+    'preWorkout',
+    'postWorkout',
+  ];
   static const Map<String, String> _slotLabels = {
     'breakfast': 'Kahvaltı',
     'lunch': 'Öğle Yemeği',
     'dinner': 'Akşam Yemeği',
     'snack': 'Atıştırma',
+    'snack2': 'Ara Öğün',
+    'preWorkout': 'Antrenman Öncesi',
+    'postWorkout': 'Toparlanma',
   };
   static const List<String> _dayLabels = [
     'Pazartesi',
@@ -233,6 +241,14 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
       default:
         return MealType.snack;
     }
+  }
+
+  List<String> _visibleSlotKeys(int dayIndex) {
+    final daySlots = _plan[dayIndex] ?? const <String, PlannedMeal?>{};
+    return [
+      ..._slotKeys,
+      ..._optionalSlotKeys.where((slotKey) => daySlots[slotKey] != null),
+    ];
   }
 
   List<String> _parseIngredientsText(String raw) {
@@ -1062,7 +1078,10 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
           else
             IconButton(
               tooltip: 'AI ile Doldur',
-              icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.chartGreen),
+              icon: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.chartGreen,
+              ),
               onPressed: _generateWithAi,
             ),
         ],
@@ -1424,14 +1443,17 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
                   ),
                 ),
                 child: Column(
-                  children: _slotKeys.asMap().entries.map((entry) {
-                    final isLast = entry.key == _slotKeys.length - 1;
-                    return _buildSlotTile(
-                      dayIndex,
-                      entry.value,
-                      isLast: isLast,
-                    );
-                  }).toList(),
+                  children: () {
+                    final visibleSlots = _visibleSlotKeys(dayIndex);
+                    return visibleSlots.asMap().entries.map((entry) {
+                      final isLast = entry.key == visibleSlots.length - 1;
+                      return _buildSlotTile(
+                        dayIndex,
+                        entry.value,
+                        isLast: isLast,
+                      );
+                    }).toList();
+                  }(),
                 ),
               ),
             ),

@@ -11,23 +11,29 @@ class SavedMealItem {
   final String foodId;
   final String foodName;
   final double grams;
+  final double kcalPer100g;
 
   const SavedMealItem({
     required this.foodId,
     required this.foodName,
     required this.grams,
+    this.kcalPer100g = 0,
   });
+
+  double get itemKcal => grams / 100 * kcalPer100g;
 
   factory SavedMealItem.fromJson(Map<String, dynamic> json) => SavedMealItem(
     foodId: json['foodId']?.toString() ?? '',
     foodName: json['foodName']?.toString() ?? '',
     grams: (json['grams'] as num?)?.toDouble() ?? 100.0,
+    kcalPer100g: (json['kcalPer100g'] as num?)?.toDouble() ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
     'foodId': foodId,
     'foodName': foodName,
     'grams': grams,
+    'kcalPer100g': kcalPer100g,
   };
 }
 
@@ -44,8 +50,7 @@ class SavedMeal {
     required this.createdAt,
   });
 
-  double get totalKcal =>
-      0; // Kalorileri FoodItem'dan hesaplamak için provider kullanılacak
+  double get totalKcal => items.fold(0.0, (sum, item) => sum + item.itemKcal);
 
   factory SavedMeal.fromJson(Map<String, dynamic> json) => SavedMeal(
     id: json['id']?.toString() ?? '',
@@ -296,6 +301,35 @@ class StorageHelper {
 
   static int? getTargetCalories() =>
       _prefs?.getInt(_userKey(StorageKeys.targetCalories));
+
+  static Future<bool> saveAppLanguageCode(String value) async {
+    return await _prefs?.setString(StorageKeys.appLanguageCode, value) ?? false;
+  }
+
+  static String? getAppLanguageCode() =>
+      _prefs?.getString(StorageKeys.appLanguageCode);
+
+  static Future<bool> saveAppUnitSystem(String value) async {
+    return await _prefs?.setString(StorageKeys.appUnitSystem, value) ?? false;
+  }
+
+  static String? getAppUnitSystem() =>
+      _prefs?.getString(StorageKeys.appUnitSystem);
+
+  static Future<bool> saveAppMarketRegion(String value) async {
+    return await _prefs?.setString(StorageKeys.appMarketRegion, value) ?? false;
+  }
+
+  static String? getAppMarketRegion() =>
+      _prefs?.getString(StorageKeys.appMarketRegion);
+
+  static Future<bool> saveUsExperiencePromptSeen(bool seen) async {
+    return await _prefs?.setBool(StorageKeys.usExperiencePromptSeen, seen) ??
+        false;
+  }
+
+  static bool getUsExperiencePromptSeen() =>
+      _prefs?.getBool(StorageKeys.usExperiencePromptSeen) ?? false;
 
   // Hedef makrolar - kullanıcıya göre ayrı
   static Future<bool> saveTargetProtein(double g) async {
@@ -648,6 +682,22 @@ class StorageHelper {
   static String getWorkoutLocation() =>
       _prefs?.getString(_userKey(StorageKeys.workoutLocation)) ?? 'home';
 
+  static Future<bool> saveActiveWorkoutSessionDraft(String rawJson) async {
+    return await _prefs?.setString(
+          _userKey('active_workout_session_draft'),
+          rawJson,
+        ) ??
+        false;
+  }
+
+  static String? getActiveWorkoutSessionDraft() =>
+      _prefs?.getString(_userKey('active_workout_session_draft'));
+
+  static Future<bool> clearActiveWorkoutSessionDraft() async {
+    return await _prefs?.remove(_userKey('active_workout_session_draft')) ??
+        false;
+  }
+
   static Future<bool> saveEquipmentType(String equipment) async {
     return await _prefs?.setString(
           _userKey(StorageKeys.equipmentType),
@@ -814,11 +864,29 @@ class StorageHelper {
 
   // Returns [hour, minute]. Defaults to 18:30.
   static List<int> getNotifWorkoutTime() {
-    final encoded = _prefs?.getInt(
-          _userKey(StorageKeys.settingsNotifWorkoutTime),
-        ) ??
-        1830;
+    final encoded =
+        _prefs?.getInt(_userKey(StorageKeys.settingsNotifWorkoutTime)) ?? 1830;
     return [encoded ~/ 100, encoded % 100];
+  }
+
+  static List<String> getShownRemoteNotificationIds() {
+    try {
+      return _prefs?.getStringList(
+            _userKey(StorageKeys.shownRemoteNotificationIds),
+          ) ??
+          [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> saveShownRemoteNotificationIds(List<String> ids) async {
+    final compact = ids.toSet().take(200).toList();
+    return await _prefs?.setStringList(
+          _userKey(StorageKeys.shownRemoteNotificationIds),
+          compact,
+        ) ??
+        false;
   }
 
   // Settings - Theme
@@ -920,6 +988,18 @@ class StorageHelper {
         _userKey(StorageKeys.settingsPrivacyPaymentTransferConsent),
       ) ??
       false;
+
+  /// Sosyal giriş (Google/Apple) ile kayıt olan kullanıcılar için KVKK rızalarını
+  /// ilk kez başlatır. Eğer rıza anahtarı hiç kaydedilmemişse (yeni kullanıcı),
+  /// tümünü true olarak ayarlar. Kullanıcı sonradan kapatırsa (false) dokunmaz.
+  static Future<void> ensureKvkkConsentsInitialized() async {
+    final key = _userKey(StorageKeys.settingsPrivacyHealthConsent);
+    if (_prefs?.containsKey(key) != true) {
+      await savePrivacyHealthConsent(true);
+      await savePrivacyTransferConsent(true);
+      await savePrivacyPaymentTransferConsent(true);
+    }
+  }
 
   // Favori egzersizler
   static List<FavoriteExerciseEntry> getFavoriteExercises() {

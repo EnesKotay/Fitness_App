@@ -71,6 +71,7 @@ class ApiConstants {
 
   // Workout Endpoints
   static const String workouts = '$apiPrefix/workouts/me';
+  static const String workoutSessions = '$apiPrefix/workouts/me/sessions';
   static String workout(int workoutId) => '$apiPrefix/workouts/me/$workoutId';
   static String exerciseHistory(String name) =>
       '$apiPrefix/workouts/me/exercise/${Uri.encodeComponent(name)}/history';
@@ -89,7 +90,8 @@ class ApiConstants {
   static const String aiInsights = '$apiPrefix/ai/insights';
   static const String aiSummarize = '$apiPrefix/ai/summarize';
   static const String aiNutrition = '$apiPrefix/ai/nutrition';
-  static const String aiNutritionWeeklyPlan = '$apiPrefix/ai/nutrition/weekly-plan';
+  static const String aiNutritionWeeklyPlan =
+      '$apiPrefix/ai/nutrition/weekly-plan';
   static const String aiScanLabel = '$apiPrefix/ai/nutrition/scan-label';
   static const String aiAnalyzeImage = '$apiPrefix/ai/nutrition/analyze-image';
 

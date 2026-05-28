@@ -5,7 +5,7 @@ import 'package:pusulafit/features/nutrition/services/ai_customized_plan_mapper.
 
 void main() {
   group('AiCustomizedPlanMapper', () {
-    test('merges duplicate snacks into a single planned meal', () {
+    test('keeps duplicate snacks as separate planned meals', () {
       final meals = [
         CustomizedDailyPlanMealModel(
           time: '08:00',
@@ -43,12 +43,12 @@ void main() {
 
       final plannedMeals = AiCustomizedPlanMapper.toPlannedMeals(meals);
 
-      expect(plannedMeals, hasLength(2));
+      expect(plannedMeals, hasLength(3));
       expect(plannedMeals.first.mealType, MealType.breakfast);
-      expect(plannedMeals.last.mealType, MealType.snack);
-      expect(plannedMeals.last.name, 'Yoğurt • Muz');
-      expect(plannedMeals.last.kcal, 210);
-      expect(plannedMeals.last.ingredients, containsAll(['Yoğurt', 'Muz']));
+      expect(plannedMeals[1].mealType, MealType.snack);
+      expect(plannedMeals[1].name, 'Yoğurt');
+      expect(plannedMeals[2].mealType, MealType.snack);
+      expect(plannedMeals[2].name, 'Muz');
     });
 
     test('infers meal type from label when token is missing', () {

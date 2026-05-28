@@ -4,9 +4,18 @@ class User {
   final String name;
   final DateTime? createdAt;
   final double? height;
+  final double? weight;
   final double? targetWeight;
   final DateTime? birthDate;
   final String? gender;
+  final String? activityLevel;
+  final String? goal;
+  final String? goalHistoryJson;
+  final String? workoutLocation;
+  final String? equipmentType;
+  final String? nutritionPreferencesJson;
+  final String? aiMemorySummary;
+  final String? motivationStatsJson;
   final String? premiumTier;
   final DateTime? premiumExpiresAt;
   final String? premiumPlan;
@@ -19,9 +28,18 @@ class User {
     required this.name,
     this.createdAt,
     this.height,
+    this.weight,
     this.targetWeight,
     this.birthDate,
     this.gender,
+    this.activityLevel,
+    this.goal,
+    this.goalHistoryJson,
+    this.workoutLocation,
+    this.equipmentType,
+    this.nutritionPreferencesJson,
+    this.aiMemorySummary,
+    this.motivationStatsJson,
     this.premiumTier,
     this.premiumExpiresAt,
     this.premiumPlan,
@@ -52,6 +70,11 @@ class User {
                 ? (json['height'] as num).toDouble()
                 : double.tryParse(json['height'].toString()))
           : null,
+      weight: json['weight'] != null
+          ? (json['weight'] is num
+                ? (json['weight'] as num).toDouble()
+                : double.tryParse(json['weight'].toString()))
+          : null,
       targetWeight: json['targetWeight'] != null
           ? (json['targetWeight'] is num
                 ? (json['targetWeight'] as num).toDouble()
@@ -59,6 +82,14 @@ class User {
           : null,
       birthDate: _parseDateTime(json['birthDate']),
       gender: json['gender']?.toString(),
+      activityLevel: json['activityLevel']?.toString(),
+      goal: json['goal']?.toString(),
+      goalHistoryJson: json['goalHistoryJson']?.toString(),
+      workoutLocation: json['workoutLocation']?.toString(),
+      equipmentType: json['equipmentType']?.toString(),
+      nutritionPreferencesJson: json['nutritionPreferencesJson']?.toString(),
+      aiMemorySummary: json['aiMemorySummary']?.toString(),
+      motivationStatsJson: json['motivationStatsJson']?.toString(),
       premiumTier: json['premiumTier']?.toString(),
       premiumExpiresAt: _parseDateTime(json['premiumExpiresAt']),
       premiumPlan: json['premiumPlan']?.toString(),
@@ -106,8 +137,18 @@ class User {
       'name': name,
       'createdAt': createdAt?.toIso8601String(),
       'height': height,
+      'weight': weight,
       'birthDate': birthDate?.toIso8601String(),
+      'targetWeight': targetWeight,
       'gender': gender,
+      'activityLevel': activityLevel,
+      'goal': goal,
+      'goalHistoryJson': goalHistoryJson,
+      'workoutLocation': workoutLocation,
+      'equipmentType': equipmentType,
+      'nutritionPreferencesJson': nutritionPreferencesJson,
+      'aiMemorySummary': aiMemorySummary,
+      'motivationStatsJson': motivationStatsJson,
       'premiumTier': premiumTier,
       'premiumExpiresAt': premiumExpiresAt?.toIso8601String(),
       'premiumPlan': premiumPlan,
@@ -122,9 +163,18 @@ class User {
     String? name,
     DateTime? createdAt,
     double? height,
+    double? weight,
     double? targetWeight,
     DateTime? birthDate,
     String? gender,
+    String? activityLevel,
+    String? goal,
+    String? goalHistoryJson,
+    String? workoutLocation,
+    String? equipmentType,
+    String? nutritionPreferencesJson,
+    String? aiMemorySummary,
+    String? motivationStatsJson,
     String? premiumTier,
     DateTime? premiumExpiresAt,
     String? premiumPlan,
@@ -137,9 +187,19 @@ class User {
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
       height: height ?? this.height,
+      weight: weight ?? this.weight,
       targetWeight: targetWeight ?? this.targetWeight,
       birthDate: birthDate ?? this.birthDate,
       gender: gender ?? this.gender,
+      activityLevel: activityLevel ?? this.activityLevel,
+      goal: goal ?? this.goal,
+      goalHistoryJson: goalHistoryJson ?? this.goalHistoryJson,
+      workoutLocation: workoutLocation ?? this.workoutLocation,
+      equipmentType: equipmentType ?? this.equipmentType,
+      nutritionPreferencesJson:
+          nutritionPreferencesJson ?? this.nutritionPreferencesJson,
+      aiMemorySummary: aiMemorySummary ?? this.aiMemorySummary,
+      motivationStatsJson: motivationStatsJson ?? this.motivationStatsJson,
       premiumTier: premiumTier ?? this.premiumTier,
       premiumExpiresAt: premiumExpiresAt ?? this.premiumExpiresAt,
       premiumPlan: premiumPlan ?? this.premiumPlan,

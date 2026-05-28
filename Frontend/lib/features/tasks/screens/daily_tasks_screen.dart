@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/daily_tasks_controller.dart';
 import '../models/daily_task.dart';
+import '../../workout/providers/streak_provider.dart';
 
 import 'dart:ui';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -91,7 +92,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       description:
           'Bu sayfa, o gün tamamlaman gereken fitness ve yaşam hedeflerini listeler.\n\n'
           'Sistem her sabah sana özel bazı temel görevler atar (örneğin: Su hedefini tamamla, 2 öğün kaydet vb.). Amacın gün bitmeden tüm görevleri tamamlayıp ilerleme çubuğunu %100 yapmaktır.',
-      tip: 'Görevler her gece yarısı sıfırlanır. Yeni güne temiz bir sayfayla başlarsın.',
+      tip:
+          'Görevler her gece yarısı sıfırlanır. Yeni güne temiz bir sayfayla başlarsın.',
     ),
     GuideStep(
       emoji: '👆',
@@ -99,7 +101,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       description:
           'Bir görevi bitirdiğinde yanındaki boş çembere (veya görevin üstüne) dokun. Görev yeşile döner ve altı çizilir.\n\n'
           'Yanlışlıkla işaretlediysen tekrar dokunarak geri alabilirsin.',
-      tip: 'Tüm görevleri %100 tamamladığında başarı animasyonu seni karşılar ve günlük "Seri" kazanmana yardımcı olur.',
+      tip:
+          'Tüm görevleri %100 tamamladığında başarı animasyonu seni karşılar ve günlük "Seri" kazanmana yardımcı olur.',
     ),
     GuideStep(
       emoji: '➕',
@@ -109,7 +112,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           '• Göreve isim ver (Örn: "Sabah 30 dk yürüyüş")\n'
           '• Kategori seç (Spor, Beslenme, Su, Diğer)\n'
           '• Öncelik belirle (Yüksek, Orta, Düşük)',
-      tip: 'Görevleri önceliklendirerek gün içinde ilk neye odaklanman gerektiğini belirleyebilirsin. Yüksek öncelikliler kırmızı görünür.',
+      tip:
+          'Görevleri önceliklendirerek gün içinde ilk neye odaklanman gerektiğini belirleyebilirsin. Yüksek öncelikliler kırmızı görünür.',
     ),
     GuideStep(
       emoji: '🔄',
@@ -117,7 +121,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       description:
           'Eğer eklediğin görev her gün yapman gereken bir şeyse (örn: "Uyanınca 2 bardak su iç"), görev eklerken alt kısımdaki "Her gün tekrarla" anahtarını aç.\n\n'
           'Bu sayede görev, her sabah otomatik olarak listene eklenir ve harika bir rutine dönüşür.',
-      tip: 'Tekrarlayan görevlerini yönetmek veya silmek istersen sağ üstteki (🔄) ikonuna dokunabilirsin.',
+      tip:
+          'Tekrarlayan görevlerini yönetmek veya silmek istersen sağ üstteki (🔄) ikonuna dokunabilirsin.',
     ),
     GuideStep(
       emoji: '🧹',
@@ -125,7 +130,8 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
       description:
           'Eklediğin bir görevi silmek istersen, görevi sağdan sola doğru kaydır (swipe). Ekrandan silinecektir.\n\n'
           'Yanlışlıkla sildiysen ekranın altında çıkan "Geri Al" butonunu kullanabilirsin.',
-      tip: 'Üstteki butonları (Hepsi, Kalan, Bitti) kullanarak listeni filtreleyebilir ve sadece yapman gerekenleri görebilirsin.',
+      tip:
+          'Üstteki butonları (Hepsi, Kalan, Bitti) kullanarak listeni filtreleyebilir ve sadece yapman gerekenleri görebilirsin.',
     ),
   ];
 
@@ -144,7 +150,7 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      context.read<DailyTasksController>().loadToday();
+      await context.read<DailyTasksController>().loadToday();
       await _checkFirstVisitGuide();
     });
   }
@@ -174,9 +180,16 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     children: [
                       const SizedBox(height: 10),
                       _ProgressCard(
-                        completed: controller.completedCount,
-                        total: controller.totalCount,
-                      ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.2, end: 0),
+                            completed: controller.completedCount,
+                            total: controller.totalCount,
+                            title: controller.progressTitle,
+                            subtitle: controller.progressSubtitle,
+                            milestones: controller.milestones,
+                            nextMilestone: controller.nextMilestone,
+                          )
+                          .animate()
+                          .fadeIn(duration: 600.ms)
+                          .slideY(begin: -0.2, end: 0),
                       const SizedBox(height: 16),
                       _buildHeader(controller),
                       const SizedBox(height: 12),
@@ -185,7 +198,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           padding: EdgeInsets.only(bottom: 12),
                           child: LinearProgressIndicator(
                             backgroundColor: Colors.white10,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFEBC374)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFFEBC374),
+                            ),
                             minHeight: 2,
                           ),
                         ),
@@ -193,58 +208,109 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                         child: tasks.isEmpty
                             ? _EmptyState(
                                 filter: controller.filter,
-                                onAddPressed: () => _showAddTaskDialog(context, controller),
+                                onAddPressed: () =>
+                                    _showAddTaskDialog(context, controller),
                               ).animate().fadeIn(delay: 300.ms)
                             : ListView.separated(
                                 padding: const EdgeInsets.only(bottom: 120),
                                 itemCount: tasks.length,
-                                separatorBuilder: (_, i) => const SizedBox(height: 10),
+                                separatorBuilder: (_, i) =>
+                                    const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
                                   final task = tasks[index];
                                   return Dismissible(
-                                    key: Key(task.id),
-                                    direction: DismissDirection.endToStart,
-                                    background: Container(
-                                      alignment: Alignment.centerRight,
-                                      padding: const EdgeInsets.only(right: 20),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withValues(alpha: 0.2),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                    ),
-                                    onDismissed: (_) {
-                                      final deleted = task;
-                                      controller.deleteTask(deleted.id);
-                                      ScaffoldMessenger.of(context)
-                                        ..hideCurrentSnackBar()
-                                        ..showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              '"${deleted.title}" silindi',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: GoogleFonts.dmSans(color: Colors.white),
-                                            ),
-                                            backgroundColor: const Color(0xFF1A1F35),
-                                            behavior: SnackBarBehavior.floating,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            action: SnackBarAction(
-                                              label: 'Geri Al',
-                                              textColor: const Color(0xFFEBC374),
-                                              onPressed: () => controller.restoreTask(deleted),
-                                            ),
-                                            duration: const Duration(seconds: 4),
+                                        key: Key(task.id),
+                                        direction: DismissDirection.endToStart,
+                                        background: Container(
+                                          alignment: Alignment.centerRight,
+                                          padding: const EdgeInsets.only(
+                                            right: 20,
                                           ),
-                                        );
-                                    },
-                                    child: _TaskTile(
-                                      task: task,
-                                      onToggle: () => controller.toggleTaskDone(task.id),
-                                    ),
-                                  ).animate().fadeIn(delay: (index * 40).ms).slideX(begin: 0.08, end: 0);
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
+                                        onDismissed: (_) {
+                                          final deleted = task;
+                                          controller.deleteTask(deleted.id);
+                                          ScaffoldMessenger.of(context)
+                                            ..hideCurrentSnackBar()
+                                            ..showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  '"${deleted.title}" silindi',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: GoogleFonts.dmSans(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                backgroundColor: const Color(
+                                                  0xFF1A1F35,
+                                                ),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                action: SnackBarAction(
+                                                  label: 'Geri Al',
+                                                  textColor: const Color(
+                                                    0xFFEBC374,
+                                                  ),
+                                                  onPressed: () => controller
+                                                      .restoreTask(deleted),
+                                                ),
+                                                duration: const Duration(
+                                                  seconds: 4,
+                                                ),
+                                              ),
+                                            );
+                                        },
+                                        child: _TaskTile(
+                                          task: task,
+                                          onToggle: () async {
+                                            final allDone = await controller
+                                                .toggleTaskDone(task.id);
+                                            if (!allDone || !context.mounted) {
+                                              return;
+                                            }
+                                            final badge = await context
+                                                .read<StreakProvider>()
+                                                .onDailyTasksAllCompleted();
+                                            if (badge != null &&
+                                                context.mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                ..hideCurrentSnackBar()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Rozet kazandın: ${badge.title}',
+                                                    ),
+                                                    backgroundColor:
+                                                        const Color(0xFF1A1F35),
+                                                    behavior: SnackBarBehavior
+                                                        .floating,
+                                                  ),
+                                                );
+                                            }
+                                          },
+                                        ),
+                                      )
+                                      .animate()
+                                      .fadeIn(delay: (index * 40).ms)
+                                      .slideX(begin: 0.08, end: 0);
                                 },
                               ),
                       ),
@@ -285,7 +351,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           child: Center(child: PageGuideButton(onTap: _showGuide)),
         ),
         IconButton(
-          icon: const Icon(Icons.repeat_rounded, color: Color(0xFFEBC374), size: 22),
+          icon: const Icon(
+            Icons.repeat_rounded,
+            color: Color(0xFFEBC374),
+            size: 22,
+          ),
           tooltip: 'Tekrarlayan Görevler',
           onPressed: () {
             final ctrl = context.read<DailyTasksController>();
@@ -343,7 +413,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     );
   }
 
-  void _showAddTaskDialog(BuildContext context, DailyTasksController controller) {
+  void _showAddTaskDialog(
+    BuildContext context,
+    DailyTasksController controller,
+  ) {
     final addController = TextEditingController();
     TaskPriority selectedPriority = TaskPriority.medium;
     TaskCategory selectedCategory = TaskCategory.other;
@@ -356,12 +429,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: AlertDialog(
             backgroundColor: const Color(0xFF0F1528),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
             titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
             contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
             title: Text(
               'Yeni Görev',
-              style: GoogleFonts.dmSans(color: const Color(0xFFEBC374), fontWeight: FontWeight.bold, fontSize: 18),
+              style: GoogleFonts.dmSans(
+                color: const Color(0xFFEBC374),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -375,7 +454,9 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Ne yapacaksın?',
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                      hintStyle: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                      ),
                       enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: Colors.white24),
                       ),
@@ -404,12 +485,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       final selected = selectedCategory == cat;
                       final color = _categoryColor(cat);
                       return GestureDetector(
-                        onTap: () => setStateDialog(() => selectedCategory = cat),
+                        onTap: () =>
+                            setStateDialog(() => selectedCategory = cat),
                         child: AnimatedContainer(
                           duration: 180.ms,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
+                          ),
                           decoration: BoxDecoration(
-                            color: selected ? color.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                            color: selected
+                                ? color.withValues(alpha: 0.2)
+                                : Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: selected ? color : Colors.white24,
@@ -419,7 +506,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(_categoryIcon(cat), size: 14, color: selected ? color : Colors.white38),
+                              Icon(
+                                _categoryIcon(cat),
+                                size: 14,
+                                color: selected ? color : Colors.white38,
+                              ),
                               const SizedBox(width: 5),
                               Text(
                                 _categoryLabel(cat),
@@ -454,16 +545,21 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                       final color = _priorityColor(p);
                       return Expanded(
                         child: GestureDetector(
-                          onTap: () => setStateDialog(() => selectedPriority = p),
+                          onTap: () =>
+                              setStateDialog(() => selectedPriority = p),
                           child: AnimatedContainer(
                             duration: 180.ms,
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             decoration: BoxDecoration(
-                              color: selected ? color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.04),
+                              color: selected
+                                  ? color.withValues(alpha: 0.15)
+                                  : Colors.white.withValues(alpha: 0.04),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: selected ? color : Colors.white.withValues(alpha: 0.1),
+                                color: selected
+                                    ? color
+                                    : Colors.white.withValues(alpha: 0.1),
                                 width: 1.2,
                               ),
                             ),
@@ -497,17 +593,23 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
 
                   // ── Tekrarlayan toggle
                   GestureDetector(
-                    onTap: () => setStateDialog(() => makeRecurring = !makeRecurring),
+                    onTap: () =>
+                        setStateDialog(() => makeRecurring = !makeRecurring),
                     child: AnimatedContainer(
                       duration: 180.ms,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: makeRecurring
                             ? const Color(0xFFEBC374).withValues(alpha: 0.1)
                             : Colors.white.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: makeRecurring ? const Color(0xFFEBC374) : Colors.white12,
+                          color: makeRecurring
+                              ? const Color(0xFFEBC374)
+                              : Colors.white12,
                         ),
                       ),
                       child: Row(
@@ -515,14 +617,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           Icon(
                             Icons.repeat_rounded,
                             size: 16,
-                            color: makeRecurring ? const Color(0xFFEBC374) : Colors.white38,
+                            color: makeRecurring
+                                ? const Color(0xFFEBC374)
+                                : Colors.white38,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Her gün tekrarla',
                               style: GoogleFonts.dmSans(
-                                color: makeRecurring ? const Color(0xFFEBC374) : Colors.white54,
+                                color: makeRecurring
+                                    ? const Color(0xFFEBC374)
+                                    : Colors.white54,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -530,9 +636,11 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
                           ),
                           Switch(
                             value: makeRecurring,
-                            onChanged: (v) => setStateDialog(() => makeRecurring = v),
+                            onChanged: (v) =>
+                                setStateDialog(() => makeRecurring = v),
                             activeThumbColor: const Color(0xFFEBC374),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
                         ],
                       ),
@@ -545,13 +653,18 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+                child: const Text(
+                  'İptal',
+                  style: TextStyle(color: Colors.white54),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEBC374),
                   foregroundColor: const Color(0xFF070B16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   final text = addController.text.trim();
@@ -574,7 +687,10 @@ class _DailyTasksScreenState extends State<DailyTasksScreen> {
     );
   }
 
-  void _showRecurringSheet(BuildContext context, DailyTasksController controller) {
+  void _showRecurringSheet(
+    BuildContext context,
+    DailyTasksController controller,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -622,7 +738,11 @@ class _RecurringSheet extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         children: [
-                          const Icon(Icons.repeat_rounded, color: Color(0xFFEBC374), size: 20),
+                          const Icon(
+                            Icons.repeat_rounded,
+                            color: Color(0xFFEBC374),
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -642,7 +762,10 @@ class _RecurringSheet extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
                         'Bu görevler her gün otomatik eklenir.',
-                        style: GoogleFonts.dmSans(color: Colors.white38, fontSize: 12),
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -652,30 +775,45 @@ class _RecurringSheet extends StatelessWidget {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.repeat_rounded, size: 48, color: Colors.white.withValues(alpha: 0.1)),
+                                  Icon(
+                                    Icons.repeat_rounded,
+                                    size: 48,
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                  ),
                                   const SizedBox(height: 12),
                                   Text(
                                     'Henüz tekrarlayan görev yok.\nGörev eklerken "Her gün tekrarla"yı aç.',
                                     textAlign: TextAlign.center,
-                                    style: GoogleFonts.dmSans(color: Colors.white30, fontSize: 13),
+                                    style: GoogleFonts.dmSans(
+                                      color: Colors.white30,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ],
                               ),
                             )
                           : ListView.separated(
                               controller: scrollController,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
                               itemCount: templates.length,
-                              separatorBuilder: (_, i) => const SizedBox(height: 8),
+                              separatorBuilder: (_, i) =>
+                                  const SizedBox(height: 8),
                               itemBuilder: (_, i) {
                                 final t = templates[i];
                                 final color = _categoryColor(t.category);
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.04),
                                     borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: color.withValues(alpha: 0.2)),
+                                    border: Border.all(
+                                      color: color.withValues(alpha: 0.2),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
@@ -683,14 +821,21 @@ class _RecurringSheet extends StatelessWidget {
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: color.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
-                                        child: Icon(_categoryIcon(t.category), size: 16, color: color),
+                                        child: Icon(
+                                          _categoryIcon(t.category),
+                                          size: 16,
+                                          color: color,
+                                        ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               t.title,
@@ -708,7 +853,9 @@ class _RecurringSheet extends StatelessWidget {
                                                   height: 6,
                                                   decoration: BoxDecoration(
                                                     shape: BoxShape.circle,
-                                                    color: _priorityColor(t.priority),
+                                                    color: _priorityColor(
+                                                      t.priority,
+                                                    ),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 4),
@@ -725,8 +872,13 @@ class _RecurringSheet extends StatelessWidget {
                                         ),
                                       ),
                                       IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-                                        onPressed: () => controller.removeRecurringTemplate(t.id),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.redAccent,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => controller
+                                            .removeRecurringTemplate(t.id),
                                       ),
                                     ],
                                   ),
@@ -753,7 +905,11 @@ class _FilterButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _FilterButton({required this.label, required this.selected, required this.onTap});
+  const _FilterButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -782,10 +938,21 @@ class _FilterButton extends StatelessWidget {
 // ─── Progress Card ────────────────────────────────────────────────────────────
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.completed, required this.total});
+  const _ProgressCard({
+    required this.completed,
+    required this.total,
+    required this.title,
+    required this.subtitle,
+    required this.milestones,
+    required this.nextMilestone,
+  });
 
   final int completed;
   final int total;
+  final String title;
+  final String subtitle;
+  final List<DailyTaskMilestone> milestones;
+  final DailyTaskMilestone? nextMilestone;
 
   @override
   Widget build(BuildContext context) {
@@ -806,7 +973,11 @@ class _ProgressCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.auto_awesome, color: Color(0xFFEBC374), size: 16),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFFEBC374),
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'GÜNLÜK ÖZET',
@@ -821,7 +992,7 @@ class _ProgressCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Bugünkü İlerlemen',
+                  title,
                   style: GoogleFonts.dmSans(
                     color: Colors.white,
                     fontSize: 22,
@@ -831,14 +1002,29 @@ class _ProgressCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   total == 0
-                      ? 'Güne harika bir başlangıç yap!'
-                      : '$completed/$total görev tamamlandı',
+                      ? subtitle
+                      : '$completed/$total görev tamamlandı · $subtitle',
                   style: GoogleFonts.dmSans(
                     color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 14,
                     height: 1.4,
                   ),
                 ),
+                if (milestones.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: milestones
+                        .map(
+                          (milestone) => _MilestoneChip(
+                            milestone: milestone,
+                            isNext: nextMilestone?.id == milestone.id,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -879,6 +1065,52 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
+class _MilestoneChip extends StatelessWidget {
+  const _MilestoneChip({required this.milestone, required this.isNext});
+
+  final DailyTaskMilestone milestone;
+  final bool isNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final unlocked = milestone.isUnlocked;
+    final color = unlocked
+        ? const Color(0xFFEBC374)
+        : isNext
+        ? const Color(0xFF7BCBFF)
+        : Colors.white38;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: unlocked ? 0.16 : 0.07),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: color.withValues(alpha: unlocked ? 0.42 : 0.18),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            unlocked ? Icons.verified_rounded : Icons.lock_open_rounded,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            milestone.title,
+            style: GoogleFonts.dmSans(
+              color: color,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Task Tile ────────────────────────────────────────────────────────────────
 
 class _TaskTile extends StatelessWidget {
@@ -896,7 +1128,9 @@ class _TaskTile extends StatelessWidget {
       duration: 300.ms,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: task.isDone ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.05),
+        color: task.isDone
+            ? Colors.white.withValues(alpha: 0.02)
+            : Colors.white.withValues(alpha: 0.05),
         border: Border.all(
           color: task.isDone
               ? Colors.white.withValues(alpha: 0.05)
@@ -949,7 +1183,9 @@ class _TaskTile extends StatelessWidget {
             Text(
               _categoryLabel(task.category),
               style: GoogleFonts.dmSans(
-                color: task.isDone ? Colors.white24 : catColor.withValues(alpha: 0.7),
+                color: task.isDone
+                    ? Colors.white24
+                    : catColor.withValues(alpha: 0.7),
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
@@ -975,7 +1211,9 @@ class _TaskTile extends StatelessWidget {
                 value: task.isDone,
                 activeColor: const Color(0xFFEBC374),
                 checkColor: const Color(0xFF070B16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
                 onChanged: (_) => onToggle(),
               ),
             ),
@@ -1040,31 +1278,60 @@ class _AnimatedMeshBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildOrb(const Color(0xFF1A1F35), 400, alignment: Alignment.topLeft, offset: const Offset(-100, -100)),
-        _buildOrb(const Color(0xFF1F1235), 350, alignment: Alignment.bottomRight, offset: const Offset(50, 50)),
-        _buildOrb(const Color(0xFF352A1A), 300, alignment: Alignment.centerLeft, offset: const Offset(-50, 100)),
+        _buildOrb(
+          const Color(0xFF1A1F35),
+          400,
+          alignment: Alignment.topLeft,
+          offset: const Offset(-100, -100),
+        ),
+        _buildOrb(
+          const Color(0xFF1F1235),
+          350,
+          alignment: Alignment.bottomRight,
+          offset: const Offset(50, 50),
+        ),
+        _buildOrb(
+          const Color(0xFF352A1A),
+          300,
+          alignment: Alignment.centerLeft,
+          offset: const Offset(-50, 100),
+        ),
       ],
     );
   }
 
-  Widget _buildOrb(Color color, double size, {required Alignment alignment, required Offset offset}) {
+  Widget _buildOrb(
+    Color color,
+    double size, {
+    required Alignment alignment,
+    required Offset offset,
+  }) {
     return Align(
-      alignment: alignment,
-      child: Transform.translate(
-        offset: offset,
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [color, Colors.transparent]),
+          alignment: alignment,
+          child: Transform.translate(
+            offset: offset,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [color, Colors.transparent]),
+              ),
+            ),
           ),
-        ),
-      ),
-    )
+        )
         .animate(onPlay: (c) => c.repeat(reverse: true))
-        .move(begin: const Offset(0, 0), end: const Offset(30, 30), duration: 5.seconds, curve: Curves.easeInOut)
-        .scale(begin: const Offset(1, 1), end: const Offset(1.2, 1.2), duration: 5.seconds);
+        .move(
+          begin: const Offset(0, 0),
+          end: const Offset(30, 30),
+          duration: 5.seconds,
+          curve: Curves.easeInOut,
+        )
+        .scale(
+          begin: const Offset(1, 1),
+          end: const Offset(1.2, 1.2),
+          duration: 5.seconds,
+        );
   }
 }
 
@@ -1085,7 +1352,9 @@ class _EmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isTodo ? Icons.celebration_rounded : Icons.history_toggle_off_rounded,
+              isTodo
+                  ? Icons.celebration_rounded
+                  : Icons.history_toggle_off_rounded,
               size: 72,
               color: Colors.white.withValues(alpha: 0.1),
             ),
@@ -1150,22 +1419,30 @@ class _EmptyState extends StatelessWidget {
             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
             const SizedBox(height: 32),
             OutlinedButton.icon(
-              onPressed: onAddPressed,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('İlk Görevini Ekle'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFEBC374),
-                side: BorderSide(color: const Color(0xFFEBC374).withValues(alpha: 0.3)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                textStyle: GoogleFonts.dmSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-            ).animate().fadeIn(delay: 500.ms).scale(begin: const Offset(0.9, 0.9)),
+                  onPressed: onAddPressed,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('İlk Görevini Ekle'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFEBC374),
+                    side: BorderSide(
+                      color: const Color(0xFFEBC374).withValues(alpha: 0.3),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 14,
+                    ),
+                    textStyle: GoogleFonts.dmSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                )
+                .animate()
+                .fadeIn(delay: 500.ms)
+                .scale(begin: const Offset(0.9, 0.9)),
           ],
         ),
       ),

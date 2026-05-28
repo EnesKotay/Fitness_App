@@ -11,6 +11,7 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.RSAPublicKeySpec;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -457,6 +458,14 @@ public class AuthService {
         r.targetWeight = user.targetWeight;
         r.birthDate = user.birthDate;
         r.gender = user.gender;
+        r.activityLevel = user.activityLevel;
+        r.goal = user.goal;
+        r.goalHistoryJson = user.goalHistoryJson;
+        r.workoutLocation = user.workoutLocation;
+        r.equipmentType = user.equipmentType;
+        r.nutritionPreferencesJson = user.nutritionPreferencesJson;
+        r.aiMemorySummary = user.aiMemorySummary;
+        r.motivationStatsJson = user.motivationStatsJson;
         r.premiumTier = user.premiumTier;
         r.premiumExpiresAt = user.premiumExpiresAt;
         r.premiumPlan = user.premiumPlan;
@@ -522,8 +531,43 @@ public class AuthService {
             user.birthDate = request.birthDate;
         if (request.gender != null)
             user.gender = request.gender.trim();
+        if (request.activityLevel != null)
+            user.activityLevel = request.activityLevel.trim();
+        if (request.goal != null) {
+            String nextGoal = request.goal.trim();
+            if (!nextGoal.isBlank() && (user.goal == null || !user.goal.equals(nextGoal))) {
+                user.goalHistoryJson = appendGoalHistory(user.goalHistoryJson, nextGoal);
+            }
+            user.goal = nextGoal;
+        }
+        if (request.workoutLocation != null)
+            user.workoutLocation = request.workoutLocation.trim();
+        if (request.equipmentType != null)
+            user.equipmentType = request.equipmentType.trim();
+        if (request.nutritionPreferencesJson != null)
+            user.nutritionPreferencesJson = request.nutritionPreferencesJson;
+        if (request.aiMemorySummary != null)
+            user.aiMemorySummary = request.aiMemorySummary;
+        if (request.motivationStatsJson != null)
+            user.motivationStatsJson = request.motivationStatsJson;
         userRepository.persist(user);
         return toUserResponse(user);
+    }
+
+    private String appendGoalHistory(String existing, String goal) {
+        String escapedGoal = goal.replace("\\", "\\\\").replace("\"", "\\\"");
+        String entry = "{\"goal\":\"" + escapedGoal + "\",\"changedAt\":\"" + java.time.LocalDateTime.now() + "\"}";
+        if (existing == null || existing.trim().isBlank() || !existing.trim().startsWith("[")) {
+            return "[" + entry + "]";
+        }
+        String trimmed = existing.trim();
+        if ("[]".equals(trimmed)) {
+            return "[" + entry + "]";
+        }
+        if (trimmed.endsWith("]")) {
+            return trimmed.substring(0, trimmed.length() - 1) + "," + entry + "]";
+        }
+        return "[" + entry + "]";
     }
 
     @Transactional

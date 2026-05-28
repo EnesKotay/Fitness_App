@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import '../../core/services/ai_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/preferences/app_preferences.dart';
 import '../nutrition/presentation/state/diet_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import '../tasks/controllers/daily_tasks_controller.dart';
@@ -15,56 +19,69 @@ import '../recipes/presentation/state/recipe_provider.dart';
 
 class AppProviders {
   static List<SingleChildWidget> get providers => [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => TrackingProvider()),
-        ChangeNotifierProvider(create: (_) => DailyTasksController()..loadToday()),
-        ChangeNotifierProvider(create: (_) => WeightProvider()),
-        ChangeNotifierProvider(create: (_) => WorkoutProvider()),
-        ChangeNotifierProvider(create: (_) => WorkoutProgramProvider()..load()),
-        ChangeNotifierProvider(create: (_) => NotificationService()),
-        ChangeNotifierProvider(create: (_) => StreakProvider()..init()),
-        ChangeNotifierProvider(create: (_) => WeeklyPlanProvider()..init()),
-        ChangeNotifierProvider(create: (_) => RecipeProvider()),
-        Provider(create: (_) => AIService()),
-        ChangeNotifierProxyProvider3<
-            WeightProvider,
-            WorkoutProvider,
-            AIService,
-            DietProvider>(
-          create: (_) => DietProvider(),
-          update: (_, weightProvider, workoutProvider, aiService, dietProvider) =>
-              dietProvider!
-                ..setWeightProvider(weightProvider)
-                ..setWorkoutProvider(workoutProvider)
-                ..setAIService(aiService),
-        ),
-        // Logout callback'lerini wire-up et: AuthProvider logout/deleteAccount
-        // çağrıldığında tüm provider'lar otomatik reset edilir.
-        ProxyProvider6<
-            AuthProvider,
-            DietProvider,
-            WorkoutProvider,
-            WeightProvider,
-            TrackingProvider,
-            DailyTasksController,
-            void>(
-          create: (_) {},
-          update: (
-            _,
-            auth,
-            diet,
-            workout,
-            weight,
-            tracking,
-            tasks,
-            _,
-          ) {
-            auth.addLogoutCallback(diet.reset);
-            auth.addLogoutCallback(workout.reset);
-            auth.addLogoutCallback(weight.reset);
-            auth.addLogoutCallback(tracking.reset);
-            auth.addLogoutCallback(tasks.reset);
-          },
-        ),
-      ];
+    ChangeNotifierProvider(create: (_) => AppPreferences()..init()),
+    ChangeNotifierProvider(create: (_) => AuthProvider()),
+    ChangeNotifierProvider(create: (_) => TrackingProvider()),
+    ChangeNotifierProvider(create: (_) => DailyTasksController()..loadToday()),
+    ChangeNotifierProvider(create: (_) => WeightProvider()),
+    ChangeNotifierProvider(create: (_) => WorkoutProvider()),
+    ChangeNotifierProvider(create: (_) => WorkoutProgramProvider()..load()),
+    ChangeNotifierProvider(create: (_) => NotificationService()),
+    ChangeNotifierProxyProvider<AuthProvider, StreakProvider>(
+      create: (_) => StreakProvider()..init(),
+      update: (_, auth, streak) {
+        final provider = streak ?? StreakProvider();
+        unawaited(
+          provider
+              .bindAccount(
+                userId: auth.user?.id,
+                remoteStatsJson: auth.user?.motivationStatsJson,
+                onRemoteSync: auth.updateMotivationStats,
+              )
+              .catchError(
+                (e) => debugPrint('StreakProvider.bindAccount error: $e'),
+              ),
+        );
+        // Logout callback: scope değişiminde reset
+        auth.addLogoutCallback(provider.reset);
+        return provider;
+      },
+    ),
+    ChangeNotifierProvider(create: (_) => WeeklyPlanProvider()..init()),
+    ChangeNotifierProvider(create: (_) => RecipeProvider()),
+    Provider(create: (_) => AIService()),
+    ChangeNotifierProxyProvider3<
+      WeightProvider,
+      WorkoutProvider,
+      AIService,
+      DietProvider
+    >(
+      create: (_) => DietProvider(),
+      update: (_, weightProvider, workoutProvider, aiService, dietProvider) =>
+          dietProvider!
+            ..setWeightProvider(weightProvider)
+            ..setWorkoutProvider(workoutProvider)
+            ..setAIService(aiService),
+    ),
+    // Logout callback'lerini wire-up et: AuthProvider logout/deleteAccount
+    // çağrıldığında tüm provider'lar otomatik reset edilir.
+    ProxyProvider6<
+      AuthProvider,
+      DietProvider,
+      WorkoutProvider,
+      WeightProvider,
+      TrackingProvider,
+      DailyTasksController,
+      void
+    >(
+      create: (_) {},
+      update: (_, auth, diet, workout, weight, tracking, tasks, _) {
+        auth.addLogoutCallback(diet.reset);
+        auth.addLogoutCallback(workout.reset);
+        auth.addLogoutCallback(weight.reset);
+        auth.addLogoutCallback(tracking.reset);
+        auth.addLogoutCallback(tasks.reset);
+      },
+    ),
+  ];
 }

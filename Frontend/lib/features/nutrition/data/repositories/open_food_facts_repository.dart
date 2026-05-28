@@ -22,6 +22,12 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
   );
   final HiveDietStorage _hive = HiveDietStorage();
 
+  static const List<int> _retryStatusCodes = [429, 500, 502, 503, 504];
+  static const List<Duration> _retryDelays = [
+    Duration(seconds: 1),
+    Duration(seconds: 3),
+  ];
+
   @override
   Future<List<FoodItem>> searchRemoteFoods(String query) async {
     final q = query.trim();
@@ -29,41 +35,56 @@ class OpenFoodFactsRepository implements RemoteFoodRepository {
     final cached = await _hive.getRemoteCached(q);
     if (cached != null && cached.isNotEmpty) return cached;
 
-    try {
-      final response = await _dio.get(
-        _searchUrl,
-        queryParameters: {
-          'search_terms': q,
-          'page_size': 80,
-          'page': 1,
-          'json': 1,
-        },
-      );
-      final data = response.data as Map<String, dynamic>?;
-      final products = data?['products'] as List<dynamic>? ?? [];
-      final items = <FoodItem>[];
-      for (final e in products) {
-        try {
-          if (e is Map) {
-            final item = _productToFoodItem(Map<String, dynamic>.from(e));
-            if (item != null) items.add(item);
+    Exception? lastError;
+    for (var attempt = 0; attempt <= _retryDelays.length; attempt++) {
+      if (attempt > 0) {
+        await Future.delayed(_retryDelays[attempt - 1]);
+      }
+      try {
+        final response = await _dio.get(
+          _searchUrl,
+          queryParameters: {
+            'search_terms': q,
+            'page_size': 80,
+            'page': 1,
+            'json': 1,
+          },
+        );
+        final data = response.data as Map<String, dynamic>?;
+        final products = data?['products'] as List<dynamic>? ?? [];
+        final items = <FoodItem>[];
+        for (final e in products) {
+          try {
+            if (e is Map) {
+              final item = _productToFoodItem(Map<String, dynamic>.from(e));
+              if (item != null) items.add(item);
+            }
+          } catch (_) {
+            continue;
           }
-        } catch (_) {
+        }
+        if (items.isNotEmpty) {
+          try {
+            await _hive.saveRemoteCache(q, items);
+          } catch (_) {}
+        }
+        return items;
+      } on DioException catch (e) {
+        final statusCode = e.response?.statusCode;
+        if (statusCode != null && _retryStatusCodes.contains(statusCode) && attempt < _retryDelays.length) {
+          debugPrint('OpenFoodFacts $statusCode — yeniden deneniyor (${attempt + 1}/${_retryDelays.length})');
+          lastError = e;
           continue;
         }
+        debugPrint('OpenFoodFactsRepository.searchRemoteFoods hatası: $e');
+        return [];
+      } catch (e) {
+        debugPrint('OpenFoodFactsRepository.searchRemoteFoods hatası: $e');
+        return [];
       }
-      if (items.isNotEmpty) {
-        try {
-          await _hive.saveRemoteCache(q, items);
-        } catch (_) {
-          // Cache hatası önemli değil, sonuçları döndür
-        }
-      }
-      return items;
-    } catch (e) {
-      debugPrint('OpenFoodFactsRepository.searchRemoteFoods hatası: $e');
-      return [];
     }
+    debugPrint('OpenFoodFactsRepository.searchRemoteFoods: tüm denemeler başarısız — $lastError');
+    return [];
   }
 
   @override

@@ -39,7 +39,7 @@ public class AiProactiveService {
     @Inject
     NotificationCreatorService notificationCreatorService;
 
-    @Scheduled(cron = "0 0 21 * * ?")
+    @Scheduled(cron = "{ai.proactive.cron}", timeZone = "{ai.proactive.time-zone}")
     @Transactional(Transactional.TxType.NOT_SUPPORTED)
     public void runDailyAnalysis() {
         LOG.info("Starting proactive daily AI analysis...");

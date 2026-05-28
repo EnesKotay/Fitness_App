@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:dio/dio.dart' show Options;
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/services/iap_service.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/services/notification_service.dart';
 import 'core/services/notification_scheduler_service.dart';
 import 'core/utils/storage_helper.dart';
 import 'features/nutrition/data/datasources/hive_diet_storage.dart';
@@ -18,10 +20,12 @@ import 'core/api/api_client.dart';
 import 'core/routes/app_routes.dart';
 import 'core/config/app_secrets.dart';
 import 'core/services/crash_reporting_service.dart';
+import 'core/preferences/app_preferences.dart';
 import 'core/routes/app_page_transitions.dart';
 import 'core/widgets/global_offline_banner.dart';
 import 'features/shell/app_providers.dart';
 import 'core/utils/app_logger.dart'; // Added AppLogger import
+import 'package:upgrader/upgrader.dart'; // Added upgrader import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,10 +67,13 @@ void main() async {
   unawaited(
     LocalNotificationService.instance
         .init()
-        .then(
-          (_) => NotificationSchedulerService.instance
-              .syncScheduledNotifications(),
-        )
+        .then((_) async {
+          await NotificationSchedulerService.instance
+              .syncScheduledNotifications();
+          await NotificationService().fetchNotifications(
+            presentUnreadLocally: true,
+          );
+        })
         .catchError((e) {
           debugPrint('LocalNotificationService init hatası: $e');
         }),
@@ -133,30 +140,45 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: AppProviders.providers,
-      child: MaterialApp(
-        title: 'PusulaFit',
-        debugShowCheckedModeBanner: false,
-        navigatorKey: appNavigatorKey,
-        builder: (context, child) => GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.opaque,
-          child: GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
-        ),
-        themeMode: ThemeMode.dark,
-        theme: AppTheme.darkTheme,
-        darkTheme: AppTheme.darkTheme.copyWith(
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: AppPageTransitionsBuilder(),
-              TargetPlatform.iOS: AppPageTransitionsBuilder(),
-              TargetPlatform.macOS: AppPageTransitionsBuilder(),
-              TargetPlatform.windows: AppPageTransitionsBuilder(),
-              TargetPlatform.linux: AppPageTransitionsBuilder(),
-            },
+      child: Consumer<AppPreferences>(
+        builder: (context, prefs, _) => MaterialApp(
+          title: 'PusulaFit',
+          debugShowCheckedModeBanner: false,
+          navigatorKey: appNavigatorKey,
+          locale: prefs.effectiveLocale,
+          supportedLocales: const [Locale('tr'), Locale('en')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          builder: (context, child) => GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: GlobalOfflineBanner(child: child ?? const SizedBox.shrink()),
           ),
+          themeMode: ThemeMode.dark,
+          theme: AppTheme.darkTheme,
+          darkTheme: AppTheme.darkTheme.copyWith(
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: AppPageTransitionsBuilder(),
+                TargetPlatform.iOS: AppPageTransitionsBuilder(),
+                TargetPlatform.macOS: AppPageTransitionsBuilder(),
+                TargetPlatform.windows: AppPageTransitionsBuilder(),
+                TargetPlatform.linux: AppPageTransitionsBuilder(),
+              },
+            ),
+          ),
+          home: UpgradeAlert(
+            upgrader: Upgrader(
+              languageCode: 'tr',
+              messages: UpgraderMessages(code: 'tr'),
+            ),
+            child: const SplashScreen(),
+          ),
+          routes: AppRoutes.getRoutes(),
         ),
-        home: const SplashScreen(),
-        routes: AppRoutes.getRoutes(),
       ),
     );
   }
@@ -218,12 +240,14 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 2400),
       vsync: this,
     )..repeat(reverse: true);
-    _glowRadius = Tween<double>(begin: 28, end: 52).animate(
-      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
-    );
-    _glowOpacity = Tween<double>(begin: 0.35, end: 0.65).animate(
-      CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut),
-    );
+    _glowRadius = Tween<double>(
+      begin: 28,
+      end: 52,
+    ).animate(CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut));
+    _glowOpacity = Tween<double>(
+      begin: 0.35,
+      end: 0.65,
+    ).animate(CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut));
 
     _ringCtrl = AnimationController(
       duration: const Duration(seconds: 12),
@@ -234,10 +258,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 550),
       vsync: this,
     );
-    _textOpacity = CurvedAnimation(
-      parent: _textCtrl,
-      curve: Curves.easeOut,
-    );
+    _textOpacity = CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut);
     _textSlide = Tween<Offset>(
       begin: const Offset(0, 0.25),
       end: Offset.zero,
@@ -247,10 +268,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    _loaderOpacity = CurvedAnimation(
-      parent: _loaderCtrl,
-      curve: Curves.easeIn,
-    );
+    _loaderOpacity = CurvedAnimation(parent: _loaderCtrl, curve: Curves.easeIn);
 
     _logoAnims = Listenable.merge([_logoCtrl, _glowCtrl, _ringCtrl]);
 
@@ -414,10 +432,7 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    accent.withValues(alpha: 0.14),
-                    Colors.transparent,
-                  ],
+                  colors: [accent.withValues(alpha: 0.14), Colors.transparent],
                 ),
               ),
             ),
@@ -537,15 +552,11 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       children: [
                         ShaderMask(
-                          shaderCallback: (bounds) =>
-                              const LinearGradient(
-                                colors: [
-                                  Colors.white,
-                                  Color(0xFFE8D5C4),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ).createShader(bounds),
+                          shaderCallback: (bounds) => const LinearGradient(
+                            colors: [Colors.white, Color(0xFFE8D5C4)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(bounds),
                           child: const Text(
                             'PusulaFit',
                             style: TextStyle(
@@ -711,7 +722,8 @@ class _RingPainter extends CustomPainter {
     // Bhaskara I approximation
     final sign = (x < 3.14159265358979) ? 1.0 : -1.0;
     if (x > 3.14159265358979) x -= 3.14159265358979;
-    return sign * (16 * x * (3.14159265358979 - x)) /
+    return sign *
+        (16 * x * (3.14159265358979 - x)) /
         (5 * 3.14159265358979 * 3.14159265358979 -
             4 * x * (3.14159265358979 - x));
   }
@@ -801,7 +813,8 @@ class _SplashLoaderState extends State<_SplashLoader>
     if (x < 0) x += 2 * 3.14159265358979;
     final sign = (x < 3.14159265358979) ? 1.0 : -1.0;
     if (x > 3.14159265358979) x -= 3.14159265358979;
-    return sign * (16 * x * (3.14159265358979 - x)) /
+    return sign *
+        (16 * x * (3.14159265358979 - x)) /
         (5 * 3.14159265358979 * 3.14159265358979 -
             4 * x * (3.14159265358979 - x));
   }

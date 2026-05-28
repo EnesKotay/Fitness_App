@@ -81,8 +81,8 @@ class _MacroPieChartState extends State<MacroPieChart> {
                     centerSpaceRadius: 40,
                     sections: _showingSections(pKcal, cKcal, fKcal, totalKcal),
                   ),
-                  swapAnimationDuration: const Duration(milliseconds: 600),
-                  swapAnimationCurve: Curves.easeInOutQuint,
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeInOutQuint,
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,

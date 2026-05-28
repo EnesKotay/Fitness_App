@@ -159,13 +159,14 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
       if (mounted) {
         _aiController = context.read<AiCoachController>();
         _aiController!.addListener(_onAiControllerUpdate);
+        // Rehberi önce göster; oturum ve bildirimler arka planda yüklensin
+        await _checkFirstVisitGuide();
+        if (!mounted) return;
         await _aiController!.restoreSession();
-        // Proaktif bildirimleri arka planda çek — badge otomatik güncellenir
         if (mounted) {
           context.read<NotificationService>().fetchNotifications();
         }
       }
-      await _checkFirstVisitGuide();
     });
 
     _textController.addListener(() {
@@ -667,43 +668,108 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 child: Column(
                   children: [
                     if (!hasTransferConsent)
-                      Material(
-                        color: Colors.orange.shade900.withValues(alpha: 0.9),
-                        child: InkWell(
-                          onTap: () => Navigator.of(
-                            context,
-                          ).pushNamed('/settings-privacy'),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                      GestureDetector(
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed('/settings-privacy'),
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF1A1200).withValues(alpha: 0.95),
+                                const Color(0xFF251800).withValues(alpha: 0.95),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: Colors.white,
-                                  size: 18,
+                            border: Border.all(
+                              color: const Color(
+                                0xFFD89A6A,
+                              ).withValues(alpha: 0.35),
+                              width: 1.0,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFFCC7A4A,
+                                ).withValues(alpha: 0.12),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFD89A6A,
+                                  ).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                const SizedBox(width: 10),
-                                const Expanded(
-                                  child: Text(
-                                    'AI koç devre dışı — yurt dışı aktarım rızası gerekli. '
-                                    'Ayarlamak için dokun.',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      height: 1.4,
+                                child: const Icon(
+                                  Icons.lock_outline_rounded,
+                                  color: Color(0xFFD89A6A),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'AI Koç kapalı',
+                                      style: TextStyle(
+                                        color: Color(0xFFE8B882),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        height: 1.2,
+                                      ),
                                     ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Kullanmak için gizlilik iznini etkinleştir.',
+                                      style: TextStyle(
+                                        color: Color(0xFFAA8866),
+                                        fontSize: 11.5,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFD89A6A,
+                                  ).withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFFD89A6A,
+                                    ).withValues(alpha: 0.4),
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: Colors.white70,
-                                  size: 18,
+                                child: const Text(
+                                  'Aç',
+                                  style: TextStyle(
+                                    color: Color(0xFFD89A6A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -763,10 +829,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                                   ),
                                 ),
                               ],
-                              if (controller.isLoading)
-                                const TypingBubble().animate().fadeIn(
-                                  duration: 300.ms,
-                                ),
                             ],
                           ),
                           if (_showScrollToBottom)
@@ -974,9 +1036,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
             } else if (value == 'memory') {
               Navigator.of(context).pushNamed('/ai-memory');
             } else if (value == 'premium') {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PremiumScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const PremiumScreen()));
             }
           },
           itemBuilder: (context) => [
@@ -984,9 +1046,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'new',
               child: Row(
                 children: [
-                  const Icon(Icons.add_comment_rounded, size: 18, color: Color(0xFF73D4FF)),
+                  const Icon(
+                    Icons.add_comment_rounded,
+                    size: 18,
+                    color: Color(0xFF73D4FF),
+                  ),
                   const SizedBox(width: 8),
-                  Text('Yeni Sohbet', style: GoogleFonts.dmSans(color: Colors.white)),
+                  Text(
+                    'Yeni Sohbet',
+                    style: GoogleFonts.dmSans(color: Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -994,9 +1063,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'history',
               child: Row(
                 children: [
-                  const Icon(Icons.history_rounded, size: 18, color: Color(0xFFEBC374)),
+                  const Icon(
+                    Icons.history_rounded,
+                    size: 18,
+                    color: Color(0xFFEBC374),
+                  ),
                   const SizedBox(width: 8),
-                  Text('Sohbet Geçmişi', style: GoogleFonts.dmSans(color: Colors.white)),
+                  Text(
+                    'Sohbet Geçmişi',
+                    style: GoogleFonts.dmSans(color: Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -1005,9 +1081,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'goal',
               child: Row(
                 children: [
-                  const Icon(Icons.flag_rounded, size: 18, color: Colors.white54),
+                  const Icon(
+                    Icons.flag_rounded,
+                    size: 18,
+                    color: Colors.white54,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Hedef seç', style: GoogleFonts.dmSans(color: Colors.white)),
+                  Text(
+                    'Hedef seç',
+                    style: GoogleFonts.dmSans(color: Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -1015,9 +1098,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'personality',
               child: Row(
                 children: [
-                  const Icon(Icons.record_voice_over_rounded, size: 18, color: Colors.white54),
+                  const Icon(
+                    Icons.record_voice_over_rounded,
+                    size: 18,
+                    color: Colors.white54,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Koç karakteri', style: GoogleFonts.dmSans(color: Colors.white)),
+                  Text(
+                    'Koç karakteri',
+                    style: GoogleFonts.dmSans(color: Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -1025,21 +1115,37 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'memory',
               child: Row(
                 children: [
-                  const Icon(Icons.psychology_rounded, size: 18, color: Color(0xFFEBC374)),
+                  const Icon(
+                    Icons.psychology_rounded,
+                    size: 18,
+                    color: Color(0xFFEBC374),
+                  ),
                   const SizedBox(width: 8),
-                  Text('AI Hafızası', style: GoogleFonts.dmSans(color: Colors.white)),
+                  Text(
+                    'AI Hafızası',
+                    style: GoogleFonts.dmSans(color: Colors.white),
+                  ),
                 ],
               ),
             ),
             const PopupMenuDivider(),
             PopupMenuItem<String>(
               value: 'regenerate',
-              enabled: controller.canRetryLastPrompt && controller.messages.length > 2,
+              enabled:
+                  controller.canRetryLastPrompt &&
+                  controller.messages.length > 2,
               child: Row(
                 children: [
-                  const Icon(Icons.refresh_rounded, size: 18, color: Colors.white54),
+                  const Icon(
+                    Icons.refresh_rounded,
+                    size: 18,
+                    color: Colors.white54,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Son Cevabı Yeniden Üret', style: GoogleFonts.dmSans(color: Colors.white70)),
+                  Text(
+                    'Son Cevabı Yeniden Üret',
+                    style: GoogleFonts.dmSans(color: Colors.white70),
+                  ),
                 ],
               ),
             ),
@@ -1047,9 +1153,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               value: 'clear',
               child: Row(
                 children: [
-                  const Icon(Icons.delete_sweep_rounded, size: 18, color: Colors.white54),
+                  const Icon(
+                    Icons.delete_sweep_rounded,
+                    size: 18,
+                    color: Colors.white54,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Sohbeti Temizle', style: GoogleFonts.dmSans(color: Colors.white70)),
+                  Text(
+                    'Sohbeti Temizle',
+                    style: GoogleFonts.dmSans(color: Colors.white70),
+                  ),
                 ],
               ),
             ),
@@ -1059,9 +1172,16 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 value: 'premium',
                 child: Row(
                   children: [
-                    const Icon(Icons.stars_rounded, size: 18, color: Color(0xFFEBC374)),
+                    const Icon(
+                      Icons.stars_rounded,
+                      size: 18,
+                      color: Color(0xFFEBC374),
+                    ),
                     const SizedBox(width: 8),
-                    Text("Premium'u aç", style: GoogleFonts.dmSans(color: const Color(0xFFEBC374))),
+                    Text(
+                      "Premium'u aç",
+                      style: GoogleFonts.dmSans(color: const Color(0xFFEBC374)),
+                    ),
                   ],
                 ),
               ),
@@ -1177,30 +1297,58 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
 
   (IconData, Color) _chipMeta(String chip, CoachTaskMode mode) {
     final lc = chip.toLowerCase();
-    if (lc.contains('kalori') || lc.contains('kcal') || lc.contains('öğün') || lc.contains('yemek') || lc.contains('kahvaltı')) {
+    if (lc.contains('kalori') ||
+        lc.contains('kcal') ||
+        lc.contains('öğün') ||
+        lc.contains('yemek') ||
+        lc.contains('kahvaltı')) {
       return (Icons.restaurant_rounded, const Color(0xFFEBC374));
     }
-    if (lc.contains('antrenman') || lc.contains('egzersiz') || lc.contains('hareket')) {
+    if (lc.contains('antrenman') ||
+        lc.contains('egzersiz') ||
+        lc.contains('hareket')) {
       return (Icons.fitness_center_rounded, const Color(0xFF34D399));
     }
-    if (lc.contains('su') || lc.contains('toparlanma') || lc.contains('uyku') || lc.contains('dinlen')) {
+    if (lc.contains('su') ||
+        lc.contains('toparlanma') ||
+        lc.contains('uyku') ||
+        lc.contains('dinlen')) {
       return (Icons.water_drop_rounded, const Color(0xFF73D4FF));
     }
-    if (lc.contains('analiz') || lc.contains('özet') || lc.contains('nasıl') || lc.contains('veriler')) {
+    if (lc.contains('analiz') ||
+        lc.contains('özet') ||
+        lc.contains('nasıl') ||
+        lc.contains('veriler')) {
       return (Icons.insights_rounded, const Color(0xFFBC74EB));
     }
-    if (lc.contains('plan') || lc.contains('öncelik') || lc.contains('program')) {
+    if (lc.contains('plan') ||
+        lc.contains('öncelik') ||
+        lc.contains('program')) {
       return (Icons.route_rounded, const Color(0xFF6B9FFF));
     }
-    if (lc.contains('makro') || lc.contains('protein') || lc.contains('beslen')) {
+    if (lc.contains('makro') ||
+        lc.contains('protein') ||
+        lc.contains('beslen')) {
       return (Icons.pie_chart_rounded, const Color(0xFFEBC374));
     }
     return switch (mode) {
-      CoachTaskMode.nutrition => (Icons.restaurant_rounded, const Color(0xFFEBC374)),
-      CoachTaskMode.workout   => (Icons.fitness_center_rounded, const Color(0xFF34D399)),
-      CoachTaskMode.recovery  => (Icons.self_improvement_rounded, const Color(0xFF73D4FF)),
-      CoachTaskMode.analysis  => (Icons.analytics_rounded, const Color(0xFFBC74EB)),
-      CoachTaskMode.plan      => (Icons.route_rounded, const Color(0xFF6B9FFF)),
+      CoachTaskMode.nutrition => (
+        Icons.restaurant_rounded,
+        const Color(0xFFEBC374),
+      ),
+      CoachTaskMode.workout => (
+        Icons.fitness_center_rounded,
+        const Color(0xFF34D399),
+      ),
+      CoachTaskMode.recovery => (
+        Icons.self_improvement_rounded,
+        const Color(0xFF73D4FF),
+      ),
+      CoachTaskMode.analysis => (
+        Icons.analytics_rounded,
+        const Color(0xFFBC74EB),
+      ),
+      CoachTaskMode.plan => (Icons.route_rounded, const Color(0xFF6B9FFF)),
     };
   }
 
@@ -1591,7 +1739,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     final summary = controller.dailySummary;
     final chips = <String>[];
     if (summary.calories > 0) chips.add('${summary.calories} kcal');
-    if (summary.waterLiters > 0) chips.add('${summary.waterLiters.toStringAsFixed(1)} L su');
+    if (summary.waterLiters > 0) {
+      chips.add('${summary.waterLiters.toStringAsFixed(1)} L su');
+    }
     if (summary.workouts > 0) chips.add('${summary.workouts} antrenman');
 
     return Padding(
@@ -1609,20 +1759,33 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: _brandBlue.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: _brandBlue.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: _brandBlue.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(_modeIcon(controller.taskMode), size: 13, color: _brandBlue),
+                        Icon(
+                          _modeIcon(controller.taskMode),
+                          size: 13,
+                          color: _brandBlue,
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           controller.taskMode.label,
-                          style: GoogleFonts.dmSans(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
                     ),
@@ -1664,7 +1827,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
               ),
-              child: const Icon(Icons.history_rounded, size: 18, color: Color(0xFFEBC374)),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 18,
+                color: Color(0xFFEBC374),
+              ),
             ),
           ),
           const SizedBox(width: 6),
@@ -1677,7 +1844,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: _brandBlue.withValues(alpha: 0.18)),
               ),
-              child: const Icon(Icons.add_comment_rounded, size: 18, color: Color(0xFF73D4FF)),
+              child: const Icon(
+                Icons.add_comment_rounded,
+                size: 18,
+                color: Color(0xFF73D4FF),
+              ),
             ),
           ),
         ],
@@ -2093,14 +2264,22 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                                   color: Colors.white.withValues(alpha: 0.25),
                                   fontSize: 13.5,
                                 ),
-                                contentPadding: const EdgeInsets.fromLTRB(0, 12, 8, 12),
+                                contentPadding: const EdgeInsets.fromLTRB(
+                                  0,
+                                  12,
+                                  8,
+                                  12,
+                                ),
                                 border: InputBorder.none,
                               ),
                               onSubmitted: (_) => _handleSend(controller),
                             ),
                             if (_textController.text.length > 80)
                               Padding(
-                                padding: const EdgeInsets.only(bottom: 4, right: 4),
+                                padding: const EdgeInsets.only(
+                                  bottom: 4,
+                                  right: 4,
+                                ),
                                 child: Text(
                                   '${_textController.text.length}/500',
                                   style: TextStyle(

@@ -10,6 +10,7 @@ class AssetFoodLoader {
   static const String _coreFoodsPath = 'assets/foods/core_foods_tr.json';
   static const String _verifiedExtrasPath =
       'assets/foods/verified_tr_extras.json';
+  static const String _usCommonFoodsPath = 'assets/foods/us_common_foods.json';
 
   /// JSON asset'ini okuyup [FoodItem] listesine dönüştürür.
   /// Schema v1 (List) ve Schema v2 (Map -> foods) destekler.
@@ -29,9 +30,12 @@ class AssetFoodLoader {
         return [];
       }
 
-      final verifiedExtras = await _loadVerifiedExtras();
-      if (verifiedExtras.isNotEmpty) {
-        list = [...list, ...verifiedExtras];
+      final extras = [
+        ...await _loadVerifiedExtras(),
+        ...await _loadUsCommonFoods(),
+      ];
+      if (extras.isNotEmpty) {
+        list = [...list, ...extras];
       }
 
       final coreFoodMap = await _loadCoreFoodMetadata();
@@ -85,6 +89,21 @@ class AssetFoodLoader {
       return const [];
     } catch (e) {
       debugPrint('AssetFoodLoader._loadVerifiedExtras hatası: $e');
+      return const [];
+    }
+  }
+
+  static Future<List<dynamic>> _loadUsCommonFoods() async {
+    try {
+      final String raw = await rootBundle.loadString(_usCommonFoodsPath);
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is List) return decoded;
+      if (decoded is Map && decoded['foods'] is List) {
+        return decoded['foods'] as List<dynamic>;
+      }
+      return const [];
+    } catch (e) {
+      debugPrint('AssetFoodLoader._loadUsCommonFoods hatası: $e');
       return const [];
     }
   }

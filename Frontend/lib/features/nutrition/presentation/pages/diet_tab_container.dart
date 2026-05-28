@@ -30,6 +30,52 @@ class DietTabContainer extends StatelessWidget {
     _navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
+  PageRoute<T> _buildRoute<T>(
+    Widget page,
+    RouteSettings settings, {
+    bool animate = true,
+  }) {
+    if (!animate) {
+      return MaterialPageRoute<T>(builder: (_) => page, settings: settings);
+    }
+
+    return PageRouteBuilder<T>(
+      settings: settings,
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (_, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        final secondaryCurved = CurvedAnimation(
+          parent: secondaryAnimation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.08, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset.zero,
+                end: const Offset(-0.03, 0),
+              ).animate(secondaryCurved),
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
@@ -40,24 +86,28 @@ class DietTabContainer extends StatelessWidget {
           try {
             switch (settings.name) {
               case 'dashboard':
-                return MaterialPageRoute(
-                  builder: (_) => const DietDashboardPage(),
+                return _buildRoute(
+                  const DietDashboardPage(),
+                  settings,
+                  animate: false,
                 );
               case 'profile':
                 final provider = Provider.of<DietProvider>(
                   context,
                   listen: false,
                 );
-                return MaterialPageRoute(
-                  builder: (_) => ProfileSetupPage(
+                return _buildRoute(
+                  ProfileSetupPage(
                     initial: provider.profile,
                     navigateToHomeOnSave: false,
                   ),
+                  settings,
                 );
               case 'search':
                 final mealType = settings.arguments as MealType?;
-                return MaterialPageRoute(
-                  builder: (_) => FoodSearchPage(selectedMealType: mealType),
+                return _buildRoute(
+                  FoodSearchPage(selectedMealType: mealType),
+                  settings,
                 );
               case 'portion':
                 final args = settings.arguments as Map<String, dynamic>?;
@@ -66,35 +116,30 @@ class DietTabContainer extends StatelessWidget {
                 final initialGrams = (args?['initialGrams'] as num?)
                     ?.toDouble();
                 if (food == null) {
-                  return MaterialPageRoute(
-                    builder: (_) => const DietDashboardPage(),
+                  return _buildRoute(
+                    const DietDashboardPage(),
+                    settings,
+                    animate: false,
                   );
                 }
-                return MaterialPageRoute(
-                  builder: (_) => PortionAddPage(
+                return _buildRoute(
+                  PortionAddPage(
                     food: food,
                     selectedMealType: mealType,
                     initialGrams: initialGrams,
                   ),
+                  settings,
                 );
               case 'add_custom_food':
-                return MaterialPageRoute(
-                  builder: (_) => const AddCustomFoodPage(),
-                );
+                return _buildRoute(const AddCustomFoodPage(), settings);
               case 'diet_chat':
-                return MaterialPageRoute(builder: (_) => const DietChatPage());
+                return _buildRoute(const DietChatPage(), settings);
               case 'nutrition_trends':
-                return MaterialPageRoute(
-                  builder: (_) => const NutritionTrendsPage(),
-                );
+                return _buildRoute(const NutritionTrendsPage(), settings);
               case 'nutrition_guide':
-                return MaterialPageRoute(
-                  builder: (_) => const NutritionGuidePage(),
-                );
+                return _buildRoute(const NutritionGuidePage(), settings);
               case 'weekly_meal_plan':
-                return MaterialPageRoute(
-                  builder: (_) => const WeeklyMealPlanPage(),
-                );
+                return _buildRoute(const WeeklyMealPlanPage(), settings);
               case 'smart_grocery_list':
                 final args = settings.arguments as Map<String, dynamic>?;
                 final seedItems =
@@ -109,38 +154,39 @@ class DietTabContainer extends StatelessWidget {
                     const <GroceryItem>[];
                 final seedReason = args?['seedReason'] as String?;
                 final seedMealName = args?['seedMealName'] as String?;
-                return MaterialPageRoute(
-                  builder: (_) => SmartGroceryListPage(
+                return _buildRoute(
+                  SmartGroceryListPage(
                     seedItems: seedItems,
                     seedGroceryItems: seedGroceryItems,
                     seedReason: seedReason,
                     seedMealName: seedMealName,
                   ),
+                  settings,
                 );
               case 'recipes':
-                return MaterialPageRoute(
-                  builder: (_) => const RecipeListPage(),
-                );
+                return _buildRoute(const RecipeListPage(), settings);
               case 'recipe_detail':
                 final recipe = settings.arguments as Recipe?;
                 if (recipe == null) {
-                  return MaterialPageRoute(
-                    builder: (_) => const RecipeListPage(),
-                  );
+                  return _buildRoute(const RecipeListPage(), settings);
                 }
-                return MaterialPageRoute(
-                  builder: (_) => RecipeDetailPage(recipe: recipe),
-                );
+                return _buildRoute(RecipeDetailPage(recipe: recipe), settings);
               default:
-                return MaterialPageRoute(
-                  builder: (_) => const DietDashboardPage(),
+                return _buildRoute(
+                  const DietDashboardPage(),
+                  settings,
+                  animate: false,
                 );
             }
           } catch (e) {
             debugPrint(
               'DietTabContainer route generation hatası: $e, route: ${settings.name}',
             );
-            return MaterialPageRoute(builder: (_) => const DietDashboardPage());
+            return _buildRoute(
+              const DietDashboardPage(),
+              settings,
+              animate: false,
+            );
           }
         },
       ),

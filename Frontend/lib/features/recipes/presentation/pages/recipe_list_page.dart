@@ -1139,7 +1139,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
 
   Widget _buildFilterRow(BuildContext context, RecipeProvider provider) {
     return SizedBox(
-      height: 40,
+      height: 44,
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -1313,7 +1313,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
           ),
         ),
         SizedBox(
-          height: 134,
+          height: 148,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
@@ -1497,14 +1497,27 @@ class _RecipeListPageState extends State<RecipeListPage> {
   Widget _buildSectionLabel(String label) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: Text(
-        label,
-        style: GoogleFonts.dmSans(
-          color: Colors.white.withValues(alpha: 0.5),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.8,
-        ),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.dmSans(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1514,7 +1527,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
   Widget _buildRecentlyViewed(BuildContext context, RecipeProvider provider) {
     final recents = provider.recentlyViewed;
     return SizedBox(
-      height: 112,
+      height: 124,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -1526,7 +1539,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
           return GestureDetector(
             onTap: () => _navigateTo(context, recipe),
             child: Container(
-              width: 130,
+              width: 144,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
@@ -1897,7 +1910,7 @@ class _StripRecipeCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 176,
+        width: 190,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
@@ -1914,12 +1927,12 @@ class _StripRecipeCard extends StatelessWidget {
             Row(
               children: [
                 SizedBox(
-                  width: 34,
-                  height: 34,
+                  width: 40,
+                  height: 40,
                   child: _RecipeImagePanel(
                     recipe: recipe,
-                    borderRadius: 11,
-                    emojiSize: 28,
+                    borderRadius: 12,
+                    emojiSize: 30,
                   ),
                 ),
                 const Spacer(),
@@ -2410,17 +2423,31 @@ class _TinyBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.dmSans(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
+      child: RichText(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: label,
+              style: GoogleFonts.dmSans(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            TextSpan(
+              text: ' $sublabel',
+              style: GoogleFonts.dmSans(
+                color: color.withValues(alpha: 0.7),
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

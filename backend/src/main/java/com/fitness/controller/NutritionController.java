@@ -59,9 +59,11 @@ public class NutritionController {
      */
     @GET
     @Path("/me/meals")
-    public Response getUserMeals(@Context HttpHeaders headers) {
+    public Response getUserMeals(
+            @Context HttpHeaders headers,
+            @QueryParam("limit") Integer limit) {
         Long userId = authService.getUserIdFromToken(headers.getHeaderString(HttpHeaders.AUTHORIZATION));
-        List<MealResponse> meals = nutritionService.getUserMeals(userId);
+        List<MealResponse> meals = nutritionService.getUserMeals(userId, limit);
         return Response.ok()
                 .entity(meals)
                 .build();
@@ -129,6 +131,19 @@ public class NutritionController {
             @PathParam("mealId") Long mealId) {
         Long userId = authService.getUserIdFromToken(headers.getHeaderString(HttpHeaders.AUTHORIZATION));
         nutritionService.deleteMeal(userId, mealId);
+        return Response.noContent()
+                .build();
+    }
+
+    /**
+     * Kullanıcının tüm yemek kayıtlarını sil
+     * DELETE /api/nutrition/me/meals
+     */
+    @DELETE
+    @Path("/me/meals")
+    public Response deleteAllMeals(@Context HttpHeaders headers) {
+        Long userId = authService.getUserIdFromToken(headers.getHeaderString(HttpHeaders.AUTHORIZATION));
+        nutritionService.deleteAllMeals(userId);
         return Response.noContent()
                 .build();
     }

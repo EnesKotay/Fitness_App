@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/services/ai_safety_helper.dart';
@@ -21,6 +22,8 @@ import '../../data/repositories/open_food_facts_repository.dart';
 import '../../data/datasources/hive_diet_storage.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/services/auth_service.dart';
+import '../../../../core/models/user.dart';
 import '../../../weight/presentation/providers/weight_provider.dart';
 import '../../../workout/providers/workout_provider.dart';
 import '../../../../core/services/ai_service.dart';
@@ -319,7 +322,14 @@ class DietProvider with ChangeNotifier {
         _weightProvider?.latestEntry?.weightKg ?? _profile?.weight ?? 70.0;
     final kcal = _dailyTargetKcal ?? 2000.0;
     final goal = _profile?.goal ?? Goal.maintain;
+    return _macroTargetsFor(goal: goal, kcal: kcal, weightKg: w);
+  }
 
+  MacroTargets _macroTargetsFor({
+    required Goal goal,
+    required double kcal,
+    required double weightKg,
+  }) {
     // 1. Protein — hedefe göre g/kg
     double proteinPerKg;
     double fatPercent;
@@ -342,7 +352,7 @@ class DietProvider with ChangeNotifier {
         break;
     }
 
-    final proteinG = (w * proteinPerKg).roundToDouble();
+    final proteinG = (weightKg * proteinPerKg).roundToDouble();
     final proteinKcal = proteinG * 4;
 
     // 2. Yağ — toplam kalorinin %'si
@@ -357,10 +367,28 @@ class DietProvider with ChangeNotifier {
   }
 
   /// Calculates the simulated daily calorie and protein targets if the user were to switch to [simulatedGoal].
-  ({double targetKcal, double proteinTarget}) getSimulatedTargets(
-    Goal simulatedGoal,
-  ) {
-    if (_profile == null) return (targetKcal: 2000.0, proteinTarget: 140.0);
+  ({
+    double targetKcal,
+    double proteinTarget,
+    double carbTarget,
+    double fatTarget,
+    MacroTargets macroTargets,
+  })
+  getSimulatedTargets(Goal simulatedGoal) {
+    if (_profile == null) {
+      const fallbackMacros = MacroTargets(
+        protein: 140.0,
+        carb: 240.0,
+        fat: 67.0,
+      );
+      return (
+        targetKcal: 2000.0,
+        proteinTarget: fallbackMacros.protein,
+        carbTarget: fallbackMacros.carb,
+        fatTarget: fallbackMacros.fat,
+        macroTargets: fallbackMacros,
+      );
+    }
 
     final currentWeight =
         _weightProvider?.latestEntry?.weightKg ?? _profile!.weight;
@@ -378,25 +406,19 @@ class DietProvider with ChangeNotifier {
 
     final baseKcal = fakeProfile.targetCalories;
     final simulatedKcal = baseKcal + todayBurnedKcal;
+    final simulatedMacros = _macroTargetsFor(
+      goal: simulatedGoal,
+      kcal: simulatedKcal,
+      weightKg: currentWeight,
+    );
 
-    double proteinPerKg;
-    switch (simulatedGoal) {
-      case Goal.cut:
-        proteinPerKg = 2.0;
-        break;
-      case Goal.bulk:
-        proteinPerKg = 1.8;
-        break;
-      case Goal.strength:
-        proteinPerKg = 1.8;
-        break;
-      case Goal.maintain:
-        proteinPerKg = 1.6;
-        break;
-    }
-    final proteinTarget = (currentWeight * proteinPerKg).roundToDouble();
-
-    return (targetKcal: simulatedKcal, proteinTarget: proteinTarget);
+    return (
+      targetKcal: simulatedKcal,
+      proteinTarget: simulatedMacros.protein,
+      carbTarget: simulatedMacros.carb,
+      fatTarget: simulatedMacros.fat,
+      macroTargets: simulatedMacros,
+    );
   }
 
   /// Vücut Kitle Endeksi (BMI) hesaplaması.
@@ -458,6 +480,11 @@ class DietProvider with ChangeNotifier {
   Future<void> _initInternal() async {
     _activeUserSuffix = StorageHelper.getUserStorageSuffix();
     _profile = await _diaryRepo.getProfile();
+    if (_profile == null) {
+      _profile = await _restoreProfileFromAccount();
+    } else {
+      unawaited(_syncLocalProfileToAccountIfNeeded(_profile!));
+    }
     _nutritionPreferences = NutritionPreferences.fromJson(
       StorageHelper.getNutritionPreferences(),
     );
@@ -476,6 +503,178 @@ class DietProvider with ChangeNotifier {
     } else {
       await _loadDayInternal(dateToLoad);
     }
+  }
+
+  Future<void> _syncLocalProfileToAccountIfNeeded(UserProfile profile) async {
+    final token = StorageHelper.getToken();
+    if (token == null || token.isEmpty) return;
+
+    try {
+      final authService = AuthService();
+      final user = await authService.getMe().timeout(
+        const Duration(seconds: 5),
+      );
+      final accountProfile = _profileFromUser(user);
+      if (accountProfile != null && !_profileDiffers(accountProfile, profile)) {
+        return;
+      }
+
+      await authService
+          .updateMeProfile(_profilePayload(profile))
+          .timeout(const Duration(seconds: 5));
+      debugPrint('DietProvider: synced local profile to account');
+    } catch (e) {
+      debugPrint('DietProvider account profile sync skipped: $e');
+    }
+  }
+
+  Future<UserProfile?> _restoreProfileFromAccount() async {
+    final token = StorageHelper.getToken();
+    if (token == null || token.isEmpty) return null;
+
+    try {
+      final user = await AuthService().getMe().timeout(
+        const Duration(seconds: 5),
+      );
+      final profile = _profileFromUser(user);
+      if (profile == null) return null;
+
+      await _restoreAccountPreferences(user);
+      await _diaryRepo.saveProfile(profile);
+      await StorageHelper.saveOnboardingDone(true);
+      await StorageHelper.savePendingInitialProfileSetup(false);
+      debugPrint(
+        'DietProvider: restored profile from account for ${user.email}',
+      );
+      return profile;
+    } catch (e) {
+      debugPrint('DietProvider remote profile restore skipped: $e');
+      return null;
+    }
+  }
+
+  UserProfile? _profileFromUser(User user) {
+    final height = user.height;
+    final weight = user.weight;
+    final birthDate = user.birthDate;
+    final genderText = user.gender?.toUpperCase().trim();
+    if (height == null ||
+        height <= 0 ||
+        weight == null ||
+        weight <= 0 ||
+        birthDate == null ||
+        genderText == null ||
+        genderText.isEmpty) {
+      return null;
+    }
+
+    final age = _ageFromBirthDate(birthDate);
+    final targetWeight = user.targetWeight;
+    final goal =
+        _parseGoal(user.goal) ??
+        (targetWeight == null || (targetWeight - weight).abs() < 0.3
+            ? Goal.maintain
+            : targetWeight < weight
+            ? Goal.cut
+            : Goal.bulk);
+    final activityLevel =
+        _parseActivityLevel(user.activityLevel) ??
+        ActivityLevel.moderatelyActive;
+
+    return UserProfile(
+      name: user.name,
+      age: age,
+      weight: weight,
+      height: height,
+      gender: genderText == 'FEMALE' ? Gender.female : Gender.male,
+      activityLevel: activityLevel,
+      goal: goal,
+      targetWeight: targetWeight,
+    );
+  }
+
+  Future<void> _restoreAccountPreferences(User user) async {
+    final workoutLocation = user.workoutLocation;
+    if (workoutLocation != null && workoutLocation.trim().isNotEmpty) {
+      await StorageHelper.saveWorkoutLocation(workoutLocation.trim());
+    }
+    final equipmentType = user.equipmentType;
+    if (equipmentType != null && equipmentType.trim().isNotEmpty) {
+      await StorageHelper.saveEquipmentType(equipmentType.trim());
+    }
+    final rawPrefs = user.nutritionPreferencesJson;
+    if (rawPrefs == null || rawPrefs.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(rawPrefs);
+      if (decoded is Map<String, dynamic>) {
+        await StorageHelper.saveNutritionPreferences(decoded);
+      } else if (decoded is Map) {
+        await StorageHelper.saveNutritionPreferences(
+          decoded.map((key, value) => MapEntry(key.toString(), value)),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Goal? _parseGoal(String? raw) {
+    if (raw == null) return null;
+    for (final item in Goal.values) {
+      if (item.name == raw.trim()) return item;
+    }
+    return null;
+  }
+
+  ActivityLevel? _parseActivityLevel(String? raw) {
+    if (raw == null) return null;
+    for (final item in ActivityLevel.values) {
+      if (item.name == raw.trim()) return item;
+    }
+    return null;
+  }
+
+  int _ageFromBirthDate(DateTime birthDate) {
+    final now = DateTime.now();
+    var age = now.year - birthDate.year;
+    final birthdayThisYear = DateTime(now.year, birthDate.month, birthDate.day);
+    if (now.isBefore(birthdayThisYear)) age--;
+    return age.clamp(13, 100).toInt();
+  }
+
+  bool _profileDiffers(UserProfile a, UserProfile b) {
+    return a.name.trim() != b.name.trim() ||
+        (a.height - b.height).abs() > 0.1 ||
+        (a.weight - b.weight).abs() > 0.1 ||
+        ((a.targetWeight ?? -1) - (b.targetWeight ?? -1)).abs() > 0.1 ||
+        a.gender != b.gender ||
+        a.activityLevel != b.activityLevel ||
+        a.goal != b.goal ||
+        a.age != b.age;
+  }
+
+  Map<String, dynamic> _profilePayload(UserProfile profile) {
+    final now = DateTime.now();
+    final safeYear = (now.year - profile.age).clamp(1900, now.year).toInt();
+    final birthDate = DateTime(
+      safeYear,
+      now.month,
+      now.day.clamp(1, 28).toInt(),
+    );
+    return <String, dynamic>{
+      'name': profile.name,
+      'height': profile.height,
+      'weight': profile.weight,
+      'targetWeight': profile.targetWeight,
+      'birthDate': birthDate.toIso8601String(),
+      'gender': profile.gender == Gender.female ? 'FEMALE' : 'MALE',
+      'activityLevel': profile.activityLevel.name,
+      'goal': profile.goal.name,
+      'workoutLocation': StorageHelper.getWorkoutLocation(),
+      'equipmentType': StorageHelper.getEquipmentType(),
+      if (StorageHelper.getNutritionPreferences() != null)
+        'nutritionPreferencesJson': jsonEncode(
+          StorageHelper.getNutritionPreferences(),
+        ),
+    };
   }
 
   Future<void> _ensureWeightEntriesReady() async {
@@ -550,6 +749,8 @@ class DietProvider with ChangeNotifier {
       _error = null;
       _entries = await _diaryService.getEntriesByDate(_selectedDate);
       _totals = await _diaryRepo.getTotalsByDate(dateStr);
+      final savedMl = StorageHelper.getWaterForDate(dateStr);
+      _waterLiters = savedMl / 1000.0;
       _currentStreak = await _diaryRepo.getCurrentStreak();
       _error = null;
       notifyListeners();
@@ -586,7 +787,23 @@ class DietProvider with ChangeNotifier {
   ) async {
     _nutritionPreferences = preferences;
     await StorageHelper.saveNutritionPreferences(preferences.toJson());
+    final profile = _profile;
+    if (profile != null) {
+      unawaited(_syncProfilePayloadToAccount(profile));
+    }
     notifyListeners();
+  }
+
+  Future<void> _syncProfilePayloadToAccount(UserProfile profile) async {
+    final token = StorageHelper.getToken();
+    if (token == null || token.isEmpty) return;
+    try {
+      await AuthService()
+          .updateMeProfile(_profilePayload(profile))
+          .timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('DietProvider account preference sync skipped: $e');
+    }
   }
 
   /// Takip sayfasından kilo eklendiğinde profili senkronize et.
@@ -687,8 +904,43 @@ class DietProvider with ChangeNotifier {
     final p = totals.totalProtein.round();
     final c = totals.totalCarb.round();
     final f = totals.totalFat.round();
+    final hour = DateTime.now().hour;
+    final profile = _profile;
+    final proteinTarget = profile != null ? (profile.weight * 1.8).round() : 0;
+    final proteinGap = proteinTarget > 0 ? proteinTarget - p : 0;
 
-    return 'Bugün $kcal kcal alındı. Hedef: $target kcal. Kalan: $remaining kcal. Makrolar: $p/P, $c/C, $f/F.';
+    // Saat dilimi
+    final timeCtx = hour < 10
+        ? 'Sabah (saat $hour:00)'
+        : hour < 13
+        ? 'Öğle öncesi (saat $hour:00)'
+        : hour < 17
+        ? 'Öğleden sonra (saat $hour:00)'
+        : hour < 21
+        ? 'Akşam (saat $hour:00)'
+        : 'Gece (saat $hour:00)';
+
+    // Bugün hangi öğünler girilmiş
+    final loggedMeals = MealType.values
+        .where((t) => entriesForMeal(t).isNotEmpty)
+        .map((t) => t.label)
+        .join(', ');
+    final mealCtx = loggedMeals.isEmpty ? 'Henüz öğün girilmedi' : 'Girilen öğünler: $loggedMeals';
+
+    // Hedef bilgisi
+    final goalCtx = profile != null ? '| Hedef: ${_goalLabel(profile.goal)}' : '';
+
+    // Protein durumu
+    final proteinCtx = proteinTarget > 0
+        ? '| Protein: $p/$proteinTarget g (${proteinGap > 0 ? "$proteinGap g eksik" : "tamam"})'
+        : '';
+
+    // Su
+    final waterCtx = _waterLiters > 0 ? '| Su: ${_waterLiters.toStringAsFixed(1)}L' : '';
+
+    return '$timeCtx. $mealCtx. '
+        'Kalori: $kcal/$target kcal (kalan: $remaining) $goalCtx. '
+        'Makrolar: P:$p g, K:$c g, Y:$f g $proteinCtx $waterCtx.';
   }
 
   Map<String, dynamic> getNutritionAiContext({String? mealType}) {
@@ -1123,7 +1375,7 @@ class DietProvider with ChangeNotifier {
     );
   }
 
-  Future<void> addEntry({
+  Future<String> addEntry({
     required FoodItem food,
     required double grams,
     required MealType mealType,
@@ -1131,7 +1383,7 @@ class DietProvider with ChangeNotifier {
   }) async {
     if (grams <= 0 || grams.isNaN || grams.isInfinite) {
       debugPrint('DietProvider.addEntry: Geçersiz gram değeri: $grams');
-      return;
+      return '';
     }
     try {
       final kcal = FoodCalculator.calculateCalories(food, grams);
@@ -1151,6 +1403,7 @@ class DietProvider with ChangeNotifier {
       );
       await _diaryRepo.addEntry(entry);
       await loadDay(DateTime(date.year, date.month, date.day));
+      return entry.id;
     } catch (e) {
       debugPrint('DietProvider.addEntry hatası: $e');
       _error = e.toString();
@@ -1216,6 +1469,7 @@ class DietProvider with ChangeNotifier {
               foodId: e.food.id,
               foodName: e.food.name,
               grams: e.grams,
+              kcalPer100g: e.food.kcalPer100g,
             ),
           )
           .toList(),
@@ -1244,6 +1498,69 @@ class DietProvider with ChangeNotifier {
       }
     }
     await addMultipleEntries(items: foodItems, mealType: mealType, date: date);
+  }
+
+  /// Son 7 gün içindeki en güncel öğün grubunu bugüne kopyalar.
+  /// Hızlı kayıt için FoodItem çözümlemesi yapmadan mevcut makro snapshot'ını taşır.
+  Future<int> repeatMostRecentMeal({
+    DateTime? targetDate,
+    MealType? targetMealType,
+    int lookbackDays = 7,
+  }) async {
+    final target = targetDate ?? _selectedDate;
+    final normalizedTarget = DateTime(target.year, target.month, target.day);
+
+    for (int i = 1; i <= lookbackDays; i++) {
+      final sourceDate = normalizedTarget.subtract(Duration(days: i));
+      final sourceKey = DiaryService.normalizeDate(sourceDate);
+      final sourceEntries = await _diaryRepo.getEntriesByDate(sourceKey);
+      if (sourceEntries.isEmpty) continue;
+
+      final grouped = <MealType, List<FoodEntry>>{};
+      for (final entry in sourceEntries) {
+        if (targetMealType != null && entry.mealType != targetMealType) {
+          continue;
+        }
+        grouped.putIfAbsent(entry.mealType, () => <FoodEntry>[]).add(entry);
+      }
+      if (grouped.isEmpty) continue;
+
+      final selectedGroup = grouped.entries.toList()
+        ..sort((a, b) {
+          DateTime latestOf(List<FoodEntry> entries) => entries
+              .map((entry) => entry.createdAt)
+              .reduce((latest, next) => next.isAfter(latest) ? next : latest);
+          return latestOf(b.value).compareTo(latestOf(a.value));
+        });
+      final entriesToRepeat = selectedGroup.first.value;
+      final repeatMealType = targetMealType ?? selectedGroup.first.key;
+      final targetKey = DiaryService.normalizeDate(normalizedTarget);
+      final now = DateTime.now();
+
+      for (final entry in entriesToRepeat) {
+        await _diaryRepo.addEntry(
+          FoodEntry(
+            id: _uuid.v4(),
+            date: targetKey,
+            mealType: repeatMealType,
+            foodId: entry.foodId,
+            foodName: entry.foodName,
+            grams: entry.grams,
+            calculatedKcal: entry.calculatedKcal,
+            protein: entry.protein,
+            carb: entry.carb,
+            fat: entry.fat,
+            fiber: entry.fiber,
+            sugar: entry.sugar,
+            createdAt: now,
+          ),
+        );
+      }
+      await loadDay(normalizedTarget);
+      return entriesToRepeat.length;
+    }
+
+    return 0;
   }
 
   Future<void> deleteEntry(String entryId) async {
@@ -2185,8 +2502,7 @@ class DietProvider with ChangeNotifier {
     }
   }
 
-  static double _safeDouble(double v) =>
-      v.isNaN || v.isInfinite ? 0.0 : v;
+  static double _safeDouble(double v) => v.isNaN || v.isInfinite ? 0.0 : v;
 
   static const Set<String> _porkTokens = {
     'domuz',

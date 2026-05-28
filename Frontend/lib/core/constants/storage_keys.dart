@@ -43,9 +43,15 @@ class StorageKeys {
   static const String settingsNotifDailySummary =
       'settings_notif_daily_summary';
   static const String settingsNotifWorkoutTime = 'settings_notif_workout_time';
+  static const String shownRemoteNotificationIds =
+      'shown_remote_notification_ids';
   static const String settingsThemeMode = 'settings_theme_mode';
   static const String settingsThemeHighContrast =
       'settings_theme_high_contrast';
+  static const String appLanguageCode = 'app_language_code';
+  static const String appUnitSystem = 'app_unit_system';
+  static const String appMarketRegion = 'app_market_region';
+  static const String usExperiencePromptSeen = 'us_experience_prompt_seen';
   static const String settingsPrivacyAnalytics = 'settings_privacy_analytics';
   static const String settingsPrivacyPersonalization =
       'settings_privacy_personalization';

@@ -6,6 +6,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/body_measurement.dart';
 import '../providers/tracking_provider.dart';
 
+/// Upgraded measurement trend chart with:
+/// - Horizontal chip selector (not dropdown)
+/// - Animated line with glow effect
+/// - Min/max annotation
+/// - Current value badge on last data point
 class MeasurementTrendChart extends StatefulWidget {
   const MeasurementTrendChart({super.key});
 
@@ -13,72 +18,192 @@ class MeasurementTrendChart extends StatefulWidget {
   State<MeasurementTrendChart> createState() => _MeasurementTrendChartState();
 }
 
-class _MeasurementTrendChartState extends State<MeasurementTrendChart> {
-  // Available measurements to chart
-  final Map<String, String> _measurementTypes = {
-    'chest': 'Göğüs',
-    'waist': 'Bel',
-    'hips': 'Kalça',
-    'leftArm': 'S. Kol',
-    'rightArm': 'Sğ. Kol',
-    'leftLeg': 'S. Bacak',
-    'rightLeg': 'Sğ. Bacak',
-  };
+class _MeasurementTrendChartState extends State<MeasurementTrendChart>
+    with SingleTickerProviderStateMixin {
+  static const _types = [
+    _TypeDef('waist', 'Bel', Color(0xFFFF6B6B)),
+    _TypeDef('chest', 'Göğüs', Color(0xFF64D2FF)),
+    _TypeDef('hips', 'Kalça', Color(0xFFFF9F43)),
+    _TypeDef('leftArm', 'Sol Kol', Color(0xFF48BB78)),
+    _TypeDef('rightArm', 'Sağ Kol', Color(0xFF48BB78)),
+    _TypeDef('leftLeg', 'Sol Bacak', Color(0xFFA78BFA)),
+    _TypeDef('rightLeg', 'Sağ Bacak', Color(0xFFA78BFA)),
+  ];
 
-  String _selectedType = 'waist'; // Default to waist
+  String _selectedKey = 'waist';
+  late AnimationController _lineCtrl;
+  late Animation<double> _lineAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _lineCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+    _lineAnim = CurvedAnimation(parent: _lineCtrl, curve: Curves.easeOutCubic);
+  }
+
+  @override
+  void dispose() {
+    _lineCtrl.dispose();
+    super.dispose();
+  }
+
+  void _select(String key) {
+    if (_selectedKey == key) return;
+    setState(() => _selectedKey = key);
+    _lineCtrl
+      ..reset()
+      ..forward();
+  }
+
+  _TypeDef get _current => _types.firstWhere((t) => t.key == _selectedKey);
+
+  double? _getVal(BodyMeasurement m, String key) {
+    switch (key) {
+      case 'chest':
+        return m.chest;
+      case 'waist':
+        return m.waist;
+      case 'hips':
+        return m.hips;
+      case 'leftArm':
+        return m.leftArm;
+      case 'rightArm':
+        return m.rightArm;
+      case 'leftLeg':
+        return m.leftLeg;
+      case 'rightLeg':
+        return m.rightLeg;
+      default:
+        return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<TrackingProvider>(
-      builder: (context, provider, child) {
+      builder: (context, provider, _) {
         if (provider.isLoading && provider.bodyMeasurements.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
-
-        final measurements = provider.bodyMeasurements.toList();
-        
-        if (measurements.isEmpty) {
-          return const SizedBox.shrink(); 
-        }
-
-        // Sort by date ascending for the chart
-        measurements.sort((a, b) => a.date.compareTo(b.date));
+        final sorted = [...provider.bodyMeasurements]
+          ..sort((a, b) => a.date.compareTo(b.date));
+        if (sorted.isEmpty) return const SizedBox.shrink();
 
         return Container(
-          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withValues(alpha: 0.07),
+                Colors.white.withValues(alpha: 0.03),
+              ],
+            ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.straighten_rounded, size: 20, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Ölçüm Trendi',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+              // ── Title row ────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: _current.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.show_chart_rounded,
+                        color: _current.color,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Ölçüm Trendi · ${_current.label}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Chip selector ─────────────────────────────────────────────
+              SizedBox(
+                height: 32,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _types.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 6),
+                  itemBuilder: (_, i) {
+                    final t = _types[i];
+                    final isSelected = t.key == _selectedKey;
+                    return GestureDetector(
+                      onTap: () => _select(t.key),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? t.color.withValues(alpha: 0.18)
+                              : Colors.white.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? t.color.withValues(alpha: 0.6)
+                                : Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            t.label,
+                            style: TextStyle(
+                              color: isSelected ? t.color : Colors.white38,
+                              fontSize: 12,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                  _buildDropdown(),
-                ],
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 16),
+
+              // ── Chart ─────────────────────────────────────────────────────
               SizedBox(
-                height: 220,
-                child: _buildChart(measurements),
+                height: 200,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16, left: 4, bottom: 4),
+                  child: _buildChart(sorted),
+                ),
               ),
+
+              const SizedBox(height: 12),
             ],
           ),
         );
@@ -86,199 +211,189 @@ class _MeasurementTrendChartState extends State<MeasurementTrendChart> {
     );
   }
 
-  Widget _buildDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedType,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primaryLight, size: 20),
-          dropdownColor: AppColors.surface,
-          style: const TextStyle(
-            color: AppColors.primaryLight,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() => _selectedType = newValue);
-            }
-          },
-          items: _measurementTypes.entries.map<DropdownMenuItem<String>>((entry) {
-            return DropdownMenuItem<String>(
-              value: entry.key,
-              child: Text(entry.value),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
   Widget _buildChart(List<BodyMeasurement> measurements) {
-    // Filter out entries where the selected measurement is null
-    final validData = measurements.where((m) => _getValue(m, _selectedType) != null).toList();
+    final valid = measurements
+        .where((m) => _getVal(m, _selectedKey) != null)
+        .toList();
 
-    if (validData.isEmpty) {
+    if (valid.isEmpty) {
       return Center(
         child: Text(
           'Bu bölge için henüz veri yok.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
         ),
       );
     }
-
-    if (validData.length == 1) {
+    if (valid.length == 1) {
       return Center(
         child: Text(
           'Grafik için en az 2 kayıt gerekiyor.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
         ),
       );
     }
 
-    final spots = validData.asMap().entries.map((e) {
-      final value = _getValue(e.value, _selectedType)!;
-      return FlSpot(e.key.toDouble(), value);
+    final spots = valid.asMap().entries.map((e) {
+      return FlSpot(e.key.toDouble(), _getVal(e.value, _selectedKey)!);
     }).toList();
 
     double minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
     double maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    
-    // Add some padding to Y axis
-    final yRange = maxY - minY;
-    if (yRange == 0) {
+    final range = maxY - minY;
+    if (range < 1) {
       minY -= 5;
       maxY += 5;
     } else {
-      minY -= (yRange * 0.2);
-      maxY += (yRange * 0.2);
+      minY -= range * 0.25;
+      maxY += range * 0.25;
     }
 
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: (maxY - minY) / 4,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.white.withValues(alpha: 0.05),
-            strokeWidth: 1,
-            dashArray: [5, 5],
+    final color = _current.color;
+
+    return AnimatedBuilder(
+      animation: _lineAnim,
+      builder: (_, _) => LineChart(
+        LineChartData(
+          clipData: const FlClipData.all(),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: (maxY - minY) / 4,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Colors.white.withValues(alpha: 0.05),
+              strokeWidth: 1,
+              dashArray: [4, 4],
+            ),
           ),
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                final index = value.toInt();
-                if (index < 0 || index >= validData.length) return const SizedBox();
-                
-                // Sadece başı, ortası ve sonu göster ki çok sıkışmasın
-                if (validData.length > 5) {
-                  if (index != 0 && index != validData.length - 1 && index != validData.length ~/ 2) {
-                    return const SizedBox();
+          titlesData: FlTitlesData(
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                interval: 1,
+                getTitlesWidget: (value, _) {
+                  final idx = value.toInt();
+                  if (idx < 0 || idx >= valid.length) return const SizedBox();
+                  if (valid.length > 5) {
+                    if (idx != 0 &&
+                        idx != valid.length - 1 &&
+                        idx != valid.length ~/ 2) {
+                      return const SizedBox();
+                    }
                   }
-                }
-                
-                final date = validData[index].date;
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    DateFormat('d MMM', 'tr_TR').format(date),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 11,
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      DateFormat('d MMM', 'tr_TR').format(valid[idx].date),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.40),
+                        fontSize: 10,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: (maxY - minY) / 4,
-              reservedSize: 40,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toStringAsFixed(1),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 38,
+                interval: (maxY - minY) / 4,
+                getTitlesWidget: (value, _) => Text(
+                  value.toStringAsFixed(0),
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 11,
+                    color: Colors.white.withValues(alpha: 0.35),
+                    fontSize: 10,
                   ),
-                );
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: (validData.length - 1).toDouble(),
-        minY: minY,
-        maxY: maxY,
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            curveSmoothness: 0.35,
-            color: AppColors.primary,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.3),
-                  AppColors.primary.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            tooltipBorderRadius: BorderRadius.circular(8),
-            getTooltipItems: (touchedSpots) {
-              return touchedSpots.map((spot) {
-                final date = validData[spot.x.toInt()].date;
-                final dateStr = DateFormat('d MMM', 'tr_TR').format(date);
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (valid.length - 1).toDouble(),
+          minY: minY,
+          maxY: maxY,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              curveSmoothness: 0.4,
+              color: color,
+              barWidth: 2.5,
+              isStrokeCapRound: true,
+              shadow: Shadow(
+                color: color.withValues(alpha: 0.45 * _lineAnim.value),
+                blurRadius: 10,
+              ),
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, pct, bar, idx) {
+                  final isLast = idx == spots.length - 1;
+                  return FlDotCirclePainter(
+                    radius: isLast ? 5 : 3,
+                    color: isLast ? color : color.withValues(alpha: 0.6),
+                    strokeWidth: isLast ? 2 : 0,
+                    strokeColor: Colors.white.withValues(alpha: 0.8),
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.25 * _lineAnim.value),
+                    color.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ],
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipColor: (_) => AppColors.surface,
+              tooltipBorderRadius: BorderRadius.circular(10),
+              tooltipBorder: BorderSide(color: color.withValues(alpha: 0.4)),
+              getTooltipItems: (spots) => spots.map((spot) {
+                final date = valid[spot.x.toInt()].date;
                 return LineTooltipItem(
-                  '${spot.y.toStringAsFixed(1)} cm\n$dateStr',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  '${spot.y.toStringAsFixed(1)} cm\n',
+                  TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: DateFormat('d MMM yyyy', 'tr_TR').format(date),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 );
-              }).toList();
-            },
+              }).toList(),
+            ),
           ),
         ),
       ),
     );
   }
+}
 
-  double? _getValue(BodyMeasurement m, String type) {
-    switch (type) {
-      case 'chest': return m.chest;
-      case 'waist': return m.waist;
-      case 'hips': return m.hips;
-      case 'leftArm': return m.leftArm;
-      case 'rightArm': return m.rightArm;
-      case 'leftLeg': return m.leftLeg;
-      case 'rightLeg': return m.rightLeg;
-      default: return null;
-    }
-  }
+class _TypeDef {
+  final String key;
+  final String label;
+  final Color color;
+  const _TypeDef(this.key, this.label, this.color);
 }

@@ -179,7 +179,15 @@ class _FakeRemoteGateway implements NutritionRemoteGateway {
       dayMeals;
 
   @override
-  Future<List<Meal>> getUserMeals(int userId) async => dayMeals;
+  Future<List<Meal>> getUserMeals(int userId, {int? limit}) async =>
+      limit == null ? dayMeals : dayMeals.take(limit).toList();
+
+  @override
+  Future<void> deleteAllMeals(int userId) async {
+    if (deleteThrows) {
+      throw Exception('delete failed');
+    }
+  }
 
   @override
   Future<Meal> updateMeal(int userId, int mealId, MealRequest request) async {

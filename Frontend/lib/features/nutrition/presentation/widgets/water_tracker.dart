@@ -2,15 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../../../../core/services/water_reminder_service.dart';
-import '../../../../core/utils/storage_helper.dart';
 
 // ── Okyanus paleti — parlak değil, derin ve şık ──────────────────────────────
-const _kOcean1  = Color(0xFF061118);  // kart bg üst
-const _kOcean2  = Color(0xFF0B1D2E);  // kart bg alt
-const _kDeep    = Color(0xFF1A4E6E);  // derin mavi
-const _kMid     = Color(0xFF2E7DAD);  // orta mavi
-const _kSurface = Color(0xFF6DB8D9);  // yüzey / açık mavi
-const _kDone    = Color(0xFF3DBF8A);  // tamamlandı — yeşil
+const _kOcean1 = Color(0xFF061118); // kart bg üst
+const _kOcean2 = Color(0xFF0B1D2E); // kart bg alt
+const _kDeep = Color(0xFF1A4E6E); // derin mavi
+const _kMid = Color(0xFF2E7DAD); // orta mavi
+const _kSurface = Color(0xFF6DB8D9); // yüzey / açık mavi
+const _kDone = Color(0xFF3DBF8A); // tamamlandı — yeşil
 
 class WaterTracker extends StatefulWidget {
   const WaterTracker({
@@ -63,16 +62,14 @@ class _WaterTrackerState extends State<WaterTracker>
     }
   }
 
-  Future<void> _toggleReminder() async {
-    final newState = !_reminderEnabled;
+  Future<void> _toggleReminder(bool newState) async {
     await WaterReminderService.instance.setEnabled(newState);
-    await StorageHelper.saveNotifWater(newState);
     if (mounted) {
       setState(() => _reminderEnabled = newState);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            newState ? 'Su hatırlatıcı açıldı 💧' : 'Su hatırlatıcı kapatıldı',
+            newState ? 'Su hatırlatıcı $_intervalHours saatte bir olarak ayarlandı 💧' : 'Su hatırlatıcı kapatıldı',
           ),
           duration: const Duration(seconds: 2),
           backgroundColor: newState ? _kMid : Colors.grey[800],
@@ -117,21 +114,21 @@ class _WaterTrackerState extends State<WaterTracker>
                 ),
               ),
               const SizedBox(height: 12),
-              for (final hours in [1, 2, 3, 4])
+              for (final hours in [0, 1, 2, 3, 4])
                 ListTile(
                   onTap: () => Navigator.pop(ctx, hours),
                   leading: Icon(
-                    Icons.schedule_rounded,
-                    color: hours == _intervalHours ? _kSurface : Colors.white38,
+                    hours == 0 ? Icons.notifications_off_rounded : Icons.schedule_rounded,
+                    color: (hours == 0 && !_reminderEnabled) || (hours != 0 && _reminderEnabled && hours == _intervalHours) ? _kSurface : Colors.white38,
                   ),
                   title: Text(
-                    '$hours saatte bir',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    hours == 0 ? 'Kapalı' : '$hours saatte bir',
+                    style: TextStyle(
+                      color: (hours == 0 && !_reminderEnabled) ? Colors.white54 : Colors.white,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  trailing: hours == _intervalHours
+                  trailing: (hours == 0 && !_reminderEnabled) || (hours != 0 && _reminderEnabled && hours == _intervalHours)
                       ? const Icon(Icons.check_rounded, color: _kSurface)
                       : null,
                 ),
@@ -142,9 +139,16 @@ class _WaterTrackerState extends State<WaterTracker>
     );
 
     if (selected == null) return;
-    await WaterReminderService.instance.setIntervalHours(selected);
-    if (!mounted) return;
-    setState(() => _intervalHours = selected);
+    
+    if (selected == 0) {
+      await _toggleReminder(false);
+    } else {
+      await WaterReminderService.instance.setIntervalHours(selected);
+      if (mounted) {
+        setState(() => _intervalHours = selected);
+      }
+      await _toggleReminder(true);
+    }
   }
 
   void _setGlasses(int value) {
@@ -159,24 +163,24 @@ class _WaterTrackerState extends State<WaterTracker>
         ? 0.0
         : (widget.currentGlasses / widget.goalGlasses).clamp(0.0, 1.0);
     final isDone = widget.currentGlasses >= widget.goalGlasses;
-    final remainingL =
-        ((goalMl - currentMl).clamp(0, goalMl) / 1000).toStringAsFixed(1);
+    final remainingL = ((goalMl - currentMl).clamp(0, goalMl) / 1000)
+        .toStringAsFixed(1);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 17, 18, 18),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [_kOcean1, _kOcean2],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _kDeep.withValues(alpha: 0.55)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF051018).withValues(alpha: 0.7),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF051018).withValues(alpha: 0.6),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -187,20 +191,20 @@ class _WaterTrackerState extends State<WaterTracker>
           Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: _kDeep.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _kMid.withValues(alpha: 0.35)),
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(color: _kMid.withValues(alpha: 0.3)),
                 ),
                 child: const Icon(
                   Icons.water_drop_rounded,
                   color: _kSurface,
-                  size: 22,
+                  size: 18,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,22 +212,17 @@ class _WaterTrackerState extends State<WaterTracker>
                     const Text(
                       'Su Takibi',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                         letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      isDone
-                          ? '✓ Hedef tamamlandı'
-                          : '$remainingL L kaldı',
+                      isDone ? '✓ Hedef tamamlandı' : '$remainingL L kaldı',
                       style: TextStyle(
-                        color: isDone
-                            ? _kDone
-                            : _kSurface.withValues(alpha: 0.65),
-                        fontSize: 12,
+                        color: isDone ? _kDone : _kSurface.withValues(alpha: 0.6),
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -236,10 +235,9 @@ class _WaterTrackerState extends State<WaterTracker>
                     : Icons.notifications_off_outlined,
                 color: _reminderEnabled ? _kSurface : Colors.white30,
                 label: _reminderEnabled ? '${_intervalHours}s' : null,
-                onTap: _toggleReminder,
-                onLongPress: _pickReminderInterval,
+                onTap: _pickReminderInterval,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _Chip(
                 icon: Icons.tune_rounded,
                 color: _kSurface.withValues(alpha: 0.7),
@@ -247,29 +245,29 @@ class _WaterTrackerState extends State<WaterTracker>
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
-          // ── Amount ───────────────────────────────────────────────────────
+          // ── Amount + progress ────────────────────────────────────────────
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 '${(currentMl / 1000).toStringAsFixed(1)} L',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 38,
+                  fontSize: 30,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -1.5,
+                  letterSpacing: -1.2,
                   height: 1,
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 5, left: 8),
+                padding: const EdgeInsets.only(left: 6),
                 child: Text(
                   '/ ${(goalMl / 1000).toStringAsFixed(1)} L',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.3),
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -277,7 +275,7 @@ class _WaterTrackerState extends State<WaterTracker>
               const Spacer(),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
                   color: isDone
                       ? _kDone.withValues(alpha: 0.12)
@@ -293,29 +291,27 @@ class _WaterTrackerState extends State<WaterTracker>
                   '${widget.currentGlasses}/${widget.goalGlasses} bardak',
                   style: TextStyle(
                     color: isDone ? _kDone : _kSurface,
-                    fontSize: 11.5,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // ── Dalga progress bar ───────────────────────────────────────────
           SizedBox(
-            height: 14,
+            height: 8,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Track arka plan
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                // Dalga dolgu
                 AnimatedBuilder(
                   animation: _waveCtrl,
                   builder: (context, _) => ClipPath(
@@ -340,15 +336,15 @@ class _WaterTrackerState extends State<WaterTracker>
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
 
           // ── Su damlası ikonları ──────────────────────────────────────────
           SizedBox(
-            height: 28,
+            height: 22,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: widget.goalGlasses,
-              separatorBuilder: (context, i) => const SizedBox(width: 4),
+              separatorBuilder: (context, i) => const SizedBox(width: 3),
               itemBuilder: (context, index) {
                 final isFilled = index < widget.currentGlasses;
                 return GestureDetector(
@@ -359,18 +355,18 @@ class _WaterTrackerState extends State<WaterTracker>
                     );
                   },
                   child: AnimatedScale(
-                    scale: isFilled ? 1.0 : 0.88,
+                    scale: isFilled ? 1.0 : 0.85,
                     duration: const Duration(milliseconds: 200),
                     curve: Curves.easeOutBack,
                     child: AnimatedOpacity(
-                      opacity: isFilled ? 1.0 : 0.22,
+                      opacity: isFilled ? 1.0 : 0.2,
                       duration: const Duration(milliseconds: 200),
                       child: Icon(
                         isFilled
                             ? Icons.water_drop_rounded
                             : Icons.water_drop_outlined,
                         color: isFilled ? _kSurface : Colors.white,
-                        size: 26,
+                        size: 20,
                       ),
                     ),
                   ),
@@ -378,7 +374,7 @@ class _WaterTrackerState extends State<WaterTracker>
               },
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
 
           // ── Butonlar ─────────────────────────────────────────────────────
           Row(
@@ -389,14 +385,14 @@ class _WaterTrackerState extends State<WaterTracker>
                 onTap: () => _setGlasses(widget.currentGlasses - 1),
                 style: _BtnStyle.danger,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _WaterBtn(
                 icon: Icons.add_rounded,
                 label: '+1 bardak',
                 onTap: () => _setGlasses(widget.currentGlasses + 1),
                 style: _BtnStyle.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _WaterBtn(
                 icon: Icons.local_drink_rounded,
                 label: '+500 ml',
@@ -484,10 +480,10 @@ class _WaterBtn extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 44,
+          height: 38,
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: border),
           ),
           child: Row(
@@ -523,20 +519,17 @@ class _Chip extends StatelessWidget {
     required this.color,
     this.label,
     this.onTap,
-    this.onLongPress,
   });
 
   final IconData icon;
   final Color color;
   final String? label;
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      onLongPress: onLongPress,
       child: Container(
         height: 34,
         padding: EdgeInsets.symmetric(horizontal: label == null ? 9 : 10),

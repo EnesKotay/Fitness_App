@@ -1,5 +1,5 @@
-import 'dart:ui' as ui;
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 const _kAccent = Color(0xFFCC7A4A);
@@ -35,6 +35,8 @@ class _AuthScaffoldState extends State<AuthScaffold>
   late final Animation<Offset> _formSlide;
   late final Animation<double> _pulse;
 
+  late final AnimationController _starsCtrl;
+
   // Merged listenable — build içinde değil initState'te oluşturulur
   late final Listenable _logoAnims;
 
@@ -69,18 +71,22 @@ class _AuthScaffoldState extends State<AuthScaffold>
       parent: _entranceCtrl,
       curve: const Interval(0.35, 0.85, curve: Curves.easeOut),
     );
-    _formSlide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entranceCtrl,
-        curve: const Interval(0.35, 0.9, curve: Curves.easeOutCubic),
-      ),
-    );
-    _pulse = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
-    );
+    _formSlide = Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entranceCtrl,
+            curve: const Interval(0.35, 0.9, curve: Curves.easeOutCubic),
+          ),
+        );
+    _pulse = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    _starsCtrl = AnimationController(
+      duration: const Duration(milliseconds: 4500),
+      vsync: this,
+    )..repeat(reverse: true);
 
     _logoAnims = Listenable.merge([_pulseCtrl, _ringCtrl]);
     _entranceCtrl.forward();
@@ -91,6 +97,7 @@ class _AuthScaffoldState extends State<AuthScaffold>
     _entranceCtrl.dispose();
     _pulseCtrl.dispose();
     _ringCtrl.dispose();
+    _starsCtrl.dispose();
     super.dispose();
   }
 
@@ -103,40 +110,40 @@ class _AuthScaffoldState extends State<AuthScaffold>
     final logoSize = compact ? 100.0 : 120.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF04080F),
+      backgroundColor: Colors.black,
       resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Katman 1: temel gradient ──────────────────────────
+          // ── Katman 1: siyah zemin ─────────────────────────────
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
-                center: Alignment(0.0, 0.6),
-                radius: 1.4,
+                center: Alignment(0.0, -0.3),
+                radius: 1.8,
                 colors: [
-                  Color(0xFF12100E),
-                  Color(0xFF08080D),
-                  Color(0xFF04080F),
+                  Color(0xFF101010),
+                  Color(0xFF050505),
+                  Color(0xFF000000),
                 ],
               ),
             ),
           ),
 
-          // ── Katman 2: amber zemin parıltısı (animasyonlu) ─────
+          // ── Katman 2: çok hafif sıcak alt parıltı ─────────────
           AnimatedBuilder(
             animation: _pulse,
-            builder: (_, __) => Positioned(
-              bottom: -size.height * 0.25,
+            builder: (_, _) => Positioned(
+              bottom: -size.height * 0.30,
               left: 0,
               right: 0,
               child: Container(
-                height: size.height * 0.7,
+                height: size.height * 0.75,
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     colors: [
-                      _kAccent.withValues(alpha: 0.18 * _pulse.value),
-                      _kAccentLight.withValues(alpha: 0.06 * _pulse.value),
+                      _kAccent.withValues(alpha: 0.09 * _pulse.value),
+                      _kAccentLight.withValues(alpha: 0.035 * _pulse.value),
                       Colors.transparent,
                     ],
                   ),
@@ -145,18 +152,79 @@ class _AuthScaffoldState extends State<AuthScaffold>
             ),
           ),
 
-          // ── Katman 3: üst mavi soğuk ışık ─────────────────────
+          // ── Katman 2b: sağ orta sıcak ışık (sabit) ────────────
           Positioned(
-            top: -size.height * 0.12,
-            right: -60,
+            right: -size.width * 0.25,
+            top: size.height * 0.35,
             child: Container(
-              width: 320,
-              height: 320,
+              width: size.width * 0.8,
+              height: size.width * 0.8,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF1E3A5F).withValues(alpha: 0.22),
+                    _kAccent.withValues(alpha: 0.035),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Katman 3: üst sağ sıcak ışık ──────────────────────
+          Positioned(
+            top: -size.height * 0.10,
+            right: -80,
+            child: Container(
+              width: 380,
+              height: 380,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    _kAccentLight.withValues(alpha: 0.10),
+                    _kAccent.withValues(alpha: 0.035),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Katman 3b: üst sol koyu gölge ─────────────────────
+          Positioned(
+            top: -60,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.025),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Katman 3c: orta yumuşak gölge bandı ───────────────
+          Positioned(
+            top: size.height * 0.28,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 180,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: 0.018),
+                    _kAccent.withValues(alpha: 0.018),
                     Colors.transparent,
                   ],
                 ),
@@ -166,15 +234,21 @@ class _AuthScaffoldState extends State<AuthScaffold>
 
           // ── Katman 4: arka plan dokusu (çok hafif) ────────────
           Opacity(
-            opacity: 0.03,
+            opacity: 0.012,
             child: Image.asset(
               'assets/images/tracking_bg_light.png',
               fit: BoxFit.cover,
             ),
           ),
 
-          // ── Katman 5: nokta grid (alt yarı) ───────────────────
-          CustomPaint(painter: _DotGridPainter()),
+          // ── Katman 5: animasyonlu yıldız alanı ────────────────
+          AnimatedBuilder(
+            animation: _starsCtrl,
+            builder: (_, _) => CustomPaint(
+              size: Size.infinite,
+              painter: _StarFieldPainter(progress: _starsCtrl.value),
+            ),
+          ),
 
           // ── Katman 6: içerik ─────────────────────────────────
           SafeArea(
@@ -209,8 +283,7 @@ class _AuthScaffoldState extends State<AuthScaffold>
                                   children: [
                                     // Dış dönen yay
                                     Transform.rotate(
-                                      angle:
-                                          _ringCtrl.value * 2 * math.pi,
+                                      angle: _ringCtrl.value * 2 * math.pi,
                                       child: CustomPaint(
                                         size: Size(
                                           logoSize + 48,
@@ -268,15 +341,14 @@ class _AuthScaffoldState extends State<AuthScaffold>
                           child: Column(
                             children: [
                               ShaderMask(
-                                shaderCallback: (b) =>
-                                    const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFFFFFF),
-                                        Color(0xFFEDD9C8),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ).createShader(b),
+                                shaderCallback: (b) => const LinearGradient(
+                                  colors: [
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFEDD9C8),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ).createShader(b),
                                 child: Text(
                                   widget.title,
                                   style: TextStyle(
@@ -303,12 +375,81 @@ class _AuthScaffoldState extends State<AuthScaffold>
                         ),
                         SizedBox(height: compact ? 32 : 44),
 
-                        // ── Form (kart yok) ─────────────────
+                        // ── Form kartı ───────────────────────
                         FadeTransition(
                           opacity: _formFade,
                           child: SlideTransition(
                             position: _formSlide,
-                            child: widget.formContent,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(28),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(
+                                  sigmaX: 20,
+                                  sigmaY: 20,
+                                ),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    18,
+                                    20,
+                                    18,
+                                    20,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(28),
+                                    color: const Color(
+                                      0xFF0E0F13,
+                                    ).withValues(alpha: 0.96),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.08,
+                                      ),
+                                      width: 1.0,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.42,
+                                        ),
+                                        blurRadius: 34,
+                                        spreadRadius: -14,
+                                        offset: const Offset(0, 18),
+                                      ),
+                                      BoxShadow(
+                                        color: _kAccent.withValues(alpha: 0.06),
+                                        blurRadius: 26,
+                                        spreadRadius: -20,
+                                        offset: const Offset(0, 12),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      Positioned(
+                                        left: 10,
+                                        right: 10,
+                                        top: 0,
+                                        child: Container(
+                                          height: 1,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.transparent,
+                                                _kAccentLight.withValues(
+                                                  alpha: 0.26,
+                                                ),
+                                                Colors.transparent,
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      widget.formContent,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
 
@@ -332,26 +473,50 @@ class _AuthScaffoldState extends State<AuthScaffold>
   }
 }
 
-/// Nokta grid (sadece alt yarıda)
-class _DotGridPainter extends CustomPainter {
+class _StarData {
+  final double x, y, r, phase;
+  const _StarData(this.x, this.y, this.r, this.phase);
+}
+
+/// Twinkling yıldız alanı
+class _StarFieldPainter extends CustomPainter {
+  final double progress;
+
+  static final List<_StarData> _stars = _build();
+
+  static List<_StarData> _build() {
+    final rng = math.Random(9999);
+    return List.generate(
+      90,
+      (_) => _StarData(
+        rng.nextDouble(),
+        rng.nextDouble(),
+        0.4 + rng.nextDouble() * 1.1,
+        rng.nextDouble(),
+      ),
+    );
+  }
+
+  _StarFieldPainter({required this.progress});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.fill;
-
-    const spacing = 30.0;
-    final startY = size.height * 0.52;
-    for (double y = startY; y < size.height; y += spacing) {
-      for (double x = 0; x < size.width; x += spacing) {
-        canvas.drawCircle(Offset(x, y), 1.2, paint);
-      }
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (final s in _stars) {
+      final alpha = 0.08 + 0.22 * math.sin((progress + s.phase) * math.pi);
+      paint.color = Colors.white.withValues(alpha: alpha);
+      canvas.drawCircle(
+        Offset(s.x * size.width, s.y * size.height),
+        s.r,
+        paint,
+      );
     }
   }
 
+  // Sadece progress 0.5° faz kadar değişince yeniden çiz (~45fps eşdeğeri).
   @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
+  bool shouldRepaint(_StarFieldPainter old) =>
+      (old.progress - progress).abs() > 0.005;
 }
 
 /// Dönen ark halka

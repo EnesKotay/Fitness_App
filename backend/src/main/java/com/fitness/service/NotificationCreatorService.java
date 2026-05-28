@@ -17,6 +17,9 @@ public class NotificationCreatorService {
     @Inject
     UserRepository userRepository;
 
+    @Inject
+    PushNotificationService pushNotificationService;
+
     @Transactional(Transactional.TxType.REQUIRES_NEW)
     public void create(Long userId, String title, String message, String type) {
         User user = userRepository.findById(userId);
@@ -28,6 +31,7 @@ public class NotificationCreatorService {
         n.message = message;
         n.type = type;
         n.persist();
+        pushNotificationService.sendToUser(userId, n.id, title, message, type);
     }
 
     /** Bugün bu kullanıcıya bu tip bildirim gönderildi mi? */

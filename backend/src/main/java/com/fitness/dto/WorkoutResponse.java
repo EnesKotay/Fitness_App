@@ -5,6 +5,7 @@ import java.util.List;
 
 public class WorkoutResponse {
     public Long id;
+    public Long sessionId;
     public String name;
     public String workoutType;
     public Integer durationMinutes;

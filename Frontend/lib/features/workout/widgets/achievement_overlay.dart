@@ -264,7 +264,7 @@ class _AchievementOverlayState extends State<AchievementOverlay>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Bu haftanın tam besin trend analizini\/haftalık programını Premium ile gör.',
+                      'Bu haftanın tam besin trend analizini/haftalık programını Premium ile gör.',
                       style: GoogleFonts.dmSans(
                         color: Colors.white.withValues(alpha: 0.65),
                         fontSize: 11,

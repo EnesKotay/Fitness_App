@@ -9,6 +9,7 @@ import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../tracking/providers/tracking_provider.dart';
 import '../../weight/data/repositories/weight_repository_impl.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
+import '../../workout/data/hive_workout_repository.dart';
 import '../../workout/providers/workout_provider.dart';
 import '../providers/auth_provider.dart';
 import 'legal_screen.dart';
@@ -119,10 +120,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     await HiveDietStorage.closeBoxesForSuffix(oldSuffix);
     await HiveWeightRepository.closeBoxesForSuffix(oldSuffix);
+    await HiveWorkoutRepository.closeBoxesForSuffix(oldSuffix);
 
     final newSuffix = StorageHelper.getUserStorageSuffix();
     await HiveDietStorage.clearBoxesForSuffix(newSuffix);
     await HiveWeightRepository.clearBoxesForSuffix(newSuffix);
+    await HiveWorkoutRepository.clearBoxesForSuffix(newSuffix);
 
     if (!mounted) return;
     final dietProvider = Provider.of<DietProvider>(context, listen: false);

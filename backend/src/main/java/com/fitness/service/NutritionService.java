@@ -63,6 +63,20 @@ public class NutritionService {
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Kullanıcının en güncel yemek kayıtlarını limitli getir
+     */
+    public List<MealResponse> getUserMeals(Long userId, Integer limit) {
+        if (limit == null || limit <= 0) {
+            return getUserMeals(userId);
+        }
+        int safeLimit = Math.min(limit, 200);
+        List<Meal> meals = mealRepository.findByUserIdOrderByMealDateDesc(userId, safeLimit);
+        return meals.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
     
     /**
      * Belirli bir tarihteki yemekleri getir
@@ -139,6 +153,14 @@ public class NutritionService {
         }
         
         mealRepository.delete(meal);
+    }
+
+    /**
+     * Kullanıcının tüm yemek kayıtlarını sil
+     */
+    @Transactional
+    public void deleteAllMeals(Long userId) {
+        Meal.delete("user.id", userId);
     }
     
     /**

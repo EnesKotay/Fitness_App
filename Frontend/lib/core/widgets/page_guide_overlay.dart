@@ -146,18 +146,26 @@ class _PageGuideOverlayState extends State<PageGuideOverlay>
                             vertical: 7,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: Colors.white.withValues(alpha: 0.45),
+                              width: 1.2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Text(
                             'Atla',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: Colors.white.withValues(alpha: 0.95),
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                               decoration: TextDecoration.none,
                             ),
                           ),

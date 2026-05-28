@@ -25,6 +25,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
   final _proteinController = TextEditingController();
   final _carbController = TextEditingController();
   final _fatController = TextEditingController();
+  final _servingGramsController = TextEditingController();
   bool _saving = false;
   bool _estimating = false;
 
@@ -63,6 +64,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     _proteinController.dispose();
     _carbController.dispose();
     _fatController.dispose();
+    _servingGramsController.dispose();
     super.dispose();
   }
 
@@ -128,6 +130,20 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
     double? finalKcal = _kcal > 0 ? _kcal : (4 * _p + 4 * _c + 9 * _f);
     if (finalKcal == 0 && _kcalController.text.isEmpty) finalKcal = null;
 
+    final servingG = double.tryParse(
+      _servingGramsController.text.replaceAll(',', '.'),
+    );
+    final servings = servingG != null && servingG > 0
+        ? [
+            ServingUnit(
+              id: 's_adet',
+              label: '1 Adet (${servingG.round()}g)',
+              grams: servingG,
+              isDefault: true,
+            ),
+          ]
+        : <ServingUnit>[];
+
     final food = FoodItem(
       id: 'custom_${const Uuid().v4()}',
       name: nameVal,
@@ -139,6 +155,7 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
         carb: _c,
         fat: _f,
       ),
+      servings: servings,
     );
 
     try {
@@ -148,13 +165,11 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
       ).addCustomFood(food);
       if (!mounted) return;
       setState(() => _saving = false);
+      AppSnack.showSuccess(context, 'Yemek başarıyla eklendi!');
       try {
         Navigator.of(context, rootNavigator: false).pop(true);
       } catch (e) {
         Navigator.of(context).pop(true);
-      }
-      if (mounted) {
-        AppSnack.showSuccess(context, 'Yemek başarıyla eklendi!');
       }
     } catch (e) {
       if (mounted) {
@@ -453,8 +468,16 @@ class _AddCustomFoodPageState extends State<AddCustomFoodPage> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            // Spacer for layout balance
-                            const Expanded(child: SizedBox()),
+                            Expanded(
+                              child: _GlassInput(
+                                controller: _servingGramsController,
+                                label: '1 Adet (g)',
+                                icon: Icons.restaurant_rounded,
+                                hint: 'Opsiyonel',
+                                color: const Color(0xFFFFB74D),
+                                isNumber: true,
+                              ),
+                            ),
                           ],
                         ),
                       ]),

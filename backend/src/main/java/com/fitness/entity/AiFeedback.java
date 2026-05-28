@@ -27,6 +27,15 @@ public class AiFeedback extends PanacheEntity {
     @Column(name = "personality", length = 32)
     public String personality;
 
+    @Column(name = "user_question", columnDefinition = "TEXT")
+    public String userQuestion;
+
+    @Column(name = "reason", length = 64)
+    public String reason;
+
+    @Column(name = "coaching_preference", columnDefinition = "TEXT")
+    public String coachingPreference;
+
     @Column(name = "created_at", nullable = false)
     public LocalDateTime createdAt;
 }

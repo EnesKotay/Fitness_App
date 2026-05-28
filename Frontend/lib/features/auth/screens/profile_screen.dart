@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/preferences/app_preferences.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../nutrition/data/datasources/hive_diet_storage.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
@@ -12,6 +13,7 @@ import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/data/repositories/weight_repository_impl.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
+import '../../workout/data/hive_workout_repository.dart';
 import '../../tracking/providers/tracking_provider.dart';
 import '../../workout/providers/workout_provider.dart';
 import '../../nutrition/presentation/pages/diet_tab_container.dart';
@@ -100,6 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       body: Consumer3<AuthProvider, DietProvider, WeightProvider>(
         builder: (context, authProvider, dietProvider, weightProvider, _) {
           final user = authProvider.user;
+          final appPrefs = context.watch<AppPreferences>();
           final profile = dietProvider.profile;
           final name = _capitalizeFirst(
             profile?.name ??
@@ -210,6 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     _buildGoalChip(profile?.goal),
                                     const SizedBox(height: 10),
                                     _buildHeroKpiStrip(
+                                      appPrefs: appPrefs,
                                       profileCompletion: profileCompletion,
                                       dailyProgress: dailyProgress,
                                       remainingKcal: remainingKcal,
@@ -303,6 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               _buildProfileDetailsCard(
                                 profile: profile,
                                 latestWeight: latestWeight,
+                                appPrefs: appPrefs,
                               ),
                             ],
                           ),
@@ -356,114 +361,149 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _sectionLabel('HESAP & AYARLAR'),
-                              _settingsTile(
-                                icon: Icons.auto_awesome_rounded,
-                                accent: const Color(0xFFD97706),
-                                title: 'Premium Üyelik',
-                                subtitle: 'Yapay Zekayı Yükselt',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const PremiumScreen(),
+                              // ── Hesap grubu ──
+                              _sectionLabel('HESAP'),
+                              _settingsGroup([
+                                _settingsTileRaw(
+                                  icon: Icons.auto_awesome_rounded,
+                                  accent: const Color(0xFFD97706),
+                                  title: 'Premium Üyelik',
+                                  subtitle: 'Yapay Zekayı Yükselt',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const PremiumScreen(),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              _settingsTile(
-                                icon: Icons.emoji_events_rounded,
-                                accent: const Color(0xFFFFD700),
-                                title: 'Başarımlar',
-                                subtitle: 'Rozetler ve seriler',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/achievements'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.lock_outline_rounded,
-                                accent: _warmAccent,
-                                title: 'Şifre Değiştir',
-                                subtitle: 'Hesap güvenliği',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-password'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.notifications_none_rounded,
-                                accent: _softBlue,
-                                title: 'Bildirimler',
-                                subtitle: 'Hatırlatıcı ve hedefler',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-notifications'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.restaurant_menu_rounded,
-                                accent: const Color(0xFF66BB6A),
-                                title: 'Beslenme Tercihleri',
-                                subtitle: 'Vejetaryen, glutensiz, helal...',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-nutrition'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.fitness_center_rounded,
-                                accent: const Color(0xFFFF8A65),
-                                title: 'Antrenman Tercihleri',
-                                subtitle: 'Ortam ve ekipman ayarları',
-                                onTap: () =>
-                                    _showWorkoutSettingsSheet(context),
-                              ),
+                                _settingsTileRaw(
+                                  icon: Icons.emoji_events_rounded,
+                                  accent: const Color(0xFFFFD700),
+                                  title: 'Başarımlar',
+                                  subtitle: 'Rozetler ve seriler',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/achievements'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.fact_check_rounded,
+                                  accent: const Color(0xFF64D2FF),
+                                  title: 'Haftalık Check-in',
+                                  subtitle:
+                                      'AI odak, güvenlik ve haftalık ritim',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/weekly-check-in'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.lock_outline_rounded,
+                                  accent: _warmAccent,
+                                  title: 'Şifre Değiştir',
+                                  subtitle: 'Hesap güvenliği',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-password'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.notifications_none_rounded,
+                                  accent: _softBlue,
+                                  title: 'Bildirimler',
+                                  subtitle: 'Hatırlatıcı ve hedefler',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-notifications'),
+                                ),
+                              ]),
+                              const SizedBox(height: 20),
 
-                              _settingsTile(
-                                icon: Icons.help_outline_rounded,
-                                accent: _softBlue,
-                                title: 'Yardım & SSS',
-                                subtitle: 'Sık sorulan sorular, destek',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-help'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.privacy_tip_outlined,
-                                accent: _softBlue,
-                                title: 'Gizlilik',
-                                subtitle: 'Veri ve izin yonetimi',
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).pushNamed('/settings-privacy'),
-                              ),
-                              _settingsTile(
-                                icon: Icons.description_outlined,
-                                accent: _warmAccent,
-                                title: 'Kullanım Koşulları',
-                                subtitle: 'Yasal metni görüntüle',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalScreen(
-                                      initialTab: LegalTab.terms,
+                              // ── Tercihler grubu ──
+                              _sectionLabel('TERCİHLER'),
+                              _settingsGroup([
+                                _settingsTileRaw(
+                                  icon: Icons.public_rounded,
+                                  accent: const Color(0xFF81C784),
+                                  title: 'Dil ve Birimler',
+                                  subtitle: 'English, lb/in, US foods',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-language-units'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.restaurant_menu_rounded,
+                                  accent: const Color(0xFF66BB6A),
+                                  title: 'Beslenme Tercihleri',
+                                  subtitle: 'Vejetaryen, glutensiz, helal...',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-nutrition'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.fitness_center_rounded,
+                                  accent: const Color(0xFFFF8A65),
+                                  title: 'Antrenman Tercihleri',
+                                  subtitle: 'Ortam ve ekipman ayarları',
+                                  onTap: () =>
+                                      _showWorkoutSettingsSheet(context),
+                                ),
+                              ]),
+                              const SizedBox(height: 20),
+
+                              // ── Destek & Yasal grubu ──
+                              _sectionLabel('DESTEK & YASAL'),
+                              _settingsGroup([
+                                _settingsTileRaw(
+                                  icon: Icons.help_outline_rounded,
+                                  accent: _softBlue,
+                                  title: 'Yardım & SSS',
+                                  subtitle: 'Sık sorulan sorular, destek',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-help'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.privacy_tip_outlined,
+                                  accent: _softBlue,
+                                  title: 'Gizlilik',
+                                  subtitle: 'Veri ve izin yönetimi',
+                                  onTap: () => Navigator.of(
+                                    context,
+                                  ).pushNamed('/settings-privacy'),
+                                ),
+                                _settingsTileRaw(
+                                  icon: Icons.description_outlined,
+                                  accent: _warmAccent,
+                                  title: 'Kullanım Koşulları',
+                                  subtitle: 'Yasal metni görüntüle',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalScreen(
+                                        initialTab: LegalTab.terms,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              _settingsTile(
-                                icon: Icons.shield_outlined,
-                                accent: _freshGreen,
-                                title: 'Gizlilik Politikası',
-                                subtitle: 'Veri işleme detayları',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const LegalScreen(
-                                      initialTab: LegalTab.privacy,
+                                _settingsTileRaw(
+                                  icon: Icons.shield_outlined,
+                                  accent: _freshGreen,
+                                  title: 'Gizlilik Politikası',
+                                  subtitle: 'Veri işleme detayları',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalScreen(
+                                        initialTab: LegalTab.privacy,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              _settingsTile(
-                                icon: Icons.delete_forever_outlined,
-                                accent: Colors.redAccent,
-                                title: 'Hesabı Sil',
-                                subtitle: 'Tüm verileri kalıcı olarak sil',
-                                onTap: () => _showDeleteAccountDialog(context),
-                              ),
+                                _settingsTileRaw(
+                                  icon: Icons.delete_forever_outlined,
+                                  accent: Colors.redAccent,
+                                  title: 'Hesabı Sil',
+                                  subtitle: 'Tüm verileri kalıcı olarak sil',
+                                  onTap: () =>
+                                      _showDeleteAccountDialog(context),
+                                ),
+                              ]),
                               const SizedBox(height: 24),
                               _logoutTile(context, authProvider),
                               const SizedBox(height: 32),
@@ -493,11 +533,18 @@ class _ProfileScreenState extends State<ProfileScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 26),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.redAccent,
+              size: 26,
+            ),
             SizedBox(width: 10),
             Text(
               'Hesabı Sil',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -1275,6 +1322,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildHeroKpiStrip({
+    required AppPreferences appPrefs,
     required double profileCompletion,
     required double dailyProgress,
     required double remainingKcal,
@@ -1284,10 +1332,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }) {
     final remaining = remainingKcal.round();
     final weightText = latestWeight != null
-        ? '${latestWeight.toStringAsFixed(1)} kg'
+        ? AppUnits.formatWeight(latestWeight, appPrefs)
         : '--';
     final compactWeightText = latestWeight != null
-        ? '${latestWeight.toStringAsFixed(1)}kg'
+        ? AppUnits.formatWeight(latestWeight, appPrefs).replaceAll(' ', '')
         : '--';
     return Column(
       children: [
@@ -1450,7 +1498,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Eksik profil alanlari',
+                  'Eksik profil alanları',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w700,
@@ -1474,7 +1522,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   child: const Text(
-                    'Duzenle',
+                    'Düzenle',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -1608,6 +1656,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildProfileDetailsCard({
     required UserProfile? profile,
     required double? latestWeight,
+    required AppPreferences appPrefs,
   }) {
     return _glassPanel(
       radius: 16,
@@ -1643,7 +1692,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               Text(
-                'Canli',
+                'Canlı',
                 style: TextStyle(
                   color: _freshGreen.withValues(alpha: 0.95),
                   fontSize: 12,
@@ -1658,9 +1707,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _profileInfoTile(
                   icon: Icons.cake_outlined,
-                  label: 'Yas',
+                  label: 'Yaş',
                   value: profile != null ? '${profile.age}' : '--',
                   tone: _warmAccent,
+                  onTap: profile == null ? () => _openEditProfile(context) : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1669,9 +1719,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   icon: Icons.height_rounded,
                   label: 'Boy',
                   value: profile != null
-                      ? '${profile.height.toStringAsFixed(0)} cm'
+                      ? AppUnits.formatHeight(profile.height, appPrefs)
                       : '--',
                   tone: _softBlue,
+                  onTap: profile == null ? () => _openEditProfile(context) : null,
                 ),
               ),
             ],
@@ -1684,9 +1735,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   icon: Icons.monitor_weight_outlined,
                   label: 'Kilo',
                   value: latestWeight != null
-                      ? '${latestWeight.toStringAsFixed(1)} kg'
+                      ? AppUnits.formatWeight(latestWeight, appPrefs)
                       : '--',
                   tone: _freshGreen,
+                  onTap: latestWeight == null ? () => _openEditProfile(context) : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1696,6 +1748,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Hedef',
                   value: _goalLabel(profile?.goal),
                   tone: _warmAccent,
+                  onTap: profile?.goal == null ? () => _openEditProfile(context) : null,
                 ),
               ),
             ],
@@ -1709,6 +1762,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Cinsiyet',
                   value: _genderLabel(profile?.gender),
                   tone: _softBlue,
+                  onTap: profile?.gender == null ? () => _openEditProfile(context) : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1718,6 +1772,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Aktivite',
                   value: _activityLabel(profile?.activityLevel),
                   tone: _freshGreen,
+                  onTap: profile?.activityLevel == null ? () => _openEditProfile(context) : null,
                 ),
               ),
             ],
@@ -1732,17 +1787,23 @@ class _ProfileScreenState extends State<ProfileScreen>
     required String label,
     required String value,
     required Color tone,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final isEmpty = value == '--';
+    final tile = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [tone.withValues(alpha: 0.12), tone.withValues(alpha: 0.02)],
+          colors: [tone.withValues(alpha: isEmpty ? 0.06 : 0.12), tone.withValues(alpha: 0.02)],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: tone.withValues(alpha: 0.22)),
+        border: Border.all(
+          color: isEmpty
+              ? tone.withValues(alpha: 0.40)
+              : tone.withValues(alpha: 0.22),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1763,13 +1824,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (isEmpty)
+                Icon(Icons.edit_outlined, size: 12, color: tone.withValues(alpha: 0.7)),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
+            isEmpty ? 'Ekle' : value,
+            style: TextStyle(
+              color: isEmpty ? tone.withValues(alpha: 0.7) : Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -1779,6 +1842,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
       ),
     );
+
+    if (onTap == null) return tile;
+    return GestureDetector(onTap: onTap, child: tile);
   }
 
   Widget _quickAccessCard(
@@ -1896,13 +1962,38 @@ class _ProfileScreenState extends State<ProfileScreen>
     const accent = Color(0xFFFF8A65);
 
     final locationOptions = [
-      (value: 'home', emoji: '🏠', label: 'Evde', hint: 'Minimal veya ekipmansız'),
-      (value: 'gym', emoji: '🏋️', label: 'Spor Salonunda', hint: 'Tam gym erişimi'),
+      (
+        value: 'home',
+        emoji: '🏠',
+        label: 'Evde',
+        hint: 'Minimal veya ekipmansız',
+      ),
+      (
+        value: 'gym',
+        emoji: '🏋️',
+        label: 'Spor Salonunda',
+        hint: 'Tam gym erişimi',
+      ),
     ];
     final equipmentOptions = [
-      (value: 'bodyweight', emoji: '🤸', label: 'Sadece Vücut Ağırlığı', hint: 'Ekipman gerektirmez'),
-      (value: 'dumbbells', emoji: '🏋️', label: 'Dambıl / Kettlebell', hint: 'Hafif ekipman'),
-      (value: 'full_gym', emoji: '💪', label: 'Tam Spor Salonu', hint: 'Barbell ve makinalar'),
+      (
+        value: 'bodyweight',
+        emoji: '🤸',
+        label: 'Sadece Vücut Ağırlığı',
+        hint: 'Ekipman gerektirmez',
+      ),
+      (
+        value: 'dumbbells',
+        emoji: '🏋️',
+        label: 'Dambıl / Kettlebell',
+        hint: 'Hafif ekipman',
+      ),
+      (
+        value: 'full_gym',
+        emoji: '💪',
+        label: 'Tam Spor Salonu',
+        hint: 'Barbell ve makinalar',
+      ),
     ];
 
     showModalBottomSheet(
@@ -1912,7 +2003,9 @@ class _ProfileScreenState extends State<ProfileScreen>
       builder: (_) => StatefulBuilder(
         builder: (_, setState) => Container(
           padding: EdgeInsets.only(
-            left: 20, right: 20, top: 24,
+            left: 20,
+            right: 20,
+            top: 24,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 32,
           ),
           decoration: const BoxDecoration(
@@ -1925,7 +2018,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(99),
@@ -1941,20 +2035,33 @@ class _ProfileScreenState extends State<ProfileScreen>
                       color: accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.fitness_center_rounded, color: Color(0xFFFF8A65), size: 20),
+                    child: const Icon(
+                      Icons.fitness_center_rounded,
+                      color: Color(0xFFFF8A65),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
                     'Antrenman Tercihleri',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
               // Workout Location
-              Text('Nerede spor yapıyorsun?',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              Text(
+                'Nerede spor yapıyorsun?',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 10),
               Row(
@@ -1967,30 +2074,48 @@ class _ProfileScreenState extends State<ProfileScreen>
                         onTap: () => setState(() => location = opt.value),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 12,
+                          ),
                           decoration: BoxDecoration(
-                            color: selected ? accent.withValues(alpha: 0.15) : const Color(0xFF1A1D24),
+                            color: selected
+                                ? accent.withValues(alpha: 0.15)
+                                : const Color(0xFF1A1D24),
                             border: Border.all(
-                              color: selected ? accent.withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.08),
+                              color: selected
+                                  ? accent.withValues(alpha: 0.6)
+                                  : Colors.white.withValues(alpha: 0.08),
                               width: selected ? 1.5 : 1,
                             ),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Column(
                             children: [
-                              Text(opt.emoji, style: const TextStyle(fontSize: 26)),
+                              Text(
+                                opt.emoji,
+                                style: const TextStyle(fontSize: 26),
+                              ),
                               const SizedBox(height: 6),
-                              Text(opt.label,
+                              Text(
+                                opt.label,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: selected ? Colors.white : Colors.white60,
-                                  fontSize: 13, fontWeight: FontWeight.w700,
+                                  color: selected
+                                      ? Colors.white
+                                      : Colors.white60,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(opt.hint,
+                              Text(
+                                opt.hint,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11),
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -2003,8 +2128,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               const SizedBox(height: 22),
 
               // Equipment
-              Text('Hangi ekipmanın var?',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13, fontWeight: FontWeight.w600),
+              Text(
+                'Hangi ekipmanın var?',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.7),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 10),
               ...equipmentOptions.map((opt) {
@@ -2015,11 +2145,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                     onTap: () => setState(() => equipment = opt.value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: selected ? accent.withValues(alpha: 0.12) : const Color(0xFF1A1D24),
+                        color: selected
+                            ? accent.withValues(alpha: 0.12)
+                            : const Color(0xFF1A1D24),
                         border: Border.all(
-                          color: selected ? accent.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.07),
+                          color: selected
+                              ? accent.withValues(alpha: 0.55)
+                              : Colors.white.withValues(alpha: 0.07),
                           width: selected ? 1.5 : 1,
                         ),
                         borderRadius: BorderRadius.circular(14),
@@ -2032,20 +2169,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(opt.label,
+                                Text(
+                                  opt.label,
                                   style: TextStyle(
-                                    color: selected ? Colors.white : Colors.white70,
-                                    fontSize: 14, fontWeight: FontWeight.w700,
+                                    color: selected
+                                        ? Colors.white
+                                        : Colors.white70,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                Text(opt.hint,
-                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 12),
+                                Text(
+                                  opt.hint,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           if (selected)
-                            Icon(Icons.check_circle_rounded, color: accent, size: 20),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              color: accent,
+                              size: 20,
+                            ),
                         ],
                       ),
                     ),
@@ -2062,14 +2211,29 @@ class _ProfileScreenState extends State<ProfileScreen>
                     backgroundColor: accent,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: () async {
+                    final dietProvider = ctx.read<DietProvider>();
+                    final authProvider = ctx.read<AuthProvider>();
                     await StorageHelper.saveWorkoutLocation(location);
                     await StorageHelper.saveEquipmentType(equipment);
+                    final profile = dietProvider.profile;
+                    if (profile != null) {
+                      try {
+                        await authProvider.updateProfileFromDiet(profile);
+                      } catch (e) {
+                        debugPrint('Workout preference sync hatasi: $e');
+                      }
+                    }
                     if (ctx.mounted) Navigator.of(ctx).pop();
                   },
-                  child: const Text('Kaydet', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                  child: const Text(
+                    'Kaydet',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],
@@ -2079,75 +2243,119 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _settingsTile({
+  /// Birden fazla tile'ı tek bir cam-efektli grup kartı içinde birleştirir.
+  /// Tile'lar arasına ince ayraç çizilir.
+  Widget _settingsGroup(List<Widget> tiles) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.28),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < tiles.length; i++) ...[
+                tiles[i],
+                if (i < tiles.length - 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Colors.white.withValues(alpha: 0.07),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Grup içinde kullanılan ham tile (kendi padding/border'ı yok).
+  Widget _settingsTileRaw({
     required IconData icon,
     required Color accent,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: _glassPanel(
-            radius: 14,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            backgroundColor: Colors.black.withValues(alpha: 0.24),
-            borderColor: Colors.white.withValues(alpha: 0.12),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: accent.withValues(alpha: 0.3)),
-                  ),
-                  child: Icon(icon, color: accent, size: 20),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: accent.withValues(alpha: 0.28)),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: Icon(icon, color: accent, size: 19),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
                       Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 11.5,
                         ),
                       ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.5),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: accent.withValues(alpha: 0.7),
-                  size: 20,
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withValues(alpha: 0.28),
+                size: 18,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  /// Artık kullanılmıyor; geriye uyumluluk için korundu.
+  // ignore: unused_element
+  Widget _settingsTile({
+    required IconData icon,
+    required Color accent,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) => _settingsTileRaw(
+    icon: icon,
+    accent: accent,
+    title: title,
+    subtitle: subtitle,
+    onTap: onTap,
+  );
 
   Widget _logoutTile(BuildContext context, AuthProvider authProvider) {
     return Material(
@@ -2241,7 +2449,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (profile == null) {
       return const [
         (label: 'Ad', icon: Icons.badge_outlined),
-        (label: 'Yas', icon: Icons.cake_outlined),
+        (label: 'Yaş', icon: Icons.cake_outlined),
         (label: 'Boy', icon: Icons.height_rounded),
         (label: 'Kilo', icon: Icons.monitor_weight_outlined),
         (label: 'Cinsiyet', icon: Icons.wc_rounded),
@@ -2255,7 +2463,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       fields.add((label: 'Ad', icon: Icons.badge_outlined));
     }
     if (profile.age <= 0) {
-      fields.add((label: 'Yas', icon: Icons.cake_outlined));
+      fields.add((label: 'Yaş', icon: Icons.cake_outlined));
     }
     if (profile.height <= 0) {
       fields.add((label: 'Boy', icon: Icons.height_rounded));
@@ -2404,6 +2612,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     await authProvider.logout();
     await HiveDietStorage.closeBoxesForSuffix(oldSuffix);
     await HiveWeightRepository.closeBoxesForSuffix(oldSuffix);
+    await HiveWorkoutRepository.closeBoxesForSuffix(oldSuffix);
 
     if (!mounted) return;
 

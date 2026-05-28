@@ -119,14 +119,18 @@ class MealReminderService {
   }
 
   /// Genel hatırlatıcıyı aç/kapat.
-  Future<void> setEnabled(bool enabled) async {
+  Future<void> setEnabled(bool enabled, {bool sync = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_userKey(_enabledKey), enabled);
-    await _syncNotifications();
+    if (sync) await _syncNotifications();
   }
 
   /// Belirli bir öğün için aktiflik durumunu kaydet.
-  Future<void> setMealEnabled(String meal, bool enabled) async {
+  Future<void> setMealEnabled(
+    String meal,
+    bool enabled, {
+    bool sync = true,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     String key;
     switch (meal) {
@@ -146,11 +150,15 @@ class MealReminderService {
         return;
     }
     await prefs.setBool(_userKey(key), enabled);
-    await _syncNotifications();
+    if (sync) await _syncNotifications();
   }
 
   /// Belirli bir öğün için saati kaydet.
-  Future<void> setMealTime(String meal, TimeOfDay time) async {
+  Future<void> setMealTime(
+    String meal,
+    TimeOfDay time, {
+    bool sync = true,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     String hhKey;
     String mmKey;
@@ -176,6 +184,19 @@ class MealReminderService {
     }
     await prefs.setInt(_userKey(hhKey), time.hour);
     await prefs.setInt(_userKey(mmKey), time.minute);
+    if (sync) await _syncNotifications();
+  }
+
+  Future<void> saveSettings(MealReminderSettings settings) async {
+    await setEnabled(settings.enabled, sync: false);
+    await setMealEnabled('breakfast', settings.breakfastEnabled, sync: false);
+    await setMealEnabled('lunch', settings.lunchEnabled, sync: false);
+    await setMealEnabled('dinner', settings.dinnerEnabled, sync: false);
+    await setMealEnabled('snack', settings.snackEnabled, sync: false);
+    await setMealTime('breakfast', settings.breakfastTime, sync: false);
+    await setMealTime('lunch', settings.lunchTime, sync: false);
+    await setMealTime('dinner', settings.dinnerTime, sync: false);
+    await setMealTime('snack', settings.snackTime, sync: false);
     await _syncNotifications();
   }
 

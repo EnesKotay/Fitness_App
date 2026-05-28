@@ -31,6 +31,9 @@ public class WorkoutSet extends PanacheEntity {
     @Column(name = "weight")
     public Double weight;
 
+    @Column(name = "rpe")
+    public Double rpe;
+
     @Column(name = "created_at")
     public LocalDateTime createdAt;
 

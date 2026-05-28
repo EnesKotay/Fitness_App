@@ -119,18 +119,18 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Machine High Row',
     'Straight Arm Rope Pulldown',
     'Seal Row',
-    'Barbell Shrug (Ust Sirt)',
-    'Dumbbell Shrug (Ust Sirt)',
-    'Snatch Grip High Pull (Ust Sirt)',
-    "Farmer's Walk (Ust Sirt)",
-    'Upright Row (Ust Sirt)',
-    'Deadlift (Alt Sirt)',
-    'Deficit Deadlift (Alt Sirt)',
-    'Rack Pull (Alt Sirt)',
-    'Back Extension (Alt Sirt)',
-    'Superman (Alt Sirt)',
-    'Reverse Hyper (Alt Sirt)',
-    'Jefferson Curl (Alt Sirt)',
+    'Barbell Shrug (Üst Sırt)',
+    'Dumbbell Shrug (Üst Sırt)',
+    'Snatch Grip High Pull (Üst Sırt)',
+    "Farmer's Walk (Üst Sırt)",
+    'Upright Row (Üst Sırt)',
+    'Deadlift (Alt Sırt)',
+    'Deficit Deadlift (Alt Sırt)',
+    'Rack Pull (Alt Sırt)',
+    'Back Extensiön (Alt Sırt)',
+    'Superman (Alt Sırt)',
+    'Reverse Hyper (Alt Sırt)',
+    'Jeffersön Curl (Alt Sırt)',
     'Neutral Grip Pull-Up',
     'Underhand Pulldown',
     'Wide Grip Lat Pulldown',
@@ -153,12 +153,12 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Front Squat',
     'Sissy Squat',
     'Good Morning',
-    'Nordic Curl',
+    'Nordiç Curl',
     'Standing Calf Raise',
     'Split Squat',
     'Goblet Squat',
     'Box Squat',
-    'Jefferson Squat',
+    'Jeffersön Squat',
     'Step Down',
     'Cyclist Squat',
     'Pistol Squat',
@@ -235,7 +235,7 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Cross-Body Cable Extension',
   ],
   'CORE': [
-    'Dragon Flag (Core Stabilite)',
+    'Dragön Flag (Core Stabilite)',
     'L-Sit (Core Stabilite)',
     'Hollow Body Hold (Core Stabilite)',
     'Suitcase Carry (Core Stabilite)',
@@ -243,14 +243,14 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Ab Wheel Rollout (Core Stabilite)',
     'Bird Dog (Core Stabilite)',
     'Stir the Pot (Core Stabilite)',
-    'Hanging Leg Raise (Alt Karin)',
-    "Captain's Chair Leg Raise (Alt Karin)",
-    'Scissor Kicks (Alt Karin)',
-    'Mountain Climbers (Alt Karin)',
-    'Pulse Up (Alt Karin)',
-    'Reverse Crunch (Alt Karin)',
-    'Hanging Knee Raise (Alt Karin)',
-    'Flutter Kick (Alt Karin)',
+    'Hanging Leg Raise (Alt Karın)',
+    "Captain's Chair Leg Raise (Alt Karın)",
+    'Scissor Kicks (Alt Karın)',
+    'Mountain Climbers (Alt Karın)',
+    'Pulse Up (Alt Karın)',
+    'Reverse Crunch (Alt Karın)',
+    'Hanging Knee Raise (Alt Karın)',
+    'Flutter Kick (Alt Karın)',
     'Russian Twist (Oblik)',
     'Windshield Wipers (Oblik)',
     'Side Crunch (Oblik)',
@@ -267,16 +267,16 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Decline Sit-Up',
   ],
   'GLUTES': [
-    'Barbell Hip Thrust (Glute Max)',
+    'Barbell Hip Thrüst (Glute Max)',
     'Barbell Glute Bridge (Glute Max)',
     'Romanian Deadlift (Glute Max)',
     'Sumo Deadlift (Glute Max)',
     'Kas Glute Bridge (Glute Max)',
-    'Single Leg Hip Thrust (Glute Max)',
-    'B-Stance Hip Thrust (Glute Max)',
+    'Single Leg Hip Thrüst (Glute Max)',
+    'B-Stance Hip Thrüst (Glute Max)',
     'Fire Hydrant (Glute Med)',
-    'Side Lying Leg Abduction (Glute Med)',
-    'Cable Hip Abduction (Glute Med)',
+    'Side Lying Leg Abductiön (Glute Med)',
+    'Cable Hip Abductiön (Glute Med)',
     'Glute Medius Kickback (Glute Med)',
     'Curtsy Lunge (Glute Med)',
     'Side Plank Leg Lift (Glute Med)',
@@ -323,8 +323,8 @@ const Map<String, List<String>> kMassExerciseNames = {
     'Barbell Reverse Wrist Curl (Arka Ön Kol)',
     'Dumbbell Reverse Wrist Curl (Arka Ön Kol)',
     'Cable Reverse Wrist Curl (Arka Ön Kol)',
-    'Barbell Wrist Rotation (Bilek)',
-    'Dumbbell Wrist Rotation (Bilek)',
+    'Barbell Wrist Rotatiön (Bilek)',
+    'Dumbbell Wrist Rotatiön (Bilek)',
     'Rice Bucket Drill (Bilek)',
     'Plate Pinch (Grip)',
     'Towel Pull-Up (Grip)',
@@ -381,9 +381,9 @@ Map<String, String> specificExerciseMetadata(String name) {
   final n = name.toLowerCase();
   if (n.contains('floor press')) {
     return {
-      'desc': 'Yerde yapilan, triceps ve orta gogus odakli pres hareketidir.',
+      'desc': 'Yerde yapilan, triceps ve orta göğüs odakli pres hareketidir.',
       'inst':
-          'Sirt ustu yere yat. Dirsekler yere degerken kontrol kur ve barı yukari it. 3 set 8-12 tekrar.',
+          'Sırt ustu yere yat. Dirsekler yere degerken kontrol kur ve barı yukari it. 3 set 8-12 tekrar.',
     };
   }
   if (n.contains('spoto press')) {
@@ -395,28 +395,28 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('shrug')) {
     return {
-      'desc': 'Ust trapez kaslarini izole eden temel harekettir.',
+      'desc': 'Üst trapez kaslarini izole eden temel harekettir.',
       'inst':
           'Omuzlarini kulaklara dogru cek, zirvede kisa bir sure bekle ve yavas birak. 4 set 12-15 tekrar.',
     };
   }
   if (n.contains('deadlift')) {
     return {
-      'desc': 'Tum vucut kuvveti ve alt sirt icin temel bilesik harekettir.',
+      'desc': 'Tum vucut kuvveti ve alt sırt icin temel bilesik harekettir.',
       'inst':
-          'Sirtini notr tut, kalcadan menteşelen ve agirligi yerden kontrollu kaldir. 3 set 5-8 tekrar.',
+          'Sırtini notr tut, kalçadan menteşelen ve agirligi yerden kontrollu kaldir. 3 set 5-8 tekrar.',
     };
   }
   if (n.contains('superman')) {
     return {
-      'desc': 'Alt sirt ve erector spinae kaslarini guclendirir.',
+      'desc': 'Alt sırt ve erector spinae kaslarini guclendirir.',
       'inst':
           'Yuz ustu yat, kol ve bacaklarini ayni anda yukari kaldirip 2 sn bekle. 3 set 15 tekrar.',
     };
   }
   if (n.contains("farmer's walk")) {
     return {
-      'desc': 'Grip kuvveti, core ve ust sirt stabilitesi saglar.',
+      'desc': 'Grip kuvveti, core ve üst sırt stabilitesi saglar.',
       'inst':
           'Agir dumbbelllari iki eline al ve dik posturle 30-45 saniye yuru. 3 set.',
     };
@@ -424,9 +424,9 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains('reverse hyper')) {
     return {
       'desc':
-          'Alt sirti dekomprese ederken glute ve hamstringleri de calistirir.',
+          'Alt sırti dekomprese ederken glute ve hamstringleri de calistirir.',
       'inst':
-          'Govdeyi sabitle, bacaklarini kalcani sikip geriye-yukari kaldir. 3 set 12-15 tekrar.',
+          'Govdeyi sabitle, bacaklarini kalçani sikip geriye-yukari kaldir. 3 set 12-15 tekrar.',
     };
   }
   if (n.contains('zercher squat')) {
@@ -437,7 +437,7 @@ Map<String, String> specificExerciseMetadata(String name) {
           'Bari dirseklerine al, govde dikligini koruyarak kontrollu squat yap. 3 set 8-10 tekrar.',
     };
   }
-  if (n.contains('nordic curl')) {
+  if (n.contains('nordiç curl')) {
     return {
       'desc':
           'Arka bacak eksantrik kuvveti icin en etkili hareketlerden biridir.',
@@ -447,7 +447,7 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('cossack squat')) {
     return {
-      'desc': 'Kalca mobilitesi ve bacak kuvveti icin yanal squat hareketidir.',
+      'desc': 'Kalça mobilitesi ve bacak kuvveti icin yanal squat hareketidir.',
       'inst':
           'Genis dur, bir bacagin uzerine cokerken digerini duz tut. 3 set 10 tekrar/yan.',
     };
@@ -455,7 +455,7 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains('zottman curl')) {
     return {
       'desc':
-          'Biceps ve on kolu ayni anda hedefleyen ozel kivirma hareketidir.',
+          'Biceps ve ön kolu ayni anda hedefleyen ozel kivirma hareketidir.',
       'inst':
           'Yukari normal curl yap, tepede bileklerini cevirip yavas indir. 3 set 10-12 tekrar.',
     };
@@ -469,9 +469,9 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('tate press')) {
     return {
-      'desc': 'Triceps lateral basini hedefleyen izolasyon presidir.',
+      'desc': 'Triceps lateral basini hedefleyen izolasyön presidir.',
       'inst':
-          'Dumbbelllari gogus hizasinda birbirine bakacak sekilde tut ve yukari it. 3 set 12 tekrar.',
+          'Dumbbelllari göğüs hizasinda birbirine bakacak sekilde tut ve yukari it. 3 set 12 tekrar.',
     };
   }
   if (n.contains('drag curl')) {
@@ -484,7 +484,7 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('narrow grip barbell curl')) {
     return {
-      'desc': 'Dar tutus sayesinde biceps dis basini daha fazla hedefler.',
+      'desc': 'Dar tutus sayesinde biceps dış basini daha fazla hedefler.',
       'inst':
           'Bari omuz genisliginden dar tut, dirseklerini sabitleyip kivir. 3 set 8-12 tekrar.',
     };
@@ -507,7 +507,7 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('reverse grip ez bar curl')) {
     return {
-      'desc': 'On kol ve brachialis kaslarini ustten tutusla calistirir.',
+      'desc': 'Ön kol ve brachialis kaslarini ustten tutusla calistirir.',
       'inst':
           'EZ bari ustten tut, kontrollu sekilde yukari kaldirip yavas indir. 3 set 12-15 tekrar.',
     };
@@ -519,7 +519,7 @@ Map<String, String> specificExerciseMetadata(String name) {
           'Dumbbelli capraz sekilde karsi omuza dogru cek. 3 set 12 tekrar.',
     };
   }
-  if (n.contains('dragon flag')) {
+  if (n.contains('dragön flag')) {
     return {
       'desc':
           'Ileri seviye core kuvveti gerektiren premium bir karın hareketidir.',
@@ -544,14 +544,14 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains("captain's chair leg raise")) {
     return {
       'desc':
-          'Alt karin kaslarini izole eden, beli destekleyen hareketlerden biridir.',
+          'Alt karın kaslarini izole eden, beli destekleyen hareketlerden biridir.',
       'inst':
-          'Sirtini destege yasla, dirsekleri sabitle ve bacaklarini kontrollu sekilde yukari kaldir. 3 set 12-15 tekrar.',
+          'Sırtini destege yasla, dirsekleri sabitle ve bacaklarini kontrollu sekilde yukari kaldir. 3 set 12-15 tekrar.',
     };
   }
   if (n.contains('scissor kicks')) {
     return {
-      'desc': 'Alt karin ve merkez bolgesini ritmik sekilde calistirir.',
+      'desc': 'Alt karın ve merkez bolgesini ritmik sekilde calistirir.',
       'inst':
           'Yere yat, bacaklarini sira ile makas gibi yukari-asagi hareket ettir. 3 set 45 sn.',
     };
@@ -566,14 +566,14 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains('pulse up')) {
     return {
       'desc':
-          'Alt karin kaslarinin alt kisimlarini hedefleyen dikey itis hareketidir.',
+          'Alt karın kaslarinin alt kisimlarini hedefleyen dikey itis hareketidir.',
       'inst':
-          'Sirt ustu yat, bacaklarini havaya kaldir ve kalcani yerden kisaca yukari it. 3 set 15 tekrar.',
+          'Sırt ustu yat, bacaklarini havaya kaldir ve kalçani yerden kisaca yukari it. 3 set 15 tekrar.',
     };
   }
   if (n.contains('russian twist')) {
     return {
-      'desc': 'Yan karin kaslarini ve rotasyonel kuvveti gelistirir.',
+      'desc': 'Yan karın kaslarini ve rotasyonel kuvveti gelistirir.',
       'inst':
           'Yere otur, govdeyi hafif geri al ve agirligi saga-sola kontrollu dokundur. 3 set 20-30 tekrar.',
     };
@@ -587,23 +587,23 @@ Map<String, String> specificExerciseMetadata(String name) {
   }
   if (n.contains('side crunch')) {
     return {
-      'desc': 'Yan karin kaslarini izole ederek sıkistirma saglar.',
+      'desc': 'Yan karın kaslarini izole ederek sıkistirma saglar.',
       'inst':
-          'Yan yat, dirsegini kalcana dogru cekerek oblikleri sikistir. 3 set 15 tekrar/yan.',
+          'Yan yat, dirsegini kalçana dogru cekerek oblikleri sikistir. 3 set 15 tekrar/yan.',
     };
   }
   if (n.contains('heel touch')) {
     return {
       'desc':
-          'Oblikleri ve karin yanlarini basit ama etkili bicimde calistirir.',
+          'Oblikleri ve karın yanlarini basit ama etkili bicimde calistirir.',
       'inst':
-          'Sirt ustu yat, dizler bükulu. Govdeyi yana bukerek ellerinle topuklara uzan. 3 set 30 tekrar.',
+          'Sırt ustu yat, dizler bükulu. Govdeyi yana bukerek ellerinle topuklara uzan. 3 set 30 tekrar.',
     };
   }
   if (n.contains('fire hydrant')) {
     return {
       'desc':
-          'Kalca yan kaslarini aktive eden ve mobiliteyi destekleyen harekettir.',
+          'Kalça yan kaslarini aktive eden ve mobiliteyi destekleyen harekettir.',
       'inst':
           'Emekleme pozisyonunda dizini yana 90 derece aciyla kaldir ve yavas indir. 3 set 15 tekrar/yan.',
     };
@@ -611,7 +611,7 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains('side lying leg abduction')) {
     return {
       'desc':
-          'Kalca stabilizasyonu ve yan kalca formu icin temel izolasyon hareketidir.',
+          'Kalça stabilizasyonu ve yan kalça formu icin temel izolasyön hareketidir.',
       'inst':
           'Yan yat, ustteki bacagi duz yukari kaldir ve kontrollu indir. 3 set 15-20 tekrar/yan.',
     };
@@ -619,16 +619,79 @@ Map<String, String> specificExerciseMetadata(String name) {
   if (n.contains('clamshell')) {
     return {
       'desc':
-          'Kalca dis rotasyon kuvveti ve glute med aktivasyonu icin etkilidir.',
+          'Kalça dış rotasyön kuvveti ve glute med aktivasyonu icin etkilidir.',
       'inst':
-          'Yan yat, dizler bükulu. Topuklar birlesikken ust dizi yukari ac. 3 set 15 tekrar/yan.',
+          'Yan yat, dizler bükulu. Topuklar birlesikken üst dizi yukari ac. 3 set 15 tekrar/yan.',
     };
   }
   if (n.contains('lateral band walk')) {
     return {
-      'desc': 'Kalca stabilitesi ve yan kalca kaslari icin dinamik yuruyustur.',
+      'desc': 'Kalça stabilitesi ve yan kalça kaslari icin dinamik yuruyustur.',
       'inst':
           'Dizlere band tak, hafif squat pozisyonunda yana dogru kisa adimlar at. 3 set 15 adim/taraf.',
+    };
+  }
+  if (n.contains('burpee')) {
+    return {
+      'desc': 'Tüm vücudu çalıştıran patlayıcı kardiyo ve kondisyön hareketidir.',
+      'inst':
+          'Şınav pozisyonuna in, göğsü yere değdir, ayakları çekerek ayağa kalk ve zıpla. 3 set 10-15 tekrar.',
+    };
+  }
+  if (n.contains('kettlebell swing')) {
+    return {
+      'desc': 'Kalça patlayıcılığını ve arka zinciri (posterior chain) geliştiren dinamik harekettir.',
+      'inst':
+          'Kettlebell\'i bacak arasına savur ve kalçanı sıkarak ileri doğru it. Kolları sadece yönlendirmek için kullan. 3 set 15-20 tekrar.',
+    };
+  }
+  if (n.contains('box jump')) {
+    return {
+      'desc': 'Bacak gücünü ve patlayıcılığı artıran pliometrik bir zıplama hareketidir.',
+      'inst':
+          'Kutuya doğru yarım squat yapıp kollarından güç alarak yumuşakça zıpla ve kutuya in. 3 set 8-10 tekrar.',
+    };
+  }
+  if (n.contains('battle rope slam')) {
+    return {
+      'desc': 'Omuz, core ve kardiyovasküler kapasiteyi zorlayan yüksek yoğunluklu harekettir.',
+      'inst':
+          'Halatların iki ucundan tut, yukarı kaldırıp tüm gücünle yere çarp. 3 set 30-45 saniye.',
+    };
+  }
+  if (n.contains('weighted plank')) {
+    return {
+      'desc': 'Standart plank hareketinin sırta ağırlık eklenerek zorlaştırılmış versiyonudur.',
+      'inst':
+          'Sırtına uygun bir plaka alarak plank pozisyonunda dur. Core bölgesini kaya gibi sert tut. 3 set 45-60 sn.',
+    };
+  }
+  if (n.contains('dumbbell goblet squat')) {
+    return {
+      'desc': 'Ön bacak ve core odaklı, duruşu iyileştiren temel dumbbell squat varyasyonudur.',
+      'inst':
+          'Tek bir dambılı göğüs hizasında iki elinle dikey tut, gövdeni dik koruyarak derin çömel. 3 set 12-15 tekrar.',
+    };
+  }
+  if (n.contains('dumbbell romanian deadlift')) {
+    return {
+      'desc': 'Arka bacak (hamstring) ve kalçayı dambıl kullanarak çalıştıran izolasyön hareketidir.',
+      'inst':
+          'Dambılları bacaklarının önünde tut, sırtını düz koruyarak kalçanı geriye itip aşağı eğil. 3 set 10-12 tekrar.',
+    };
+  }
+  if (n.contains('dumbbell shoulder press')) {
+    return {
+      'desc': 'Omuz hacmi ve gücü için temel itiş hareketidir.',
+      'inst':
+          'Oturarak veya ayakta dambılları kulak hizasından yukarı doğru it ve yavaşça indir. 3 set 10-12 tekrar.',
+    };
+  }
+  if (n.contains('air bike') || n.contains('assault bike')) {
+    return {
+      'desc': 'Hem alt hem üst vücudu aynı anda çalıştıran yoğun kardiyo aletidir.',
+      'inst':
+          'Pedalları çevirirken kolları da itip çekerek tüm gücünle interval yap. 10 saniye depar, 20 saniye dinlenme şeklinde ilerle.',
     };
   }
   return {};
@@ -660,7 +723,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9001,
           muscleGroup: 'CHEST',
           name: 'Pec Fly',
-          description: 'Gogus ic ve orta bolgesini izole calistirir.',
+          description: 'Göğüs iç ve orta bolgesini izole calistirir.',
           instructions:
               'Makineye otur. Kollari omuz hizasinda one kapat. 3 set 12 tekrar.',
         ),
@@ -668,15 +731,15 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9002,
           muscleGroup: 'CHEST',
           name: 'Bench Press',
-          description: 'Gogus, on omuz ve triceps icin temel itis hareketi.',
+          description: 'Göğüs, ön omuz ve triceps icin temel itis hareketi.',
           instructions:
-              'Bari gogus hizasina indir, kontrollu sekilde it. 4 set 6-10 tekrar.',
+              'Bari göğüs hizasina indir, kontrollu sekilde it. 4 set 6-10 tekrar.',
         ),
         Exercise(
           id: 9003,
           muscleGroup: 'CHEST',
           name: 'Incline Dumbbell Press',
-          description: 'Ust gogus gelisimi icin egimli pres hareketi.',
+          description: 'Üst göğüs gelisimi icin egimli pres hareketi.',
           instructions:
               '30-45 derece egimde dumbbell ile press yap. 3 set 8-12 tekrar.',
         ),
@@ -684,7 +747,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9004,
           muscleGroup: 'CHEST',
           name: 'Incline Bench Press',
-          description: 'Ust gogus ve on omuz icin guclu bilesik hareket.',
+          description: 'Üst göğüs ve ön omuz icin guclu bilesik hareket.',
           instructions:
               'Eğimli benchte bari kontrollu indirip it. 4 set 6-10 tekrar.',
         ),
@@ -692,7 +755,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9005,
           muscleGroup: 'CHEST',
           name: 'Cable Crossover',
-          description: 'Goguste sikisma hissini artiran izolasyon hareketi.',
+          description: 'Göğüste sikisma hissini artiran izolasyön hareketi.',
           instructions:
               'Kablolari yarim daire cizerek onde birlestir. 3 set 12-15 tekrar.',
         ),
@@ -701,7 +764,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           muscleGroup: 'CHEST',
           name: 'Push-Up',
           description:
-              'Vucut agirligiyla gogus gelistirmek icin temel hareket.',
+              'Vucut agirligiyla göğüs gelistirmek icin temel hareket.',
           instructions:
               'Govde duz, gogsu yere yaklastirip it. 3 set maksimum tekrar.',
         ),
@@ -709,7 +772,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9007,
           muscleGroup: 'CHEST',
           name: 'Dips (Chest Lean)',
-          description: 'Alt gogus odakli zorlayici itis hareketi.',
+          description: 'Alt göğüs odakli zorlayici itis hareketi.',
           instructions:
               'Govdeyi hafif one egip kontrollu in-cik yap. 3 set 8-12 tekrar.',
         ),
@@ -717,9 +780,9 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9008,
           muscleGroup: 'CHEST',
           name: 'Machine Chest Press',
-          description: 'Sabit hat uzerinde guvenli gogus presi saglar.',
+          description: 'Sabit hat uzerinde guvenli göğüs presi saglar.',
           instructions:
-              'Tutacaklari gogus hizasinda it, kilitlemeden geri don. 3 set 10-12 tekrar.',
+              'Tutacaklari göğüs hizasinda it, kilitlemeden geri don. 3 set 10-12 tekrar.',
         ),
       ];
     case 'BACK':
@@ -728,15 +791,15 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9011,
           muscleGroup: 'BACK',
           name: 'Lat Pulldown',
-          description: 'Genis sirt kaslarini hedefler.',
+          description: 'Genis sırt kaslarini hedefler.',
           instructions:
-              'Bari ust gogse dogru cek, kontrollu birak. 4 set 8-12 tekrar.',
+              'Bari üst gogse dogru cek, kontrollu birak. 4 set 8-12 tekrar.',
         ),
         Exercise(
           id: 9012,
           muscleGroup: 'BACK',
           name: 'Seated Cable Row',
-          description: 'Orta sirt kalinligi ve postur icin etkilidir.',
+          description: 'Orta sırt kalinligi ve postur icin etkilidir.',
           instructions:
               'Kurek kemiklerini sikistirarak tutusu govdeye cek. 3 set 10-12 tekrar.',
         ),
@@ -744,7 +807,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9013,
           muscleGroup: 'BACK',
           name: 'Barbell Row',
-          description: 'Sirt ve arka omuz icin guclu temel hareket.',
+          description: 'Sırt ve arka omuz icin guclu temel hareket.',
           instructions: 'Bel sabit, bari karna dogru cek. 4 set 6-10 tekrar.',
         ),
         Exercise(
@@ -752,7 +815,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           muscleGroup: 'BACK',
           name: 'Pull-Up',
           description:
-              'Vucut agirligiyla sirt genisligi icin temel harekettir.',
+              'Vucut agirligiyla sırt genisligi icin temel harekettir.',
           instructions:
               'Bari ceneyi gecene kadar cek, kontrollu in. 4 set 6-10 tekrar.',
         ),
@@ -760,7 +823,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9015,
           muscleGroup: 'BACK',
           name: 'Chest Supported Row',
-          description: 'Bel yukunu azaltarak sirt kalinligi gelistirir.',
+          description: 'Bel yukunu azaltarak sırt kalinligi gelistirir.',
           instructions:
               'Gogsu benchte sabitleyip dirsekleri geriye cek. 3 set 10-12 tekrar.',
         ),
@@ -770,7 +833,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           name: 'Single Arm Dumbbell Row',
           description: 'Taraflar arasi kuvvet dengesini iyilestirir.',
           instructions:
-              'Tek diz benchte, dumbbelli kalcaya dogru cek. 3 set 10-12 tekrar.',
+              'Tek diz benchte, dumbbelli kalçaya dogru cek. 3 set 10-12 tekrar.',
         ),
         Exercise(
           id: 9017,
@@ -778,14 +841,14 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           name: 'Straight Arm Pulldown',
           description: 'Lat kaslarini izolasyonla hedefler.',
           instructions:
-              'Kollar hafif kirik, bari kalcaya dogru cek. 3 set 12-15 tekrar.',
+              'Kollar hafif kirik, bari kalçaya dogru cek. 3 set 12-15 tekrar.',
         ),
         Exercise(
           id: 9018,
           muscleGroup: 'BACK',
           name: 'T-Bar Row',
-          description: 'Orta sirt ve trapez icin agir cekis alternatifidir.',
-          instructions: 'Gogus acik, bari alt gogse cek. 4 set 8-10 tekrar.',
+          description: 'Orta sırt ve trapez icin agir cekis alternatifidir.',
+          instructions: 'Göğüs acik, bari alt gogse cek. 4 set 8-10 tekrar.',
         ),
       ];
     case 'LEGS':
@@ -794,9 +857,9 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9021,
           muscleGroup: 'LEGS',
           name: 'Squat',
-          description: 'Bacak ve kalca icin temel kuvvet hareketi.',
+          description: 'Bacak ve kalça icin temel kuvvet hareketi.',
           instructions:
-              'Diz-ayak hizasini koru, kalcayi geriye alarak in. 4 set 6-10 tekrar.',
+              'Diz-ayak hizasini koru, kalçayi geriye alarak in. 4 set 6-10 tekrar.',
         ),
         Exercise(
           id: 9022,
@@ -810,16 +873,16 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9023,
           muscleGroup: 'LEGS',
           name: 'Romanian Deadlift',
-          description: 'Arka bacak ve kalca kaslarini hedefler.',
+          description: 'Arka bacak ve kalça kaslarini hedefler.',
           instructions:
-              'Dizleri hafif kir, kalcayi geriye iterek bari indir. 3 set 8-12 tekrar.',
+              'Dizleri hafif kir, kalçayi geriye iterek bari indir. 3 set 8-12 tekrar.',
         ),
         Exercise(
           id: 9024,
           muscleGroup: 'LEGS',
           name: 'Walking Lunge',
           description:
-              'Bacak ve kalca icin denge odakli tek tarafli calismadir.',
+              'Bacak ve kalça icin denge odakli tek tarafli calismadir.',
           instructions:
               'Uzun adim al, arka diz yere yaklasinca yuksel. 3 set 12 adim/ayak.',
         ),
@@ -837,13 +900,13 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           name: 'Leg Curl',
           description: 'Arka bacak kaslarini izole calistirir.',
           instructions:
-              'Topuklari kalcaya cek, yavasca geri birak. 3 set 10-15 tekrar.',
+              'Topuklari kalçaya cek, yavasca geri birak. 3 set 10-15 tekrar.',
         ),
         Exercise(
           id: 9027,
           muscleGroup: 'LEGS',
           name: 'Bulgarian Split Squat',
-          description: 'Tek bacak kuvvetini ve kalca stabilitesini artirir.',
+          description: 'Tek bacak kuvvetini ve kalça stabilitesini artirir.',
           instructions:
               'Arka ayagi yukseltip tek bacak squat yap. 3 set 8-12 tekrar/ayak.',
         ),
@@ -887,7 +950,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           muscleGroup: 'SHOULDERS',
           name: 'Arnold Press',
           description:
-              'On ve yan omuzu birlikte hedefleyen press varyasyonudur.',
+              'Ön ve yan omuzu birlikte hedefleyen press varyasyonudur.',
           instructions:
               'Avuc icleri sana bakarken basla, yukarida disa cevir. 3 set 8-12 tekrar.',
         ),
@@ -919,7 +982,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9038,
           muscleGroup: 'SHOULDERS',
           name: 'Dumbbell Front Raise',
-          description: 'On omuz odakli izolasyon hareketi.',
+          description: 'Ön omuz odakli izolasyön hareketi.',
           instructions:
               'Dumbbelllari omuz hizasina kadar kaldir. 3 set 10-12 tekrar.',
         ),
@@ -938,7 +1001,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9042,
           muscleGroup: 'BICEPS',
           name: 'Hammer Curl',
-          description: 'Brachialis ve on kolu da calistirir.',
+          description: 'Brachialis ve ön kolu da calistirir.',
           instructions: 'Notr tutusla dumbbell curl yap. 3 set 10-12 tekrar.',
         ),
         Exercise(
@@ -968,7 +1031,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
         Exercise(
           id: 9046,
           muscleGroup: 'BICEPS',
-          name: 'Concentration Curl',
+          name: 'Concentratiön Curl',
           description: 'Tek kol izolasyonla kasi net hissettirir.',
           instructions:
               'Dirsegi uyluga dayayip tek kol curl yap. 3 set 10-12 tekrar/kol.',
@@ -987,7 +1050,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           name: 'Spider Curl',
           description: 'Biseps zirve kontraksiyonunu artiran egimli curl.',
           instructions:
-              'Incline benchin on tarafina yaslan, kol sarkik, yukari kivir. 3 set 10-12 tekrar.',
+              'Incline benchin ön tarafina yaslan, kol sarkik, yukari kivir. 3 set 10-12 tekrar.',
         ),
       ];
     case 'TRICEPS':
@@ -1046,13 +1109,13 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           muscleGroup: 'CORE',
           name: 'Plank',
           description: 'Core stabilitesi ve dayanikliligi artirir.',
-          instructions: 'Govde duz, karin sikı. 3 set 30-60 saniye bekle.',
+          instructions: 'Govde duz, karın sikı. 3 set 30-60 saniye bekle.',
         ),
         Exercise(
           id: 9062,
           muscleGroup: 'CORE',
           name: 'Leg Raise',
-          description: 'Alt karin odakli hareket.',
+          description: 'Alt karın odakli hareket.',
           instructions:
               'Bacaklari kontrollu kaldirip indir. 3 set 10-15 tekrar.',
         ),
@@ -1060,7 +1123,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9063,
           muscleGroup: 'CORE',
           name: 'Crunch',
-          description: 'Ust karin odakli temel core hareketidir.',
+          description: 'Üst karın odakli temel core hareketidir.',
           instructions:
               'Belini zorlamadan govdeyi hafifce yukari kaldir. 3 set 15-20 tekrar.',
         ),
@@ -1092,7 +1155,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9067,
           muscleGroup: 'CORE',
           name: 'Cable Crunch',
-          description: 'Agirlikla karin kaslarina direnc uygular.',
+          description: 'Agirlikla karın kaslarina direnc uygular.',
           instructions:
               'Kabloyu asagi crunch hareketiyle cek. 3 set 12-15 tekrar.',
         ),
@@ -1103,23 +1166,23 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9071,
           muscleGroup: 'GLUTES',
           name: 'Hip Thrust',
-          description: 'Kalca kaslarini guclu sekilde aktive eder.',
+          description: 'Kalça kaslarini guclu sekilde aktive eder.',
           instructions:
-              'Ustte kalcayi sik, kontrollu asagi in. 4 set 8-12 tekrar.',
+              'Ustte kalçayi sik, kontrollu asagi in. 4 set 8-12 tekrar.',
         ),
         Exercise(
           id: 9072,
           muscleGroup: 'GLUTES',
           name: 'Glute Bridge',
-          description: 'Kalca aktivasyonu icin baslangic seviyesi harekettir.',
+          description: 'Kalça aktivasyonu icin baslangiç seviyesi harekettir.',
           instructions:
-              'Topuklardan iterek kalcayi yukari kaldir. 3 set 12-15 tekrar.',
+              'Topuklardan iterek kalçayi yukari kaldir. 3 set 12-15 tekrar.',
         ),
         Exercise(
           id: 9073,
           muscleGroup: 'GLUTES',
           name: 'Cable Kickback',
-          description: 'Kalca izolasyonu icin etkili kablo hareketidir.',
+          description: 'Kalça izolasyonu icin etkili kablo hareketidir.',
           instructions:
               'Ayak bilegine kablo tak, ayagi geriye it. 3 set 12-15 tekrar/ayak.',
         ),
@@ -1127,7 +1190,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9074,
           muscleGroup: 'GLUTES',
           name: 'Sumo Squat',
-          description: 'Ic bacak ve kalca aktivasyonunu artirir.',
+          description: 'Ic bacak ve kalça aktivasyonunu artirir.',
           instructions:
               'Genis durusta squat yap, dizleri disa yonlendir. 3 set 10-12 tekrar.',
         ),
@@ -1135,7 +1198,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9075,
           muscleGroup: 'GLUTES',
           name: 'Step-Up',
-          description: 'Tek tarafli kuvvet ve kalca aktivasyonuna destek olur.',
+          description: 'Tek tarafli kuvvet ve kalça aktivasyonuna destek olur.',
           instructions:
               'Yukseltiye tek ayakla cik, kontrollu in. 3 set 10-12 tekrar/ayak.',
         ),
@@ -1144,15 +1207,15 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           muscleGroup: 'GLUTES',
           name: 'Frog Pump',
           description:
-              'Kalca ust sikismasini artiran kisa aralikli harekettir.',
+              'Kalça üst sikismasini artiran kisa aralikli harekettir.',
           instructions:
-              'Ayak tabanlarini birlestir, kalcayi hizli ve kontrollu kaldir. 3 set 20 tekrar.',
+              'Ayak tabanlarini birlestir, kalçayi hizli ve kontrollu kaldir. 3 set 20 tekrar.',
         ),
         Exercise(
           id: 9077,
           muscleGroup: 'GLUTES',
           name: 'Reverse Lunge',
-          description: 'Kalca ve bacaklari dengeli calistirir.',
+          description: 'Kalça ve bacaklari dengeli calistirir.',
           instructions:
               'Geri adim alarak lunge yap, ondeki topuktan guc al. 3 set 10-12 tekrar/ayak.',
         ),
@@ -1171,7 +1234,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9082,
           muscleGroup: 'CARDIO',
           name: 'Jumping Jack',
-          description: 'Kondisyon ve isinim icin klasik kardiyo hareketidir.',
+          description: 'Kondisyön ve isinim icin klasik kardiyo hareketidir.',
           instructions:
               'Ayni anda kol ve bacaklari ac-kapat hareketi yap. 3 set 30-60 saniye.',
         ),
@@ -1179,7 +1242,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9083,
           muscleGroup: 'CARDIO',
           name: 'Jump Rope',
-          description: 'Koordinasyon ve kardiyo dayanikliligini artiran hareket.',
+          description: 'Koordinasyön ve kardiyo dayanikliligini artiran hareket.',
           instructions:
               'Ritimli atlama yap. Baslangic: 30 sn, ileri: 1-3 dk araliklarla.',
         ),
@@ -1197,7 +1260,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           name: 'High Knees',
           description: 'Kalp atisi ve bacak tempolu koordinasyonu gelistirir.',
           instructions:
-              'Yerinde yururken dizleri kalca hizasina kadar kaldir. 3 set 30-45 saniye.',
+              'Yerinde yururken dizleri kalça hizasina kadar kaldir. 3 set 30-45 saniye.',
         ),
         Exercise(
           id: 9086,
@@ -1230,7 +1293,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9091,
           muscleGroup: 'FOREARMS',
           name: 'Wrist Curl',
-          description: 'On kol fleksor kaslarini izole calistirir.',
+          description: 'Ön kol fleksor kaslarini izole calistirir.',
           instructions:
               'Dizlere yasla, bilegi bukup dumbbelli yukari kivir. 3 set 15-20 tekrar.',
         ),
@@ -1238,15 +1301,15 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9092,
           muscleGroup: 'FOREARMS',
           name: 'Reverse Wrist Curl',
-          description: 'Arka on kol ekstresor kaslarini hedefler.',
+          description: 'Arka ön kol ekstresor kaslarini hedefler.',
           instructions:
-              'Ust el tutusla bilegi yukarı doru kivir. 3 set 12-15 tekrar.',
+              'Üst el tutusla bilegi yukarı doru kivir. 3 set 12-15 tekrar.',
         ),
         Exercise(
           id: 9093,
           muscleGroup: 'FOREARMS',
           name: 'Farmer\'s Walk',
-          description: 'Grip ve on kol dayanikliligini en iyi sekilde gelistirir.',
+          description: 'Grip ve ön kol dayanikliligini en iyi sekilde gelistirir.',
           instructions:
               'Agir dumbbelllari iki eline al, dik dur ve 30-45 sn yuru. 3 tur.',
         ),
@@ -1254,15 +1317,15 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9094,
           muscleGroup: 'FOREARMS',
           name: 'Reverse Curl',
-          description: 'Brachioradialis ve on kol kasinı hedefleyen curl.',
+          description: 'Brachioradialis ve ön kol kasinı hedefleyen curl.',
           instructions:
-              'Ust el tutusla (pronasyon) bari kivir. 3 set 10-12 tekrar.',
+              'Üst el tutusla (pronasyon) bari kivir. 3 set 10-12 tekrar.',
         ),
         Exercise(
           id: 9095,
           muscleGroup: 'FOREARMS',
           name: 'Bar Hang',
-          description: 'Grip gucunu ve on kol dayanikliligini arttirir.',
+          description: 'Grip gucunu ve ön kol dayanikliligini arttirir.',
           instructions:
               'Bardan asil ve tutun. 3 set 20-60 saniye. Agirlik ekleyerek ilerle.',
         ),
@@ -1270,7 +1333,7 @@ List<Exercise> fallbackExercisesForGroup(String group) {
           id: 9096,
           muscleGroup: 'FOREARMS',
           name: 'Zottman Curl',
-          description: 'Hem on hem arka on kolu ayni harekette calistirir.',
+          description: 'Hem ön hem arka ön kolu ayni harekette calistirir.',
           instructions:
               'Yukari giderken normal, asagi giderken reverse tutusla curl yap. 3 set 10-12 tekrar.',
         ),

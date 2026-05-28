@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../core/preferences/app_preferences.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/utils/storage_helper.dart';
 import '../../core/widgets/assistant_fab_visibility.dart';
@@ -46,11 +47,20 @@ class _MainShellState extends State<MainShell> {
   final _navKey3 = GlobalKey();
   final _fabKey = GlobalKey();
 
-  static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.home_rounded, label: 'Ana Sayfa'),
-    _NavItem(icon: Icons.fitness_center_rounded, label: 'Antrenman'),
-    _NavItem(icon: Icons.trending_up_rounded, label: 'Takip'),
-    _NavItem(icon: Icons.restaurant_rounded, label: 'Beslenme'),
+  static List<_NavItem> _navItemsFor(bool english) => [
+    _NavItem(icon: Icons.home_rounded, label: english ? 'Home' : 'Ana Sayfa'),
+    _NavItem(
+      icon: Icons.fitness_center_rounded,
+      label: english ? 'Workout' : 'Antrenman',
+    ),
+    _NavItem(
+      icon: Icons.trending_up_rounded,
+      label: english ? 'Progress' : 'Takip',
+    ),
+    _NavItem(
+      icon: Icons.restaurant_rounded,
+      label: english ? 'Nutrition' : 'Beslenme',
+    ),
   ];
 
   @override
@@ -59,6 +69,7 @@ class _MainShellState extends State<MainShell> {
     MainShell.tabSwitchRequest.addListener(_handleExternalTabSwitch);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _maybeCheckUpdate();
+      await _maybeOfferUsExperience();
       _maybeStartTour();
     });
   }
@@ -66,6 +77,52 @@ class _MainShellState extends State<MainShell> {
   Future<void> _maybeCheckUpdate() async {
     if (!mounted) return;
     await UpdateCheckerService.checkAndPrompt(context);
+  }
+
+  Future<void> _maybeOfferUsExperience() async {
+    if (!mounted || StorageHelper.getUsExperiencePromptSeen()) return;
+    final prefs = context.read<AppPreferences>();
+    final shouldOffer =
+        prefs.effectiveMarketRegion == 'US' &&
+        prefs.language == AppLanguage.system &&
+        prefs.unitSystem == AppUnitSystem.system &&
+        prefs.marketRegion == AppMarketRegion.system;
+    if (!shouldOffer) return;
+
+    await StorageHelper.saveUsExperiencePromptSeen(true);
+    if (!mounted) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF171A20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text(
+          'Use US experience?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+        ),
+        content: Text(
+          'Switch to English, lb/in, fl oz, and US-style meal suggestions.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.68),
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Use US'),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true || !mounted) return;
+    await prefs.setLanguage(AppLanguage.en);
+    await prefs.setUnitSystem(AppUnitSystem.imperial);
+    await prefs.setMarketRegion(AppMarketRegion.us);
   }
 
   Future<void> _maybeStartTour() async {
@@ -123,7 +180,9 @@ class _MainShellState extends State<MainShell> {
         ),
         TourStep(
           title: 'Takip',
-          description: 'Kilo, ölçü ve hedef yönünü grafiklerle takip edersin.',
+          description:
+              'Kilo, ölçü ve antrenman performansını grafiklerle takip edersin.\n\n'
+              'Ayrıca Toparlanma Skoru kartıyla uyku, kas ve su verilerini birleştirerek bugün ne kadar hazır olduğunu görürsün.',
           emoji: '📈',
           targetKey: _navKey2,
           spotShape: TourSpotShape.rect,
@@ -162,7 +221,7 @@ class _MainShellState extends State<MainShell> {
       return;
     }
     MainShell.tabSwitchRequest.value = null;
-    if (index < 0 || index >= _navItems.length) {
+    if (index < 0 || index >= 4) {
       return;
     }
     _onTabSelected(index);
@@ -177,6 +236,9 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final english =
+        context.watch<AppPreferences>().effectiveLanguageCode == 'en';
+    final navItems = _navItemsFor(english);
     return Scaffold(
       backgroundColor: const Color(0xFF070809),
       body: LayoutBuilder(
@@ -257,8 +319,8 @@ class _MainShellState extends State<MainShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(
-                _navItems.length,
-                (index) => _buildNavItem(index),
+                navItems.length,
+                (index) => _buildNavItem(index, navItems[index]),
               ),
             ),
           ),
@@ -353,14 +415,14 @@ class _MainShellState extends State<MainShell> {
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 34),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF161B2A).withValues(alpha: 0.98),
-                const Color(0xFF090C15).withValues(alpha: 0.995),
+                const Color(0xFF151B2A).withValues(alpha: 0.98),
+                const Color(0xFF090D17).withValues(alpha: 0.995),
               ],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
@@ -391,9 +453,9 @@ class _MainShellState extends State<MainShell> {
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 22),
                 _AssistantHeroCard(isPremium: isPremium),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Text(
@@ -418,12 +480,12 @@ class _MainShellState extends State<MainShell> {
                 _AsistanCard(
                   title: 'AI Koç',
                   subtitle:
-                      'Beslenme, antrenman ve gün planı için net yönlendirme al',
+                      'Beslenme, antrenman ve günlük kararlarında yardım al',
                   icon: Icons.chat_bubble_outline_rounded,
                   iconColor: const Color(0xFFEBC374),
                   badge: 'Önerilen',
-                  accentStart: const Color(0xFF322714),
-                  accentEnd: const Color(0xFF171B29),
+                  accentStart: const Color(0xFF272112),
+                  accentEnd: const Color(0xFF121826),
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.pushNamed(context, AppRoutes.aiCoach);
@@ -436,8 +498,8 @@ class _MainShellState extends State<MainShell> {
                       'Hedeflerini küçük adımlara böl ve düzenli takip et',
                   icon: Icons.checklist_rounded,
                   iconColor: const Color(0xFF7BCBFF),
-                  accentStart: const Color(0xFF1B3042),
-                  accentEnd: const Color(0xFF171B29),
+                  accentStart: const Color(0xFF132839),
+                  accentEnd: const Color(0xFF121826),
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.pushNamed(context, AppRoutes.dailyTasks);
@@ -446,14 +508,13 @@ class _MainShellState extends State<MainShell> {
                 const SizedBox(height: 12),
                 _AsistanCard(
                   title: 'Premium Özellikler',
-                  subtitle:
-                      'Kilitli analiz ve otomasyon araçlarını tek yerden yönet',
+                  subtitle: 'Gelişmiş analiz ve otomasyon araçlarını aç',
                   icon: Icons.workspace_premium_rounded,
                   iconColor: const Color(0xFFD97706),
                   isPremium: true,
                   badge: 'PRO',
-                  accentStart: const Color(0xFF37210F),
-                  accentEnd: const Color(0xFF171B29),
+                  accentStart: const Color(0xFF2B1908),
+                  accentEnd: const Color(0xFF121826),
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.of(context).push(
@@ -487,8 +548,7 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  Widget _buildNavItem(int index) {
-    final item = _navItems[index];
+  Widget _buildNavItem(int index, _NavItem item) {
     final isSelected = _selectedIndex == index;
     return Expanded(
       child: InkWell(
@@ -551,148 +611,127 @@ class _AsistanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(26),
-            splashColor: iconColor.withValues(alpha: 0.1),
-            highlightColor: iconColor.withValues(alpha: 0.05),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    accentStart.withValues(alpha: isPremium ? 0.9 : 0.72),
-                    accentEnd.withValues(alpha: 0.98),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(26),
-                border: Border.all(
-                  color: isPremium
-                      ? iconColor.withValues(alpha: 0.34)
-                      : Colors.white.withValues(alpha: 0.08),
-                  width: isPremium ? 1.3 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: iconColor.withValues(alpha: isPremium ? 0.16 : 0.1),
-                    blurRadius: 24,
-                    spreadRadius: -14,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+    final titleColor = isPremium ? iconColor : Colors.white;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        splashColor: iconColor.withValues(alpha: 0.1),
+        highlightColor: iconColor.withValues(alpha: 0.05),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accentStart.withValues(alpha: isPremium ? 0.64 : 0.52),
+                accentEnd.withValues(alpha: 0.98),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isPremium
+                  ? iconColor.withValues(alpha: 0.34)
+                  : Colors.white.withValues(alpha: 0.075),
+              width: isPremium ? 1.2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: iconColor.withValues(alpha: isPremium ? 0.12 : 0.07),
+                blurRadius: 22,
+                spreadRadius: -16,
+                offset: const Offset(0, 12),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 62,
-                    height: 62,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          iconColor.withValues(alpha: 0.18),
-                          iconColor.withValues(alpha: 0.06),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: iconColor.withValues(alpha: 0.2),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: iconColor.withValues(alpha: 0.2),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(icon, color: iconColor, size: 28),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      iconColor.withValues(alpha: 0.2),
+                      iconColor.withValues(alpha: 0.075),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: iconColor.withValues(alpha: 0.18)),
+                ),
+                child: Icon(icon, color: iconColor, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: GoogleFonts.dmSans(
-                                  color: isPremium ? iconColor : Colors.white,
-                                  fontSize: 15.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.dmSans(
+                              color: titleColor,
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.1,
                             ),
-                            if (badge != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: iconColor.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: iconColor.withValues(alpha: 0.18),
-                                  ),
-                                ),
-                                child: Text(
-                                  badge!,
-                                  style: GoogleFonts.dmSans(
-                                    color: iconColor,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: GoogleFonts.dmSans(
-                            color: Colors.white.withValues(alpha: 0.64),
-                            fontSize: 13.2,
-                            fontWeight: FontWeight.w500,
-                            height: 1.4,
                           ),
                         ),
+                        if (badge != null) ...[
+                          const SizedBox(width: 8),
+                          _AssistantMiniBadge(
+                            label: badge!,
+                            color: iconColor,
+                            filled: isPremium,
+                          ),
+                        ],
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.05),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.62),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        height: 1.34,
                       ),
                     ),
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white.withValues(alpha: 0.42),
-                      size: 20,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.045),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white.withValues(alpha: 0.44),
+                  size: 20,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -708,106 +747,136 @@ class _AssistantHeroCard extends StatelessWidget {
         ? const Color(0xFFEBC374)
         : const Color(0xFF7BCBFF);
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [const Color(0xFF1D2334), const Color(0xFF161B29)],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(17),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF20283B).withValues(alpha: 0.92),
+              const Color(0xFF121827).withValues(alpha: 0.98),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.08),
+              blurRadius: 28,
+              spreadRadius: -18,
+              offset: const Offset(0, 14),
+            ),
+          ],
         ),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: Container(
+                height: 1,
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: accent.withValues(alpha: 0.16)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.16),
-                      blurRadius: 24,
-                      spreadRadius: -10,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0),
+                      accent.withValues(alpha: 0.28),
+                      Colors.white.withValues(alpha: 0),
+                    ],
+                  ),
                 ),
-                child: _AssistantSparkleGlyph(color: accent, size: 28),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    if (isPremium) ...[
-                      Text(
-                        'PRO Erişim',
-                        style: GoogleFonts.dmSans(
-                          color: const Color(0xFFEBC374),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.3,
+                    Container(
+                      width: 58,
+                      height: 58,
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.11),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.18),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                    ],
-                    Text(
-                      'Asistan & Araçlar',
-                      style: GoogleFonts.dmSans(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
+                      child: _AssistantSparkleGlyph(color: accent, size: 27),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (isPremium) ...[
+                            Text(
+                              'PRO Erişim',
+                              style: GoogleFonts.dmSans(
+                                color: const Color(0xFFEBC374),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                          ],
+                          Text(
+                            'Asistan Merkezi',
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Koçluk, görevler ve gelişmiş araçlar tek dokunuşta.',
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white.withValues(alpha: 0.62),
+                              fontSize: 13.2,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Koç, görevler ve gelişmiş özellikler tek yerde.',
-                      style: GoogleFonts.dmSans(
-                        color: Colors.white.withValues(alpha: 0.62),
-                        fontSize: 13.2,
-                        fontWeight: FontWeight.w500,
-                        height: 1.35,
-                      ),
+                    const SizedBox(width: 10),
+                    _AssistantAccessBadge(isPremium: isPremium),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    const _AssistantBadge(
+                      icon: Icons.chat_bubble_outline_rounded,
+                      label: 'AI Koç',
+                    ),
+                    const _AssistantBadge(
+                      icon: Icons.checklist_rounded,
+                      label: 'Görevler',
+                    ),
+                    _AssistantBadge(
+                      icon: isPremium
+                          ? Icons.workspace_premium_rounded
+                          : Icons.lock_open_rounded,
+                      label: isPremium ? 'Premium' : 'Keşfet',
+                      isAccent: isPremium,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              _AssistantAccessBadge(isPremium: isPremium),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              const _AssistantBadge(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'AI Koç',
-              ),
-              const _AssistantBadge(
-                icon: Icons.checklist_rounded,
-                label: 'Günlük Akış',
-              ),
-              if (isPremium)
-                const _AssistantBadge(
-                  icon: Icons.workspace_premium_rounded,
-                  label: 'Premium',
-                  isAccent: true,
-                ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -849,6 +918,41 @@ class _AssistantAccessBadge extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AssistantMiniBadge extends StatelessWidget {
+  const _AssistantMiniBadge({
+    required this.label,
+    required this.color,
+    this.filled = false,
+  });
+
+  final String label;
+  final Color color;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: filled ? 0.16 : 0.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.dmSans(
+          color: color,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.1,
+        ),
       ),
     );
   }
@@ -1048,39 +1152,16 @@ class _AssistantSparkleGlyph extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Align(
-            alignment: const Alignment(-0.25, 0.1),
-            child: Transform.rotate(
-              angle: 0.15,
-              child: Icon(
-                Icons.auto_awesome_rounded,
-                color: color,
-                size: size * 0.74,
-              ),
-            ),
-          ),
-          Positioned(
-            top: size * 0.1,
-            right: size * 0.08,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: color.withValues(alpha: 0.96),
-              size: size * 0.28,
-            ),
-          ),
-          Positioned(
-            bottom: size * 0.06,
-            right: size * 0.12,
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: color.withValues(alpha: 0.9),
-              size: size * 0.24,
-            ),
-          ),
-        ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color.withValues(alpha: 0.08),
+        ),
+        child: Icon(
+          Icons.auto_awesome_rounded,
+          color: color,
+          size: size * 0.72,
+        ),
       ),
     );
   }
