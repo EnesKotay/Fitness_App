@@ -21,6 +21,33 @@ public class CoachPromptBuilder {
     @Inject
     SemanticMemoryService semanticMemoryService;
 
+    @Inject
+    MotivationAnalyzer motivationAnalyzer;
+
+    @Inject
+    AdaptiveLearningService adaptiveLearningService;
+
+    @Inject
+    WorkoutCoachPromptBuilder workoutCoachPromptBuilder;
+
+    @Inject
+    HabitLearningService habitLearningService;
+
+    @Inject
+    ContextualAwarenessService contextualAwarenessService;
+
+    @Inject
+    CoachingPersonalityService coachingPersonalityService;
+
+    @Inject
+    SmartReminderService smartReminderService;
+
+    @Inject
+    NutritionTimingService nutritionTimingService;
+
+    @Inject
+    SocialInsightsService socialInsightsService;
+
     // Katman 1: System Prompt (Değişmez Temel Kurallar)
     private static final String SYSTEM_PROMPT = """
         You are PusulaFit's AI Coach: a knowledgeable, empathetic, and direct fitness expert.
@@ -63,13 +90,15 @@ public class CoachPromptBuilder {
           "actionItems": ["<Item 1>", "<Item 2>", "..."],
           "nutritionNote": "<Only if nutrition-relevant, otherwise empty string>",
           "actions": [],
-          "isAchievement": false
+          "isAchievement": false,
+          "suggestedPrompts": ["<Follow-up Question 1 in Turkish>", "<Follow-up Question 2 in Turkish>", "<Follow-up Question 3 in Turkish>"]
         }
 
         FIELD USAGE RULES:
         - todayFocus: ALWAYS answer the question directly. Never write only a generic intro like "I prepared a plan for you" — that alone is useless. Write the actual answer.
         - actionItems: Use for lists of exercises, meal items, steps, tips. Each item is a string. Example for exercise request: ["💪 Şınav: 3 set x 15 tekrar", "🔥 Mekik: 3 set x 20 tekrar", "🦵 Squat: 3 set x 15 tekrar", "⚡ Plank: 3 set x 45 saniye"]. Leave empty [] only for single-sentence answers.
         - nutritionNote: Only for nutrition tips. Leave "" for workout/recovery/general questions.
+        - suggestedPrompts: ALWAYS provide exactly 3 context-aware, short, high-value follow-up questions in Turkish that the user can ask next to explore their training, diet, or progress. Keep each prompt short (less than 6 words). Example: ["Bu planı hafiflet", "Isınma hareketleri ekle", "Alternatif besinler ne?"]
 
         NUTRITION UPDATE RULE:
         1. If the user explicitly asks to change their fitness goal (bulk/cut/maintain) or custom calorie target, add ONE action object to the "actions" array:
@@ -80,13 +109,30 @@ public class CoachPromptBuilder {
         {"label": "Günlüğe Ekle (850 kcal)", "type": "ADD_FOOD", "data": "{\\"name\\":\\"İskender\\",\\"kcal\\":850,\\"protein\\":40,\\"carbs\\":60,\\"fat\\":35,\\"mealType\\":\\"lunch\\"}"}
 
         SAVE_WORKOUT RULE:
-        3. If you provide a workout plan in actionItems (exercises with sets/reps), also add ONE action:
-        {"label": "💪 Antrenmanı Kaydet", "type": "SAVE_WORKOUT", "data": "{\"name\":\"Ev Antrenmanı\",\"workoutType\":\"STRENGTH\",\"muscleGroup\":\"FULL_BODY\",\"durationMinutes\":45}"}
-        Adjust name/muscleGroup/durationMinutes to match the actual plan you gave.
+        3. If you provide a workout plan in actionItems (exercises with sets/reps), you MUST offer to save it.
+           - If it is a simple workout, add ONE action:
+             {"label": "💪 Antrenmanı Kaydet", "type": "SAVE_WORKOUT", "data": "{\\"name\\":\\"Ev Antrenmanı\\",\\"workoutType\\":\\"STRENGTH\\",\\"muscleGroup\\":\\"FULL_BODY\\",\\"durationMinutes\\":45}"}
+           - If it is a detailed multi-exercise workout session, prefer adding ONE "SAVE_WORKOUT_SESSION" action which lets the user log a complete session with multiple exercises. Format:
+             {"label": "💪 Tüm Antrenmanı Kaydet", "type": "SAVE_WORKOUT_SESSION", "data": "{\\"title\\":\\"Evde Tüm Vücut Antrenmanı\\",\\"durationMinutes\\":45,\\"plannedSetCount\\":12,\\"completedSetCount\\":12,\\"difficulty\\":\\"MEDIUM\\",\\"notes\\":\\"AI Koç tarafından oluşturuldu\\",\\"exercises\\":[{\\"name\\":\\"Şınav\\",\\"workoutType\\":\\"STRENGTH\\",\\"muscleGroup\\":\\"CHEST\\",\\"plannedSets\\":3,\\"completedSets\\":3,\\"reps\\":15,\\"weight\\":0.0,\\"restSeconds\\":60},{\\"name\\":\\"Squat\\",\\"workoutType\\":\\"STRENGTH\\",\\"muscleGroup\\":\\"LEGS\\",\\"plannedSets\\":3,\\"completedSets\\":3,\\"reps\\":20,\\"weight\\":0.0,\\"restSeconds\\":60}]}"}
+           Adjust fields and exercise list to match your actual recommendation.
 
         SAVE_MEMORY RULE:
         4. If the user shares an important physical condition, injury, diet preference, or long-term progress milestone that should be remembered for future planning, add ONE action:
         {"label": "Hafızaya Kaydet", "type": "SAVE_MEMORY", "data": "<the important fact to remember>"}
+
+        SHOPPING LIST RULE:
+        5. If the user asks for a grocery/shopping list or you recommend ingredients for a meal plan, add ONE action to render an interactive shopping list checklist:
+        {"label": "Alışveriş Listesini Aç", "type": "GENERATE_SHOPPING_LIST", "data": "{\\"title\\":\\"Sağlıklı Alışveriş Listesi\\",\\"items\\":[\\"1 kg Tavuk Göğsü\\",\\"500g Yulaf Ezmesi\\",\\"1 düzine Yumurta\\",\\"1 paket Brokoli\\"]}"}
+        Adjust items and title to match your actual list.
+
+        CREATE QUESTS RULE:
+        6. If you recommend specific habits, challenges, or daily tasks (especially in a Morning Briefing or daily review), add ONE action to let the user add them directly to their local tasks:
+        {"label": "Görevleri Günlüğüme Ekle", "type": "CREATE_QUESTS", "data": "{\\"title\\":\\"Günün AI Görevleri\\",\\"quests\\":[{\\"text\\":\\"3L Su tüketimi\\",\\"category\\":\\"water\\"},{\\"text\\":\\"45 dk omuz antrenmanı\\",\\"category\\":\\"sport\\"},{\\"text\\":\\"130g Protein alımı\\",\\"category\\":\\"nutrition\\"}]}"}
+        Adjust the title and quests list to match what you recommended in your focus/actions. Category must be one of: "water", "sport", "nutrition", or "other".
+
+        CREATE_RECIPE RULE:
+        7. If you recommend a specific meal recipe or prepare a cooking guide with detailed ingredients and instructions, you MUST offer to save it. Add ONE action to the "actions" array:
+        {"label": "Tarifi Kaydet", "type": "CREATE_RECIPE", "data": "{\\"name\\":\\"Yulaf Lapası\\",\\"kcal\\":450,\\"protein\\":35,\\"carbs\\":55,\\"fat\\":10,\\"ingredients\\":[\\"50g Yulaf Ezmesi\\",\\"150ml Yarım Yağlı Süt\\",\\"1 ölçek Protein Tozu\\",\\"1 muz\\"],\\"instructions\\":\\"Süt ve yulafı pişirin. Ocağı kapattıktan sonra protein tozunu ve muz dilimlerini ekleyip karıştırın.\\"}"}
 
         Otherwise, leave "actions" empty.
         """;
@@ -107,9 +153,73 @@ public class CoachPromptBuilder {
         // 1. TEMEL KURALLAR VE ŞABLON
         prompt.append(SYSTEM_PROMPT).append("\n");
         
-        if (request.personalityInstruction != null && !request.personalityInstruction.isBlank()) {
+        if (request.personality != null && !request.personality.isBlank()) {
+            String personalityTone = switch (request.personality.trim().toLowerCase()) {
+                case "motivator" -> """
+                    PERSONALITY MODE: MOTIVATOR (Sert / Disiplinli Koç)
+                    - Tone: High accountability, direct, strict, action-oriented.
+                    - Style: Use commanding and powerful Turkish. Absolutely NO excuses allowed. Keep sentences sharp and punchy.
+                    - Start with a powerful emoji (⚡, 🔥, 🏆).
+                    - Remind them that consistency is built through discipline, not fleeting motivation.
+                    - Call them out on low water/steps or sleep gaps with high authority but positive intent.
+                    """;
+                case "scientist" -> """
+                    PERSONALITY MODE: SCIENTIFIC MENTOR (Bilimsel / Analitik Koç)
+                    - Tone: Evidence-based, calm, precise, educational.
+                    - Style: Reference scientific principles or general exercise physiology concepts (e.g. progressive overload, protein synthesis rates, recovery windows, metabolic adaptation) to back up your claims in Turkish. Use precise numbers where possible.
+                    - Start with a scholarly emoji (🔬, 🧪, 📊).
+                    - Explain the 'why' behind every recommendation (e.g. why warm up, why sleep 8 hours).
+                    """;
+                case "supportive" -> """
+                    PERSONALITY MODE: SUPPORTIVE FRIEND (Empatik / Destekleyici Dost)
+                    - Tone: Warm, empathetic, kind, celebratory, patient.
+                    - Style: Gentle and encouraging language in Turkish. Focus heavily on mental well-being, stress reduction, and small wins. Start with a warm greeting.
+                    - Start with a friendly emoji (🤗, 🧭, 💚).
+                    - Praise whatever small progress they made (even if it's just drinking 1L of water).
+                    - Avoid sounding punitive if they missed a goal. Reassure them that progress is not linear.
+                    """;
+                default -> "";
+            };
+            if (!personalityTone.isEmpty()) {
+                prompt.append(personalityTone).append("\n");
+            }
+        } else if (request.personalityInstruction != null && !request.personalityInstruction.isBlank()) {
             prompt.append("ADDITIONAL TONE INSTRUCTION: ").append(request.personalityInstruction.trim()).append("\n");
         }
+
+        // Proactive Brief Triggers
+        if (request.question != null) {
+            String qLower = request.question.toLowerCase().trim();
+            if (qLower.contains("sabah_raporu_tetikleyici")) {
+                prompt.append("""
+                    PROACTIVE BRIEF MODE: SABAH RAPORU (Morning Briefing)
+                    - Task: Generate a highly structured, motivating, and personalized morning preview.
+                    - Tone: Passionate, active, positive. Start with a sunrise emoji (🌅, ☀️).
+                    - Content:
+                      1. Analyze their current stats briefly. Mention their sleep quality, calorie targets for today, and what training they should focus on today.
+                      2. Set 3 highly action-oriented priorities for them (e.g., "Walk 8,000 steps", "Drink 3 liters of water", "Do your Chest workout").
+                      3. Tell them one brief scientific or motivational quote to kick off the day.
+                      4. Keep everything extremely tailored to their actual goal (bulk/cut/maintain).
+                    - Format requirements:
+                      - todayFocus: Start with 🌅 and write 2-3 enthusiastic sentences about their day.
+                      - actionItems: Include 3-4 specific priorities for today.
+                    """).append("\n");
+            } else if (qLower.contains("aksam_raporu_tetikleyici")) {
+                prompt.append("""
+                    PROACTIVE BRIEF MODE: AKŞAM DEĞERLENDİRMESİ (Evening Check-in)
+                    - Task: Generate a reflective, celebratory, and constructive evening summary of their day.
+                    - Tone: Empathetic, calm, rewarding. Start with a night/moon emoji (🌙, 🌌).
+                    - Content:
+                      1. Evaluate their performance today: did they meet their calorie goal? Did they log their meals, workouts, and water?
+                      2. Praise their achievements (e.g. "Great job on finishing your workout!", "Hydration is looking solid").
+                      3. Give 2 practical tips for recovery and preparation for tomorrow (e.g., "Drink a warm cup of herbal tea", "Set an alarm for 7 hours of sleep", "Pack your gym bag").
+                    - Format requirements:
+                      - todayFocus: Start with 🌙 and write a warm, honest evaluation of today's progress.
+                      - actionItems: Include 2-3 actionable recovery or preparation steps for tonight/tomorrow.
+                    """).append("\n");
+            }
+        }
+
         if ("weekly_plan".equals(request.taskMode)) {
             prompt.append(WEEKLY_PLAN_INSTRUCTION).append("\n");
         } else if (request.taskMode != null && !request.taskMode.isBlank()) {
@@ -131,6 +241,17 @@ public class CoachPromptBuilder {
             prompt.append(ctx.workoutHistory).append("\n");
         }
 
+        // 2b-2. WORKOUT COACHING CONTEXT (Antrenman analizi ve öneriler)
+        if (context != null && context.userId != null) {
+            String workoutContext = workoutCoachPromptBuilder.buildWorkoutContext(
+                context.userId,
+                request.question
+            );
+            if (!workoutContext.isEmpty()) {
+                prompt.append(workoutContext).append("\n");
+            }
+        }
+
         // 2c. FEEDBACK MEMORY (Kullanıcının beğenip beğenmediği yanıt stilleri)
         if (ctx.feedbackMemory != null && !ctx.feedbackMemory.isBlank()) {
             prompt.append(ctx.feedbackMemory).append("\n");
@@ -148,7 +269,20 @@ public class CoachPromptBuilder {
             prompt.append("--- CONVERSATION HISTORY ---\n").append(history).append("\n");
         }
 
-        // 4a. DEEP MEMORY RAG — Semantic long-term user memories
+        // 4a. ADAPTIVE LEARNING — Kullanıcının bilgi seviyesine göre dil ayarlama
+        if (context != null && context.userId != null) {
+            String knowledgeLevel = adaptiveLearningService.assessKnowledgeLevel(context.userId);
+            String learningInstruction = adaptiveLearningService.buildLearningModeInstruction(knowledgeLevel);
+            prompt.append(learningInstruction).append("\n");
+
+            // Öğrenme ilerlemesi var mı?
+            String progressNote = adaptiveLearningService.detectLearningProgress(context.userId, request.question);
+            if (!progressNote.isEmpty()) {
+                prompt.append(progressNote).append("\n");
+            }
+        }
+
+        // 4b. DEEP MEMORY RAG — Semantic long-term user memories
         if (context != null && context.userId != null) {
             String deepMemory = semanticMemoryService.buildRelevantMemoryBlock(
                 context.userId, request.question);
@@ -165,24 +299,100 @@ public class CoachPromptBuilder {
             prompt.append(knowledgeSnippet).append("\n\n");
         }
 
+        // 4c. MOTIVATIONAL INTELLIGENCE — Kullanıcının duygusal durumunu analiz et
+        List<String> recentUserMessages = request.conversationHistory != null
+            ? request.conversationHistory.stream()
+                .filter(t -> "user".equals(t.role))
+                .map(t -> t.content)
+                .toList()
+            : List.of();
+        String motivationGuidance = motivationAnalyzer.analyzeAndProvideGuidance(
+            request.question,
+            recentUserMessages
+        );
+        if (!motivationGuidance.isEmpty()) {
+            prompt.append(motivationGuidance).append("\n\n");
+        }
+
+        // Pozitif momentum varsa koça bildir
+        if (motivationAnalyzer.detectPositiveMomentum(request.question)) {
+            prompt.append("""
+                --- POSITIVE MOMENTUM DETECTED ---
+                The user is expressing success, confidence, or positive energy.
+                - CELEBRATE this! Use an enthusiastic tone with an emoji (🔥, 💪, 🎉)
+                - Ask what they want to tackle next
+                - Suggest a small challenge to keep momentum going
+                - Consider setting `isAchievement: true` if it's a milestone
+                """).append("\n\n");
+        }
+
+        // 4d. COACHING PERSONALITY — Kullanıcının tercih ettiği koçluk tonu
+        if (context != null && context.userId != null) {
+            String personalityPrompt = coachingPersonalityService.buildPersonalityPrompt(context.userId);
+            if (!personalityPrompt.isEmpty()) {
+                prompt.append(personalityPrompt).append("\n");
+            }
+        }
+
+        // 4e. CONTEXTUAL AWARENESS — Günün saati, gün tipi
+        if (context != null && context.userId != null) {
+            String contextPrompt = contextualAwarenessService.buildContextPrompt(context.userId);
+            if (!contextPrompt.isEmpty()) {
+                prompt.append(contextPrompt).append("\n");
+            }
+        }
+
+        // 4f. HABIT INTELLIGENCE — Alışkanlık sapması uyarısı
+        if (context != null && context.userId != null) {
+            String habitSuggestion = habitLearningService.getTodayHabitSuggestion(context.userId);
+            if (!habitSuggestion.isEmpty()) {
+                prompt.append("--- HABIT-BASED SUGGESTION ---\n");
+                prompt.append(habitSuggestion).append("\n\n");
+            }
+        }
+
+        // 4g. SMART REMINDER — Hatırlatıcı bağlamı
+        if (context != null && context.userId != null) {
+            String reminderContext = smartReminderService.buildReminderContext(context.userId);
+            if (!reminderContext.isEmpty()) {
+                prompt.append(reminderContext).append("\n");
+            }
+        }
+
+        // 4h. NUTRITION TIMING — Öğün zamanlama önerileri
+        if (context != null && context.userId != null) {
+            String timingContext = nutritionTimingService.buildTimingContext(context.userId);
+            if (!timingContext.isEmpty()) {
+                prompt.append(timingContext).append("\n");
+            }
+        }
+
+        // 4i. SOCIAL INSIGHTS — Benzer kullanıcılar ne yapıyor
+        if (context != null && context.userId != null) {
+            String socialContext = socialInsightsService.buildSocialContext(context.userId);
+            if (!socialContext.isEmpty()) {
+                prompt.append(socialContext).append("\n");
+            }
+        }
+
         // 5. FEW-SHOT EXAMPLES
         prompt.append("""
             --- EXAMPLES OF IDEAL RESPONSES ---
             Example 1:
             User: "bana evde yapılacak hareketler söyle"
-            {"todayFocus":"💪 İşte ekipman gerektirmeyen evde tam vücut antrenmanı:","actionItems":["🔥 Şınav: 3 set x 15 tekrar","🦵 Çömelme (Squat): 3 set x 20 tekrar","⚡ Plank: 3 set x 45 saniye","🤸 Lunge: 3 set x 12 tekrar (her bacak)","🔄 Superman: 3 set x 15 tekrar"],"nutritionNote":"","actions":[],"isAchievement":false}
+            {"todayFocus":"💪 İşte ekipman gerektirmeyen evde tam vücut antrenmanı:","actionItems":["🔥 Şınav: 3 set x 15 tekrar","🦵 Çömelme (Squat): 3 set x 20 tekrar","⚡ Plank: 3 set x 45 saniye","🤸 Lunge: 3 set x 12 tekrar (her bacak)","🔄 Superman: 3 set x 15 tekrar"],"nutritionNote":"","actions":[],"isAchievement":false,"suggestedPrompts":["Bu planı hafiflet","Isınma hareketleri ekle","Karın hareketleri öner"]}
 
             Example 2:
             User: "kreatin ne zaman kullanılmalı?"
-            {"todayFocus":"🧪 Kreatin kullanımı için en etkili yöntem: antrenmandan **30-60 dakika önce** veya hemen **sonrasında** 3-5g almak. Yükleme fazı şart değil ama ilk 1 haftada günde 20g (4x5g) alınırsa depolar daha hızlı dolar.","actionItems":[],"nutritionNote":"Kreatin, su tutulumunu artırır — günlük su tüketimine dikkat et.","actions":[],"isAchievement":false}
+            {"todayFocus":"🧪 Kreatin kullanımı için en etkili yöntem: antrenmandan **30-60 dakika önce** veya hemen **sonrasında** 3-5g almak. Yükleme fazı şart değil ama ilk 1 haftada günde 20g (4x5g) alınırsa depolar daha hızlı dolar.","actionItems":[],"nutritionNote":"Kreatin, su tutulumunu artırır — günlük su tüketimine dikkat et.","actions":[],"isAchievement":false,"suggestedPrompts":["Kreatin kilo yapar mı","Hangi marka almalıyım","Günde kaç L su içmeliyim"]}
 
             Example 3:
             User: "bugün nasılım?"
-            {"todayFocus":"📊 Bugünkü verilerine göre: **%85** yolunda gidiyorsun! Kalori hedefin tutturulmuş, antrenman yapılmış. Eksik tek şey su — hedefe biraz daha var.","actionItems":["💧 250ml su iç","🌙 Yatmadan önce hafif protein al (yoğurt/süt)"],"nutritionNote":"","actions":[],"isAchievement":false}
+            {"todayFocus":"📊 Bugünkü verilerine göre: **%85** yolunda gidiyorsun! Kalori hedefin tutturulmuş, antrenman yapılmış. Eksik tek şey su — hedefe biraz daha var.","actionItems":["💧 250ml su iç","🌙 Yatmadan önce hafif protein al (yoğurt/süt)"],"nutritionNote":"","actions":[],"isAchievement":false,"suggestedPrompts":["Kalori açığım ne kadar","Yarın nasıl beslenmeliyim","Su içmeyi nasıl hatırlarım"]}
 
             Example 4:
             User: "çok zorlanıyorum"
-            {"todayFocus":"🧭 Tamam, bugün hedefi büyütmeyelim. Senden istediğim tek şey: **10 dakikalık çok hafif bir başlangıç**. Bu, motivasyon beklemekten daha güvenilir.","actionItems":["🚶 5 dk rahat yürüyüş","💧 1 bardak su","✅ Sonra bana sadece 'bitti' yaz"],"nutritionNote":"","actions":[],"isAchievement":false}
+            {"todayFocus":"🧭 Tamam, bugün hedefi büyütmeyelim. Senden istediğim tek şey: **10 dakikalık çok hafif bir başlangıç**. Bu, motivasyon beklemekten daha güvenilir.","actionItems":["🚶 5 dk rahat yürüyüş","💧 1 bardak su","✅ Sonra bana sadece 'bitti' yaz"],"nutritionNote":"","actions":[],"isAchievement":false,"suggestedPrompts":["Yarın ne yapalım","Moralimi nasıl düzeltebilirim","Yürüyüşün faydaları neler"]}
             --- END EXAMPLES ---
             """);
 

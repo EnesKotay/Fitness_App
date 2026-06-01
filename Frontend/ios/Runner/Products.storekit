@@ -79,7 +79,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "149.99",
+          "displayPrice" : "149.00",
           "familyShareable" : true,
           "groupNumber" : 1,
           "internalID" : "premium_monthly_local",
@@ -104,7 +104,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "1199.99",
+          "displayPrice" : "799.99",
           "familyShareable" : true,
           "groupNumber" : 2,
           "internalID" : "premium_yearly_local",

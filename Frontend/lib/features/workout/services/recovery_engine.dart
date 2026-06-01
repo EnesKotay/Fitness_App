@@ -89,6 +89,46 @@ class RecoveryEngine {
         .map((e) => e.key)
         .toList();
   }
+
+  /// Kullanıcının Deload (Toparlanma) yapıp yapmaması gerektiğini kontrol eder
+  static bool isDeloadRecommended(List<Workout> workouts) {
+    if (workouts.isEmpty) return false;
+
+    // 1. Kriter: Kasların çoğunluğu "Fatigued" durumunda mı?
+    final allFatigue = computeAll(workouts);
+    final fatiguedCount = allFatigue.values.where((s) => s.level == FatigueLevel.fatigued).length;
+    
+    // 2. Kriter: Son 3 antrenmanın ortalama RPE'si 9 ve üzeri mi?
+    final recentWorkouts = workouts.toList()..sort((a, b) => b.workoutDate.compareTo(a.workoutDate));
+    final last3 = recentWorkouts.take(3).toList();
+    
+    double avgRecentRpe = 0;
+    int rpeCount = 0;
+    for (final w in last3) {
+      if (w.setDetails != null) {
+        for (final s in w.setDetails!) {
+          if (s.rpe != null && s.rpe! > 0) {
+            avgRecentRpe += s.rpe!;
+            rpeCount++;
+          }
+        }
+      }
+    }
+    
+    if (rpeCount > 0) {
+      avgRecentRpe /= rpeCount;
+    }
+
+    // 3. Kriter: Son 7 günde 6 veya daha fazla gün antrenman yapılmış mı?
+    final recentDays = <DateTime>{};
+    final now = DateTime.now();
+    for (final w in workouts) {
+      final d = DateTime(w.workoutDate.year, w.workoutDate.month, w.workoutDate.day);
+      if (now.difference(d).inDays <= 6) recentDays.add(d);
+    }
+
+    return fatiguedCount >= 4 || avgRecentRpe >= 9.0 || recentDays.length >= 6;
+  }
 }
 
 class FatigueStatus {

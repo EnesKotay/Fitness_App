@@ -27,6 +27,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.Context;
@@ -48,6 +49,24 @@ public class AiCoachController {
     GeminiCoachService geminiCoachService;
 
     @Inject
+    com.fitness.service.WorkoutAnalysisService workoutAnalysisService;
+
+    @Inject
+    com.fitness.service.SmartProgramGeneratorService programGeneratorService;
+
+    @Inject
+    com.fitness.service.FormCheckService formCheckService;
+
+    @Inject
+    com.fitness.service.CoachingPersonalityService coachingPersonalityService;
+
+    @Inject
+    com.fitness.service.HabitLearningService habitLearningService;
+
+    @Inject
+    com.fitness.service.SocialInsightsService socialInsightsService;
+
+    @Inject
     GeminiClient geminiClient;
 
     @Inject
@@ -64,6 +83,15 @@ public class AiCoachController {
 
     @Inject
     AiFeedbackService feedbackService;
+
+    @Inject
+    com.fitness.service.ProgressPredictionService progressPredictionService;
+
+    @Inject
+    com.fitness.service.AdaptiveLearningService adaptiveLearningService;
+
+    @Inject
+    com.fitness.service.WeeklyDigestService weeklyDigestService;
 
     @POST
     @Path("/coach")
@@ -335,6 +363,99 @@ public class AiCoachController {
         }
     }
 
+    /**
+     * Kullanıcının ilerleme tahminlerini (hedef kiloya ne zaman ulaşır, kalori dengesi) döner.
+     */
+    @GET
+    @Path("/progress-prediction")
+    public Response getProgressPrediction(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+
+            Map<String, Object> result = new HashMap<>();
+
+            // Kilo projeksiyonu
+            com.fitness.service.ProgressPredictionService.WeightProjection projection =
+                progressPredictionService.predictWeeksToTarget(userId);
+            if (projection != null) {
+                Map<String, Object> proj = new HashMap<>();
+                proj.put("currentWeight", projection.currentWeight);
+                proj.put("targetWeight", projection.targetWeight);
+                proj.put("weeklyChangeKg", projection.weeklyChangeKg);
+                proj.put("weeksToTarget", projection.weeksToTarget);
+                proj.put("status", projection.status);
+                proj.put("message", projection.message);
+                result.put("weightProjection", proj);
+            }
+
+            // Kalori dengesi
+            com.fitness.service.ProgressPredictionService.CalorieBalance balance =
+                progressPredictionService.calculateCalorieBalance(userId);
+            if (balance != null) {
+                Map<String, Object> bal = new HashMap<>();
+                bal.put("avgDailyCalories", balance.avgDailyCalories);
+                bal.put("tdee", balance.tdee);
+                bal.put("dailyBalance", balance.dailyBalance);
+                bal.put("insight", balance.insight);
+                result.put("calorieBalance", bal);
+            }
+
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        } catch (Exception e) {
+            LOG.warnf("Progress prediction failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\": \"İlerleme tahmini hesaplanamadı.\"}")
+                .build();
+        }
+    }
+
+    /**
+     * Kullanıcının öğrenme istatistiklerini döner (bilgi seviyesi, soru sayısı, memnuniyet oranı)
+     */
+    @GET
+    @Path("/learning-stats")
+    public Response getLearningStats(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            Map<String, Object> stats = adaptiveLearningService.getLearningStats(userId);
+            return Response.ok(stats).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        } catch (Exception e) {
+            LOG.warnf("Learning stats failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\": \"Öğrenme istatistikleri hesaplanamadı.\"}")
+                .build();
+        }
+    }
+
+    /**
+     * Geçen haftanın (Pazartesi-Pazar) performans raporunu AI ile üretir.
+     */
+    @GET
+    @Path("/weekly-digest")
+    public Response getWeeklyDigest(@Context HttpHeaders headers) {
+        Long userId = null;
+        try {
+            userId = resolveUserId(headers);
+            Map<String, Object> digest = weeklyDigestService.generateWeeklyDigest(userId);
+            return Response.ok(digest).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                .build();
+        } catch (Exception e) {
+            LOG.errorf("Weekly digest failed for user %d: %s", userId, e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                .entity("{\"error\": \"Haftalık rapor oluşturulamadı.\"}")
+                .build();
+        }
+    }
+
     @POST
     @Path("/feedback")
     @Transactional
@@ -350,6 +471,308 @@ public class AiCoachController {
         } catch (Exception e) {
             LOG.warnf("Feedback save failed: %s", e.getMessage());
             return Response.noContent().build(); // non-critical, never fail the client
+        }
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    // WORKOUT ANALYSIS ENDPOINTS
+    // ────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Plato tespiti (belirli bir egzersiz için)
+     * GET /api/ai/workout/plateau/{exerciseName}
+     */
+    @GET
+    @Path("/workout/plateau/{exerciseName}")
+    public Response getPlateauDetection(@Context HttpHeaders headers, @PathParam("exerciseName") String exerciseName) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = workoutAnalysisService.detectPlateauForExercise(userId, exerciseName);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Plateau detection failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Plato analizi başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * PR tahmini (belirli bir egzersiz için)
+     * GET /api/ai/workout/pr-prediction/{exerciseName}
+     */
+    @GET
+    @Path("/workout/pr-prediction/{exerciseName}")
+    public Response getPRPrediction(@Context HttpHeaders headers, @PathParam("exerciseName") String exerciseName) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = workoutAnalysisService.predictNextPR(userId, exerciseName);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("PR prediction failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"PR tahmini başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Deload ihtiyacı analizi
+     * GET /api/ai/workout/deload-check
+     */
+    @GET
+    @Path("/workout/deload-check")
+    public Response getDeloadCheck(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = workoutAnalysisService.calculateDeloadNeed(userId);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Deload check failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Deload analizi başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Volume analizi (son 8 hafta)
+     * GET /api/ai/workout/volume-analysis
+     */
+    @GET
+    @Path("/workout/volume-analysis")
+    public Response getVolumeAnalysis(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = workoutAnalysisService.getVolumeAnalysis(userId);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Volume analysis failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Volume analizi başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Kas grubu bazında plato analizi
+     * GET /api/ai/workout/muscle-group-plateau/{muscleGroup}
+     */
+    @GET
+    @Path("/workout/muscle-group-plateau/{muscleGroup}")
+    public Response getMuscleGroupPlateau(@Context HttpHeaders headers, @PathParam("muscleGroup") String muscleGroup) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = workoutAnalysisService.detectPlateauForMuscleGroup(userId, muscleGroup);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Muscle group plateau detection failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Kas grubu plato analizi başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * AI bazlı akıllı program oluştur
+     * POST /api/ai/generate-program
+     */
+    @POST
+    @Path("/generate-program")
+    public Response generateProgram(@Context HttpHeaders headers, com.fitness.service.SmartProgramGeneratorService.ProgramRequest request) {
+        try {
+            Long userId = resolveUserId(headers);
+            var result = programGeneratorService.generateProgram(userId, request);
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Program generation failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Program oluşturulamadı: " + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Form analizi (görsel tabanlı)
+     * POST /api/ai/form-check
+     * Multipart form data: image (file), exerciseName (string)
+     */
+    @POST
+    @Path("/form-check")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response formCheck(
+        @Context HttpHeaders headers,
+        @RestForm("image") FileUpload imageFile,
+        @RestForm("exerciseName") String exerciseName
+    ) {
+        try {
+            Long userId = resolveUserId(headers);
+
+            if (imageFile == null || imageFile.filePath() == null) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\": \"Görsel dosyası gerekli\"}")
+                        .build();
+            }
+
+            if (exerciseName == null || exerciseName.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\": \"Egzersiz adı gerekli\"}")
+                        .build();
+            }
+
+            var result = formCheckService.analyzeFormFromImage(
+                userId,
+                imageFile.filePath(),
+                exerciseName.trim()
+            );
+
+            return Response.ok(result).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Form check failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Form analizi başarısız: " + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Koçluk kişiliği al
+     * GET /api/ai/coaching-personality
+     */
+    @GET
+    @Path("/coaching-personality")
+    public Response getCoachingPersonality(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            var personality = coachingPersonalityService.getUserPersonality(userId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("personality", personality.name());
+            response.put("displayName", personality.displayName);
+            response.put("description", personality.promptGuidance);
+            return Response.ok(response).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Get coaching personality failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Kişilik bilgisi alınamadı\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Koçluk kişiliği güncelle
+     * POST /api/ai/coaching-personality
+     * Body: {"personality": "TOUGH_LOVE"}
+     */
+    @POST
+    @Path("/coaching-personality")
+    public Response updateCoachingPersonality(@Context HttpHeaders headers, Map<String, String> request) {
+        try {
+            Long userId = resolveUserId(headers);
+            String personalityStr = request.get("personality");
+            if (personalityStr == null || personalityStr.isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\": \"personality parametresi gerekli\"}")
+                        .build();
+            }
+
+            com.fitness.service.CoachingPersonalityService.CoachingPersonality personality;
+            try {
+                personality = com.fitness.service.CoachingPersonalityService.CoachingPersonality.valueOf(personalityStr);
+            } catch (IllegalArgumentException e) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"error\": \"Geçersiz kişilik tipi. SUPPORTIVE, TOUGH_LOVE veya ANALYTICAL olmalı\"}")
+                        .build();
+            }
+
+            coachingPersonalityService.updatePersonality(userId, personality);
+            return Response.ok("{\"success\": true}").build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Update coaching personality failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Kişilik güncellenemedi\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Alışkanlık analizi
+     * GET /api/ai/habit-analysis
+     */
+    @GET
+    @Path("/habit-analysis")
+    public Response getHabitAnalysis(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            var analysis = habitLearningService.analyzeWorkoutHabits(userId);
+            return Response.ok(analysis).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Habit analysis failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Alışkanlık analizi başarısız\"}")
+                    .build();
+        }
+    }
+
+    /**
+     * Sosyal içgörüler
+     * GET /api/ai/social-insights
+     */
+    @GET
+    @Path("/social-insights")
+    public Response getSocialInsights(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            var trends = socialInsightsService.analyzeTrends(userId);
+            return Response.ok(trends).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.errorf("Social insights failed: %s", e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Sosyal içgörüler alınamadı\"}")
+                    .build();
         }
     }
 

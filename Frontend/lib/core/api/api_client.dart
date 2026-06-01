@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' show GlobalKey, NavigatorState, ScaffoldMessenger, SnackBar, Text;
+import 'package:flutter/material.dart'
+    show GlobalKey, NavigatorState, ScaffoldMessenger, SnackBar, Text;
 import '../constants/api_constants.dart';
 import '../utils/storage_helper.dart';
 import 'api_exception.dart';
@@ -29,7 +30,7 @@ class ApiClient {
       ),
     );
 
-    // Interceptors: Auth â†’ Retry â†’ Logging â†’ Error
+    // Interceptors: Auth -> Retry -> Logging -> Error
     _dio.interceptors.add(_AuthInterceptor());
     _dio.interceptors.add(_RetryInterceptor(_dio));
     _dio.interceptors.add(_LoggingInterceptor());
@@ -132,10 +133,10 @@ class ApiClient {
   }
 }
 
-// Token ekleyen interceptor. Her istekte suffix + tokenTail loglanÄ±r.
-// Karar aÄŸacÄ±: (1) Login response A/B iÃ§in userId farklÄ± mÄ±? HayÄ±râ†’backend bug. Evetâ†’
-// (2) suffix loglarÄ± A/B'de farklÄ± mÄ±? HayÄ±râ†’StorageHelper cache/save temizliÄŸi. Evetâ†’
-// (3) Hive box adlarÄ± A/B'de farklÄ± mÄ±? HayÄ±râ†’suffix/box naming. Evetâ†’UI reset/init veya provider cache.
+// Token ekleyen interceptor. Her istekte suffix + tokenTail loglanir.
+// Karar agaci: (1) Login response A/B icin userId farkli mi? Hayir -> backend bug. Evet ->
+// (2) suffix loglari A/B'de farkli mi? Hayir -> StorageHelper cache/save temizligi. Evet ->
+// (3) Hive box adlari A/B'de farkli mi? Hayir -> suffix/box naming. Evet -> UI reset/init veya provider cache.
 class _AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -199,12 +200,12 @@ class _RetryInterceptor extends Interceptor {
   }
 }
 
-// Logging interceptor - sadece debug modda (performans iÃ§in release'de kapalÄ±)
+// Logging interceptor - sadece debug modda (performans icin release'de kapali)
 class _LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (kDebugMode) {
-      debugPrint('ğŸš€ REQUEST[${options.method}] => PATH: ${options.path}');
+      debugPrint('REQUEST[${options.method}] => PATH: ${options.path}');
     }
     handler.next(options);
   }
@@ -216,7 +217,7 @@ class _LoggingInterceptor extends Interceptor {
   ) {
     if (kDebugMode) {
       debugPrint(
-        'âœ… RESPONSE[${response.statusCode}] => ${response.requestOptions.path}',
+        'RESPONSE[${response.statusCode}] => ${response.requestOptions.path}',
       );
     }
     handler.next(response);
@@ -227,7 +228,7 @@ class _LoggingInterceptor extends Interceptor {
     if (kDebugMode) {
       final fullUrl = '${err.requestOptions.baseUrl}${err.requestOptions.path}';
       debugPrint(
-        'âŒ ERROR[${err.response?.statusCode}] => ${err.requestOptions.path}',
+        'ERROR[${err.response?.statusCode}] => ${err.requestOptions.path}',
       );
       if (err.response?.data != null) {
         debugPrint('   RESPONSE BODY: ${err.response?.data}');
@@ -235,7 +236,9 @@ class _LoggingInterceptor extends Interceptor {
       if (err.response == null) {
         if (err.type == DioExceptionType.connectionError) {
           debugPrint('   Baglanti kurulamadi. Kullanilan adres: $fullUrl');
-          debugPrint('   Backend calisiyor mu? Telefon ve PC ayni WiFi\'de mi?');
+          debugPrint(
+            '   Backend calisiyor mu? Telefon ve PC ayni WiFi\'de mi?',
+          );
         } else if (err.type == DioExceptionType.connectionTimeout ||
             err.type == DioExceptionType.receiveTimeout ||
             err.type == DioExceptionType.sendTimeout) {

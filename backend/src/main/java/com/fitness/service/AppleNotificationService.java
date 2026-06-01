@@ -1,6 +1,7 @@
 package com.fitness.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.Signature;
 import java.security.cert.CertificateFactory;
@@ -9,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 
@@ -99,11 +101,43 @@ public class AppleNotificationService {
         Signature ecSig = Signature.getInstance("SHA256withECDSA");
         ecSig.initVerify(chain.get(0).getPublicKey());
         ecSig.update(signingInput);
-        if (!ecSig.verify(signature)) {
+        if (!ecSig.verify(toDerSignature(signature))) {
             throw new SecurityException("Apple JWS imzası geçersiz");
         }
 
         return objectMapper.readTree(payloadJson);
+    }
+
+    private byte[] toDerSignature(byte[] joseSignature) {
+        if (joseSignature.length != 64) {
+            return joseSignature;
+        }
+        byte[] r = derInteger(Arrays.copyOfRange(joseSignature, 0, 32));
+        byte[] s = derInteger(Arrays.copyOfRange(joseSignature, 32, 64));
+        int sequenceLength = r.length + s.length;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(0x30);
+        out.write(sequenceLength);
+        out.writeBytes(r);
+        out.writeBytes(s);
+        return out.toByteArray();
+    }
+
+    private byte[] derInteger(byte[] value) {
+        int offset = 0;
+        while (offset < value.length - 1 && value[offset] == 0) {
+            offset++;
+        }
+        byte[] normalized = Arrays.copyOfRange(value, offset, value.length);
+        boolean needsPositivePadding = (normalized[0] & 0x80) != 0;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(0x02);
+        out.write(normalized.length + (needsPositivePadding ? 1 : 0));
+        if (needsPositivePadding) {
+            out.write(0x00);
+        }
+        out.writeBytes(normalized);
+        return out.toByteArray();
     }
 
     private List<X509Certificate> buildCertChain(JsonNode x5c) throws Exception {

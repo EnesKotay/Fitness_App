@@ -146,17 +146,7 @@ class _HistoryTabState extends State<_HistoryTab> {
         }
 
         // ── Deload tespiti ────────────────────────────────────────────────
-        final recentDays = <DateTime>{};
-        final now = DateTime.now();
-        for (final w in provider.workouts) {
-          final d = DateTime(
-            w.workoutDate.year,
-            w.workoutDate.month,
-            w.workoutDate.day,
-          );
-          if (now.difference(d).inDays <= 6) recentDays.add(d);
-        }
-        final showDeload = recentDays.length >= 6;
+        final showDeload = RecoveryEngine.isDeloadRecommended(provider.workouts);
 
         // ── Dolu liste ────────────────────────────────────────────────────
         return RefreshIndicator(
@@ -194,6 +184,10 @@ class _HistoryTabState extends State<_HistoryTab> {
                     ],
                     const SizedBox(height: 16),
                     _MuscleGroupChart(workouts: provider.workouts),
+                    const SizedBox(height: 16),
+                    MuscleHeatmapWidget(
+                      fatigueByGroup: RecoveryEngine.computeAll(provider.workouts),
+                    ),
                     if (showDeload) ...[
                       const SizedBox(height: 16),
                       _DeloadBanner(),

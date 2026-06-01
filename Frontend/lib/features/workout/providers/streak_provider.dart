@@ -19,6 +19,8 @@ class StreakProvider with ChangeNotifier {
   static const _kWorkoutDatesKey = 'workout_dates';
   static const _kWeeklyWorkoutTargetKey = 'weekly_workout_target';
   static const _kStatsUpdatedAtKey = 'motivation_stats_updated_at';
+  static const _kMuscleStreaksKey = 'muscle_streaks';
+  static const _kMuscleLastWorkoutKey = 'muscle_last_workout';
 
   int _currentStreak = 0;
   int _longestStreak = 0;
@@ -30,6 +32,10 @@ class StreakProvider with ChangeNotifier {
   int _longestTaskStreak = 0;
   DateTime? _lastTaskCompletionDate;
   int _weeklyWorkoutTarget = 3;
+  
+  Map<String, int> _muscleGroupStreaks = {};
+  Map<String, DateTime> _lastMuscleGroupWorkout = {};
+  
   String? _activeScope;
   Future<void> Function(Map<String, dynamic> stats)? _remoteSync;
   bool _isApplyingRemote = false;
@@ -47,6 +53,9 @@ class StreakProvider with ChangeNotifier {
   int get taskStreak => _taskStreak;
   int get longestTaskStreak => _longestTaskStreak;
   int get weeklyWorkoutTarget => _weeklyWorkoutTarget;
+  
+  Map<String, int> get muscleGroupStreaks => Map.unmodifiable(_muscleGroupStreaks);
+  Map<String, DateTime> get lastMuscleGroupWorkout => Map.unmodifiable(_lastMuscleGroupWorkout);
   int get weeklyWorkoutCount => _workoutDates.where((raw) {
     final date = DateTime.tryParse(raw);
     return date != null && _isInCurrentWeek(date, DateTime.now());
@@ -83,6 +92,23 @@ class StreakProvider with ChangeNotifier {
     } else {
       _lastTaskCompletionDate = null;
     }
+
+    final msStr = prefs.getString(_key(_kMuscleStreaksKey));
+    if (msStr != null) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(msStr);
+        _muscleGroupStreaks = decoded.map((k, v) => MapEntry(k, v as int));
+      } catch (_) {}
+    }
+    
+    final mlStr = prefs.getString(_key(_kMuscleLastWorkoutKey));
+    if (mlStr != null) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(mlStr);
+        _lastMuscleGroupWorkout = decoded.map((k, v) => MapEntry(k, DateTime.parse(v as String)));
+      } catch (_) {}
+    }
+
     notifyListeners();
   }
 
@@ -103,9 +129,31 @@ class StreakProvider with ChangeNotifier {
 
   /// Antrenman tamamlandığında çağrılır. Streak'i günceller.
   /// Döndürür: yeni rozet kazanıldıysa [AchievementBadge], yoksa null.
-  Future<AchievementBadge?> onWorkoutCompleted() async {
+  Future<AchievementBadge?> onWorkoutCompleted([List<String>? muscleGroups]) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
+
+    if (muscleGroups != null) {
+      for (final group in muscleGroups) {
+        final groupUpper = group.trim().toUpperCase();
+        if (groupUpper.isEmpty) continue;
+        
+        final lastDate = _lastMuscleGroupWorkout[groupUpper];
+        if (lastDate != null) {
+          final difference = today.difference(lastDate).inDays;
+          if (difference > 0 && difference <= 14) {
+            if (!_isInSameWeek(lastDate, today)) {
+               _muscleGroupStreaks[groupUpper] = (_muscleGroupStreaks[groupUpper] ?? 0) + 1;
+            }
+          } else if (difference > 14) {
+            _muscleGroupStreaks[groupUpper] = 1;
+          }
+        } else {
+          _muscleGroupStreaks[groupUpper] = 1;
+        }
+        _lastMuscleGroupWorkout[groupUpper] = today;
+      }
+    }
 
     // Bugün zaten sayıldıysa tekrar sayma
     if (_lastWorkoutDate != null) {
@@ -322,6 +370,13 @@ class StreakProvider with ChangeNotifier {
         _lastTaskCompletionDate!.toIso8601String(),
       );
     }
+
+    await prefs.setString(_key(_kMuscleStreaksKey), jsonEncode(_muscleGroupStreaks));
+    await prefs.setString(
+      _key(_kMuscleLastWorkoutKey), 
+      jsonEncode(_lastMuscleGroupWorkout.map((k, v) => MapEntry(k, v.toIso8601String())))
+    );
+
     if (!_isApplyingRemote && _remoteSync != null) {
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(seconds: 30), () {
@@ -351,6 +406,8 @@ class StreakProvider with ChangeNotifier {
     'lastTaskCompletionDate': _lastTaskCompletionDate?.toIso8601String(),
     'weeklyWorkoutTarget': _weeklyWorkoutTarget,
     'weeklyWorkoutCount': weeklyWorkoutCount,
+    'muscleGroupStreaks': _muscleGroupStreaks,
+    'lastMuscleGroupWorkout': _lastMuscleGroupWorkout.map((k, v) => MapEntry(k, v.toIso8601String())),
     'updatedAt': DateTime.now().toIso8601String(),
   };
 
@@ -368,6 +425,8 @@ class StreakProvider with ChangeNotifier {
     _longestTaskStreak = 0;
     _lastTaskCompletionDate = null;
     _weeklyWorkoutTarget = 3;
+    _muscleGroupStreaks.clear();
+    _lastMuscleGroupWorkout.clear();
     notifyListeners();
     await _persist();
   }
@@ -441,12 +500,45 @@ class StreakProvider with ChangeNotifier {
         remote['weeklyWorkoutTarget'],
         _weeklyWorkoutTarget,
       );
+
+      if (remote['muscleGroupStreaks'] is Map) {
+        final Map<String, dynamic> ms = Map<String, dynamic>.from(remote['muscleGroupStreaks'] as Map);
+        _muscleGroupStreaks = ms.map((k, v) => MapEntry(k, _asInt(v, 0)));
+      }
+      if (remote['lastMuscleGroupWorkout'] is Map) {
+        final Map<String, dynamic> ml = Map<String, dynamic>.from(remote['lastMuscleGroupWorkout'] as Map);
+        _lastMuscleGroupWorkout = ml.map((k, v) {
+          final date = DateTime.tryParse(v.toString());
+          return MapEntry(k, date ?? DateTime.now());
+        });
+      }
+
       await _persist();
       _isApplyingRemote = false;
       notifyListeners();
     } catch (_) {
       _isApplyingRemote = false;
     }
+  }
+
+  /// Verilen hafta süresince (örn: 3) hiç çalıştırılmayan kas gruplarını döndürür.
+  List<String> getNeglectedMuscleGroups(int weeks) {
+    final now = DateTime.now();
+    final limit = now.subtract(Duration(days: weeks * 7));
+    
+    return _lastMuscleGroupWorkout.entries
+        .where((e) => e.value.isBefore(limit))
+        .map((e) => e.key)
+        .toList();
+  }
+
+  static bool _isInSameWeek(DateTime a, DateTime b) {
+    final aMonday = a.subtract(Duration(days: a.weekday - 1));
+    final aStart = DateTime(a.year, a.month, aMonday.day);
+    
+    final bMonday = b.subtract(Duration(days: b.weekday - 1));
+    final bStart = DateTime(b.year, b.month, bMonday.day);
+    return aStart == bStart;
   }
 
   String _key(String base) => '${base}_${StorageHelper.getUserStorageSuffix()}';

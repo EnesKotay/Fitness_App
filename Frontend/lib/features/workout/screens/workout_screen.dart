@@ -33,6 +33,7 @@ import '../../../core/widgets/page_guide_overlay.dart';
 import '../../../core/widgets/page_guide_button.dart';
 import '../services/exercise_parser_service.dart';
 import '../data/preset_programs_data.dart';
+import '../widgets/muscle_heatmap_widget.dart';
 
 part 'workout_screen_components.dart';
 part 'tabs/explore_tab.dart';

@@ -705,7 +705,7 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
     final nav = Navigator.of(context); // Async gap oncesi navigator'i al
 
     // Streak güncelle — async
-    streakProvider.onWorkoutCompleted().then((badge) {
+    streakProvider.onWorkoutCompleted([widget.exercise.muscleGroup]).then((badge) {
       if (!nav.mounted) return;
       if (badge != null) {
         // Rozet kazanıldı — overlay göster

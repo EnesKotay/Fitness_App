@@ -8627,20 +8627,20 @@
       "name": "Haşlanmış yumurta",
       "category": "Kahvaltılık",
       "basis": {
-        "amount": 110.0,
+        "amount": 100.0,
         "unit": "g"
       },
       "nutrientsPerBasis": {
         "kcal": 155.0,
-        "protein": 12.0,
-        "carb": 1.0,
-        "fat": 11.0
+        "protein": 12.6,
+        "carb": 1.1,
+        "fat": 10.6
       },
       "servings": [
         {
           "id": "s_default",
-          "label": "2 adet (110g)",
-          "grams": 110.0,
+          "label": "2 adet (100g)",
+          "grams": 100.0,
           "isDefault": true
         },
         {
@@ -8680,7 +8680,7 @@
       "brand": null,
       "barcode": null,
       "imageUrl": null,
-      "source": "Kullanici Excel - Cesitler Duzeltilmis"
+      "source": "USDA #01129 whole egg, cooked, hard-boiled"
     },
     {
       "id": "tr_food_1026_haslanmis_yumurta_x2_ceviz",
@@ -19429,10 +19429,10 @@
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 280.0,
-        "protein": 18.0,
-        "carb": 2.0,
-        "fat": 22.0
+        "kcal": 231.0,
+        "protein": 15.9,
+        "carb": 1.0,
+        "fat": 17.5
       },
       "servings": [
         {
@@ -19467,7 +19467,8 @@
         }
       ],
       "aliases": [
-        "peynirli"
+        "sade omlet",
+        "yumurta"
       ],
       "tags": [
         "kahvalti",
@@ -19479,7 +19480,7 @@
       "brand": null,
       "barcode": null,
       "imageUrl": null,
-      "source": "Kullanici Excel - Turk Yemekleri Veritabani"
+      "source": "USDA #01130 whole egg, cooked, omelet"
     },
     {
       "id": "tr_food_274_omlet_peynirli",
@@ -22831,20 +22832,20 @@
       "name": "Sahanda yumurta",
       "category": "Kahvaltılık",
       "basis": {
-        "amount": 120.0,
+        "amount": 100.0,
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 200.0,
-        "protein": 12.0,
-        "carb": 1.0,
-        "fat": 16.0
+        "kcal": 196.0,
+        "protein": 13.6,
+        "carb": 0.8,
+        "fat": 14.8
       },
       "servings": [
         {
           "id": "s_default",
-          "label": "2 adet (120g)",
-          "grams": 120.0,
+          "label": "2 adet (~92g)",
+          "grams": 92.0,
           "isDefault": true
         },
         {
@@ -22885,7 +22886,7 @@
       "brand": null,
       "barcode": null,
       "imageUrl": null,
-      "source": "Kullanici Excel - Cesitler Duzeltilmis"
+      "source": "USDA #01128 whole egg, cooked, fried"
     },
     {
       "id": "tr_food_1007_sahanda_yumurta_tam_ekmek",
@@ -40481,10 +40482,10 @@
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 77.5,
-        "protein": 6.5,
-        "carb": 0.55,
-        "fat": 5.3
+        "kcal": 71.5,
+        "protein": 6.3,
+        "carb": 0.36,
+        "fat": 4.8
       },
       "servings": [
         {
@@ -40559,8 +40560,8 @@
       "nutrientsPerBasis": {
         "kcal": 17.2,
         "protein": 3.6,
-        "carb": 0.2,
-        "fat": 0.1
+        "carb": 0.24,
+        "fat": 0.06
       },
       "servings": [
         {
@@ -40627,8 +40628,8 @@
       "nutrientsPerBasis": {
         "kcal": 54.7,
         "protein": 2.7,
-        "carb": 0.6,
-        "fat": 4.5
+        "carb": 0.61,
+        "fat": 4.51
       },
       "servings": [
         {
@@ -48536,10 +48537,10 @@
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 68.2,
-        "protein": 5.7,
-        "carb": 0.48,
-        "fat": 4.7
+        "kcal": 62.9,
+        "protein": 5.5,
+        "carb": 0.32,
+        "fat": 4.2
       },
       "servings": [
         {
@@ -48613,10 +48614,10 @@
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 58.9,
-        "protein": 4.9,
-        "carb": 0.42,
-        "fat": 4.0
+        "kcal": 54.3,
+        "protein": 4.8,
+        "carb": 0.27,
+        "fat": 3.6
       },
       "servings": [
         {
@@ -70500,6 +70501,2734 @@
       "barcode": null,
       "imageUrl": null,
       "source": "Türk Gıda Veritabanı (tahmini): tam buğday veya kepekli undan yapılmış, az yağlı peynir dolgulu poğaça"
+    },
+    {
+      "id": "tr_food_3001_marmelat",
+      "name": "Marmelat",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 20.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 52.0,
+        "protein": 0.0,
+        "carb": 13.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 yemek kaşığı (20g)",
+          "grams": 20.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_two",
+          "label": "2 kaşık (40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "reçel",
+        "marmelade"
+      ],
+      "tags": [
+        "kahvalti",
+        "tatli",
+        "meyve"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3002_tahini_omlet",
+      "name": "Tahinli omlet",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 290.0,
+        "protein": 16.0,
+        "carb": 8.0,
+        "fat": 22.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tahini omlet"
+      ],
+      "tags": [
+        "kahvalti",
+        "omlet",
+        "tahini",
+        "yumurta"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3003_yulaf_sutu",
+      "name": "Yulaf sütü",
+      "category": "İçecek",
+      "basis": {
+        "amount": 200.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 80.0,
+        "protein": 2.0,
+        "carb": 14.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 bardak (200ml)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_small",
+          "label": "Küçük bardak (100ml)",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "oat milk"
+      ],
+      "tags": [
+        "icecek",
+        "tahil",
+        "bitki sutu",
+        "vegan"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3004_cop_sis",
+      "name": "Çöp şiş",
+      "category": "Sokak Yemeği",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 280.0,
+        "protein": 22.0,
+        "carb": 4.0,
+        "fat": 20.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 şiş (~50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "çöp şiş kebap"
+      ],
+      "tags": [
+        "et",
+        "sis",
+        "sokak",
+        "kebap"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3011_kremali_mantar_corbasi",
+      "name": "Kremalı mantar çorbası",
+      "category": "Çorba",
+      "basis": {
+        "amount": 250.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 130.0,
+        "protein": 4.0,
+        "carb": 10.0,
+        "fat": 8.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (250ml)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kremali mantar"
+      ],
+      "tags": [
+        "corba",
+        "mantar",
+        "krema"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3012_midye_corbasi",
+      "name": "Midye çorbası",
+      "category": "Çorba",
+      "basis": {
+        "amount": 250.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 100.0,
+        "protein": 7.0,
+        "carb": 10.0,
+        "fat": 4.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (250ml)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "midye corbasi"
+      ],
+      "tags": [
+        "corba",
+        "midye",
+        "deniz urunu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3020_kofte_sos",
+      "name": "Köfte sos (domates soslu)",
+      "category": "Et Yemeği",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 380.0,
+        "protein": 24.0,
+        "carb": 14.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "köfte domates sos"
+      ],
+      "tags": [
+        "et",
+        "kofte",
+        "sos",
+        "domates"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3021_kuzu_sis",
+      "name": "Kuzu şiş",
+      "category": "Et Yemeği",
+      "basis": {
+        "amount": 200.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 360.0,
+        "protein": 28.0,
+        "carb": 2.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (200g)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 şiş (~70g)",
+          "grams": 70,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kuzu şiş kebap"
+      ],
+      "tags": [
+        "et",
+        "kuzu",
+        "sis",
+        "kebap"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3022_kiyma_sarma",
+      "name": "Kıyma sarma (lahana)",
+      "category": "Et Yemeği",
+      "basis": {
+        "amount": 200.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 320.0,
+        "protein": 18.0,
+        "carb": 22.0,
+        "fat": 16.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (200g)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 adet (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "lahana sarma",
+        "kıymalı sarma"
+      ],
+      "tags": [
+        "et",
+        "sarma",
+        "lahana",
+        "kiyma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3023_beyti_durum",
+      "name": "Beyti dürüm",
+      "category": "Sokak Yemeği",
+      "basis": {
+        "amount": 280.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 560.0,
+        "protein": 30.0,
+        "carb": 46.0,
+        "fat": 24.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (280g)",
+          "grams": 280.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "beyti",
+        "beyti wrap"
+      ],
+      "tags": [
+        "et",
+        "durum",
+        "kebap",
+        "beyti"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3030_tavuk_nugget",
+      "name": "Tavuk nugget",
+      "category": "Fast Food",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 370.0,
+        "protein": 18.0,
+        "carb": 28.0,
+        "fat": 20.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 adet (~15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "nugget"
+      ],
+      "tags": [
+        "tavuk",
+        "fast food",
+        "kizartma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3031_buffalo_tavuk_kanadi",
+      "name": "Buffalo tavuk kanadı",
+      "category": "Fast Food",
+      "basis": {
+        "amount": 200.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 420.0,
+        "protein": 24.0,
+        "carb": 10.0,
+        "fat": 32.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (200g)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "2 kanat (~80g)",
+          "grams": 80,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "buffalo wings",
+        "tavuk kanat"
+      ],
+      "tags": [
+        "tavuk",
+        "kanat",
+        "baharatlı",
+        "fast food"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3032_tavuk_schnitzel",
+      "name": "Tavuk schnitzel",
+      "category": "Ana Yemek – Tavuk",
+      "basis": {
+        "amount": 180.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 360.0,
+        "protein": 30.0,
+        "carb": 18.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (180g)",
+          "grams": 180.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk şnitzel",
+        "kızarmış tavuk"
+      ],
+      "tags": [
+        "tavuk",
+        "schnitzel",
+        "kizartma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3033_tavuk_kizartma",
+      "name": "Tavuk kızartma",
+      "category": "Ana Yemek – Tavuk",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 480.0,
+        "protein": 34.0,
+        "carb": 14.0,
+        "fat": 34.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kızartma tavuk"
+      ],
+      "tags": [
+        "tavuk",
+        "kizartma",
+        "baharatlı"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3040_ringa_baligi",
+      "name": "Ringa balığı",
+      "category": "Balık",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 260.0,
+        "protein": 22.0,
+        "carb": 0.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "ringa",
+        "herring"
+      ],
+      "tags": [
+        "balik",
+        "ringa",
+        "omega3"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3041_levrek_bugulama",
+      "name": "Levrek buğulama",
+      "category": "Ana Yemek – Balık",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 230.0,
+        "protein": 36.0,
+        "carb": 2.0,
+        "fat": 9.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "levrek",
+        "buğulama"
+      ],
+      "tags": [
+        "balik",
+        "levrek",
+        "bugulama",
+        "diyetik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3051_brokoli_kavurma",
+      "name": "Brokoli kavurma",
+      "category": "Sebze Yemeği",
+      "basis": {
+        "amount": 200.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 110.0,
+        "protein": 5.0,
+        "carb": 8.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (200g)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "brokoli sote"
+      ],
+      "tags": [
+        "sebze",
+        "brokoli",
+        "sote"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3052_havuc_tarator",
+      "name": "Havuç tarator",
+      "category": "Meze & Salata",
+      "basis": {
+        "amount": 120.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 110.0,
+        "protein": 3.0,
+        "carb": 14.0,
+        "fat": 5.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (120g)",
+          "grams": 120.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "havuç yoğurtlu"
+      ],
+      "tags": [
+        "meze",
+        "havuc",
+        "yoğurt"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3053_portakal_havuc_salatasi",
+      "name": "Portakallı havuç salatası",
+      "category": "Salata",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 90.0,
+        "protein": 2.0,
+        "carb": 18.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "portakal havuç"
+      ],
+      "tags": [
+        "salata",
+        "havuc",
+        "portakal",
+        "taze"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3054_kirmizi_lahana_salatasi",
+      "name": "Kırmızı lahana salatası",
+      "category": "Salata",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 60.0,
+        "protein": 2.0,
+        "carb": 10.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kırmızı lahana"
+      ],
+      "tags": [
+        "salata",
+        "lahana",
+        "taze"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3060_mercimekli_pilav",
+      "name": "Mercimekli pilav",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 290.0,
+        "protein": 12.0,
+        "carb": 50.0,
+        "fat": 5.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "mercimek pilav"
+      ],
+      "tags": [
+        "pilav",
+        "mercimek",
+        "tahil"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3061_sebzeli_pilav",
+      "name": "Sebzeli pilav",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 270.0,
+        "protein": 6.0,
+        "carb": 50.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sebze pilav"
+      ],
+      "tags": [
+        "pilav",
+        "sebze",
+        "tahil"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3062_eristeli_pilav",
+      "name": "Erişteli pilav",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 285.0,
+        "protein": 8.0,
+        "carb": 52.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "erişte pilav",
+        "erişte"
+      ],
+      "tags": [
+        "pilav",
+        "eriste",
+        "tahil"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3063_pesto_makarna",
+      "name": "Pesto makarna",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 300.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 480.0,
+        "protein": 14.0,
+        "carb": 60.0,
+        "fat": 20.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (300g)",
+          "grams": 300.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pesto"
+      ],
+      "tags": [
+        "makarna",
+        "pesto",
+        "fesleyen"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3064_firin_lazanya",
+      "name": "Fırın lazanya",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 350.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 560.0,
+        "protein": 26.0,
+        "carb": 52.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (350g)",
+          "grams": 350.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "lazanya"
+      ],
+      "tags": [
+        "makarna",
+        "lazanya",
+        "firin",
+        "et"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3065_deniz_urunlu_makarna",
+      "name": "Deniz ürünlü makarna",
+      "category": "Pilav & Makarna",
+      "basis": {
+        "amount": 350.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 460.0,
+        "protein": 26.0,
+        "carb": 54.0,
+        "fat": 14.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (350g)",
+          "grams": 350.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "deniz mahsulleri makarna"
+      ],
+      "tags": [
+        "makarna",
+        "deniz",
+        "karides",
+        "midye"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3070_pide_kasarli",
+      "name": "Kaşarlı pide",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 300.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 560.0,
+        "protein": 22.0,
+        "carb": 66.0,
+        "fat": 22.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (300g)",
+          "grams": 300.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kaşar pide"
+      ],
+      "tags": [
+        "pide",
+        "kasar",
+        "firin"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3072_pide_kusbasili",
+      "name": "Kuşbaşılı pide",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 350.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 620.0,
+        "protein": 30.0,
+        "carb": 64.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (350g)",
+          "grams": 350.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kuşbaşı pide"
+      ],
+      "tags": [
+        "pide",
+        "kusbasi",
+        "firin",
+        "et"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3073_pisi",
+      "name": "Pişi",
+      "category": "Hamur İşi",
+      "basis": {
+        "amount": 80.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 270.0,
+        "protein": 5.0,
+        "carb": 34.0,
+        "fat": 12.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (80g)",
+          "grams": 80.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pişi"
+      ],
+      "tags": [
+        "hamur",
+        "kahvalti",
+        "kizartma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3080_kadayif_dolmasi",
+      "name": "Kadayıf dolması",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 340.0,
+        "protein": 6.0,
+        "carb": 42.0,
+        "fat": 16.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kadayıf dolma"
+      ],
+      "tags": [
+        "tatli",
+        "kadayif",
+        "ceviz"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3090_uzum_suyu",
+      "name": "Üzüm suyu",
+      "category": "İçecek",
+      "basis": {
+        "amount": 200.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 130.0,
+        "protein": 0.0,
+        "carb": 32.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 bardak (200ml)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "üzüm suyu"
+      ],
+      "tags": [
+        "icecek",
+        "meyve suyu",
+        "uzum"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3091_nar_eksisi",
+      "name": "Nar ekşisi",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 15.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 30.0,
+        "protein": 0.0,
+        "carb": 7.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 yemek kaşığı (15ml)",
+          "grams": 15.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "nar ekşisi",
+        "narşarap"
+      ],
+      "tags": [
+        "sos",
+        "nar",
+        "salata"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3092_soguk_cay",
+      "name": "Soğuk çay",
+      "category": "İçecek",
+      "basis": {
+        "amount": 300.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 80.0,
+        "protein": 0.0,
+        "carb": 20.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 bardak (300ml)",
+          "grams": 300.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "ice tea",
+        "buzlu çay"
+      ],
+      "tags": [
+        "icecek",
+        "cay",
+        "soguk"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3093_kombucha",
+      "name": "Kombucha",
+      "category": "İçecek",
+      "basis": {
+        "amount": 250.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 30.0,
+        "protein": 0.0,
+        "carb": 7.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 şişe (250ml)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kombucha"
+      ],
+      "tags": [
+        "icecek",
+        "fermente",
+        "probiyotik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3094_soya_sutu",
+      "name": "Soya sütü",
+      "category": "İçecek",
+      "basis": {
+        "amount": 200.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 70.0,
+        "protein": 7.0,
+        "carb": 4.0,
+        "fat": 4.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 bardak (200ml)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "soy milk"
+      ],
+      "tags": [
+        "icecek",
+        "soya",
+        "bitki sutu",
+        "vegan"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3095_pirinc_sutu",
+      "name": "Pirinç sütü",
+      "category": "İçecek",
+      "basis": {
+        "amount": 200.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 95.0,
+        "protein": 1.0,
+        "carb": 22.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 bardak (200ml)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "rice milk"
+      ],
+      "tags": [
+        "icecek",
+        "pirinc",
+        "bitki sutu",
+        "glutensiz"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3100_protein_waffle",
+      "name": "Protein waffle",
+      "category": "Kahvaltı",
+      "basis": {
+        "amount": 120.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 280.0,
+        "protein": 20.0,
+        "carb": 26.0,
+        "fat": 10.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (120g)",
+          "grams": 120.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "waffle protein"
+      ],
+      "tags": [
+        "kahvalti",
+        "waffle",
+        "protein",
+        "sporcu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3101_yumurta_aki",
+      "name": "Yumurta akı (pişmiş)",
+      "category": "Et & Protein",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 52.0,
+        "protein": 11.0,
+        "carb": 1.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100 g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 adet (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "egg white",
+        "beyaz"
+      ],
+      "tags": [
+        "protein",
+        "yumurta",
+        "diyetik",
+        "sporcu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3102_suzme_yogurt_yagsiz",
+      "name": "Yağsız süzme yoğurt",
+      "category": "Süt Ürünleri",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 75.0,
+        "protein": 14.0,
+        "carb": 5.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yağsız yoğurt",
+        "süzme",
+        "Greek yogurt"
+      ],
+      "tags": [
+        "sutur",
+        "protein",
+        "probiyotik",
+        "diyetik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3103_skyr",
+      "name": "Skyr",
+      "category": "Süt Ürünleri",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 90.0,
+        "protein": 15.0,
+        "carb": 6.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "skyr",
+        "islandalı yoğurt"
+      ],
+      "tags": [
+        "sutur",
+        "protein",
+        "probiyotik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3104_tofu",
+      "name": "Tofu",
+      "category": "Et & Protein",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 120.0,
+        "protein": 14.0,
+        "carb": 3.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tofu",
+        "soya peyniri"
+      ],
+      "tags": [
+        "protein",
+        "vegan",
+        "soya"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3105_tempeh",
+      "name": "Tempeh",
+      "category": "Et & Protein",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 195.0,
+        "protein": 19.0,
+        "carb": 8.0,
+        "fat": 11.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tempeh"
+      ],
+      "tags": [
+        "protein",
+        "vegan",
+        "fermente",
+        "soya"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3106_edamame",
+      "name": "Edamame (haşlanmış)",
+      "category": "Tahıl & Bakliyat",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 120.0,
+        "protein": 11.0,
+        "carb": 9.0,
+        "fat": 5.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "edamame",
+        "soya fasulyesi"
+      ],
+      "tags": [
+        "protein",
+        "vegan",
+        "baklagil"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3110_margarin",
+      "name": "Margarin",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 10.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 72.0,
+        "protein": 0.0,
+        "carb": 0.0,
+        "fat": 8.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 çay kaşığı (10g)",
+          "grams": 10.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_tbsp",
+          "label": "1 yemek kaşığı (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "margarine"
+      ],
+      "tags": [
+        "yag",
+        "margarin",
+        "tereyag"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-B"
+    },
+    {
+      "id": "tr_food_3111_saksuka",
+      "name": "Şakşuka",
+      "category": "Meze & Salata",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 152.0,
+        "protein": 2.0,
+        "carb": 9.0,
+        "fat": 12.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "şakşuka meze"
+      ],
+      "tags": [
+        "meze",
+        "patlican",
+        "domates"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3112_atom_meze",
+      "name": "Atom meze",
+      "category": "Meze & Salata",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 182.0,
+        "protein": 6.0,
+        "carb": 8.0,
+        "fat": 14.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "atom yoğurt"
+      ],
+      "tags": [
+        "meze",
+        "yogurt",
+        "aci"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3113_fava",
+      "name": "Fava",
+      "category": "Meze & Salata",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 184.0,
+        "protein": 8.0,
+        "carb": 20.0,
+        "fat": 8.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bakla fava"
+      ],
+      "tags": [
+        "meze",
+        "bakla",
+        "zeytinyagli"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3114_muhammara",
+      "name": "Muhammara",
+      "category": "Meze & Salata",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 262.0,
+        "protein": 4.0,
+        "carb": 12.0,
+        "fat": 22.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "acuka",
+        "cevizli biber"
+      ],
+      "tags": [
+        "meze",
+        "ceviz",
+        "biber",
+        "aci"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3115_ciger_sis",
+      "name": "Ciğer şiş",
+      "category": "Et Yemeği",
+      "basis": {
+        "amount": 200.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 244.0,
+        "protein": 30.0,
+        "carb": 4.0,
+        "fat": 12.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (200g)",
+          "grams": 200.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 şiş (~50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "ciğer kebap"
+      ],
+      "tags": [
+        "et",
+        "ciger",
+        "kebap",
+        "sakatat"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3116_bici_bici",
+      "name": "Bici bici",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 250.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 164.0,
+        "protein": 1.0,
+        "carb": 40.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (250g)",
+          "grams": 250.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bici bici tatlısı"
+      ],
+      "tags": [
+        "tatli",
+        "buz",
+        "nisasta"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3117_soguk_baklava",
+      "name": "Soğuk baklava",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 340.0,
+        "protein": 5.0,
+        "carb": 35.0,
+        "fat": 20.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 dilim (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sütlü baklava"
+      ],
+      "tags": [
+        "tatli",
+        "baklava",
+        "sutlu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3118_san_sebastian",
+      "name": "San Sebastian Cheesecake",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 440.0,
+        "protein": 8.0,
+        "carb": 30.0,
+        "fat": 32.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yanık cheesecake"
+      ],
+      "tags": [
+        "tatli",
+        "cheesecake",
+        "peynir"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3119_cennet_camuru",
+      "name": "Cennet çamuru",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 378.0,
+        "protein": 4.0,
+        "carb": 50.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kilis tatlısı",
+        "fıstıklı tatlı"
+      ],
+      "tags": [
+        "tatli",
+        "fistik",
+        "kadayif"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3120_belcika_waffle",
+      "name": "Belçika waffle",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 348.0,
+        "protein": 6.0,
+        "carb": 45.0,
+        "fat": 16.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "waffle",
+        "çikolatalı waffle"
+      ],
+      "tags": [
+        "tatli",
+        "waffle",
+        "cikolata"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3121_magnolia",
+      "name": "Magnolia tatlısı",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 150.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 295.0,
+        "protein": 5.0,
+        "carb": 35.0,
+        "fat": 15.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "çilekli magnolia",
+        "muzlu magnolia"
+      ],
+      "tags": [
+        "tatli",
+        "sutlu",
+        "biskuvi"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-C"
+    },
+    {
+      "id": "tr_food_3131_ramazan_pidesi",
+      "name": "Ramazan pidesi",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 242.0,
+        "protein": 8.0,
+        "carb": 48.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 çeyrek (~75g)",
+          "grams": 75,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pide ekmeği",
+        "pide"
+      ],
+      "tags": [
+        "ekmek",
+        "pide",
+        "ramazan"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3134_eksi_mayali",
+      "name": "Ekşi mayalı ekmek",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 234.0,
+        "protein": 8.0,
+        "carb": 46.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 kalın dilim (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "ekşi maya ekmek"
+      ],
+      "tags": [
+        "ekmek",
+        "eksimaya"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3135_trabzon_ekmegi",
+      "name": "Trabzon ekmeği",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 233.0,
+        "protein": 8.0,
+        "carb": 48.0,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 kalın dilim (~60g)",
+          "grams": 60,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "vakfıkebir ekmeği"
+      ],
+      "tags": [
+        "ekmek",
+        "trabzon",
+        "somun"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3136_hamburger_ekmegi",
+      "name": "Hamburger ekmeği",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 272.0,
+        "protein": 9.0,
+        "carb": 50.0,
+        "fat": 4.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "burger ekmeği"
+      ],
+      "tags": [
+        "ekmek",
+        "hamburger",
+        "fastfood"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3137_sandvic_ekmegi",
+      "name": "Sandviç ekmeği",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 262.0,
+        "protein": 8.0,
+        "carb": 50.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (100g)",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sosisli ekmeği",
+        "kumru ekmeği"
+      ],
+      "tags": [
+        "ekmek",
+        "sandvic"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3138_yulaf_ekmegi",
+      "name": "Yulaf ekmeği",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 228.0,
+        "protein": 10.0,
+        "carb": 40.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 dilim (~35g)",
+          "grams": 35,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yulaflı ekmek"
+      ],
+      "tags": [
+        "ekmek",
+        "yulaf",
+        "diyet"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3139_tam_bugday_ekmek_100g",
+      "name": "Tam buğday ekmeği (100g)",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 236.0,
+        "protein": 10.0,
+        "carb": 42.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 dilim (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tam buğday",
+        "esmer ekmek"
+      ],
+      "tags": [
+        "ekmek",
+        "tambugday",
+        "diyet"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3140_beyaz_ekmek_100g",
+      "name": "Beyaz ekmek (somun 100g)",
+      "category": "Fırın & Pide",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 252.0,
+        "protein": 8.0,
+        "carb": 50.0,
+        "fat": 2.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 dilim (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "somun ekmek",
+        "francala"
+      ],
+      "tags": [
+        "ekmek",
+        "beyaz",
+        "somun"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
     }
   ]
 }

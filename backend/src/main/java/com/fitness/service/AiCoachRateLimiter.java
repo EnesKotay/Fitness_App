@@ -2,6 +2,7 @@ package com.fitness.service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -10,6 +11,7 @@ import com.fitness.entity.AiRateLimit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 
@@ -40,6 +42,9 @@ public class AiCoachRateLimiter {
     @ConfigProperty(name = "ai.premium.rate-limit.window-seconds", defaultValue = "86400")
     int premiumWindowSeconds;
 
+    @Inject
+    EntityManager entityManager;
+
     @Transactional
     public boolean tryAcquire(Long userId, boolean isPremium) {
         if (isPremium) {
@@ -65,6 +70,7 @@ public class AiCoachRateLimiter {
     }
 
     private boolean tryAcquireFromDb(Long userId, int maxRequests, int windowSeconds) {
+        lockScope(userId);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime windowStart = now.minusSeconds(windowSeconds);
 
@@ -124,5 +130,12 @@ public class AiCoachRateLimiter {
         LocalDateTime windowEnd = limit.windowStart.plusSeconds(windowSeconds);
         long retryAfter = ChronoUnit.SECONDS.between(now, windowEnd);
         return (int) Math.max(1, retryAfter);
+    }
+
+    private void lockScope(Long userId) {
+        long lockKey = Objects.hash(userId, SCOPE);
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(?1)")
+                .setParameter(1, lockKey)
+                .getSingleResult();
     }
 }

@@ -36,15 +36,35 @@ public class AiCoachContextBuilder {
     @Inject
     AiFeedbackService feedbackService;
 
+    @Inject
+    ProgressPredictionService progressPredictionService;
+
     public CoachPromptContext build(Long userId, AiCoachRequest.DailySummaryDto summary) {
+        return build(userId, summary, null);
+    }
+
+    public CoachPromptContext build(Long userId, AiCoachRequest.DailySummaryDto summary, String question) {
         User user = userId == null ? null : userRepository.findById(userId);
         String profileSnapshot = buildProfileSnapshot(user);
         String recoverySnapshot = buildRecoverySnapshot(summary);
         String progressSnapshot = buildProgressSnapshot(userId);
+
+        // Performans tahminlerini ekle
+        String predictionInsights = buildPredictionInsights(userId);
+
         String coachingSignals = buildCoachingSignals(user, summary, progressSnapshot);
         String feedbackMemory = feedbackService.buildFeedbackMemory(userId);
-        String workoutHistory = buildWorkoutHistorySnapshot(userId);
-        return new CoachPromptContext(profileSnapshot, recoverySnapshot, progressSnapshot, coachingSignals, feedbackMemory, workoutHistory, userId);
+        String workoutHistory = buildWorkoutHistorySnapshot(userId, question);
+
+        return new CoachPromptContext(
+            profileSnapshot,
+            recoverySnapshot,
+            progressSnapshot + predictionInsights,
+            coachingSignals,
+            feedbackMemory,
+            workoutHistory,
+            userId
+        );
     }
 
     private String buildProfileSnapshot(User user) {
@@ -198,22 +218,75 @@ public class AiCoachContextBuilder {
         return signals.toString().trim();
     }
 
-    private String buildWorkoutHistorySnapshot(Long userId) {
+    private String buildWorkoutHistorySnapshot(Long userId, String question) {
         if (userId == null) return "";
-        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        List<Workout> recent = workoutRepository
-                .find("user.id = ?1 AND workoutDate >= ?2 ORDER BY workoutDate DESC", userId, sevenDaysAgo)
-                .list();
-        if (recent.isEmpty()) return "";
-        StringBuilder sb = new StringBuilder("Last 7-day workout log:\n");
-        for (Workout w : recent) {
-            sb.append(String.format(Locale.US, "- %s: %s%s (%s min%s)\n",
-                    w.workoutDate.toLocalDate(),
-                    w.name != null ? w.name : "Workout",
-                    w.muscleGroup != null ? " [" + w.muscleGroup + "]" : "",
-                    w.durationMinutes != null ? w.durationMinutes : "?",
-                    w.difficulty != null ? ", " + w.difficulty : ""));
+        
+        boolean deepQuery = false;
+        if (question != null) {
+            String qLower = question.toLowerCase(new Locale("tr", "TR"));
+            if (qLower.contains("geçen") || qLower.contains("geçmiş") || qLower.contains("eski") || 
+                qLower.contains("rekor") || qLower.contains("pr") || qLower.contains("ay") || 
+                qLower.contains("önce") || qLower.contains("tarih") || qLower.contains("history") ||
+                qLower.contains("bastım") || qLower.contains("bastim") || qLower.contains("yaptım") || 
+                qLower.contains("yaptim") || qLower.contains("kaldırdım") || qLower.contains("kaldirdim") || 
+                qLower.contains("max") || qLower.contains("en çok") || qLower.contains("en cok") || 
+                qLower.contains("maksimum")) {
+                deepQuery = true;
+            }
         }
+        
+        LocalDateTime timeLimit = deepQuery ? LocalDateTime.now().minusDays(30) : LocalDateTime.now().minusDays(7);
+        List<Workout> recent = workoutRepository
+                .find("user.id = ?1 AND workoutDate >= ?2 ORDER BY workoutDate DESC", userId, timeLimit)
+                .list();
+        
+        StringBuilder sb = new StringBuilder();
+        if (!recent.isEmpty()) {
+            sb.append(deepQuery ? "Last 30-day workout log:\n" : "Last 7-day workout log:\n");
+            for (Workout w : recent) {
+                sb.append(String.format(Locale.US, "- %s: %s%s (%s min%s) - Weight: %s kg, Sets: %s, Reps: %s, 1RM: %s\n",
+                        w.workoutDate.toLocalDate(),
+                        w.name != null ? w.name : "Workout",
+                        w.muscleGroup != null ? " [" + w.muscleGroup + "]" : "",
+                        w.durationMinutes != null ? w.durationMinutes : "?",
+                        w.difficulty != null ? ", " + w.difficulty : "",
+                        w.weight != null ? w.weight : "0",
+                        w.sets != null ? w.sets : "0",
+                        w.reps != null ? w.reps : "0",
+                        w.oneRepMax != null ? w.oneRepMax : "n/a"));
+            }
+        }
+
+        // If "rekor" or "pr" is requested, let's also fetch user's top workouts (Personal Records) by weight for each exercise
+        if (question != null) {
+            String qLower = question.toLowerCase(new Locale("tr", "TR"));
+            if (qLower.contains("rekor") || qLower.contains("pr") || qLower.contains("en yüksek") || 
+                qLower.contains("en yuksek") || qLower.contains("maksimum") || qLower.contains("en çok") || 
+                qLower.contains("en cok") || qLower.contains("max") || qLower.contains("bastım") || 
+                qLower.contains("bastim") || qLower.contains("kaldırdım") || qLower.contains("kaldirdim")) {
+                List<Workout> prWorkouts = workoutRepository
+                    .find("user.id = ?1 AND weight > 0.0 ORDER BY weight DESC", userId)
+                    .list();
+                if (!prWorkouts.isEmpty()) {
+                    sb.append("\nUser Personal Records (PRs) by Exercise:\n");
+                    java.util.Set<String> seenExercises = new java.util.HashSet<>();
+                    for (Workout w : prWorkouts) {
+                        String exerciseName = w.name.trim().toLowerCase();
+                        if (!seenExercises.contains(exerciseName)) {
+                            seenExercises.add(exerciseName);
+                            sb.append(String.format(Locale.US, "- %s: %s kg (on %s, Sets: %s, Reps: %s, 1RM: %s)\n",
+                                w.name,
+                                w.weight,
+                                w.workoutDate.toLocalDate(),
+                                w.sets != null ? w.sets : "0",
+                                w.reps != null ? w.reps : "0",
+                                w.oneRepMax != null ? w.oneRepMax : "n/a"));
+                        }
+                    }
+                }
+            }
+        }
+
         return sb.toString().trim();
     }
 
@@ -237,5 +310,39 @@ public class AiCoachContextBuilder {
 
     private String formatWhole(Integer value) {
         return value == null ? "0" : Integer.toString(value);
+    }
+
+    /**
+     * Kullanıcının kilo/kalori tahminlerini ekler.
+     */
+    private String buildPredictionInsights(Long userId) {
+        if (userId == null) return "";
+
+        StringBuilder sb = new StringBuilder("\n--- PERFORMANCE PREDICTIONS ---\n");
+
+        // Hedef kiloya ne zaman ulaşır?
+        ProgressPredictionService.WeightProjection projection = progressPredictionService.predictWeeksToTarget(userId);
+        if (projection != null) {
+            sb.append("Weight Projection: ").append(projection.message).append("\n");
+            if (projection.weeksToTarget != null) {
+                sb.append("  Status: ").append(projection.status)
+                  .append(" | Weekly change: ").append(String.format(Locale.US, "%.2f", projection.weeklyChangeKg))
+                  .append(" kg | ETA: ").append(String.format(Locale.US, "%.1f", projection.weeksToTarget))
+                  .append(" weeks\n");
+            }
+        }
+
+        // Kalori dengesi
+        ProgressPredictionService.CalorieBalance balance = progressPredictionService.calculateCalorieBalance(userId);
+        if (balance != null && balance.avgDailyCalories > 0) {
+            sb.append("Calorie Balance (last 14 days): ").append(balance.insight).append("\n");
+            sb.append("  Avg daily: ").append(balance.avgDailyCalories)
+              .append(" kcal | TDEE: ").append(String.format(Locale.US, "%.0f", balance.tdee))
+              .append(" kcal | Daily balance: ").append(String.format(Locale.US, "%+.0f", balance.dailyBalance))
+              .append(" kcal\n");
+        }
+
+        String result = sb.toString().trim();
+        return result.isEmpty() ? "" : "\n" + result;
     }
 }

@@ -250,6 +250,69 @@ class LocalFoodRepository implements FoodRepository {
     return text.contains(token) || _wordStartsWith(text, token);
   }
 
+  static bool _isGenericEggQuery(String query) {
+    return query == 'yumurta' || query == 'egg';
+  }
+
+  static bool _hasEggSignal(_IndexedFood food) {
+    final fields = food.searchFields;
+    return fields.any(
+      (field) =>
+          field.contains('yumurta') ||
+          field.contains('egg') ||
+          field.contains('omlet') ||
+          field.contains('menemen'),
+    );
+  }
+
+  static int _genericEggRank(_IndexedFood food) {
+    if (!_hasEggSignal(food)) return 90;
+
+    final name = food.name;
+    final id = food.raw.id;
+
+    if (id == 'tr_food_1331_yumurta_tam' ||
+        name == 'yumurta tam buyuk' ||
+        name == 'yumurta') {
+      return 0;
+    }
+    if (name == 'haslanmis yumurta') return 1;
+    if (name == 'pose yumurta') return 2;
+    if (name == 'sahanda yumurta') return 3;
+    if (name == 'sahanda 2 yumurta') return 4;
+    if (name == 'yumurta aki') return 5;
+    if (name == 'yumurta sarisi') return 6;
+    if (name == 'cirpilmis yumurta') return 7;
+    if (name == 'omlet' || name == 'omlet sade') return 8;
+    if (name.contains('omlet')) return 9;
+    if (name == 'menemen' || name.startsWith('menemen ')) return 10;
+    if (name.contains('cilbir')) return 11;
+    if (name.contains('sucuk') && name.contains('yumurta')) return 12;
+    if (name.contains('pastirma') && name.contains('yumurta')) return 13;
+    if (name.startsWith('yumurta')) return 12;
+    if (name.contains('yumurta')) return 16;
+    if (name.contains('yumurtali')) return 22;
+    return 40;
+  }
+
+  static String? _genericEggGroup(_IndexedFood food) {
+    final name = food.name;
+
+    if (name.startsWith('yumurta tam')) return 'whole_egg';
+    if (name == 'haslanmis yumurta') return 'boiled_egg';
+    if (name == 'pose yumurta') return 'poached_egg';
+    if (name == 'sahanda yumurta' || name == 'sahanda 2 yumurta') {
+      return 'fried_egg';
+    }
+    if (name == 'cirpilmis yumurta') return 'scrambled_egg';
+    if (name == 'omlet' || name == 'omlet sade') return 'plain_omelet';
+    if (name == 'menemen' || name.startsWith('menemen ')) return 'menemen';
+    if (name.contains('sucuk') && name.contains('yumurta')) {
+      return 'sucuklu_yumurta';
+    }
+    return null;
+  }
+
   static Set<String> _queryVariants(String query) {
     final variants = <String>{query};
 
@@ -1042,7 +1105,15 @@ class LocalFoodRepository implements FoodRepository {
       }
     }
 
+    final isGenericEggQuery = _isGenericEggQuery(normalizedQuery);
+
     scoredItems.sort((a, b) {
+      if (isGenericEggQuery) {
+        final byEggRank = _genericEggRank(
+          _indexFor(a.item),
+        ).compareTo(_genericEggRank(_indexFor(b.item)));
+        if (byEggRank != 0) return byEggRank;
+      }
       final byScore = b.relevanceScore.compareTo(a.relevanceScore);
       if (byScore != 0) return byScore;
       final byPriority = b.priorityScore.compareTo(a.priorityScore);
@@ -1054,12 +1125,28 @@ class LocalFoodRepository implements FoodRepository {
       }
       return a.item.name.length.compareTo(b.item.name.length);
     });
-    final results = scoredItems.map((s) => s.item).toList(growable: false);
+    final sortedResults = scoredItems.map((s) => s.item).toList();
+    final results = isGenericEggQuery
+        ? _dedupeGenericEggResults(sortedResults)
+        : sortedResults.toList(growable: false);
     if (_searchCache.length > 80) {
       _searchCache.remove(_searchCache.keys.first);
     }
     _searchCache[cacheKey] = results;
     return results;
+  }
+
+  List<FoodItem> _dedupeGenericEggResults(List<FoodItem> items) {
+    final seenGroups = <String>{};
+    final results = <FoodItem>[];
+    for (final item in items) {
+      final group = _genericEggGroup(_indexFor(item));
+      if (group != null && !seenGroups.add(group)) {
+        continue;
+      }
+      results.add(item);
+    }
+    return results.toList(growable: false);
   }
 
   @override

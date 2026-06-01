@@ -239,6 +239,9 @@ class CoachResponse {
   /// Remaining free requests for today — set by backend, null for premium.
   final int? remainingFreeRequests;
 
+  // V6: Dynamic Prompt Chips
+  final List<String>? suggestedPrompts;
+
   const CoachResponse({
     required this.focus,
     required this.todoItems,
@@ -247,6 +250,7 @@ class CoachResponse {
     this.media,
     this.isAchievement = false,
     this.remainingFreeRequests,
+    this.suggestedPrompts,
   });
 
   factory CoachResponse.fromJson(Map<String, dynamic> json) {
@@ -289,6 +293,14 @@ class CoachResponse {
       return result.isEmpty ? null : result;
     }
 
+    List<String>? parseSuggestedPrompts(dynamic v) {
+      if (v == null || v is! List) return null;
+      return v
+          .map((e) => e?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
     return CoachResponse(
       focus: json['todayFocus']?.toString() ?? '',
       todoItems: parseTodoItems(json['actionItems']),
@@ -299,6 +311,7 @@ class CoachResponse {
       remainingFreeRequests: json['remainingFreeRequests'] is int
           ? json['remainingFreeRequests'] as int
           : null,
+      suggestedPrompts: parseSuggestedPrompts(json['suggestedPrompts']),
     );
   }
 }

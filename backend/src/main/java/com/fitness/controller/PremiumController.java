@@ -166,6 +166,17 @@ public class PremiumController {
                         .build();
             }
 
+            if (result.originalTransactionId() != null && !result.originalTransactionId().isBlank()) {
+                User existingOwner = User.find("iapOriginalTransactionId", result.originalTransactionId()).firstResult();
+                if (existingOwner != null && !existingOwner.id.equals(user.id)) {
+                    LOG.warnf("IAP aboneligi baska hesapta kullaniliyor — currentUserId=%d ownerUserId=%d origTx=%s",
+                            userId, existingOwner.id, result.originalTransactionId());
+                    return Response.status(Response.Status.CONFLICT)
+                            .entity(Map.of("error", "Bu App Store aboneliği başka bir hesapta kullanılıyor."))
+                            .build();
+                }
+            }
+
             // Doğrulama başarılı → premium aktifleştir
             // Receipt'ten gelen gerçek bitiş tarihi varsa onu kullan;
             // yoksa (dev modu) plan süresine göre hesapla.

@@ -15,7 +15,6 @@ import 'legal_screen.dart';
 const Color _premiumGold = Color(0xFFD97706);
 const Color _premiumLightGold = Color(0xFFFBBF24);
 
-
 // ─── Plan model ──────────────────────────────────────────────────────────────
 
 class _Plan {
@@ -77,8 +76,10 @@ class _PremiumScreenState extends State<PremiumScreen>
   DateTime? _premiumExpiresAt;
   _Plan _selectedPlan = _plans[1];
   bool _purchasing = false;
+  bool _showPurchaseHelp = false;
   StreamSubscription<IapPurchaseResult>? _iapSubscription;
   Timer? _purchasingTimeoutTimer;
+  Timer? _purchaseHelpTimer;
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
@@ -102,6 +103,7 @@ class _PremiumScreenState extends State<PremiumScreen>
   @override
   void dispose() {
     _purchasingTimeoutTimer?.cancel();
+    _purchaseHelpTimer?.cancel();
     _iapSubscription?.cancel();
     _iap.removeListener(_onIapChanged);
     _pulseController.dispose();
@@ -151,16 +153,27 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   void _startPurchasingGuard() {
-    setState(() => _purchasing = true);
+    setState(() {
+      _purchasing = true;
+      _showPurchaseHelp = false;
+    });
     _purchasingTimeoutTimer?.cancel();
-    _purchasingTimeoutTimer = Timer(const Duration(seconds: 60), () {
+    _purchaseHelpTimer?.cancel();
+    _purchaseHelpTimer = Timer(const Duration(seconds: 10), () {
       if (mounted && _purchasing) {
-        setState(() => _purchasing = false);
+        setState(() => _showPurchaseHelp = true);
+      }
+    });
+    _purchasingTimeoutTimer = Timer(const Duration(seconds: 25), () {
+      if (mounted && _purchasing) {
+        setState(() {
+          _purchasing = false;
+          _showPurchaseHelp = true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'App Store yanıt vermedi. Ödeme gerçekleştiyse premium birkaç '
-              'dakika içinde aktif olur; aksi hâlde tekrar deneyebilirsin.',
+              'App Store yanıt vermedi. Ödeme penceresi açılmadıysa tekrar deneyebilirsin.',
             ),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
@@ -174,14 +187,21 @@ class _PremiumScreenState extends State<PremiumScreen>
   Future<void> _handlePurchaseResult(IapPurchaseResult result) async {
     if (!mounted) return;
     _purchasingTimeoutTimer?.cancel();
+    _purchaseHelpTimer?.cancel();
 
     if (!result.success) {
       if (result.errorMessage == 'canceled') {
-        setState(() => _purchasing = false);
+        setState(() {
+          _purchasing = false;
+          _showPurchaseHelp = false;
+        });
         return;
       }
       if (result.errorMessage == 'pending') {
-        setState(() => _purchasing = false);
+        setState(() {
+          _purchasing = false;
+          _showPurchaseHelp = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -199,35 +219,41 @@ class _PremiumScreenState extends State<PremiumScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            result.errorMessage ?? 'Satın alma tamamlanamadı. Lütfen tekrar dene.',
+            result.errorMessage ??
+                'Satın alma tamamlanamadı. Lütfen tekrar dene.',
           ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 5),
         ),
       );
-      setState(() => _purchasing = false);
+      setState(() {
+        _purchasing = false;
+        _showPurchaseHelp = true;
+      });
       return;
     }
 
     try {
-      await ApiClient().post(
-        ApiConstants.verifyIapPurchase,
-        data: {
-          'planId': result.planId,
-          'purchaseToken': result.purchaseToken,
-          'receiptData': result.receiptData,
-          'transactionId': result.transactionId,
-          'platform': Platform.isAndroid ? 'android' : 'ios',
-        },
-      );
-      
+      await ApiClient()
+          .post(
+            ApiConstants.verifyIapPurchase,
+            data: {
+              'planId': result.planId,
+              'purchaseToken': result.purchaseToken,
+              'receiptData': result.receiptData,
+              'transactionId': result.transactionId,
+              'platform': Platform.isAndroid ? 'android' : 'ios',
+            },
+          )
+          .timeout(const Duration(seconds: 20));
+
       result.complete?.call();
 
       if (!mounted) return;
-      await _checkStatus();
+      await _checkStatus().timeout(const Duration(seconds: 12));
       if (!mounted) return;
-      
+
       if (_isPremiumActive) {
         await _showSuccessSheet();
       } else {
@@ -253,7 +279,7 @@ class _PremiumScreenState extends State<PremiumScreen>
             content: Text(
               backendMessage ??
                   'Ödemen alındı fakat sistemimizle doğrulama şu an tamamlanamadı. '
-                  'Uygulamayı kapatıp açarsan premium genellikle birkaç dakika içinde aktif olur.',
+                      'Uygulamayı kapatıp açarsan premium genellikle birkaç dakika içinde aktif olur.',
             ),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
@@ -262,7 +288,12 @@ class _PremiumScreenState extends State<PremiumScreen>
         );
       }
     } finally {
-      if (mounted) setState(() => _purchasing = false);
+      if (mounted) {
+        setState(() {
+          _purchasing = false;
+          _showPurchaseHelp = false;
+        });
+      }
     }
   }
 
@@ -273,7 +304,9 @@ class _PremiumScreenState extends State<PremiumScreen>
       final yearly = products.firstWhere((p) => p.id == IapProductIds.yearly);
       final annualizedMonthly = monthly.rawPrice * 12;
       if (annualizedMonthly > yearly.rawPrice) {
-        final pct = ((annualizedMonthly - yearly.rawPrice) / annualizedMonthly * 100).round();
+        final pct =
+            ((annualizedMonthly - yearly.rawPrice) / annualizedMonthly * 100)
+                .round();
         return '%$pct indirim';
       }
     } catch (_) {}
@@ -330,7 +363,11 @@ class _PremiumScreenState extends State<PremiumScreen>
     final started = await _iap.purchase(_selectedPlan.id);
     if (!started && mounted) {
       _purchasingTimeoutTimer?.cancel();
-      setState(() => _purchasing = false);
+      _purchaseHelpTimer?.cancel();
+      setState(() {
+        _purchasing = false;
+        _showPurchaseHelp = true;
+      });
     }
   }
 
@@ -345,9 +382,32 @@ class _PremiumScreenState extends State<PremiumScreen>
       debugPrint('PremiumScreen: restore error: $e');
       if (mounted) {
         _purchasingTimeoutTimer?.cancel();
-        setState(() => _purchasing = false);
+        _purchaseHelpTimer?.cancel();
+        setState(() {
+          _purchasing = false;
+          _showPurchaseHelp = true;
+        });
       }
     }
+  }
+
+  void _resetPurchaseState({bool showHelp = false}) {
+    _purchasingTimeoutTimer?.cancel();
+    _purchaseHelpTimer?.cancel();
+    if (mounted) {
+      setState(() {
+        _purchasing = false;
+        _showPurchaseHelp = showHelp;
+      });
+    }
+  }
+
+  Future<void> _retryPurchase() async {
+    _resetPurchaseState();
+    await _iap.refreshProducts();
+    await _checkStatus();
+    if (!mounted || _isPremiumActive) return;
+    await _startIapPurchase();
   }
 
   /// App Store / Play Store abonelik yönetim sayfasını açar.
@@ -561,7 +621,11 @@ class _PremiumScreenState extends State<PremiumScreen>
                   color: Color(0xFF27272A),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 16, color: Color(0xFFA1A1AA)),
+                child: const Icon(
+                  Icons.close,
+                  size: 16,
+                  color: Color(0xFFA1A1AA),
+                ),
               ),
             ),
           ),
@@ -602,14 +666,16 @@ class _PremiumScreenState extends State<PremiumScreen>
                     color: const Color(0xFF18181B),
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
-                      color: const Color(0xFFFF7B3E).withValues(alpha: 0.4 * _pulseAnimation.value),
+                      color: const Color(
+                        0xFFFF7B3E,
+                      ).withValues(alpha: 0.4 * _pulseAnimation.value),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFFF7B3E).withValues(
-                          alpha: 0.35 * _pulseAnimation.value,
-                        ),
+                        color: const Color(
+                          0xFFFF7B3E,
+                        ).withValues(alpha: 0.35 * _pulseAnimation.value),
                         blurRadius: 36,
                         spreadRadius: 4,
                         offset: const Offset(0, 8),
@@ -836,7 +902,10 @@ class _PremiumScreenState extends State<PremiumScreen>
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   child: f,
                 ),
                 if (i < features.length - 1)
@@ -860,7 +929,14 @@ class _PremiumScreenState extends State<PremiumScreen>
   Widget _buildStickyBottomCta(double bottomPadding) {
     final storePrice = _iap.priceFor(_selectedPlan.id);
     final priceLabel = storePrice ?? _selectedPlan.priceLabel;
-    final canBuy = !_purchasing;
+    final isLoadingProducts = _iap.isLoadingProducts;
+    final selectedProductLoaded = storePrice != null;
+    final canBuy = !_purchasing && !isLoadingProducts && selectedProductLoaded;
+    final productError = _iap.productLoadError;
+    final buttonLabel = selectedProductLoaded
+        ? 'Başla — $priceLabel'
+        : 'Paketler yüklenemedi';
+    final buttonTextColor = canBuy ? Colors.white : const Color(0xFF52525B);
 
     return Container(
       decoration: BoxDecoration(
@@ -896,14 +972,16 @@ class _PremiumScreenState extends State<PremiumScreen>
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       decoration: BoxDecoration(
-                        color: selected ? const Color(0xFF3F3F46) : Colors.transparent,
+                        color: selected
+                            ? const Color(0xFF3F3F46)
+                            : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: selected
                             ? [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.2),
                                   blurRadius: 8,
-                                )
+                                ),
                               ]
                             : null,
                       ),
@@ -924,7 +1002,9 @@ class _PremiumScreenState extends State<PremiumScreen>
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFF7B3E),
                                 borderRadius: BorderRadius.circular(99),
@@ -980,20 +1060,22 @@ class _PremiumScreenState extends State<PremiumScreen>
                 boxShadow: canBuy
                     ? [
                         BoxShadow(
-                          color: const Color(0xFFFF7B3E).withValues(alpha: 0.35),
+                          color: const Color(
+                            0xFFFF7B3E,
+                          ).withValues(alpha: 0.35),
                           blurRadius: 18,
                           offset: const Offset(0, 6),
-                        )
+                        ),
                       ]
                     : null,
               ),
               child: Center(
-                child: _purchasing
+                child: _purchasing || isLoadingProducts
                     ? const SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
+                          color: Color(0xFFFF7B3E),
                           strokeWidth: 2.5,
                         ),
                       )
@@ -1001,12 +1083,12 @@ class _PremiumScreenState extends State<PremiumScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Başla — $priceLabel',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            buttonLabel,
+                            style: TextStyle(
+                              color: buttonTextColor,
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
+                              letterSpacing: 0,
                             ),
                           ),
                         ],
@@ -1014,6 +1096,71 @@ class _PremiumScreenState extends State<PremiumScreen>
               ),
             ),
           ),
+          if (productError != null && productError.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              productError,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFFFFB86B),
+                fontSize: 11.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (_purchasing || _showPurchaseHelp) ...[
+            const SizedBox(height: 8),
+            Text(
+              _purchasing
+                  ? 'Apple ödeme penceresi bekleniyor...'
+                  : 'İşlem başlamadıysa tekrar deneyebilirsin.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.48),
+                fontSize: 11.5,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (_showPurchaseHelp) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: _retryPurchase,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFFF7B3E),
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                  ),
+                  child: const Text(
+                    'Tekrar Dene',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _restorePurchases,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                  ),
+                  child: const Text(
+                    'Geri Yükle',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 10),
           // ── More options / restore ──
           Row(
@@ -1103,8 +1250,10 @@ class _PremiumScreenState extends State<PremiumScreen>
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFF7B3E).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(99),
@@ -1147,10 +1296,7 @@ class _PremiumScreenState extends State<PremiumScreen>
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFFF7B3E),
-                side: const BorderSide(
-                  color: Color(0xFFFF7B3E),
-                  width: 1.5,
-                ),
+                side: const BorderSide(color: Color(0xFFFF7B3E), width: 1.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1171,8 +1317,8 @@ class _PremiumScreenState extends State<PremiumScreen>
     final expiryText = _premiumExpiresAt == null
         ? ''
         : ' Bitiş: ${_premiumExpiresAt!.day.toString().padLeft(2, '0')}/'
-            '${_premiumExpiresAt!.month.toString().padLeft(2, '0')}/'
-            '${_premiumExpiresAt!.year}.';
+              '${_premiumExpiresAt!.month.toString().padLeft(2, '0')}/'
+              '${_premiumExpiresAt!.year}.';
     if (_cancelAtPeriodEnd) {
       return '$planLabel Otomatik yenileme kapatıldı. '
           'Premium erişimin dönem sonuna kadar devam edecek.$expiryText';
@@ -1195,7 +1341,13 @@ class _LaurelBranch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Yaprak: oval, açılı konumlandırılmış
-    Widget leaf(double x, double y, double angleDeg, double width, double height) {
+    Widget leaf(
+      double x,
+      double y,
+      double angleDeg,
+      double width,
+      double height,
+    ) {
       return Positioned(
         left: x,
         top: y,
@@ -1221,11 +1373,11 @@ class _LaurelBranch extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          leaf(18, 2,  -55, 22, 9),
+          leaf(18, 2, -55, 22, 9),
           leaf(10, 18, -38, 24, 9),
-          leaf(6,  36, -20, 26, 9),
-          leaf(8,  54,  -4, 24, 9),
-          leaf(14, 70,  12, 22, 9),
+          leaf(6, 36, -20, 26, 9),
+          leaf(8, 54, -4, 24, 9),
+          leaf(14, 70, 12, 22, 9),
         ],
       ),
     );

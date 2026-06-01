@@ -205,29 +205,24 @@ public class IapVerificationService {
                 return IapVerifyResult.fail("Receipt uygulama kimligi eslesmiyor.");
             }
 
-            // En güncel aboneliği bul
-            JsonNode latestInfo = root.path("latest_receipt_info");
-            if (latestInfo.isArray() && latestInfo.size() > 0) {
-                JsonNode latest = latestInfo.get(latestInfo.size() - 1);
+            // En güncel, tanıdığımız abonelik kaydını bul.
+            JsonNode latest = latestSubscriptionInfo(root.path("latest_receipt_info"));
+            if (latest != null) {
                 String productId = latest.path("product_id").asText("");
-                long expiresMs = Long.parseLong(
-                        latest.path("expires_date_ms").asText("0"));
+                long expiresMs = parseLongOrZero(latest.path("expires_date_ms").asText("0"));
 
                 if (expiresMs > 0 && expiresMs < System.currentTimeMillis()) {
                     return IapVerifyResult.fail("Abonelik süresi dolmuş.");
                 }
 
                 String plan = normalizePlanId(productId);
-                if (plan == null) {
-                    return IapVerifyResult.fail("Receipt icindeki urun kimligi taninmiyor.");
-                }
                 String originalTxId = latest.path("original_transaction_id").asText(null);
                 LOG.infof("Apple receipt geçerli — productId=%s plan=%s expiresMs=%d origTx=%s",
                         productId, plan, expiresMs, originalTxId);
                 return IapVerifyResult.ok(plan, expiresMs, originalTxId);
             }
 
-            return IapVerifyResult.fail("Receipt içinde abonelik bulunamadı.");
+            return IapVerifyResult.fail("Receipt içinde aktif abonelik bulunamadı.");
 
         } catch (Exception e) {
             LOG.errorf(e, "Apple receipt doğrulama hatası");
@@ -244,6 +239,34 @@ public class IapVerificationService {
                 .build();
         HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
         return objectMapper.readTree(resp.body());
+    }
+
+    private JsonNode latestSubscriptionInfo(JsonNode latestInfo) {
+        if (!latestInfo.isArray() || latestInfo.size() == 0) {
+            return null;
+        }
+        JsonNode best = null;
+        long bestExpiresMs = -1;
+        for (JsonNode item : latestInfo) {
+            String productId = item.path("product_id").asText("");
+            if (normalizePlanId(productId) == null) {
+                continue;
+            }
+            long expiresMs = parseLongOrZero(item.path("expires_date_ms").asText("0"));
+            if (best == null || expiresMs > bestExpiresMs) {
+                best = item;
+                bestExpiresMs = expiresMs;
+            }
+        }
+        return best;
+    }
+
+    private long parseLongOrZero(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (Exception ignored) {
+            return 0L;
+        }
     }
 
     private String appleStatusMessage(int status) {

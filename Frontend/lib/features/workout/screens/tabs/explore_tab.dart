@@ -599,8 +599,7 @@ class _ExploreTabState extends State<_ExploreTab> {
           child: Padding(
             padding: const EdgeInsets.only(top: 20),
             child: Consumer<WorkoutProgramProvider>(
-              builder: (context, programProvider, _) =>
-                  _PresetProgramsSection(
+              builder: (context, programProvider, _) => _PresetProgramsSection(
                 onAddProgram: (program) {
                   programProvider.saveProgram(program);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -625,41 +624,41 @@ class _ExploreTabState extends State<_ExploreTab> {
         // 4. Analiz Slaytı (Carousel)
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.only(top: 20),
+            padding: const EdgeInsets.only(top: 12),
             child: _InsightsCarouselSection(
-            workouts: provider.workouts,
-            recoveryStatuses: recovery,
-            stats: stats,
-            onStartProgression: (plan) {
-              final templateData = (
-                exerciseName: plan.name,
-                sets: plan.sets,
-                reps: plan.reps,
-                workoutName: plan.name,
-                duration: 30,
-                muscleGroup: plan.muscleGroup,
-                difficulty: 'Orta',
-              );
-              final parentState = context
-                  .findAncestorStateOfType<_WorkoutScreenState>();
-              parentState?._openActiveSession(
-                context,
-                title: '${plan.name} ilerleme seansı',
-                plans: [plan],
-                onFinish: (summary) => parentState._saveCompletedSession(
+              workouts: provider.workouts,
+              recoveryStatuses: recovery,
+              stats: stats,
+              onStartProgression: (plan) {
+                final templateData = (
+                  exerciseName: plan.name,
+                  sets: plan.sets,
+                  reps: plan.reps,
+                  workoutName: plan.name,
+                  duration: 30,
+                  muscleGroup: plan.muscleGroup,
+                  difficulty: 'Orta',
+                );
+                final parentState = context
+                    .findAncestorStateOfType<_WorkoutScreenState>();
+                parentState?._openActiveSession(
                   context,
-                  summary,
-                  difficulty: templateData.difficulty,
-                  fallbackMuscleGroup: templateData.muscleGroup,
-                ),
-              );
-            },
-            onSelectGroup: _selectMuscleGroup,
-          ),
+                  title: '${plan.name} ilerleme seansı',
+                  plans: [plan],
+                  onFinish: (summary) => parentState._saveCompletedSession(
+                    context,
+                    summary,
+                    difficulty: templateData.difficulty,
+                    fallbackMuscleGroup: templateData.muscleGroup,
+                  ),
+                );
+              },
+              onSelectGroup: _selectMuscleGroup,
+            ),
           ),
         ),
         // Boşluk
-        const SliverToBoxAdapter(child: SizedBox(height: 12)),
+        const SliverToBoxAdapter(child: SizedBox(height: 6)),
         // Egzersiz Kütüphanesi Başlığı
         SliverAppBar(
           pinned: true,
@@ -667,7 +666,10 @@ class _ExploreTabState extends State<_ExploreTab> {
           backgroundColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
           automaticallyImplyLeading: false,
-          toolbarHeight: _regionSearchQuery.trim().isNotEmpty && globalMatches.isNotEmpty ? 190 : 130,
+          toolbarHeight:
+              _regionSearchQuery.trim().isNotEmpty && globalMatches.isNotEmpty
+              ? 172
+              : 116,
           flexibleSpace: ClipRRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -680,7 +682,7 @@ class _ExploreTabState extends State<_ExploreTab> {
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -688,15 +690,17 @@ class _ExploreTabState extends State<_ExploreTab> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(7),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                            color: const Color(
+                              0xFF2E7D32,
+                            ).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
                             Icons.grid_view_rounded,
                             color: Color(0xFF66BB6A),
-                            size: 18,
+                            size: 17,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -711,16 +715,21 @@ class _ExploreTabState extends State<_ExploreTab> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                     SizedBox(
-                      height: 48,
+                      height: 44,
                       child: TextField(
                         controller: _regionSearchController,
                         onChanged: (value) =>
                             setState(() => _regionSearchQuery = value),
-                        style: const TextStyle(color: Colors.white, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                          ),
                           hintText: 'Bölge veya hareket ara...',
                           hintStyle: TextStyle(
                             color: Colors.white.withValues(alpha: 0.42),
@@ -752,14 +761,17 @@ class _ExploreTabState extends State<_ExploreTab> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(color: Color(0xFF2E7D32), width: 1.5),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2E7D32),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
                     ),
                     if (_regionSearchQuery.trim().isNotEmpty &&
                         globalMatches.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       _buildGlobalExerciseMatches(globalMatches),
                     ],
                   ],
@@ -786,13 +798,13 @@ class _ExploreTabState extends State<_ExploreTab> {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 12,
+                mainAxisSpacing: 10,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.25,
+                childAspectRatio: 0.96,
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
                 final code = list[index];
@@ -830,7 +842,14 @@ class _ExploreTabState extends State<_ExploreTab> {
               ),
             ),
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        SliverToBoxAdapter(
+          child: Builder(
+            builder: (context) {
+              final bottomInset = MediaQuery.paddingOf(context).bottom;
+              return SizedBox(height: bottomInset + 156);
+            },
+          ),
+        ),
       ],
     );
   }

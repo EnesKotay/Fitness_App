@@ -18,6 +18,7 @@ class _RateLimitService extends AiCoachService {
     required String userPrompt,
     CoachPersonality personality = CoachPersonality.supportive,
     CoachTaskMode taskMode = CoachTaskMode.plan,
+    String? userMemory,
     List<CoachConversationTurn> conversationHistory =
         const <CoachConversationTurn>[],
   }) async {
@@ -31,7 +32,7 @@ class _RateLimitService extends AiCoachService {
 
 class _SilentNotificationService extends NotificationService {
   @override
-  Future<void> fetchNotifications() async {}
+  Future<void> fetchNotifications({bool presentUnreadLocally = false}) async {}
 }
 
 void main() {
@@ -49,7 +50,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('AI Koç'), findsOneWidget);
-    expect(find.text('Bugün için net bir plan oluştur.'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());

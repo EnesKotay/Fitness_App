@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:dio/dio.dart' show Options;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -39,9 +40,13 @@ void main() async {
 
   // Zorunlu: Token ve prefs init edilmeden getToken() kullanılmamalı; yoksa null döner ve login'e atar.
   await StorageHelper.init();
+  _installGlobalErrorHandlers();
 
   // 401 interceptor'ının global navigate için kullandığı key'i set et.
   ApiClient.navigatorKey = appNavigatorKey;
+
+  // Notification service'e navigator key'i set et
+  LocalNotificationService.instance.navigatorKey = appNavigatorKey;
 
   try {
     await HiveDietStorage.init();
@@ -68,6 +73,8 @@ void main() async {
     LocalNotificationService.instance
         .init()
         .then((_) async {
+          // iOS badge'ini sıfırla (kırmızı bildirim sayısını kaldır)
+          await LocalNotificationService.instance.clearAppBadge();
           await NotificationSchedulerService.instance
               .syncScheduledNotifications();
           await NotificationService().fetchNotifications(
@@ -88,6 +95,78 @@ void main() async {
   // Backend'i sessizce uyandır (Render cold start için).
   // Splash ekranı gösterilirken arka planda çalışır, kullanıcıyı bekletmez.
   unawaited(_warmUpBackend());
+}
+
+void _installGlobalErrorHandlers() {
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    CrashReportingService.captureFlutterError(details);
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    CrashReportingService.captureException(
+      error,
+      stack,
+      source: 'platform_dispatcher',
+    );
+    return true;
+  };
+
+  ErrorWidget.builder = (details) {
+    CrashReportingService.captureFlutterError(details, source: 'error_widget');
+    return Material(
+      color: const Color(0xFF070B16),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEBC374).withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: const Color(0xFFEBC374).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFEBC374),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Bu bölüm yüklenemedi',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Uygulamayı kapatmadan başka bir ekrana geçebilirsin. Hata kaydı geliştiriciye iletilecek.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  };
 }
 
 Future<void> _warmUpBackend() async {
@@ -134,6 +213,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.detached) {
       IapService.instance.cancelSubscription();
     }
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+    AppLogger.w('Memory pressure received; Flutter image cache cleared.');
   }
 
   @override

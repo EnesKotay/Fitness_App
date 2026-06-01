@@ -89,8 +89,10 @@ class IapService extends ChangeNotifier {
   final Set<String> _processingPurchaseKeys = <String>{};
   final Set<String> _completedPurchaseKeys = <String>{};
 
-  final _purchaseResultController = StreamController<IapPurchaseResult>.broadcast();
-  Stream<IapPurchaseResult> get purchaseResultStream => _purchaseResultController.stream;
+  final _purchaseResultController =
+      StreamController<IapPurchaseResult>.broadcast();
+  Stream<IapPurchaseResult> get purchaseResultStream =>
+      _purchaseResultController.stream;
 
   bool get isAvailable => _available;
   bool get isLoadingProducts => _isLoadingProducts;
@@ -176,9 +178,7 @@ class IapService extends ChangeNotifier {
         );
         // Yalnızca hiç ürün gelmediyse hata göster; bazıları bulunduysa devam et.
         if (response.productDetails.isEmpty) {
-          _productLoadError =
-              'Abonelik paketleri henüz mağazada aktif değil. '
-              'Yayına alındıktan birkaç saat sonra tekrar dene.';
+          _productLoadError = _productUnavailableMessage();
         }
       }
 
@@ -204,6 +204,15 @@ class IapService extends ChangeNotifier {
       _isLoadingProducts = false;
       notifyListeners();
     }
+  }
+
+  String _productUnavailableMessage() {
+    if (kDebugMode) {
+      return 'Abonelik paketleri test mağazasından yüklenemedi. '
+          'StoreKit testi için uygulamayı Xcode\'dan Products.storekit seçiliyken başlat.';
+    }
+    return 'Abonelik paketleri henüz mağazada aktif değil. '
+        'Yayına alındıktan birkaç saat sonra tekrar dene.';
   }
 
   /// Ürünün mağaza fiyatını döner (ör. "₺149,99").
@@ -315,7 +324,9 @@ class IapService extends ChangeNotifier {
           unawaited(_onSuccess(purchase));
         case PurchaseStatus.error:
           final rawMsg = purchase.error?.message ?? '';
-          debugPrint('IapService: hata — $rawMsg (code=${purchase.error?.code})');
+          debugPrint(
+            'IapService: hata — $rawMsg (code=${purchase.error?.code})',
+          );
           _purchaseResultController.add(
             IapPurchaseResult.failure(_localizeStoreError(purchase.error)),
           );

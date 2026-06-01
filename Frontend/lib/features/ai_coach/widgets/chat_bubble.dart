@@ -19,6 +19,20 @@ import '../models/ai_coach_models.dart';
 import 'package:provider/provider.dart';
 import 'ai_coach_widgets.dart';
 
+class _FollowUpSuggestion {
+  final String label;
+  final String prompt;
+  final IconData icon;
+  final Color color;
+
+  _FollowUpSuggestion({
+    required this.label,
+    required this.prompt,
+    required this.icon,
+    required this.color,
+  });
+}
+
 class ChatBubble extends StatefulWidget {
   final ChatMessage message;
 
@@ -90,7 +104,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                 ),
               ],
             ),
-          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
+          ).animate().fadeIn(duration: 250.ms, curve: Curves.easeOut).slideY(begin: 0.03, end: 0, curve: Curves.easeOutCubic),
         );
       }
       return Padding(
@@ -120,8 +134,8 @@ class _ChatBubbleState extends State<ChatBubble> {
                     ),
                   )
                   .animate()
-                  .fadeIn(duration: 400.ms)
-                  .scale(begin: const Offset(0.95, 0.95)),
+                  .fadeIn(duration: 200.ms, curve: Curves.easeOut)
+                  .scale(begin: const Offset(0.98, 0.98), curve: Curves.easeOutCubic),
         ),
       );
     }
@@ -299,12 +313,23 @@ class _ChatBubbleState extends State<ChatBubble> {
                                   else if (a.type == 'SAVE_WORKOUT' &&
                                       a.data != null)
                                     SmartWorkoutSaveCard(actionData: a.data!)
+                                  else if (a.type == 'GENERATE_SHOPPING_LIST' &&
+                                      a.data != null)
+                                    SmartShoppingListCard(actionData: a.data!)
+                                  else if (a.type == 'CREATE_QUESTS' &&
+                                      a.data != null)
+                                    SmartQuestCard(actionData: a.data!)
+                                  else if (a.type == 'CREATE_RECIPE' &&
+                                      a.data != null)
+                                    SmartRecipeCard(actionData: a.data!)
                                   else
                                     Padding(
                                       padding: const EdgeInsets.only(top: 8),
                                       child: _buildActionButton(context, a),
                                     ),
                               ],
+                              // Follow-up suggestions
+                              if (!isError) _buildFollowUpChips(context),
                             ],
                           ),
                         ),
@@ -464,7 +489,7 @@ class _ChatBubbleState extends State<ChatBubble> {
                                 .toList(),
                       ),
                     ],
-                  ).animate().fadeIn(duration: 200.ms).slideY(begin: 0.3, end: 0),
+                  ).animate().fadeIn(duration: 180.ms, curve: Curves.easeOut).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
                 ),
             ],
           ),
@@ -801,7 +826,7 @@ class _ChatBubbleState extends State<ChatBubble> {
             ),
           ],
         ),
-      ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+      ).animate().fadeIn(duration: 250.ms, curve: Curves.easeOut).slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
     );
   }
 
@@ -832,6 +857,147 @@ class _ChatBubbleState extends State<ChatBubble> {
         ),
       ],
     );
+  }
+
+  Widget _buildFollowUpChips(BuildContext context) {
+    // AI cevabından context'e göre akıllı follow-up önerileri
+    final suggestions = _generateFollowUpSuggestions();
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                size: 12,
+                color: Colors.white.withValues(alpha: 0.4),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Devam et',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: suggestions.map<Widget>((suggestion) {
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  final controller = context.read<AiCoachController>();
+                  controller.submitPrompt(suggestion.prompt);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: suggestion.color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: suggestion.color.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(suggestion.icon, size: 12, color: suggestion.color),
+                      const SizedBox(width: 5),
+                      Text(
+                        suggestion.label,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_FollowUpSuggestion> _generateFollowUpSuggestions() {
+    final content = widget.message.content.toLowerCase();
+    final suggestions = <_FollowUpSuggestion>[];
+
+    // Kalori/beslenme bahsedildiyse
+    if (content.contains('kalori') || content.contains('kcal')) {
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Yeterli mi?',
+        prompt: 'Bu kalori miktarı hedefim için yeterli mi?',
+        icon: Icons.help_outline_rounded,
+        color: const Color(0xFFEBC374),
+      ));
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Öğün önerisi',
+        prompt: 'Kalan kalorim için öğün öner',
+        icon: Icons.restaurant_rounded,
+        color: const Color(0xFF81C784),
+      ));
+    }
+
+    // Protein bahsedildiyse
+    if (content.contains('protein')) {
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Protein kaynakları',
+        prompt: 'Hangi besinler iyi protein kaynağı?',
+        icon: Icons.egg_rounded,
+        color: const Color(0xFF34D399),
+      ));
+    }
+
+    // Antrenman bahsedildiyse
+    if (content.contains('antrenman') || content.contains('egzersiz')) {
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Detaylı plan',
+        prompt: 'Bu antrenman için detaylı set/tekrar planı ver',
+        icon: Icons.fitness_center_rounded,
+        color: const Color(0xFF73D4FF),
+      ));
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Doğru form',
+        prompt: 'Bu hareketlerin doğru formunu detaylı anlat',
+        icon: Icons.info_outline_rounded,
+        color: const Color(0xFFBC74EB),
+      ));
+    }
+
+    // Plan bahsedildiyse
+    if (content.contains('plan') || content.contains('program')) {
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Yarına devam',
+        prompt: 'Yarın için plan hazırla',
+        icon: Icons.calendar_today_rounded,
+        color: const Color(0xFF6B9FFF),
+      ));
+    }
+
+    // Genel soru sorulmuşsa
+    if (content.contains('?')) {
+      suggestions.add(_FollowUpSuggestion(
+        label: 'Daha basit anlat',
+        prompt: 'Bunu daha basit açıklar mısın?',
+        icon: Icons.translate_rounded,
+        color: const Color(0xFFFF8A65),
+      ));
+    }
+
+    return suggestions.take(3).toList();
   }
 
   Widget _buildPlainContent(bool isError) {
@@ -906,6 +1072,7 @@ class _ChatBubbleState extends State<ChatBubble> {
         return (const Color(0xFF81C784), const Color(0xFF388E3C));
       case 'START_WORKOUT':
       case 'SAVE_WORKOUT':
+      case 'SAVE_WORKOUT_SESSION':
         return (const Color(0xFF34D399), const Color(0xFF34D399));
       case 'ADD_WATER':
         return (const Color(0xFF73D4FF), const Color(0xFF4FACFE));
@@ -918,6 +1085,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         return (const Color(0xFF73D4FF), const Color(0xFF4FACFE));
       case 'REMEMBER':
         return (const Color(0xFF34D399), const Color(0xFF34D399));
+      case 'CREATE_RECIPE':
+        return (const Color(0xFFEBC374), const Color(0xFFC88934));
       default:
         return (const Color(0xFFEBC374), const Color(0xFFEBC374));
     }
@@ -931,6 +1100,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         return Icon(Icons.play_arrow_rounded, size: 15, color: color);
       case 'SAVE_WORKOUT':
         return Icon(Icons.fitness_center_rounded, size: 15, color: color);
+      case 'SAVE_WORKOUT_SESSION':
+        return Icon(Icons.playlist_add_check_rounded, size: 15, color: color);
       case 'ADD_WATER':
         return Icon(Icons.water_drop_rounded, size: 15, color: color);
       case 'TRACK_WEIGHT':
@@ -943,6 +1114,8 @@ class _ChatBubbleState extends State<ChatBubble> {
         return Icon(Icons.insights_rounded, size: 15, color: color);
       case 'REMEMBER':
         return Icon(Icons.bookmark_added_rounded, size: 15, color: color);
+      case 'CREATE_RECIPE':
+        return Icon(Icons.menu_book_rounded, size: 15, color: color);
       default:
         return Icon(Icons.launch_rounded, size: 15, color: color);
     }
@@ -976,6 +1149,9 @@ class _ChatBubbleState extends State<ChatBubble> {
         break;
       case 'SAVE_WORKOUT':
         _handleWorkoutSave(context, action.data);
+        break;
+      case 'SAVE_WORKOUT_SESSION':
+        _handleWorkoutSessionSave(context, action.data);
         break;
       case 'REMEMBER':
         _handleRememberFact(context, action.data);
@@ -1160,6 +1336,46 @@ class _ChatBubbleState extends State<ChatBubble> {
     }
   }
 
+  Future<void> _handleWorkoutSessionSave(BuildContext context, String? data) async {
+    if (data == null || data.isEmpty) return;
+    try {
+      final Map<String, dynamic> sessionData = jsonDecode(data);
+      final apiClient = ApiClient();
+
+      // Set default startedAt / finishedAt times if missing
+      if (!sessionData.containsKey('startedAt')) {
+        sessionData['startedAt'] = DateTime.now().subtract(const Duration(minutes: 45)).toIso8601String();
+      }
+      if (!sessionData.containsKey('finishedAt')) {
+        sessionData['finishedAt'] = DateTime.now().toIso8601String();
+      }
+
+      await apiClient.post(
+        ApiConstants.workoutSessions,
+        data: sessionData,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '💪 Detaylı antrenman seansı başarıyla kaydedildi!',
+              style: GoogleFonts.dmSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF34D399),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('SAVE_WORKOUT_SESSION parse hatası: $e');
+    }
+  }
+
   void _copyToClipboard(BuildContext context, String text) {
     final plainText = text
         .replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'$1')
@@ -1313,9 +1529,9 @@ class _TypingBubbleState extends State<TypingBubble>
     _dotControllers = List.generate(3, (i) {
       final c = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 480),
+        duration: const Duration(milliseconds: 400),
       );
-      Future.delayed(Duration(milliseconds: i * 150), () {
+      Future.delayed(Duration(milliseconds: i * 120), () {
         if (mounted) c.repeat(reverse: true);
       });
       return c;

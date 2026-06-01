@@ -68,6 +68,9 @@ public class User extends PanacheEntity {
     @Column(name = "motivation_stats_json", columnDefinition = "TEXT")
     public String motivationStatsJson;
 
+    @Column(name = "coaching_personality")
+    public String coachingPersonality = "SUPPORTIVE"; // SUPPORTIVE, TOUGH_LOVE, ANALYTICAL
+
     @Column(name = "premium_tier")
     public String premiumTier = "free"; // "free" or "premium"
 

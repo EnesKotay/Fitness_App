@@ -1343,9 +1343,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                               shaderCallback: (bounds) => LinearGradient(
                                 colors: [Colors.white, AppColors.primaryLight],
                               ).createShader(bounds),
-                              child: const Text(
+                              child: Text(
                                 'Ne ekleyeyim?',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 26,
                                   fontWeight: FontWeight.w900,

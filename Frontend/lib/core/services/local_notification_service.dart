@@ -19,6 +19,9 @@ class LocalNotificationService {
 
   bool _initialized = false;
 
+  /// Bildirime tıklanınca kullanılacak global navigator key (main.dart'tan set edilir)
+  GlobalKey<NavigatorState>? navigatorKey;
+
   // Bildirim ID aralıkları — çakışmaması için sabit ayrılmış
   static const int _waterBaseId = 100; // 100-115
   static const int _maxWaterReminders = 16;
@@ -48,13 +51,14 @@ class LocalNotificationService {
       '@mipmap/ic_launcher',
     );
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
     );
 
     await _plugin.initialize(
       const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
     // Android 8+ kanal oluştur
@@ -65,6 +69,36 @@ class LocalNotificationService {
     await androidImpl?.createNotificationChannel(_androidChannel);
 
     _initialized = true;
+  }
+
+  /// Bildirime tıklanınca çağrılır
+  void _onNotificationTapped(NotificationResponse response) {
+    if (navigatorKey?.currentState == null) return;
+
+    final id = response.id;
+    if (id == null) return;
+
+    // Bildirim türüne göre yönlendirme
+    if (id >= _waterBaseId && id < _waterBaseId + _maxWaterReminders) {
+      // Su hatırlatıcısı → Ana sayfa / Tracking
+      navigatorKey!.currentState!.pushNamed('/home');
+    } else if (id >= _mealBreakfastId && id <= _mealSnackId) {
+      // Öğün hatırlatıcısı → Beslenme tab'ı
+      navigatorKey!.currentState!.pushNamed('/home');
+      // Not: Tab değiştirme için ek aksiyon gerekebilir
+    } else if (id == _workoutReminderId) {
+      // Antrenman hatırlatıcısı → Antrenman sayfası
+      navigatorKey!.currentState!.pushNamed('/home');
+    } else if (id == _dailySummaryReminderId) {
+      // Gün sonu özeti → Ana sayfa
+      navigatorKey!.currentState!.pushNamed('/home');
+    } else if (id == _morningRecoveryId) {
+      // Sabah toparlanma → Tracking
+      navigatorKey!.currentState!.pushNamed('/home');
+    } else if (id >= 40000) {
+      // Remote notification (backend'den gelen)
+      navigatorKey!.currentState!.pushNamed('/home');
+    }
   }
 
   /// Bildirim izni iste (iOS + Android 13+)
@@ -270,6 +304,26 @@ class LocalNotificationService {
 
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
+  }
+
+  /// iOS app badge sayısını sıfırla (kırmızı badge'i kaldır)
+  Future<void> clearAppBadge() async {
+    // iOS için badge sıfırlama - tüm pending bildirimleri iptal et
+    await _plugin.cancelAll();
+
+    // iOS badge sayısını 0'a çekmek için boş bir bildirim gönder ve hemen iptal et
+    final iosImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+    if (iosImpl != null) {
+      // Badge iznini yeniden talep et (bu badge'i sıfırlar)
+      await iosImpl.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
   }
 
   Future<void> showRemoteNotification({

@@ -156,6 +156,15 @@ class _ActiveWorkoutSessionSheetState
   Timer? _sessionTimer;
   int _remaining = 0;
   int _sessionSeconds = 0;
+  String _currentCoachCue = '';
+  final List<String> _cues = [
+    'Nefesini toparla. Sıradaki set formuna odaklan.',
+    'Harika gidiyorsun! Core bölgesini sıkı tut.',
+    'Acele etme, gücünü topla. Hareketi kontrollü yap.',
+    'Zorlanırsan ağırlığı düşür, formu bozmak yok!',
+    'Mükemmel set! Toparlanmak için derin nefes al.',
+    'Kaslarını hisset, momentum kullanmadan kaldır.',
+  ];
 
   @override
   void initState() {
@@ -200,6 +209,7 @@ class _ActiveWorkoutSessionSheetState
   void _startRest(int seconds) {
     _restTimer?.cancel();
     _remaining = seconds;
+    _currentCoachCue = _cues[DateTime.now().millisecond % _cues.length];
     _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
@@ -372,14 +382,42 @@ class _ActiveWorkoutSessionSheetState
                   children: [
                     const Icon(Icons.hourglass_bottom_rounded, color: Color(0xFF66BB6A)),
                     const SizedBox(width: 8),
-                    const Text('Dinlenme: ', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
-                    Text(
-                      '$restM:$restS',
-                      style: const TextStyle(
-                        color: Color(0xFF66BB6A),
-                        fontSize: 22,
-                        fontFamily: 'Courier',
-                        fontWeight: FontWeight.w900,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('Dinlenme: ', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+                              Text(
+                                '$restM:$restS',
+                                style: const TextStyle(
+                                  color: Color(0xFF66BB6A),
+                                  fontSize: 22,
+                                  fontFamily: 'Courier',
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.psychology, color: Colors.cyanAccent, size: 14),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'Koç: $_currentCoachCue',
+                                  style: const TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -421,13 +459,129 @@ class _ActiveWorkoutSessionSheetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      plan.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            plan.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        // Isınma Butonu
+                        GestureDetector(
+                          onTap: () {
+                            final wStr = _setInputs['$exerciseIndex-0']?.weightC.text.replaceAll(',', '.') ?? '0';
+                            final rStr = _setInputs['$exerciseIndex-0']?.repsC.text ?? '0';
+                            final w = double.tryParse(wStr) ?? 0;
+                            final r = int.tryParse(rStr) ?? 0;
+                            final max = ProgressionEngine.calculate1RM(w, r);
+                            if (max > 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Isınma eklendi! 1RM: ${max.toStringAsFixed(1)} kg'), backgroundColor: Colors.amber));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('İlk sete tahmini bir ağırlık girin.'), backgroundColor: Colors.orange));
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.local_fire_department, color: Colors.amber, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Isınma',
+                                  style: TextStyle(
+                                    color: Colors.amber,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // Superset Butonu
+                        GestureDetector(
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Süperset bağlandı!'), backgroundColor: Colors.purpleAccent));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.purpleAccent.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.link, color: Colors.purpleAccent, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Süperset',
+                                  style: TextStyle(
+                                    color: Colors.purpleAccent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // AI Banner
+                    Builder(
+                      builder: (context) {
+                        final provider = context.watch<WorkoutProvider>();
+                        final hint = ProgressionEngine.compute(
+                          history: provider.workouts,
+                          exerciseName: plan.name,
+                          targetReps: plan.reps,
+                        );
+                        if (hint.suggestedWeight > 0) {
+                          return Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.blueAccent.withValues(alpha: 0.2), Colors.purpleAccent.withValues(alpha: 0.1)],
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.psychology, color: Colors.cyanAccent, size: 16),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'AI Önerisi: ${hint.weightLabel} x ${hint.suggestedReps} ${hint.trendEmoji} — ${hint.reason}',
+                                    style: const TextStyle(
+                                      color: Colors.cyanAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
                     ),
                     const SizedBox(height: 8),
                     Wrap(

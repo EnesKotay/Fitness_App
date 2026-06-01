@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/progression_engine.dart';
 
 // Set tipleri
 const kSetTypes = ['Isınma', 'Normal', 'Drop-Set', 'Failure'];
@@ -205,21 +206,28 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
     final s = widget.setEntry;
     final accent = widget.accentColor;
     
+    Color typeColor = accent;
+    if (s.setType == 'Isınma') typeColor = Colors.amber;
+    if (s.setType == 'Drop-Set') typeColor = Colors.deepOrangeAccent;
+    if (s.setType == 'Failure') typeColor = Colors.redAccent;
+    
+    final bool isSpecialSet = s.setType != 'Normal';
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: s.isDone ? accent.withAlpha((0.09 * 255).toInt()) : _card,
+        color: s.isDone ? typeColor.withAlpha((0.09 * 255).toInt()) : (isSpecialSet ? typeColor.withAlpha((0.03 * 255).toInt()) : _card),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: s.isDone ? accent.withAlpha((0.4 * 255).toInt()) : _cardBorder,
+          color: s.isDone ? typeColor.withAlpha((0.4 * 255).toInt()) : (isSpecialSet ? typeColor.withAlpha((0.15 * 255).toInt()) : _cardBorder),
           width: s.isDone ? 1.5 : 1,
         ),
-        boxShadow: s.isDone
+        boxShadow: s.isDone || isSpecialSet
             ? [
                 BoxShadow(
-                  color: accent.withAlpha((0.1 * 255).toInt()),
+                  color: typeColor.withAlpha((s.isDone ? 0.1 * 255 : 0.05 * 255).toInt()),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -236,10 +244,10 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: s.isDone ? accent : accent.withAlpha((0.13 * 255).toInt()),
+                  color: s.isDone ? typeColor : typeColor.withAlpha((0.13 * 255).toInt()),
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: s.isDone
-                      ? [BoxShadow(color: accent.withAlpha((0.35 * 255).toInt()), blurRadius: 8)]
+                      ? [BoxShadow(color: typeColor.withAlpha((0.35 * 255).toInt()), blurRadius: 8)]
                       : null,
                 ),
                 child: Center(
@@ -248,7 +256,7 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
                       : Text(
                           '${widget.index + 1}',
                           style: TextStyle(
-                            color: accent,
+                            color: typeColor,
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                           ),
@@ -272,10 +280,10 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
                           margin: const EdgeInsets.only(right: 6),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: sel ? accent.withAlpha((0.25 * 255).toInt()) : Colors.white.withAlpha((0.05 * 255).toInt()),
+                            color: sel ? typeColor.withAlpha((0.25 * 255).toInt()) : Colors.white.withAlpha((0.05 * 255).toInt()),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: sel ? accent : Colors.white.withAlpha((0.1 * 255).toInt()),
+                              color: sel ? typeColor : Colors.white.withAlpha((0.1 * 255).toInt()),
                             ),
                           ),
                           child: Text(
@@ -297,7 +305,7 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: s.isDone ? accent : Colors.white.withAlpha((0.06 * 255).toInt()),
+                    color: s.isDone ? typeColor : Colors.white.withAlpha((0.06 * 255).toInt()),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -325,25 +333,53 @@ class _WorkoutSetRowState extends State<WorkoutSetRow> {
                   ],
                 ),
               ),
-              if (!widget.isLast)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8, bottom: 4),
-                  child: GestureDetector(
-                    onTap: widget.onCopyNextClicked,
-                    child: Tooltip(
-                      message: 'Sonraki sete kopyala',
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Builder(
+                    builder: (context) {
+                      final w = double.tryParse(s.weightC.text.replaceAll(',', '.')) ?? 0;
+                      final r = int.tryParse(s.repsC.text) ?? 0;
+                      final oneRm = ProgressionEngine.calculate1RM(w, r);
+                      if (oneRm <= 0) return const SizedBox.shrink();
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: accent.withAlpha((0.12 * 255).toInt()),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: accent.withAlpha((0.3 * 255).toInt())),
+                          color: Colors.amber.withAlpha((0.1 * 255).toInt()),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber.withAlpha((0.3 * 255).toInt())),
                         ),
-                        child: Icon(Icons.arrow_downward_rounded, color: accent, size: 16),
+                        child: Text(
+                          '1RM: ${oneRm.toStringAsFixed(1)}',
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    }
+                  ),
+                  if (!widget.isLast)
+                    GestureDetector(
+                      onTap: widget.onCopyNextClicked,
+                      child: Tooltip(
+                        message: 'Sonraki sete kopyala',
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: typeColor.withAlpha((0.12 * 255).toInt()),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: typeColor.withAlpha((0.3 * 255).toInt())),
+                          ),
+                          child: Icon(Icons.arrow_downward_rounded, color: typeColor, size: 16),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 10),

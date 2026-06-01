@@ -3542,7 +3542,32 @@ class _WeeklyVolumeChart extends StatelessWidget {
     final totalVolume = data.map((d) => d.volume).fold(0.0, (a, b) => a + b);
     final totalDuration = thisWeekWorkouts.map((w) => w.durationMinutes ?? 0).fold(0, (a, b) => a + b);
 
-    if (maxVol == 0 && totalWorkouts == 0) return const SizedBox.shrink();
+    // Calculate last week's volume for Coach Debrief
+    final lastWeekStart = weekStart.subtract(const Duration(days: 7));
+    final lastWeekWorkouts = workouts.where((w) {
+      final d = DateTime(w.workoutDate.year, w.workoutDate.month, w.workoutDate.day);
+      return !d.isBefore(DateTime(lastWeekStart.year, lastWeekStart.month, lastWeekStart.day)) &&
+             d.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day));
+    }).toList();
+    
+    double lastWeekVolume = 0;
+    for (final w in lastWeekWorkouts) {
+        final weight = w.weight ?? 0;
+        final reps = w.reps ?? 0;
+        final sets = w.sets ?? 1;
+        lastWeekVolume += weight * reps * sets;
+    }
+
+    String coachDebrief = 'Koç: Antrenman yapıp kaslarını geliştirmeye başla!';
+    if (totalVolume > lastWeekVolume && lastWeekVolume > 0) {
+      coachDebrief = 'Koç: Harika! Geçen haftaya göre +${(totalVolume - lastWeekVolume).toStringAsFixed(0)} kg ekstra hacim. Progressive Overload çalışıyor! 🚀';
+    } else if (totalVolume < lastWeekVolume && now.weekday > 4) {
+      coachDebrief = 'Koç: Geçen haftanın gerisindeyiz. Kalan günlerde açığı kapatalım! 💪';
+    } else if (totalVolume > 0 && lastWeekVolume == 0) {
+      coachDebrief = 'Koç: İlk haftan çok iyi gidiyor, hacim artmaya devam etmeli!';
+    }
+
+    if (maxVol == 0 && totalWorkouts == 0 && lastWeekVolume == 0) return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -3659,6 +3684,31 @@ class _WeeklyVolumeChart extends StatelessWidget {
                   ),
                 );
               }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF66BB6A).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.psychology, color: Color(0xFF66BB6A), size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    coachDebrief,
+                    style: const TextStyle(
+                      color: Color(0xFF66BB6A),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

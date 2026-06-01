@@ -1055,10 +1055,10 @@
         "unit": "g"
       },
       "nutrientsPerBasis": {
-        "kcal": 75,
-        "protein": 6.3,
-        "carb": 0.6,
-        "fat": 5.3
+        "kcal": 77.5,
+        "protein": 6.29,
+        "carb": 0.56,
+        "fat": 5.31
       },
       "servings": [
         {
@@ -1094,7 +1094,688 @@
       "brand": null,
       "barcode": null,
       "imageUrl": null,
-      "source": "Ortalama Yumurta Değerleri"
+      "source": "USDA #01129 whole egg, cooked, hard-boiled"
+    },
+    {
+      "id": "trverified_pose_yumurta",
+      "name": "Poşe Yumurta",
+      "category": "Yumurta",
+      "basis": {
+        "amount": 50,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 71.5,
+        "protein": 6.26,
+        "carb": 0.36,
+        "fat": 4.74
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 adet (~50g)",
+          "grams": 50,
+          "isDefault": true
+        },
+        {
+          "id": "s_2",
+          "label": "2 adet (~100g)",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "poşe yumurta",
+        "pose yumurta",
+        "poached egg"
+      ],
+      "tags": [
+        "verified-source",
+        "yumurta",
+        "protein",
+        "kahvaltı",
+        "pose"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #01131 whole egg, cooked, poached"
+    },
+    {
+      "id": "trverified_cirpilmis_yumurta",
+      "name": "Çırpılmış Yumurta",
+      "category": "Yumurta",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 149,
+        "protein": 9.99,
+        "carb": 1.61,
+        "fat": 10.98
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (~120g)",
+          "grams": 120,
+          "isDefault": true
+        },
+        {
+          "id": "s_large",
+          "label": "1 büyük yumurta pişmiş (~61g)",
+          "grams": 61,
+          "isDefault": false
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "çırpılmış yumurta",
+        "cirpilmis yumurta",
+        "scrambled egg"
+      ],
+      "tags": [
+        "verified-source",
+        "yumurta",
+        "protein",
+        "kahvaltı",
+        "cirpilmis"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #01132 whole egg, cooked, scrambled"
+    },
+    {
+      "id": "trverified_izgara_tavuk_gogsu",
+      "name": "Izgara Tavuk Göğsü",
+      "category": "Et ve Tavuk",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 165,
+        "protein": 31.0,
+        "carb": 0.0,
+        "fat": 3.6
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_200",
+          "label": "200 g",
+          "grams": 200,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk göğsü pişmiş",
+        "ızgara tavuk",
+        "chicken breast cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "tavuk",
+        "protein",
+        "izgara",
+        "sporcu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #05064 chicken breast, meat only, cooked, roasted"
+    },
+    {
+      "id": "trverified_hindi_gogus_pismis",
+      "name": "Hindi Göğüs (Pişmiş)",
+      "category": "Et ve Tavuk",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 135,
+        "protein": 29.0,
+        "carb": 0.0,
+        "fat": 1.6
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (150g)",
+          "grams": 150,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pişmiş hindi göğüs",
+        "hindi eti",
+        "turkey breast cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "hindi",
+        "protein",
+        "et"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA turkey breast, meat only, cooked, roasted"
+    },
+    {
+      "id": "trverified_dana_kiyma_10_yag_pismis",
+      "name": "Dana Kıyma (%10 Yağ, Pişmiş)",
+      "category": "Et ve Tavuk",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 217,
+        "protein": 26.1,
+        "carb": 0.0,
+        "fat": 11.8
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 porsiyon (100g)",
+          "grams": 100,
+          "isDefault": true
+        },
+        {
+          "id": "s_150",
+          "label": "150 g",
+          "grams": 150,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yağsız dana kıyma",
+        "az yağlı kıyma",
+        "ground beef 90 cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "dana",
+        "kıyma",
+        "protein",
+        "et"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA ground beef, 90% lean, cooked"
+    },
+    {
+      "id": "trverified_sade_yogurt_tam_yagli",
+      "name": "Sade Yoğurt (Tam Yağlı)",
+      "category": "Süt ve Süt Ürünleri",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 61,
+        "protein": 3.47,
+        "carb": 4.66,
+        "fat": 3.25
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (200g)",
+          "grams": 200,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yoğurt",
+        "tam yağlı yoğurt",
+        "plain yogurt"
+      ],
+      "tags": [
+        "verified-source",
+        "yoğurt",
+        "süt ürünü",
+        "kahvaltı",
+        "protein"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #01116 yogurt, plain, whole milk"
+    },
+    {
+      "id": "trverified_sade_yogurt_yagsiz",
+      "name": "Sade Yoğurt (Yağsız)",
+      "category": "Süt ve Süt Ürünleri",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 56,
+        "protein": 5.73,
+        "carb": 7.68,
+        "fat": 0.18
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (200g)",
+          "grams": 200,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yağsız yoğurt",
+        "light yoğurt",
+        "nonfat yogurt"
+      ],
+      "tags": [
+        "verified-source",
+        "yoğurt",
+        "süt ürünü",
+        "protein",
+        "diyet"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #01117 yogurt, plain, skim milk"
+    },
+    {
+      "id": "trverified_beyaz_pirinc_pismis",
+      "name": "Beyaz Pirinç (Pişmiş)",
+      "category": "Tahıl ve Bakliyat",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 130,
+        "protein": 2.69,
+        "carb": 28.17,
+        "fat": 0.28
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (150g)",
+          "grams": 150,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pişmiş pirinç",
+        "haşlanmış pirinç",
+        "white rice cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "pirinç",
+        "karbonhidrat",
+        "tahıl"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA white rice, long-grain, cooked"
+    },
+    {
+      "id": "trverified_makarna_pismis",
+      "name": "Makarna (Pişmiş, Sade)",
+      "category": "Tahıl ve Bakliyat",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 158,
+        "protein": 5.8,
+        "carb": 30.9,
+        "fat": 0.93
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 tabak (180g)",
+          "grams": 180,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "pişmiş makarna",
+        "sade makarna",
+        "cooked pasta"
+      ],
+      "tags": [
+        "verified-source",
+        "makarna",
+        "karbonhidrat",
+        "tahıl"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA spaghetti, cooked, enriched"
+    },
+    {
+      "id": "trverified_haslanmis_patates",
+      "name": "Haşlanmış Patates",
+      "category": "Sebze",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 87,
+        "protein": 1.87,
+        "carb": 20.13,
+        "fat": 0.1
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 orta patates (~170g)",
+          "grams": 170,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "patates haşlama",
+        "boiled potato",
+        "potato cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "patates",
+        "karbonhidrat",
+        "sebze"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA potato, boiled, cooked without skin"
+    },
+    {
+      "id": "trverified_brokoli_haslanmis",
+      "name": "Brokoli (Haşlanmış)",
+      "category": "Sebze",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 35,
+        "protein": 2.38,
+        "carb": 7.18,
+        "fat": 0.41
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (150g)",
+          "grams": 150,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "haşlanmış brokoli",
+        "broccoli cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "brokoli",
+        "sebze",
+        "lif"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA broccoli, cooked, boiled, drained"
+    },
+    {
+      "id": "trverified_mercimek_pismis",
+      "name": "Mercimek (Pişmiş)",
+      "category": "Tahıl ve Bakliyat",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 116,
+        "protein": 9.02,
+        "carb": 20.13,
+        "fat": 0.38
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (200g)",
+          "grams": 200,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "haşlanmış mercimek",
+        "pişmiş yeşil mercimek",
+        "lentils cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "mercimek",
+        "bakliyat",
+        "protein",
+        "lif"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA lentils, mature seeds, cooked"
+    },
+    {
+      "id": "trverified_nohut_pismis",
+      "name": "Nohut (Pişmiş)",
+      "category": "Tahıl ve Bakliyat",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 164,
+        "protein": 8.86,
+        "carb": 27.42,
+        "fat": 2.59
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 kase (200g)",
+          "grams": 200,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "haşlanmış nohut",
+        "boiled chickpeas",
+        "chickpeas cooked"
+      ],
+      "tags": [
+        "verified-source",
+        "nohut",
+        "bakliyat",
+        "protein",
+        "lif"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA chickpeas, mature seeds, cooked"
+    },
+    {
+      "id": "trverified_muz",
+      "name": "Muz",
+      "category": "Meyve",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 89,
+        "protein": 1.09,
+        "carb": 22.84,
+        "fat": 0.33
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 orta muz (~118g)",
+          "grams": 118,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "banana"
+      ],
+      "tags": [
+        "verified-source",
+        "muz",
+        "meyve",
+        "karbonhidrat"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #09040 bananas, raw"
+    },
+    {
+      "id": "trverified_elma",
+      "name": "Elma",
+      "category": "Meyve",
+      "basis": {
+        "amount": 100,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 52,
+        "protein": 0.26,
+        "carb": 13.81,
+        "fat": 0.17
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "1 orta elma (~182g)",
+          "grams": 182,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "apple"
+      ],
+      "tags": [
+        "verified-source",
+        "elma",
+        "meyve",
+        "lif"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "USDA #09003 apples, raw, with skin"
     }
   ]
 }

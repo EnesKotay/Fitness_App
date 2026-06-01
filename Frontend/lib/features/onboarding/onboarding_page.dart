@@ -132,21 +132,21 @@ class _OnboardingPageState extends State<OnboardingPage>
       emoji: '🤖',
       title: 'AI Koç ile Daha Akıllı',
       subtitle:
-          'Kişiselleştirilmiş günlük yönlendirme, beslenme analizi ve akıllı öneriler için AI koçunu kullan.',
+          'Adaptif öğrenme sistemi, haftalık performans raporları, akıllı hedef tahminleri ve motivasyon analizi ile tamamen kişiselleşmiş rehberlik.',
       features: [
-        _FeatureItem(icon: Icons.psychology_rounded, label: 'Kişisel AI koç'),
+        _FeatureItem(icon: Icons.school_rounded, label: 'Adaptif öğrenme sistemi'),
         _FeatureItem(
-          icon: Icons.auto_awesome_rounded,
-          label: 'Akıllı öneriler',
+          icon: Icons.calendar_view_week_rounded,
+          label: 'Haftalık performans raporu',
         ),
         _FeatureItem(
-          icon: Icons.trending_up_rounded,
-          label: 'İlerleme analizi',
+          icon: Icons.timeline_rounded,
+          label: 'Akıllı hedef tahminleri',
         ),
-        _FeatureItem(icon: Icons.chat_rounded, label: 'Serbest sohbet'),
+        _FeatureItem(icon: Icons.psychology_alt_rounded, label: 'Motivasyon analizi'),
       ],
       note: '🎁  Günlük ücretsiz deneme hakkın var.',
-      nextStepLabel: 'Asistan butonundan AI koça girip günlük öneri iste.',
+      nextStepLabel: 'AI koça girip günlük öneri iste, adaptif öğrenme seni tanısın.',
     ),
     const _SlideData(
       gradientColors: [Color(0xFF2B1F0D), Color(0xFF0A1628)],
@@ -155,15 +155,15 @@ class _OnboardingPageState extends State<OnboardingPage>
       emoji: '📸',
       title: 'Kamera & Tarif Araçları',
       subtitle:
-          'Yemeğini fotoğrafla, besin etiketini tara. Haftalık beslenme trendlerini incele ve AI destekli tarifler keşfet.',
+          'Yemeğini fotoğrafla, besin etiketini tara. Gelişmiş AI görsel analizi ile Türk mutfağı dahil tüm yemekleri saniyeler içinde tanı.',
       features: [
         _FeatureItem(
           icon: Icons.document_scanner_rounded,
           label: 'Etiket OCR tarama',
         ),
         _FeatureItem(
-          icon: Icons.photo_camera_rounded,
-          label: 'Yemek fotoğrafı analizi',
+          icon: Icons.image_search_rounded,
+          label: 'Gelişmiş görsel analiz',
         ),
         _FeatureItem(icon: Icons.bar_chart_rounded, label: 'Haftalık trendler'),
         _FeatureItem(
@@ -171,7 +171,7 @@ class _OnboardingPageState extends State<OnboardingPage>
           label: 'AI tarif önerileri',
         ),
       ],
-      note: '⭐  Premium ile tüm kamera araçları açılır.',
+      note: '⭐  Premium ile tüm kamera araçları ve gelişmiş AI analizi açılır.',
       showProBadge: true,
       nextStepLabel: 'Araçlar sekmesinde barkod ve görsel taramayı dene.',
     ),

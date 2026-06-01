@@ -313,6 +313,9 @@ class AiCoachController extends ChangeNotifier {
         (m) => m.role == ChatRole.assistant && !m.isError,
         orElse: () => _messages.first,
       );
+      if (lastAi.structuredResponse?.suggestedPrompts?.isNotEmpty ?? false) {
+        return lastAi.structuredResponse!.suggestedPrompts!;
+      }
       return _buildContextualChips(lastAi.content);
     }
 

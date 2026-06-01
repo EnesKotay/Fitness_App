@@ -51,7 +51,7 @@ public class GeminiCoachService {
         // Fetch long-term memory insights
         List<com.fitness.entity.AiInsight> insights = com.fitness.entity.AiInsight.findRecentByUser(userId, 3);
         
-        CoachPromptContext context = contextBuilder.build(userId, request.dailySummary);
+        CoachPromptContext context = contextBuilder.build(userId, request.dailySummary, request.question);
         String prompt = promptBuilder.buildPrompt(request, insights, context);
 
         GeminiClientResult result = aiProviderRouter.generateText(
@@ -97,15 +97,15 @@ public class GeminiCoachService {
     public AiCoachResponse generateVisionResponse(Long userId, AiCoachRequest request, byte[] mediaBytes, String mimeType) {
         validateRequest(request);
 
-        CoachPromptContext context = contextBuilder.build(userId, request.dailySummary);
+        CoachPromptContext context = contextBuilder.build(userId, request.dailySummary, request.question);
         String basePrompt = promptBuilder.buildPrompt(
                 request,
                 com.fitness.entity.AiInsight.findRecentByUser(userId, 2),
                 context);
                 
-        String mediaContext = mimeType.startsWith("video/") 
-            ? "VISUAL CONTEXT (VIDEO ANALYSIS):\n- Analyze the video for form correction, movement mechanics, and posture.\n- Provide frame-by-frame guidance on what to improve."
-            : "VISUAL CONTEXT (IMAGE ANALYSIS):\n- Analyze the image in service of the user's question.\n- If a meal, estimate calories/macros. If exercise form, comment on technique.";
+        String mediaContext = mimeType.startsWith("video/")
+            ? buildVideoAnalysisPrompt()
+            : buildImageAnalysisPrompt(request);
 
         String visionPrompt = mediaContext + "\n\n" + basePrompt;
 
@@ -168,6 +168,7 @@ public class GeminiCoachService {
         response.isAchievement = parsed.path("isAchievement").asBoolean(false);
         response.actions = parseActions(parsed.path("actions"));
         response.media = parseMedia(parsed.path("media"));
+        response.suggestedPrompts = parseSuggestedPrompts(parsed.path("suggestedPrompts"));
 
         return response;
     }
@@ -228,6 +229,18 @@ public class GeminiCoachService {
         return result;
     }
 
+    private List<String> parseSuggestedPrompts(JsonNode node) {
+        List<String> result = new ArrayList<>();
+        if (node != null && node.isArray()) {
+            for (JsonNode n : node) {
+                if (n.isTextual() && !n.asText().trim().isEmpty()) {
+                    result.add(n.asText().trim());
+                }
+            }
+        }
+        return result;
+    }
+
     private void validateResponse(AiCoachResponse response) {
         if (response.todayFocus == null || response.todayFocus.isBlank()) {
             throw new AiCoachServiceException(502, "Yapay zeka net bir yanıt üretemedi. Lütfen tekrar deneyin.");
@@ -264,6 +277,75 @@ public class GeminiCoachService {
                     .filter(action -> action != null && action.type != null && !action.type.isBlank())
                     .limit(3)
                     .toList();
+        }
+
+        if (response.suggestedPrompts != null && !response.suggestedPrompts.isEmpty()) {
+            response.suggestedPrompts = response.suggestedPrompts.stream()
+                    .filter(prompt -> prompt != null && !prompt.isBlank())
+                    .map(String::trim)
+                    .limit(3)
+                    .toList();
+        } else {
+            response.suggestedPrompts = List.of();
+        }
+    }
+
+    private String buildVideoAnalysisPrompt() {
+        return """
+            VISUAL CONTEXT (VIDEO ANALYSIS):
+            You are analyzing a workout form video. Your task:
+            1. Identify the exercise being performed (squat, deadlift, bench press, etc.)
+            2. Analyze movement mechanics, joint angles, and posture
+            3. Point out form errors (e.g., knees caving in, lower back rounding, bar path issues)
+            4. Provide 3-5 actionable corrections with cues (e.g., "Drive through heels", "Keep chest up")
+            5. If the form is correct, praise and suggest progressions
+
+            Use clear, coaching language in Turkish. Be specific and constructive.
+            """;
+    }
+
+    private String buildImageAnalysisPrompt(AiCoachRequest request) {
+        String userQuestion = request.question != null ? request.question.toLowerCase() : "";
+        boolean isMealAnalysis = userQuestion.contains("yemek") || userQuestion.contains("kalori") ||
+                                 userQuestion.contains("porsiyon") || userQuestion.contains("öğün");
+
+        if (isMealAnalysis) {
+            return """
+                VISUAL CONTEXT (MEAL ANALYSIS - ENHANCED):
+                You are analyzing a food photo. Your task:
+                1. **Identify all food items** on the plate/table with high accuracy
+                2. **Estimate portion sizes** using visual cues (plate size, hand comparison, packaging)
+                   - Small plate (~20cm): standard reference
+                   - Medium plate (~25cm): +30% volume
+                   - Large plate (~30cm): +60% volume
+                3. **Calculate macros** for each item:
+                   - Protein (g), Carbs (g), Fat (g), Total Calories (kcal)
+                   - Use Turkish nutrition database values
+                4. **Provide alternatives** if the user's goal is cut/bulk:
+                   - Suggest swaps to increase protein or reduce calories
+                   - Keep cultural context (Turkish cuisine preferred)
+                5. **Add to daily log suggestion**: If accurate, offer an "ADD_FOOD" action with all items
+
+                IMPORTANT RULES:
+                - Be conservative with portions if unsure — better to underestimate than overestimate
+                - For mixed dishes (e.g., pilav, içli köfte), break down components
+                - Always mention confidence level (e.g., "Yaklaşık 250g tavuk göğsü (~80% emin)")
+                - If multiple items, list each separately with individual macros
+
+                Output in Turkish, warm but precise tone.
+                """;
+        } else {
+            // Form check, selfie, or general image
+            return """
+                VISUAL CONTEXT (IMAGE ANALYSIS - GENERAL):
+                You are analyzing a fitness-related image. Determine the content:
+                1. **Exercise Form Check**: If showing a workout pose, analyze technique and posture
+                2. **Progress Photo**: If a body/mirror selfie, give constructive feedback on visible progress
+                3. **Equipment/Supplement**: If showing a product, comment on its relevance to the user's goal
+                4. **Other**: Answer the user's question based on what you see
+
+                Use Turkish, be empathetic and evidence-based.
+                """;
         }
     }
 

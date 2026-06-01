@@ -1,6 +1,7 @@
 package com.fitness.service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -8,6 +9,8 @@ import com.fitness.entity.AiRateLimit;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.ForbiddenException;
 
@@ -18,6 +21,9 @@ public class AiEntitlementService {
 
     @Inject
     AiProviderRouter aiProviderRouter;
+
+    @Inject
+    EntityManager entityManager;
 
     @Inject
     @ConfigProperty(name = "ai.coach.free-daily-limit.max-requests", defaultValue = "2")
@@ -45,7 +51,10 @@ public class AiEntitlementService {
 
     @Transactional
     public void refundFreeCoachRequest(Long userId) {
-        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, COACH_FREE_DAILY_SCOPE).firstResult();
+        lockScope(userId, COACH_FREE_DAILY_SCOPE);
+        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, COACH_FREE_DAILY_SCOPE)
+                .withLock(LockModeType.PESSIMISTIC_WRITE)
+                .firstResult();
         if (limit == null || limit.requestCount == null || limit.requestCount <= 0) {
             return;
         }
@@ -68,17 +77,29 @@ public class AiEntitlementService {
     }
 
     private boolean tryAcquireScope(Long userId, String scope, int maxRequests, int windowSeconds) {
+        lockScope(userId, scope);
         LocalDateTime now = LocalDateTime.now();
-        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, scope).firstResult();
+        AiRateLimit limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, scope)
+                .withLock(LockModeType.PESSIMISTIC_WRITE)
+                .firstResult();
 
         if (limit == null) {
-            limit = new AiRateLimit();
-            limit.userId = userId;
-            limit.scope = scope;
-            limit.requestCount = 1;
-            limit.windowStart = now;
-            limit.persist();
-            return true;
+            try {
+                limit = new AiRateLimit();
+                limit.userId = userId;
+                limit.scope = scope;
+                limit.requestCount = 1;
+                limit.windowStart = now;
+                limit.persist();
+                return true;
+            } catch (RuntimeException e) {
+                limit = AiRateLimit.find("userId = ?1 and scope = ?2", userId, scope)
+                        .withLock(LockModeType.PESSIMISTIC_WRITE)
+                        .firstResult();
+                if (limit == null) {
+                    throw e;
+                }
+            }
         }
 
         if (hasWindowExpired(limit, windowSeconds)) {
@@ -100,5 +121,12 @@ public class AiEntitlementService {
     private boolean hasWindowExpired(AiRateLimit limit, int windowSeconds) {
         LocalDateTime windowStart = LocalDateTime.now().minusSeconds(windowSeconds);
         return limit.windowStart == null || limit.windowStart.isBefore(windowStart);
+    }
+
+    private void lockScope(Long userId, String scope) {
+        long lockKey = Objects.hash(userId, scope);
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(?1)")
+                .setParameter(1, lockKey)
+                .getSingleResult();
     }
 }

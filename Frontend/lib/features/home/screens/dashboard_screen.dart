@@ -38,7 +38,8 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback? onAddMeal;
   final VoidCallback? onStartWorkout;
 
-  /// Profil sayfasÄ±ndan "HÄ±zlÄ± eriÅŸim" ile dÃ¶nÃ¼ldÃ¼ÄŸÃ¼nde aÃ§Ä±lacak sekme (0=Ana, 1=Antrenman, 2=Takip, 3=Beslenme)
+  /// Profil sayfasindan "Hizli erisim" ile donuldugunde acilacak sekme
+  /// (0=Ana, 1=Antrenman, 2=Takip, 3=Beslenme).
   final void Function(int index)? onNavigateToTab;
 
   const DashboardScreen({
@@ -313,7 +314,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _capitalizeFirst(String text) {
-    return text.trim().split(' ').map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1)).join(' ');
+    return text
+        .trim()
+        .split(' ')
+        .map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
   }
 
   String _todayDateString() {
@@ -904,7 +909,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     child: Text(
-                      progressPct == 0 ? 'Başla →' : '${_goalLabel(goal)} • %$progressPct',
+                      progressPct == 0
+                          ? 'Başla →'
+                          : '${_goalLabel(goal)} • %$progressPct',
                       style: TextStyle(
                         color: calorieAccent,
                         fontWeight: FontWeight.w700,
@@ -964,7 +971,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.local_fire_department_rounded, size: 13, color: calorieAccent),
+                        Icon(
+                          Icons.local_fire_department_rounded,
+                          size: 13,
+                          color: calorieAccent,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'KALORİ',
@@ -1020,7 +1031,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.fitness_center_rounded, size: 12, color: proteinAccent),
+                    Icon(
+                      Icons.fitness_center_rounded,
+                      size: 12,
+                      color: proteinAccent,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       'PROTEİN',
@@ -1060,14 +1075,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: proteinProgress.clamp(0.0, 1.0)),
+                    tween: Tween(
+                      begin: 0,
+                      end: proteinProgress.clamp(0.0, 1.0),
+                    ),
                     duration: const Duration(milliseconds: 900),
                     curve: Curves.easeOutCubic,
                     builder: (_, val, child) => LinearProgressIndicator(
                       value: val,
                       minHeight: 6,
                       backgroundColor: Colors.white.withValues(alpha: 0.07),
-                      valueColor: AlwaysStoppedAnimation(proteinAccent.withValues(alpha: 0.85)),
+                      valueColor: AlwaysStoppedAnimation(
+                        proteinAccent.withValues(alpha: 0.85),
+                      ),
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -1394,7 +1414,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(
                   completed ? '✓' : '%${(progress * 100).round()}',
                   style: TextStyle(
-                    color: (completed ? _freshGreen : accent).withValues(alpha: 0.80),
+                    color: (completed ? _freshGreen : accent).withValues(
+                      alpha: 0.80,
+                    ),
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1979,23 +2001,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final fatigue = RecoveryEngine.computeAll(workouts);
     final muscleAvg = fatigue.isEmpty
         ? 1.0
-        : fatigue.values.map((s) => s.recoveryPercent).reduce((a, b) => a + b) / fatigue.length;
-    
+        : fatigue.values.map((s) => s.recoveryPercent).reduce((a, b) => a + b) /
+              fatigue.length;
+
     final sleepScore = (sleepHours / 8.0).clamp(0.0, 1.0);
     final hydrationScore = (waterLiters / 2.5).clamp(0.0, 1.0);
-    
-    final total = ((muscleAvg * 0.55 + sleepScore * 0.30 + hydrationScore * 0.15) * 100)
-        .round()
-        .clamp(0, 100);
+
+    final total =
+        ((muscleAvg * 0.55 + sleepScore * 0.30 + hydrationScore * 0.15) * 100)
+            .round()
+            .clamp(0, 100);
 
     final (scoreColor, scoreLabel, scoreMessage) = switch (total) {
-      >= 80 => (const Color(0xFF30D158), 'Hazır',     'Ağır antrenman için mükemmel bir gün 💪'),
-      >= 60 => (const Color(0xFF64D2FF), 'İyi',       'Toparlanma yolunda, planlı devam et.'),
-      >= 40 => (const Color(0xFFFFD60A), 'Orta',      'Biraz daha uyku veya suya ihtiyacın var.'),
-      _     => (const Color(0xFFFF6B6B), 'Yorgun',    'Lütfen dinlen, kasların yorgun.'),
+      >= 80 => (
+        const Color(0xFF30D158),
+        'Hazır',
+        'Ağır antrenman için mükemmel bir gün 💪',
+      ),
+      >= 60 => (
+        const Color(0xFF64D2FF),
+        'İyi',
+        'Toparlanma yolunda, planlı devam et.',
+      ),
+      >= 40 => (
+        const Color(0xFFFFD60A),
+        'Orta',
+        'Biraz daha uyku veya suya ihtiyacın var.',
+      ),
+      _ => (
+        const Color(0xFFFF6B6B),
+        'Yorgun',
+        'Lütfen dinlen, kasların yorgun.',
+      ),
     };
 
-    Widget chip(String label, String valueStr, Color color, IconData icon, VoidCallback? onTap) {
+    Widget chip(
+      String label,
+      String valueStr,
+      Color color,
+      IconData icon,
+      VoidCallback? onTap,
+    ) {
       return Expanded(
         child: GestureDetector(
           onTap: onTap,
@@ -2089,7 +2135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Shadow(
                                   color: scoreColor.withValues(alpha: 0.8),
                                   blurRadius: 8,
-                                )
+                                ),
                               ],
                             ),
                           ),
@@ -2125,11 +2171,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: scoreColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
+                            border: Border.all(
+                              color: scoreColor.withValues(alpha: 0.3),
+                            ),
                           ),
                           child: Text(
                             scoreLabel,
@@ -2161,11 +2212,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Alt 3 fizyolojik metrik
           Row(
             children: [
-              chip('Kas',  '%${(muscleAvg * 100).round()}',  const Color(0xFF30D158), Icons.fitness_center_rounded, onWorkoutTap),
+              chip(
+                'Kas',
+                '%${(muscleAvg * 100).round()}',
+                const Color(0xFF30D158),
+                Icons.fitness_center_rounded,
+                onWorkoutTap,
+              ),
               const SizedBox(width: 8),
-              chip('Uyku', '${sleepHours.toStringAsFixed(1)}s', const Color(0xFFFF9F0A), Icons.nights_stay_rounded, onSleepTap),
+              chip(
+                'Uyku',
+                '${sleepHours.toStringAsFixed(1)}s',
+                const Color(0xFFFF9F0A),
+                Icons.nights_stay_rounded,
+                onSleepTap,
+              ),
               const SizedBox(width: 8),
-              chip('Su',   '${waterLiters.toStringAsFixed(1)}L', const Color(0xFF64D2FF), Icons.water_drop_rounded, onWaterTap),
+              chip(
+                'Su',
+                '${waterLiters.toStringAsFixed(1)}L',
+                const Color(0xFF64D2FF),
+                Icons.water_drop_rounded,
+                onWaterTap,
+              ),
             ],
           ),
         ],
@@ -2386,6 +2455,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return null;
   }
 
+  Widget _buildNeglectedMuscleWarning({
+    required List<String> neglectedGroups,
+    required Color accent,
+  }) {
+    if (neglectedGroups.isEmpty) return const SizedBox.shrink();
+    
+    // Yalnızca ilk kas grubunu göster veya virgülle birleştir
+    final musclesText = neglectedGroups.take(2).join(', ');
+    final suffix = neglectedGroups.length > 2 ? ' ve diğerleri' : '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF3B30).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFF3B30).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF3B30).withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.warning_rounded, color: Color(0xFFFF3B30), size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Koç Uyarısı',
+                  style: TextStyle(
+                    color: Color(0xFFFF3B30),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '3 haftadır $musclesText$suffix çalışmadın! Kasların küçülüyor olabilir, antrenman programını gözden geçir.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 13,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2408,7 +2537,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       weightProvider,
                       child,
                     ) {
-                      final trackingProvider = context.watch<TrackingProvider>();
+                      final trackingProvider = context
+                          .watch<TrackingProvider>();
                       final targetCalories = dietProvider.effectiveTargetKcal
                           .round();
                       final tasksController = context
@@ -2526,6 +2656,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               const SizedBox(height: 12),
                             ],
+                            
+                            Consumer<StreakProvider>(
+                              builder: (context, streakProvider, _) {
+                                final neglected = streakProvider.getNeglectedMuscleGroups(3);
+                                return _buildNeglectedMuscleWarning(
+                                  neglectedGroups: neglected,
+                                  accent: primaryAccent,
+                                );
+                              },
+                            ),
 
                             // ── 2. Hero: Kalori + Protein ──
                             (isDietLoading && todayEntries.isEmpty)
@@ -2747,24 +2887,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                                         ? '💧 Su hedefine ulaştın! Toplam: ${total.toStringAsFixed(1)}L'
                                                         : '💧 +250ml eklendi · Toplam: ${total.toStringAsFixed(1)}L',
                                                   ),
-                                                  behavior: SnackBarBehavior
-                                                      .floating,
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
                                                   backgroundColor:
                                                       AppColors.surfaceElevated,
                                                   shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12)),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                  ),
                                                   duration: const Duration(
-                                                      seconds: 2),
+                                                    seconds: 2,
+                                                  ),
                                                 ),
                                               );
                                           }
                                           await Future.delayed(
-                                              const Duration(milliseconds: 500));
+                                            const Duration(milliseconds: 500),
+                                          );
                                           if (mounted) {
                                             setState(
-                                                () => _isAddingWater = false);
+                                              () => _isAddingWater = false,
+                                            );
                                           }
                                         },
                                 )
