@@ -2413,145 +2413,127 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     );
   }
 
-  static const _promptCardThemes = [
-    (
-      bg: Color(0xFF102218),
-      accent: Color(0xFF34D399),
-      icon: Icons.fitness_center_rounded,
-      label: 'Antrenman',
-    ),
-    (
-      bg: Color(0xFF1F1508),
-      accent: Color(0xFFEBC374),
-      icon: Icons.restaurant_rounded,
-      label: 'Beslenme',
-    ),
-    (
-      bg: Color(0xFF0D1633),
-      accent: Color(0xFF6B9FFF),
-      icon: Icons.trending_up_rounded,
-      label: 'Analiz',
-    ),
-    (
-      bg: Color(0xFF1B0E2A),
-      accent: Color(0xFFBC74EB),
-      icon: Icons.psychology_rounded,
-      label: 'Genel',
-    ),
-  ];
 
   Widget _buildStarterPromptGrid(AiCoachController controller) {
-    final prompts = controller.actionChips.take(3).toList();
+    // Daha fazla örnek soru
+    final exampleQuestions = [
+      (q: 'Bugün için kısa, net bir plan hazırla', icon: Icons.route_rounded, color: const Color(0xFF73D4FF)),
+      (q: 'Kalan makrolarım için yemek öner', icon: Icons.restaurant_rounded, color: const Color(0xFFEBC374)),
+      (q: 'Son antrenmanımı analiz et', icon: Icons.fitness_center_rounded, color: const Color(0xFF34D399)),
+      (q: 'Protein alımımı nasıl artırabilirim?', icon: Icons.egg_rounded, color: const Color(0xFFFF8A65)),
+      (q: 'Haftalık kilo kaybı planı hazırla', icon: Icons.trending_down_rounded, color: const Color(0xFFBC74EB)),
+      (q: 'Evde yapabileceğim antrenman ver', icon: Icons.home_rounded, color: const Color(0xFF6B9FFF)),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.bolt_rounded, size: 14, color: Color(0xFFEBC374)),
-            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBC374).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.tips_and_updates_rounded, size: 14, color: Color(0xFFEBC374)),
+            ),
+            const SizedBox(width: 8),
             Text(
-              'Hızlı başlangıç',
+              'Örnek sorular',
               style: GoogleFonts.dmSans(
                 color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
+            const Spacer(),
+            Text(
+              'Kaydır →',
+              style: GoogleFonts.dmSans(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 10),
-        Column(
-          children: List.generate(prompts.length, (index) {
-            final prompt = prompts[index];
-            final theme = _promptCardThemes[index % _promptCardThemes.length];
-            return Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index == prompts.length - 1 ? 0 : 8,
-                  ),
-                  child: InkWell(
-                    onTap: () => _applyPrompt(controller, prompt),
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 11,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.035),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.accent.withValues(alpha: 0.18),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: theme.accent.withValues(alpha: 0.13),
-                              borderRadius: BorderRadius.circular(11),
-                            ),
-                            child: Icon(
-                              theme.icon,
-                              size: 16,
-                              color: theme.accent,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  theme.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.dmSans(
-                                    color: theme.accent,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  prompt,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.dmSans(
-                                    color: Colors.white.withValues(alpha: 0.74),
-                                    fontSize: 11.8,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 16,
-                            color: Colors.white.withValues(alpha: 0.32),
-                          ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 110,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: exampleQuestions.length,
+            itemBuilder: (context, index) {
+              final q = exampleQuestions[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: index == exampleQuestions.length - 1 ? 0 : 10,
+                ),
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _applyPrompt(controller, q.q);
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Container(
+                    width: 200,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          q.color.withValues(alpha: 0.12),
+                          q.color.withValues(alpha: 0.05),
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: q.color.withValues(alpha: 0.25),
+                        width: 1.5,
                       ),
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: q.color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(q.icon, size: 20, color: q.color),
+                        ),
+                        Text(
+                          q.q,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-                .animate()
-                .fadeIn(
+                ).animate().fadeIn(
                   duration: 200.ms,
                   delay: (index * 40).ms,
                   curve: Curves.easeOutCubic,
-                )
-                .slideY(
-                  begin: 0.05,
+                ).slideX(
+                  begin: 0.08,
                   end: 0,
                   duration: 280.ms,
                   curve: Curves.easeOutCubic,
-                );
-          }),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
