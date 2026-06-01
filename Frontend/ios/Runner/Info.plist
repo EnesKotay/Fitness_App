@@ -43,6 +43,10 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>Barkod ve besin etiketi taraması için kamera izni gereklidir.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Sesli komutlarla AI Koç ile konuşmak için mikrofona ihtiyacımız var.</string>
+		<key>NSSpeechRecognitionUsageDescription</key>
+		<string>Sesli komutlarınızı metne çevirmek için konuşma tanıma iznine ihtiyacımız var.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Fotoğraf galerinizden yemek fotoğrafı seçebilmeniz için galeri izni gereklidir.</string>
 		<key>NSUserNotificationUsageDescription</key>

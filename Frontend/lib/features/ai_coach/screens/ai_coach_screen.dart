@@ -82,6 +82,15 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     }
 
     try {
+      // İzin kontrolü önce yap
+      final permissionStatus = await Permission.microphone.request();
+      if (!permissionStatus.isGranted) {
+        if (mounted) {
+          _showToast('Sesli komut için mikrofon izni gereklidir.');
+        }
+        return;
+      }
+
       if (!_speechInitialized) {
         final available = await _speech.initialize(
           onStatus: (val) {
@@ -95,21 +104,17 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
             if (mounted) {
               setState(() => _isListening = false);
             }
-            debugPrint('Speech initialized error: $val');
+            debugPrint('Speech error: $val');
           },
         );
         if (available) {
           _speechInitialized = true;
         } else {
-          _showToast('Ses tanıma bu cihazda desteklenmiyor.');
+          if (mounted) {
+            _showToast('Ses tanıma bu cihazda desteklenmiyor.');
+          }
           return;
         }
-      }
-
-      final permissionStatus = await Permission.microphone.request();
-      if (!permissionStatus.isGranted) {
-        _showToast('Sesli komut için mikrofon izni gereklidir.');
-        return;
       }
 
       if (mounted) {
@@ -139,10 +144,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         localeId: 'tr_TR',
       );
     } catch (e) {
+      debugPrint('Speech listen error: $e');
       if (mounted) {
         setState(() => _isListening = false);
+        _showToast('Ses tanıma başlatılamadı. Gerçek cihazda deneyin.');
       }
-      _showToast('Ses tanıma başlatılamadı: $e');
     }
   }
 
@@ -505,6 +511,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     _inputFocusNode.dispose();
     _scrollController.dispose();
     _confettiController.dispose();
+    _speech.cancel(); // Speech service'i temizle
     super.dispose();
   }
 
