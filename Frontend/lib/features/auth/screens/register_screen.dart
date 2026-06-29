@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/services/page_guide_service.dart';
@@ -153,9 +155,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     await PageGuideService.resetAllGuides();
 
     if (!mounted) return;
-    // Profil kurulum sayfası: yeni kullanıcıda backend henüz profil oluşturmadı.
-    // Eğer dietProvider.init() başarılı ama profil null ise ilk kurulum göster.
-    // Hata varsa veya profil zaten varsa (Google/Apple ile kayıt gibi) direkt home.
     final shouldShowProfileSetup =
         dietProvider.error == null && dietProvider.profile == null;
     if (!mounted) return;
@@ -165,7 +164,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _showSnack(String message, {Color? backgroundColor}) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -185,16 +188,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const _FormSectionTitle(
                   title: 'Hesap Bilgileri',
                   subtitle: 'Önce temel bilgilerini oluşturalım.',
-                ),
+                ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideY(begin: -0.1, end: 0),
                 const SizedBox(height: 18),
+                
+                // Full Name Input
                 TextFormField(
                   controller: _nameController,
                   focusNode: _nameFocusNode,
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (_) => _focusNext(_emailFocusNode),
                   onTapOutside: (_) => _dismissKeyboard(),
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
@@ -206,8 +211,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     value,
                     message: 'Ad soyad gerekli',
                   ),
-                ),
-                const SizedBox(height: 20),
+                ).animate().fadeIn(duration: 400.ms, delay: 150.ms).slideX(begin: -0.05, end: 0),
+                const SizedBox(height: 16),
+                
+                // Email Address Input
                 TextFormField(
                   controller: _emailController,
                   focusNode: _emailFocusNode,
@@ -215,8 +222,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (_) => _focusNext(_passwordFocusNode),
                   onTapOutside: (_) => _dismissKeyboard(),
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
@@ -225,8 +232,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.email_outlined,
                   ),
                   validator: AppValidators.email,
-                ),
-                const SizedBox(height: 20),
+                ).animate().fadeIn(duration: 400.ms, delay: 200.ms).slideX(begin: -0.05, end: 0),
+                const SizedBox(height: 16),
+                
+                // Password Input
                 TextFormField(
                   controller: _passwordController,
                   focusNode: _passwordFocusNode,
@@ -238,8 +247,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onFieldSubmitted: (_) =>
                       _focusNext(_confirmPasswordFocusNode),
                   onTapOutside: (_) => _dismissKeyboard(),
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
@@ -251,8 +260,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Colors.white.withValues(alpha: 0.6),
-                        size: 24,
+                        color: Colors.white.withValues(alpha: 0.45),
+                        size: 20,
                       ),
                       onPressed: () {
                         setState(() {
@@ -262,8 +271,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   validator: AppValidators.password,
-                ),
-                const SizedBox(height: 20),
+                ).animate().fadeIn(duration: 400.ms, delay: 250.ms).slideX(begin: -0.05, end: 0),
+                const SizedBox(height: 16),
+                
+                // Confirm Password Input
                 TextFormField(
                   controller: _confirmPasswordController,
                   focusNode: _confirmPasswordFocusNode,
@@ -274,8 +285,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleRegister(),
                   onTapOutside: (_) => _dismissKeyboard(),
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
@@ -287,8 +298,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         _obscureConfirmPassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Colors.white.withValues(alpha: 0.6),
-                        size: 24,
+                        color: Colors.white.withValues(alpha: 0.45),
+                        size: 20,
                       ),
                       onPressed: () {
                         setState(() {
@@ -301,62 +312,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     value,
                     _passwordController.text,
                   ),
-                ),
-                const SizedBox(height: 12),
+                ).animate().fadeIn(duration: 400.ms, delay: 300.ms).slideX(begin: -0.05, end: 0),
+                const SizedBox(height: 14),
+                
+                // Password Alert Info Block
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
+                    color: Colors.white.withValues(alpha: 0.01),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: _kAccentColor.withValues(alpha: 0.25),
+                      width: 1.0,
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 34,
-                        height: 34,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: _kAccentColor.withValues(alpha: 0.14),
+                          color: _kAccentColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
                         child: const Icon(
                           Icons.shield_outlined,
-                          color: _kAccentColor,
-                          size: 18,
+                          color: Color(0xFFEBC374),
+                          size: 16,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Şifren en az 8 karakter olmalı. Bilgilerini tamamladıktan sonra gerekli onayları vererek hesabını oluşturabilirsin.',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.72),
-                            fontSize: 13,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white.withValues(alpha: 0.65),
+                            fontSize: 12.5,
                             height: 1.4,
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                ).animate().fadeIn(duration: 400.ms, delay: 350.ms).slideY(begin: 0.1, end: 0),
+                
                 const SizedBox(height: 24),
+                
+                // Consents Section Header
                 _FormSectionTitle(
                   title: 'Gerekli Onaylar',
                   subtitle:
                       'Devam etmek için 4 zorunlu onayın tamamı gerekiyor. '
                       'Tamamlanan: $_acceptedConsentCount/4',
-                ),
-                const SizedBox(height: 14),
+                ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
+                const SizedBox(height: 12),
+                
+                // Glassmorphic Consents Card Wrapper
                 Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.035),
-                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.white.withValues(alpha: 0.015),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withValues(alpha: 0.06),
+                      width: 1.0,
                     ),
                   ),
                   child: Column(
@@ -409,59 +429,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kAccentColor.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
+                ).animate().fadeIn(duration: 400.ms, delay: 450.ms).slideY(begin: 0.05, end: 0),
+                
+                const SizedBox(height: 28),
+                
+                // Shimmering Golden Gradient Button
+                Opacity(
+                  opacity: (authProvider.isLoading || !_allRequiredConsentsAccepted)
+                      ? 0.55
+                      : 1.0,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFCC7A4A),
+                          Color(0xFFEBC374),
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
                       ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed:
-                        (authProvider.isLoading ||
-                            !_allRequiredConsentsAccepted)
-                        ? null
-                        : _handleRegister,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _kAccentColor,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: _kAccentColor.withValues(
-                        alpha: 0.5,
-                      ),
-                      disabledForegroundColor: Colors.white70,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _kAccentColor.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    child: authProvider.isLoading
-                        ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                    child: ElevatedButton(
+                      onPressed:
+                          (authProvider.isLoading || !_allRequiredConsentsAccepted)
+                          ? null
+                          : _handleRegister,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.transparent,
+                        disabledForegroundColor: Colors.white70,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: authProvider.isLoading
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'Hesabı Oluştur',
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                          )
-                        : const Text(
-                            'Hesabı Oluştur',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                    ),
                   ),
-                ),
+                ).animate(
+                  onPlay: (controller) => controller.repeat(),
+                ).shimmer(
+                  duration: 2600.ms,
+                  delay: 1800.ms,
+                  color: Colors.white.withValues(alpha: 0.18),
+                ).animate().fadeIn(duration: 400.ms, delay: 500.ms).slideY(begin: 0.1, end: 0),
               ],
             ),
           ),
@@ -475,19 +515,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     text: 'Hesabınız var mı? ',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
+                    style: GoogleFonts.outfit(
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                     children: [
                       TextSpan(
                         text: 'Giriş Yap',
-                        style: TextStyle(
-                          color: _kAccentColor,
-                          fontWeight: FontWeight.w600,
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFFEBC374),
+                          fontWeight: FontWeight.w700,
                           decoration: TextDecoration.underline,
-                          decorationColor: _kAccentColor,
+                          decorationColor: const Color(0xFFEBC374),
                         ),
                       ),
                     ],
@@ -507,7 +547,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     child: Text(
                       'Gizlilik Politikası',
-                      style: TextStyle(
+                      style: GoogleFonts.outfit(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 12,
                         decoration: TextDecoration.underline,
@@ -517,7 +557,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   Text(
                     '  ·  ',
-                    style: TextStyle(
+                    style: GoogleFonts.outfit(
                       color: Colors.white.withValues(alpha: 0.3),
                       fontSize: 12,
                     ),
@@ -531,7 +571,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     child: Text(
                       'Kullanım Koşulları',
-                      style: TextStyle(
+                      style: GoogleFonts.outfit(
                         color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 12,
                         decoration: TextDecoration.underline,
@@ -542,7 +582,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ],
-          ),
+          ).animate().fadeIn(duration: 800.ms, delay: 600.ms),
         );
       },
     );
@@ -554,31 +594,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Widget? suffix,
   }) {
     return InputDecoration(
-      hintText: hintText,
-      hintStyle: TextStyle(
-        color: Colors.white.withValues(alpha: 0.4),
-        fontSize: 16,
+      labelText: hintText,
+      labelStyle: GoogleFonts.outfit(
+        color: Colors.white.withValues(alpha: 0.45),
+        fontSize: 14,
+      ),
+      floatingLabelStyle: GoogleFonts.outfit(
+        color: const Color(0xFFEBC374),
+        fontWeight: FontWeight.w600,
       ),
       prefixIcon: Padding(
         padding: const EdgeInsets.only(left: 4, right: 8),
-        child: Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 24),
+        child: Icon(icon, color: Colors.white.withValues(alpha: 0.45), size: 22),
       ),
       suffixIcon: suffix,
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.05),
+      fillColor: Colors.white.withValues(alpha: 0.01),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1.2,
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: _kAccentColor, width: 2),
+        borderSide: const BorderSide(
+          color: Color(0xFFEBC374),
+          width: 1.5,
+        ),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Color(0xFFD32F2F),
+          width: 1.2,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Color(0xFFD32F2F),
+          width: 1.5,
+        ),
+      ),
     );
   }
 }
@@ -596,7 +660,7 @@ class _FormSectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: GoogleFonts.outfit(
             color: Colors.white,
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -605,8 +669,8 @@ class _FormSectionTitle extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.62),
+          style: GoogleFonts.outfit(
+            color: Colors.white.withValues(alpha: 0.55),
             fontSize: 13,
             height: 1.4,
           ),
@@ -643,23 +707,24 @@ class _ConsentRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: value,
-            onChanged: onChanged,
-            fillColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? _kAccentColor
-                  : Colors.white.withValues(alpha: 0.1),
+          width: 20,
+          height: 20,
+          child: Theme(
+            data: ThemeData(
+              unselectedWidgetColor: Colors.white.withValues(alpha: 0.4),
             ),
-            checkColor: Colors.white,
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.3),
-              width: 1.5,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: const Color(0xFFCC7A4A),
+              checkColor: Colors.white,
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+              ),
             ),
           ),
         ),
@@ -672,7 +737,7 @@ class _ConsentRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -681,8 +746,8 @@ class _ConsentRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.68),
+                  style: GoogleFonts.outfit(
+                    color: Colors.white.withValues(alpha: 0.65),
                     fontSize: 12.5,
                     height: 1.45,
                   ),
@@ -745,12 +810,12 @@ class _ConsentLink extends StatelessWidget {
       onTap: onTap,
       child: Text(
         label,
-        style: const TextStyle(
-          color: _kAccentColor,
+        style: GoogleFonts.outfit(
+          color: const Color(0xFFEBC374),
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
           decoration: TextDecoration.underline,
-          decorationColor: _kAccentColor,
+          decorationColor: const Color(0xFFEBC374),
         ),
       ),
     );

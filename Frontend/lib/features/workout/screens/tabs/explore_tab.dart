@@ -798,13 +798,13 @@ class _ExploreTabState extends State<_ExploreTab> {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.96,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.82,
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
                 final code = list[index];

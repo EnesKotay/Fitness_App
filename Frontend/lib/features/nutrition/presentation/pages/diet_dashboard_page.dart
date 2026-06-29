@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   bool _didInitialLoadAttempt = false;
   Map<String, DiaryTotals> _weeklyData = {};
   bool _profileBannerDismissed = false;
+  String? _loadingPillName;
 
   static const List<GuideStep> _guideSteps = [
     GuideStep(
@@ -407,6 +409,9 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                 .fadeIn(duration: 400.ms)
                 .slideY(begin: -0.05, end: 0, curve: Curves.easeOut),
             const SizedBox(height: 16),
+
+            // ── Hızlı Yemek Önerileri ──────────────────────────────────────
+            _buildQuickAddSuggestions(context, provider),
 
             // ── Profil eksik uyarısı ───────────────────────────────────────
             if (provider.profile == null &&
@@ -1652,6 +1657,199 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
         provider.setWaterGlassesForSelectedDate(result);
       }
     }
+  }
+
+  Widget _buildQuickAddSuggestions(BuildContext context, DietProvider provider) {
+    final hour = DateTime.now().hour;
+    MealType smartType;
+    String titleText;
+    List<Map<String, String>> suggestions;
+
+    if (hour >= 5 && hour < 11) {
+      smartType = MealType.breakfast;
+      titleText = 'Pratik Kahvaltı';
+      suggestions = [
+        {'name': 'Haşlanmış yumurta', 'emoji': '🍳'},
+        {'name': 'Beyaz peynir', 'emoji': '🧀'},
+        {'name': 'Zeytin', 'emoji': '🫒'},
+        {'name': 'Tam buğday ekmeği', 'emoji': '🍞'},
+        {'name': 'Yulaf ezmesi', 'emoji': '🥣'},
+      ];
+    } else if (hour >= 11 && hour < 16) {
+      smartType = MealType.lunch;
+      titleText = 'Hızlı Öğle Yemeği';
+      suggestions = [
+        {'name': 'Tavuk göğsü', 'emoji': '🍗'},
+        {'name': 'Pirinç pilavı', 'emoji': '🍚'},
+        {'name': 'Mevsim salatası', 'emoji': '🥗'},
+        {'name': 'Yoğurt', 'emoji': '🥛'},
+        {'name': 'Izgara köfte', 'emoji': '🥩'},
+      ];
+    } else if (hour >= 17 && hour < 22) {
+      smartType = MealType.dinner;
+      titleText = 'Hafif Akşam Yemeği';
+      suggestions = [
+        {'name': 'Mercimek çorbası', 'emoji': '🍲'},
+        {'name': 'Izgara köfte', 'emoji': '🥩'},
+        {'name': 'Sebze yemeği', 'emoji': '🥦'},
+        {'name': 'Ayran', 'emoji': '🥤'},
+        {'name': 'Somon', 'emoji': '🐟'},
+      ];
+    } else {
+      smartType = MealType.snack;
+      titleText = 'Sağlıklı Atıştırmalık';
+      suggestions = [
+        {'name': 'Muz', 'emoji': '🍌'},
+        {'name': 'Elma', 'emoji': '🍎'},
+        {'name': 'Badem', 'emoji': '🥜'},
+        {'name': 'Filtre kahve', 'emoji': '☕'},
+        {'name': 'Ayran', 'emoji': '🥤'},
+      ];
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                titleText,
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Hızlı Ekle',
+                style: GoogleFonts.dmSans(
+                  color: AppColors.secondary.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: suggestions.map((item) {
+                final name = item['name']!;
+                final emoji = item['emoji']!;
+                final isLoading = _loadingPillName == name;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: isLoading ? null : () async {
+                      HapticFeedback.mediumImpact();
+                      setState(() {
+                        _loadingPillName = name;
+                      });
+                      try {
+                        final results = await provider.searchFoods(name);
+                        if (results.isNotEmpty) {
+                          final food = results.first;
+                          if (mounted) {
+                            Navigator.of(context, rootNavigator: false)
+                                .pushNamed(
+                                  'portion',
+                                  arguments: {'food': food, 'mealType': smartType},
+                                ).then((_) {
+                                  if (mounted) setState(() => _loadingPillName = null);
+                                });
+                          }
+                        } else {
+                          // Fallback to searching with name pre-filled
+                          if (mounted) {
+                            Navigator.of(context, rootNavigator: false)
+                                .pushNamed('search', arguments: smartType);
+                          }
+                        }
+                      } catch (e) {
+                        debugPrint('Quick log suggestion error: $e');
+                        if (mounted) {
+                          Navigator.of(context, rootNavigator: false)
+                              .pushNamed('search', arguments: smartType);
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _loadingPillName = null;
+                          });
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 6),
+                              child: SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                                ),
+                              ),
+                            )
+                          else
+                            Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          const SizedBox(width: 5),
+                          Text(
+                            name,
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showEditSheet(

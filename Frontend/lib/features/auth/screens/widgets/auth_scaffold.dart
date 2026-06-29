@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const _kAccent = Color(0xFFCC7A4A);
 const _kAccentLight = Color(0xFFE8955A);
@@ -343,19 +344,20 @@ class _AuthScaffoldState extends State<AuthScaffold>
                               ShaderMask(
                                 shaderCallback: (b) => const LinearGradient(
                                   colors: [
-                                    Color(0xFFFFFFFF),
-                                    Color(0xFFEDD9C8),
+                                    Color(0xFFFFF0D0),
+                                    Color(0xFFEBC374),
+                                    Color(0xFFCC7A4A),
                                   ],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ).createShader(b),
                                 child: Text(
                                   widget.title,
-                                  style: TextStyle(
+                                  style: GoogleFonts.outfit(
                                     fontSize: compact ? 34 : 38,
                                     fontWeight: FontWeight.w900,
                                     color: Colors.white,
-                                    letterSpacing: 0.3,
+                                    letterSpacing: 0.8,
                                     height: 1.0,
                                   ),
                                 ),
@@ -363,7 +365,7 @@ class _AuthScaffoldState extends State<AuthScaffold>
                               const SizedBox(height: 7),
                               Text(
                                 widget.subtitle,
-                                style: TextStyle(
+                                style: GoogleFonts.outfit(
                                   fontSize: compact ? 13 : 14.5,
                                   color: Colors.white.withValues(alpha: 0.45),
                                   letterSpacing: 0.4,

@@ -1,0 +1,2 @@
+ALTER TABLE body_measurements
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();

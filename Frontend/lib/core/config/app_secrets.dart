@@ -3,7 +3,7 @@
 /// Production build komutu:
 ///   flutter build ipa \
 ///     --dart-define=SENTRY_DSN=https://xxxx@oXXX.ingest.sentry.io/YYYY \
-///     --dart-define=API_BASE_URL=https://api.pusulafit.com
+///     --dart-define=API_BASE_URL=https://ibbwfkjrmxdksnalivum.supabase.co/functions/v1
 ///
 /// DSN'i almak için: https://sentry.io → Your Project → Settings → Client Keys
 ///

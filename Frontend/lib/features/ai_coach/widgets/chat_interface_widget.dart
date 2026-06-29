@@ -22,13 +22,13 @@ class _ChatInterfaceWidgetState extends State<ChatInterfaceWidget> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
     final controller = context.read<AiCoachController>();
-    controller.sendMessage(text);
     _textController.clear();
+    await controller.submitPrompt(text);
 
     // Scroll to bottom
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -60,11 +60,7 @@ class _ChatInterfaceWidgetState extends State<ChatInterfaceWidget> {
                 itemCount: controller.messages.length,
                 itemBuilder: (context, index) {
                   final message = controller.messages[index];
-                  return ChatBubble(
-                    message: message.content,
-                    isUser: message.role == 'user',
-                    timestamp: message.timestamp,
-                  );
+                  return ChatBubble(message: message);
                 },
               );
             },
@@ -95,7 +91,9 @@ class _ChatInterfaceWidgetState extends State<ChatInterfaceWidget> {
                   onSubmitted: (_) => _sendMessage(),
                   decoration: InputDecoration(
                     hintText: 'Mesajını yaz...',
-                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                    hintStyle: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                     filled: true,
                     fillColor: const Color(0xFF0A0E21),
                     border: OutlineInputBorder(

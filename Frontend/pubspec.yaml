@@ -5,7 +5,7 @@ publish_to: 'none'
 # version: MAJOR.MINOR.PATCH+BUILD_NUMBER
 # MAJOR.MINOR.PATCH → App Store'da görünen versiyon (CFBundleShortVersionString)
 # BUILD_NUMBER      → App Store Connect'e her yüklemede artırılmalı (CFBundleVersion)
-version: 1.1.4+7
+version: 1.1.4+8
 
 environment:
   sdk: ^3.10.7
@@ -128,14 +128,16 @@ flutter_launcher_icons:
     generate: false
 
 flutter_native_splash:
-  color: "#07080B"
-  image: assets/images/app_icon.png
+  color: "#0A0B0E"
+  image: assets/images/splash_logo_1024.png
   android: true
   ios: true
   web: true
   android_12:
-    color: "#07080B"
-    image: assets/images/app_icon.png
+    color: "#0A0B0E"
+    image: assets/images/splash_logo_1024.png
+  # Fullscreen mode for immersive experience
+  fullscreen: true
 
 flutter:
   uses-material-design: true

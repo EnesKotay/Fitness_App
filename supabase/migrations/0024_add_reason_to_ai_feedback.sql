@@ -1,0 +1,2 @@
+ALTER TABLE ai_feedback
+    ADD COLUMN IF NOT EXISTS reason VARCHAR(64);

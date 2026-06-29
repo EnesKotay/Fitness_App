@@ -27,6 +27,8 @@ class AdvancedAdjustmentsCard extends StatefulWidget {
 class _AdvancedAdjustmentsCardState extends State<AdvancedAdjustmentsCard> {
   bool _showAdvancedAdjustments = false;
 
+  double? _lastHapticValue;
+
   @override
   Widget build(BuildContext context) {
     return PortionUtils.buildGlassCard(
@@ -151,7 +153,10 @@ class _AdvancedAdjustmentsCardState extends State<AdvancedAdjustmentsCard> {
   }
 
   Widget _stepBtn(IconData icon, VoidCallback onTap) => GestureDetector(
-    onTap: onTap,
+    onTap: () {
+      HapticFeedback.selectionClick();
+      onTap();
+    },
     child: Container(
       width: 50,
       height: 50,
@@ -191,6 +196,14 @@ class _AdvancedAdjustmentsCardState extends State<AdvancedAdjustmentsCard> {
             divisions: (widget.sliderMax / 5).round().clamp(20, 200),
             onChanged: (v) {
               final rounded = (v / 5).round() * 5.0;
+              if (rounded != _lastHapticValue) {
+                _lastHapticValue = rounded;
+                if (rounded % 50 == 0) {
+                  HapticFeedback.mediumImpact();
+                } else {
+                  HapticFeedback.selectionClick();
+                }
+              }
               widget.onGramsSelected(rounded);
             },
           ),
@@ -221,7 +234,10 @@ class _AdvancedAdjustmentsCardState extends State<AdvancedAdjustmentsCard> {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
-              onTap: () => widget.onGramsSelected(v),
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                widget.onGramsSelected(v);
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(

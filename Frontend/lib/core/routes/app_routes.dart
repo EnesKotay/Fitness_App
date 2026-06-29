@@ -8,6 +8,7 @@ import '../../features/ai_coach/screens/weekly_plan_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/login_screen.dart';
+import '../../features/auth/screens/clean_login_screen.dart';
 import '../../features/auth/screens/profile_screen.dart';
 import '../../features/auth/screens/settings_help_screen.dart';
 import '../../features/auth/screens/settings_language_units_screen.dart';
@@ -49,7 +50,7 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> getRoutes() {
     return {
-      '/login': (context) => const LoginScreen(),
+      '/login': (context) => const CleanLoginScreen(),
       '/onboarding': (context) => const OnboardingPage(),
       home: (context) => _guard(
         context,

@@ -73229,6 +73229,2688 @@
       "barcode": null,
       "imageUrl": null,
       "source": "Kullanici Excel - Eksik Eklenenler 2024-D"
+    },
+    {
+      "id": "tr_food_3141_nesquik_toz",
+      "name": "Nesquik Çikolatalı İçecek Tozu",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 375.0,
+        "protein": 3.5,
+        "carb": 73.0,
+        "fat": 1.5
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 yemek kaşığı (~15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "nesquik toz",
+        "kakaolu toz"
+      ],
+      "tags": [
+        "nesquik",
+        "kakao",
+        "icecek"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3142_nesquik_gevrek",
+      "name": "Nesquik Kahvaltılık Gevrek",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 385.0,
+        "protein": 8.0,
+        "carb": 73.0,
+        "fat": 4.5
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~30g)",
+          "grams": 30,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 büyük kase (~50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kakaolu gevrek",
+        "nesquik topu"
+      ],
+      "tags": [
+        "gevrek",
+        "nesquik",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3143_coco_pops",
+      "name": "Coco Pops Kahvaltılık Gevrek",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 395.0,
+        "protein": 7.0,
+        "carb": 78.0,
+        "fat": 5.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~30g)",
+          "grams": 30,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 büyük kase (~50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "koko pops",
+        "çikolatalı gevrek"
+      ],
+      "tags": [
+        "gevrek",
+        "cocopops",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3144_misir_gevregi",
+      "name": "Mısır Gevreği (Sade)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 370.0,
+        "protein": 7.0,
+        "carb": 80.0,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~30g)",
+          "grams": 30,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 kase (~45g)",
+          "grams": 45,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "corn flakes",
+        "sade gevrek"
+      ],
+      "tags": [
+        "gevrek",
+        "misir",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3145_yulaf_ezmesi",
+      "name": "Yulaf Ezmesi",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 360.0,
+        "protein": 14.0,
+        "carb": 53.0,
+        "fat": 7.5
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 yemek kaşığı (~10g)",
+          "grams": 10,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "yulaf",
+        "lifalif"
+      ],
+      "tags": [
+        "yulaf",
+        "diyet",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3146_granola_sade",
+      "name": "Granola (Sade/Ortalama)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 435.0,
+        "protein": 10.0,
+        "carb": 60.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~40g)",
+          "grams": 40,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 yemek kaşığı (~12g)",
+          "grams": 12,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "granola",
+        "çıtır yulaf"
+      ],
+      "tags": [
+        "granola",
+        "yulaf",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_3147_musli_meyveli",
+      "name": "Müsli (Meyveli)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 370.0,
+        "protein": 9.0,
+        "carb": 65.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 porsiyon (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "meyveli müsli",
+        "müsli"
+      ],
+      "tags": [
+        "musli",
+        "meyveli",
+        "kahvaltilik"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Kullanici - Kahvaltilik Gevrek & Toz"
+    },
+    {
+      "id": "tr_food_4001_ulker_cikolatali_gofret",
+      "name": "Ülker Çikolatalı Gofret",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 527.0,
+        "protein": 6.0,
+        "carb": 61.0,
+        "fat": 28.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (36g)",
+          "grams": 36,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "çikolatalı gofret",
+        "ülker gofret"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata",
+        "gofret"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4002_eti_puf",
+      "name": "Eti Puf (Kakaolu/Hindistan Cevizli)",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 444.0,
+        "protein": 5.0,
+        "carb": 66.0,
+        "fat": 17.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (18g)",
+          "grams": 18,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "puf",
+        "eti puf"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "tatlı",
+        "bisküvi"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4003_eti_tutku",
+      "name": "Eti Tutku",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 490.0,
+        "protein": 5.0,
+        "carb": 65.0,
+        "fat": 23.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_pack",
+          "label": "1 Paket (100g)",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tutku bisküvi",
+        "mozaik bisküvi"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "bisküvi",
+        "çikolata"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4004_doritos",
+      "name": "Doritos / Mısır Cipsi",
+      "category": "Atıştırmalık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 500.0,
+        "protein": 6.0,
+        "carb": 60.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Kase (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "cips",
+        "doritos taco",
+        "nacho"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "cips",
+        "tuzlu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4005_ruffles",
+      "name": "Ruffles / Patates Cipsi",
+      "category": "Atıştırmalık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 540.0,
+        "protein": 6.0,
+        "carb": 52.0,
+        "fat": 33.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Kase (~40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "patates cipsi",
+        "lays",
+        "ruffles"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "cips",
+        "patates"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4006_magnum",
+      "name": "Magnum (Klasik/Bademli)",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 330.0,
+        "protein": 4.0,
+        "carb": 31.0,
+        "fat": 21.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (~100g)",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "dondurma",
+        "magnum badem",
+        "çubuk dondurma"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "tatlı",
+        "dondurma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4007_latte",
+      "name": "Caffe Latte (Tam Yağlı Sütlü)",
+      "category": "İçecek",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 60.0,
+        "protein": 3.0,
+        "carb": 5.0,
+        "fat": 3.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_tall",
+          "label": "Küçük Boy (Tall - 354ml)",
+          "grams": 354,
+          "isDefault": false
+        },
+        {
+          "id": "s_grande",
+          "label": "Orta Boy (Grande - 473ml)",
+          "grams": 473,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "latte",
+        "sütlü kahve"
+      ],
+      "tags": [
+        "içecek",
+        "kahve",
+        "sütlü"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4008_mocha",
+      "name": "Caffe Mocha",
+      "category": "İçecek",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 75.0,
+        "protein": 2.5,
+        "carb": 10.0,
+        "fat": 3.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_tall",
+          "label": "Küçük Boy (Tall - 354ml)",
+          "grams": 354,
+          "isDefault": false
+        },
+        {
+          "id": "s_grande",
+          "label": "Orta Boy (Grande - 473ml)",
+          "grams": 473,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "moka",
+        "çikolatalı kahve"
+      ],
+      "tags": [
+        "içecek",
+        "kahve",
+        "çikolatalı"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4009_americano",
+      "name": "Filtre Kahve / Americano (Şekersiz)",
+      "category": "İçecek",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 2.0,
+        "protein": 0.2,
+        "carb": 0.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_cup",
+          "label": "1 Kupa (~250ml)",
+          "grams": 250,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "filtre kahve",
+        "sade kahve"
+      ],
+      "tags": [
+        "içecek",
+        "kahve",
+        "şekersiz"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4010_ice_tea",
+      "name": "Soğuk Çay / Ice Tea (Şeftali/Limon)",
+      "category": "İçecek",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 30.0,
+        "protein": 0.0,
+        "carb": 7.5,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_can",
+          "label": "1 Kutu (330ml)",
+          "grams": 330,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "buzlu çay",
+        "lipton",
+        "fuse tea"
+      ],
+      "tags": [
+        "içecek",
+        "soğuk",
+        "çay"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4011_redbull",
+      "name": "Enerji İçeceği (Standart)",
+      "category": "İçecek",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 45.0,
+        "protein": 0.0,
+        "carb": 11.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_can",
+          "label": "1 Kutu (250ml)",
+          "grams": 250,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "red bull",
+        "monster",
+        "burn"
+      ],
+      "tags": [
+        "içecek",
+        "enerji",
+        "kafein"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4012_aycekirdegi",
+      "name": "Ay Çekirdeği (İç / Kabuksuz)",
+      "category": "Kuru Meyve & Kuruyemiş",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 580.0,
+        "protein": 21.0,
+        "carb": 20.0,
+        "fat": 51.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Avuç (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "gündöndü",
+        "çekirdek içi",
+        "kavrulmuş çekirdek"
+      ],
+      "tags": [
+        "kuruyemiş",
+        "çekirdek",
+        "yağlı tohum"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4013_kabakcekirdegi",
+      "name": "Kabak Çekirdeği (İç)",
+      "category": "Kuru Meyve & Kuruyemiş",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 570.0,
+        "protein": 30.0,
+        "carb": 15.0,
+        "fat": 49.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Avuç (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kabak çekirdek"
+      ],
+      "tags": [
+        "kuruyemiş",
+        "çekirdek",
+        "yağlı tohum"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4014_sarileblebi",
+      "name": "Sarı Leblebi",
+      "category": "Kuru Meyve & Kuruyemiş",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 380.0,
+        "protein": 19.0,
+        "carb": 58.0,
+        "fat": 5.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Avuç (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kavrulmuş nohut",
+        "leblebi"
+      ],
+      "tags": [
+        "kuruyemiş",
+        "bakliyat",
+        "karbonhidrat"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4015_kaju",
+      "name": "Kaju (Kavrulmuş)",
+      "category": "Kuru Meyve & Kuruyemiş",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 570.0,
+        "protein": 15.0,
+        "carb": 30.0,
+        "fat": 46.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Avuç (~30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kaju fıstığı",
+        "cashew"
+      ],
+      "tags": [
+        "kuruyemiş",
+        "kaju",
+        "yağ"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4017_yulafsutu",
+      "name": "Yulaf Sütü (Şekersiz)",
+      "category": "Süt Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 40.0,
+        "protein": 1.0,
+        "carb": 7.0,
+        "fat": 1.5
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_cup",
+          "label": "1 Su Bardağı (200ml)",
+          "grams": 200,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "vegan süt",
+        "yulaf içeceği"
+      ],
+      "tags": [
+        "vegan",
+        "süt",
+        "içecek"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4018_bademsutu",
+      "name": "Badem Sütü (Şekersiz)",
+      "category": "Süt Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "ml"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 13.0,
+        "protein": 0.5,
+        "carb": 0.5,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100ml",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 ml",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_cup",
+          "label": "1 Su Bardağı (200ml)",
+          "grams": 200,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "vegan süt",
+        "badem içeceği"
+      ],
+      "tags": [
+        "vegan",
+        "süt",
+        "içecek",
+        "düşük kalori"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4019_soyakıyması",
+      "name": "Soya Kıyması (Kuru)",
+      "category": "Ana Yemek – Veg",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 340.0,
+        "protein": 50.0,
+        "carb": 30.0,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 Porsiyon (~50g kuru)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "soya proteini",
+        "vegan kıyma"
+      ],
+      "tags": [
+        "vegan",
+        "soya",
+        "yüksek protein"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4020_veganpeynir",
+      "name": "Vegan Peynir (Hindistan Cevizi Yağlı)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 280.0,
+        "protein": 0.0,
+        "carb": 20.0,
+        "fat": 22.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_slice",
+          "label": "1 Dilim (30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bitkisel peynir",
+        "vegan kaşar"
+      ],
+      "tags": [
+        "vegan",
+        "peynir",
+        "yağ"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4021_veganburger",
+      "name": "Vegan Burger Köftesi",
+      "category": "Ana Yemek – Veg",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 250.0,
+        "protein": 15.0,
+        "carb": 10.0,
+        "fat": 16.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (100g)",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bitkisel köfte",
+        "beyond meat",
+        "vegan köfte"
+      ],
+      "tags": [
+        "vegan",
+        "burger",
+        "köfte"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4022_whey",
+      "name": "Whey Protein Tozu",
+      "category": "Sporcu Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 380.0,
+        "protein": 75.0,
+        "carb": 5.0,
+        "fat": 6.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_scoop",
+          "label": "1 Ölçek / Scoop (30g)",
+          "grams": 30,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "protein tozu",
+        "peynir altı suyu"
+      ],
+      "tags": [
+        "sporcu",
+        "protein",
+        "takviye"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4023_bcaa",
+      "name": "BCAA / Amino Asit Tozu",
+      "category": "Sporcu Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 380.0,
+        "protein": 95.0,
+        "carb": 0.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_scoop",
+          "label": "1 Ölçek (10g)",
+          "grams": 10,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "esansiyel amino asit",
+        "eaa"
+      ],
+      "tags": [
+        "sporcu",
+        "amino",
+        "takviye"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4024_preworkout",
+      "name": "Pre-Workout (Antrenman Öncesi Toz)",
+      "category": "Sporcu Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 10.0,
+        "protein": 0.0,
+        "carb": 2.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_scoop",
+          "label": "1 Ölçek (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "enerji tozu",
+        "pump"
+      ],
+      "tags": [
+        "sporcu",
+        "enerji",
+        "takviye"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4025_gainer",
+      "name": "Karbonhidrat Tozu (Gainer)",
+      "category": "Sporcu Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 390.0,
+        "protein": 15.0,
+        "carb": 80.0,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_scoop",
+          "label": "1 Büyük Ölçek (100g)",
+          "grams": 100,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "mass gainer",
+        "kilo aldırıcı"
+      ],
+      "tags": [
+        "sporcu",
+        "karbonhidrat",
+        "takviye"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_4026_proteinbar",
+      "name": "Protein Bar (Ortalama)",
+      "category": "Sporcu Ürünleri",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 360.0,
+        "protein": 30.0,
+        "carb": 35.0,
+        "fat": 12.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bar",
+          "label": "1 Adet (50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "proteinli bar",
+        "sporcu barı"
+      ],
+      "tags": [
+        "sporcu",
+        "protein",
+        "atıştırmalık"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Kategori 1,2,4,5,6"
+    },
+    {
+      "id": "tr_food_5001_ranch",
+      "name": "Ranch Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 450.0,
+        "protein": 1.0,
+        "carb": 5.0,
+        "fat": 47.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_pack",
+          "label": "1 Küçük Paket (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "renç sos",
+        "ranch"
+      ],
+      "tags": [
+        "sos",
+        "yağlı",
+        "salata sosu"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5002_barbeku",
+      "name": "Barbekü Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 170.0,
+        "protein": 0.5,
+        "carb": 40.0,
+        "fat": 0.2
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_pack",
+          "label": "1 Küçük Paket (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "bbq sos"
+      ],
+      "tags": [
+        "sos",
+        "şekerli"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5003_sezar",
+      "name": "Sezar Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 400.0,
+        "protein": 2.0,
+        "carb": 5.0,
+        "fat": 42.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 Yemek Kaşığı (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "caesar sos"
+      ],
+      "tags": [
+        "sos",
+        "salata sosu",
+        "yağlı"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5004_sriracha",
+      "name": "Sriracha / Acı Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 80.0,
+        "protein": 1.0,
+        "carb": 18.0,
+        "fat": 0.5
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 Tatlı Kaşığı (5g)",
+          "grams": 5,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "acı sos",
+        "hot sauce"
+      ],
+      "tags": [
+        "sos",
+        "acı"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5006_nareksisi",
+      "name": "Nar Ekşili Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 300.0,
+        "protein": 0.0,
+        "carb": 75.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 Yemek Kaşığı (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "nar sosu",
+        "salata sosu"
+      ],
+      "tags": [
+        "sos",
+        "şekerli",
+        "ekşi"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5007_teriyaki",
+      "name": "Teriyaki Sos",
+      "category": "Yağ & Sos",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 150.0,
+        "protein": 6.0,
+        "carb": 30.0,
+        "fat": 0.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_spoon",
+          "label": "1 Yemek Kaşığı (15g)",
+          "grams": 15,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "teriyaki"
+      ],
+      "tags": [
+        "sos",
+        "tatlı",
+        "asya"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5008_danasosis",
+      "name": "Dana Sosis",
+      "category": "Et & Protein",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 280.0,
+        "protein": 12.0,
+        "carb": 2.0,
+        "fat": 25.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (Uzun - 50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sosis"
+      ],
+      "tags": [
+        "şarküteri",
+        "et",
+        "işlenmiş"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5009_pilicsosis",
+      "name": "Piliç Sosis",
+      "category": "Et & Protein",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 220.0,
+        "protein": 13.0,
+        "carb": 3.0,
+        "fat": 17.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (Kokteyl - 35g)",
+          "grams": 35,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "tavuk sosis",
+        "hindi sosis"
+      ],
+      "tags": [
+        "şarküteri",
+        "tavuk",
+        "işlenmiş"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5010_sosislisandvic",
+      "name": "Sosisli Sandviç",
+      "category": "Fast Food",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 290.0,
+        "protein": 10.0,
+        "carb": 28.0,
+        "fat": 15.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (150g)",
+          "grams": 150,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "hot dog",
+        "sosisli"
+      ],
+      "tags": [
+        "fast food",
+        "sandviç",
+        "sosis"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5011_salcalisosis",
+      "name": "Salçalı Sosis (Sosis Tava)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 260.0,
+        "protein": 10.0,
+        "carb": 5.0,
+        "fat": 22.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 Porsiyon (150g)",
+          "grams": 150,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sosis tava"
+      ],
+      "tags": [
+        "kahvaltılık",
+        "sosis",
+        "sıcak"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5013_gorali",
+      "name": "Goralı Sandviç",
+      "category": "Sokak Yemeği",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 280.0,
+        "protein": 9.0,
+        "carb": 26.0,
+        "fat": 15.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (160g)",
+          "grams": 160,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "goralı"
+      ],
+      "tags": [
+        "sokak lezzeti",
+        "sandviç",
+        "sosis"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5014_pisi",
+      "name": "Pişi (Kızarmış Hamur)",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 360.0,
+        "protein": 7.0,
+        "carb": 40.0,
+        "fat": 19.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "hamur kızartması",
+        "lokma hamuru"
+      ],
+      "tags": [
+        "kahvaltılık",
+        "hamur işi",
+        "kızartma"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5016_krep",
+      "name": "Ev Yapımı Krep",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 220.0,
+        "protein": 7.0,
+        "carb": 28.0,
+        "fat": 8.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (70g)",
+          "grams": 70,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "akıtma",
+        "krep"
+      ],
+      "tags": [
+        "kahvaltılık",
+        "hamur işi"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_5018_firinsutlac",
+      "name": "Fırın Sütlaç",
+      "category": "Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 130.0,
+        "protein": 3.0,
+        "carb": 22.0,
+        "fat": 3.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_bowl",
+          "label": "1 Kase (200g)",
+          "grams": 200,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "sütlaç"
+      ],
+      "tags": [
+        "tatlı",
+        "sütlü"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Soslar, Sosis, Sokak Lezzeti, Tatlilar"
+    },
+    {
+      "id": "tr_food_6001_sushi",
+      "name": "Sushi (Karışık Roll)",
+      "category": "Fast Food",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 140.0,
+        "protein": 4.0,
+        "carb": 30.0,
+        "fat": 1.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_portion",
+          "label": "1 Porsiyon (6 Parça - 150g)",
+          "grams": 150,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet Roll (25g)",
+          "grams": 25,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "suşi",
+        "maki",
+        "california roll"
+      ],
+      "tags": [
+        "fast food",
+        "asya",
+        "pirinç"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6002_burrito",
+      "name": "Burrito (Etli/Tavuklu)",
+      "category": "Fast Food",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 200.0,
+        "protein": 10.0,
+        "carb": 25.0,
+        "fat": 7.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet Dürüm (250g)",
+          "grams": 250,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "meksika dürümü"
+      ],
+      "tags": [
+        "fast food",
+        "dürüm",
+        "meksika"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6003_albeni",
+      "name": "Ülker Albeni",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 510.0,
+        "protein": 5.0,
+        "carb": 62.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (40g)",
+          "grams": 40,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "albeni çikolata",
+        "karamelli bar"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata",
+        "bisküvi"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6004_dido",
+      "name": "Ülker Dido",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 520.0,
+        "protein": 6.0,
+        "carb": 58.0,
+        "fat": 28.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (35g)",
+          "grams": 35,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "dido çikolata",
+        "gofret"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata",
+        "gofret"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6005_metro",
+      "name": "Ülker Metro",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 470.0,
+        "protein": 4.0,
+        "carb": 68.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (36g)",
+          "grams": 36,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "metro çikolata",
+        "nugat"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata",
+        "karamel"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6006_karam",
+      "name": "Eti Karam Gurme",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 540.0,
+        "protein": 6.0,
+        "carb": 54.0,
+        "fat": 32.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (50g)",
+          "grams": 50,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "karam",
+        "bitter gofret"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata",
+        "bitter"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6007_laviva",
+      "name": "Ülker Laviva",
+      "category": "Atıştırmalık & Tatlı",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 530.0,
+        "protein": 5.0,
+        "carb": 58.0,
+        "fat": 30.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_piece",
+          "label": "1 Adet (35g)",
+          "grams": 35,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "laviva çikolata"
+      ],
+      "tags": [
+        "atıştırmalık",
+        "çikolata"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6008_hazir_noodle",
+      "name": "Hazır Noodle / Noodle Paketi (Kuru)",
+      "category": "Hazır Gıda",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 460.0,
+        "protein": 9.0,
+        "carb": 60.0,
+        "fat": 18.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_pack",
+          "label": "1 Paket (75g)",
+          "grams": 75,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "indomie",
+        "kıvırcık erişte"
+      ],
+      "tags": [
+        "hazır gıda",
+        "noodle",
+        "karbonhidrat"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
+    },
+    {
+      "id": "tr_food_6009_hellim",
+      "name": "Hellim Peyniri",
+      "category": "Kahvaltılık",
+      "basis": {
+        "amount": 100.0,
+        "unit": "g"
+      },
+      "nutrientsPerBasis": {
+        "kcal": 330.0,
+        "protein": 22.0,
+        "carb": 2.0,
+        "fat": 26.0
+      },
+      "servings": [
+        {
+          "id": "s_default",
+          "label": "100g",
+          "grams": 100.0,
+          "isDefault": true
+        },
+        {
+          "id": "s_100",
+          "label": "100 g",
+          "grams": 100,
+          "isDefault": false
+        },
+        {
+          "id": "s_slice",
+          "label": "1 Kalın Dilim (35g)",
+          "grams": 35,
+          "isDefault": false
+        }
+      ],
+      "aliases": [
+        "kızarmış peynir",
+        "kıbrıs peyniri"
+      ],
+      "tags": [
+        "kahvaltılık",
+        "peynir",
+        "yağlı"
+      ],
+      "brand": null,
+      "barcode": null,
+      "imageUrl": null,
+      "source": "Toplu Ekleme - Global, Çikolata, Pratik"
     }
   ]
 }

@@ -1,19 +1,16 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConstants {
   /// Backend base URL - Ortama gore otomatik secim
   ///
-  /// Oncelik: dart-define > platform varsayilani
-  /// - Fiziksel iPhone/Android: --dart-define=API_BASE_URL=http://MAC_IP:8081
-  /// - iOS Simulator: 127.0.0.1:8081
-  /// - Android Emulator: 10.0.2.2:8081
-  /// Production URL — build sırasında dart-define ile geçilir:
-  ///   flutter build ipa --dart-define=API_BASE_URL=https://api.pusulafit.com
-  ///   flutter build appbundle --dart-define=API_BASE_URL=https://api.pusulafit.com
+  /// Oncelik: dart-define > Supabase varsayilani
+  /// Local backend denemek istersen:
+  ///   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8081
+  /// Production URL — build sırasında dart-define ile de geçilebilir:
+  ///   flutter build ipa --dart-define=API_BASE_URL=https://ibbwfkjrmxdksnalivum.supabase.co/functions/v1
+  ///   flutter build appbundle --dart-define=API_BASE_URL=https://ibbwfkjrmxdksnalivum.supabase.co/functions/v1
   ///
   /// Geliştirme ortamında dart-define verilmezse platform varsayılanları kullanılır.
   static const String _productionUrl =
-      'https://fitness-backend-jrcn.onrender.com';
+      'https://ibbwfkjrmxdksnalivum.supabase.co/functions/v1';
 
   static String get baseUrl {
     // 1) Build-time dart-define (production build için)
@@ -23,25 +20,8 @@ class ApiConstants {
           ? envUrl.substring(0, envUrl.length - 1)
           : envUrl;
     }
-    // 2) Release modda production URL'i kullan
-    const bool isRelease = bool.fromEnvironment('dart.vm.product');
-    if (isRelease) return _productionUrl;
-
-    // 3) Debug/profile modda platforma gore local backend varsayilani sec
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8081';
-    }
-
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8081';
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-      case TargetPlatform.fuchsia:
-        return 'http://127.0.0.1:8081';
-    }
+    // 2) Varsayilan olarak Render/local yerine Supabase Edge Function kullan.
+    return _productionUrl;
   }
 
   /// Baglanti test endpoint'i (GET /api/auth/test)

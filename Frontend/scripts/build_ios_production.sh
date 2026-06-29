@@ -7,7 +7,7 @@
 set -e  # Hata olursa dur
 
 # ── Zorunlu değişkenler ───────────────────────────────────────────
-API_BASE_URL="https://fitness-backend-jrcn.onrender.com"
+API_BASE_URL="https://ibbwfkjrmxdksnalivum.supabase.co/functions/v1"
 
 SENTRY_DSN=""   # Sentry DSN (boş bırakırsan Sentry devre dışı kalır)
 
