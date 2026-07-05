@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/utils/storage_helper.dart';
 import '../../data/recipe_api_service.dart';
 import '../../data/recipe_loader.dart';
 import '../../domain/entities/recipe.dart';
@@ -12,6 +13,8 @@ const _recipeFavoritesKey = 'recipe_favorites';
 const _recipeRecentKey = 'recipe_recently_viewed';
 const _recipeCookCountsKey = 'recipe_cook_counts';
 const _recipeCustomKey = 'recipe_custom_recipes';
+
+String _recipeUserKey(String base) => StorageHelper.userScopedKey(base);
 
 const Map<String, List<String>> _searchSynonyms = {
   'snack': ['atistirmalik', 'ara ogun'],
@@ -46,13 +49,7 @@ String _normalizeForSearch(String input) {
       .replaceAll(RegExp(r'\s+'), ' ');
 }
 
-enum SortMode {
-  none,
-  highProtein,
-  lowCalorie,
-  fastestFirst,
-  difficultyAsc,
-}
+enum SortMode { none, highProtein, lowCalorie, fastestFirst, difficultyAsc }
 
 extension SortModeLabel on SortMode {
   String get label {
@@ -132,10 +129,12 @@ class RecipeFilter {
   }) {
     return RecipeFilter(
       maxKcal: maxKcal == _sentinel ? this.maxKcal : maxKcal as double?,
-      minProtein:
-          minProtein == _sentinel ? this.minProtein : minProtein as double?,
-      maxMinutes:
-          maxMinutes == _sentinel ? this.maxMinutes : maxMinutes as int?,
+      minProtein: minProtein == _sentinel
+          ? this.minProtein
+          : minProtein as double?,
+      maxMinutes: maxMinutes == _sentinel
+          ? this.maxMinutes
+          : maxMinutes as int?,
       veganOnly: veganOnly ?? this.veganOnly,
       vegetarianOnly: vegetarianOnly ?? this.vegetarianOnly,
       glutenFreeOnly: glutenFreeOnly ?? this.glutenFreeOnly,
@@ -150,7 +149,7 @@ class RecipeProvider extends ChangeNotifier {
   final RecipeApiService _api = RecipeApiService();
 
   RecipeProvider({RecipeRepository? repository})
-      : _repository = repository ?? LocalRecipeRepository();
+    : _repository = repository ?? LocalRecipeRepository();
 
   List<Recipe> _all = [];
   bool _loading = false;
@@ -174,10 +173,8 @@ class RecipeProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   RecipeFilter get filter => _filter;
 
-  List<Recipe> get recentlyViewed => _recentlyViewedIds
-      .map(_findRecipeById)
-      .whereType<Recipe>()
-      .toList();
+  List<Recipe> get recentlyViewed =>
+      _recentlyViewedIds.map(_findRecipeById).whereType<Recipe>().toList();
 
   int cookCountFor(String recipeId) => _cookCounts[recipeId] ?? 0;
 
@@ -214,7 +211,9 @@ class RecipeProvider extends ChangeNotifier {
     }
 
     if (_searchQuery.isNotEmpty) {
-      list = list.where((recipe) => _matchesQuery(recipe, _searchQuery)).toList();
+      list = list
+          .where((recipe) => _matchesQuery(recipe, _searchQuery))
+          .toList();
     }
 
     if (_filter.isActive) {
@@ -223,9 +222,7 @@ class RecipeProvider extends ChangeNotifier {
 
     switch (_sortMode) {
       case SortMode.highProtein:
-        list.sort(
-          (a, b) => b.proteinPerServing.compareTo(a.proteinPerServing),
-        );
+        list.sort((a, b) => b.proteinPerServing.compareTo(a.proteinPerServing));
         break;
       case SortMode.lowCalorie:
         list.sort((a, b) => a.kcalPerServing.compareTo(b.kcalPerServing));
@@ -251,7 +248,9 @@ class RecipeProvider extends ChangeNotifier {
     final queryVariants = _queryVariants(normalizedQuery);
     if (queryVariants.any(blob.contains)) return true;
 
-    final tokens = normalizedQuery.split(' ').where((token) => token.isNotEmpty);
+    final tokens = normalizedQuery
+        .split(' ')
+        .where((token) => token.isNotEmpty);
     return tokens.every((token) {
       final tokenVariants = _queryVariants(token);
       return tokenVariants.any(blob.contains);
@@ -330,9 +329,7 @@ class RecipeProvider extends ChangeNotifier {
       (a, b) => _recommendationScore(
         b,
         remainingKcal: remainingKcal,
-      ).compareTo(
-        _recommendationScore(a, remainingKcal: remainingKcal),
-      ),
+      ).compareTo(_recommendationScore(a, remainingKcal: remainingKcal)),
     );
     return candidates.take(limit).toList();
   }
@@ -356,9 +353,8 @@ class RecipeProvider extends ChangeNotifier {
   List<Recipe> similarTo(Recipe recipe, {int limit = 6}) {
     final candidates = _all.where((item) => item.id != recipe.id).toList();
     candidates.sort(
-      (a, b) => _similarityScore(b, recipe).compareTo(
-        _similarityScore(a, recipe),
-      ),
+      (a, b) =>
+          _similarityScore(b, recipe).compareTo(_similarityScore(a, recipe)),
     );
     return candidates.take(limit).toList();
   }
@@ -379,7 +375,8 @@ class RecipeProvider extends ChangeNotifier {
     score += _preferenceAffinity(recipe);
 
     final proteinDensity =
-        recipe.proteinPerServing / (recipe.kcalPerServing <= 0 ? 1 : recipe.kcalPerServing);
+        recipe.proteinPerServing /
+        (recipe.kcalPerServing <= 0 ? 1 : recipe.kcalPerServing);
     score += proteinDensity * 180;
 
     if (recipe.goalTags.contains(RecipeGoalTag.highProtein)) score += 3;
@@ -427,7 +424,8 @@ class RecipeProvider extends ChangeNotifier {
         score += 2.5;
       }
       score += history.goalTags.intersection(recipeTags).length * 1.4;
-      score += history.dietaryFlags.intersection(recipeDietaryFlags).length * 1.2;
+      score +=
+          history.dietaryFlags.intersection(recipeDietaryFlags).length * 1.2;
       final ingredientMatches = history.ingredients
           .map((ingredient) => ingredient.normalizedName)
           .toSet()
@@ -449,7 +447,8 @@ class RecipeProvider extends ChangeNotifier {
     score += candidate.goalTags.intersection(anchor.goalTags).length * 2;
     score +=
         candidate.dietaryFlags.intersection(anchor.dietaryFlags).length * 1.5;
-    score += candidate.ingredients
+    score +=
+        candidate.ingredients
             .map((ingredient) => ingredient.normalizedName)
             .toSet()
             .intersection(
@@ -530,14 +529,21 @@ class RecipeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.wait([_loadFavorites(), _loadRecent(), _loadCookCounts(), _loadCustomRecipes()]);
+      await Future.wait([
+        _loadFavorites(),
+        _loadRecent(),
+        _loadCookCounts(),
+        _loadCustomRecipes(),
+      ]);
       final repoRecipes = await _repository.getAllRecipes();
 
       // Backend'den özel tarifleri al, local'dekilerle birleştir
       final remoteRecipes = await _api.fetchCustomRecipes();
       if (remoteRecipes.isNotEmpty) {
         final localIds = _customRecipes.map((r) => r.id).toSet();
-        final newRemote = remoteRecipes.where((r) => !localIds.contains(r.id)).toList();
+        final newRemote = remoteRecipes
+            .where((r) => !localIds.contains(r.id))
+            .toList();
         _customRecipes = [..._customRecipes, ...newRemote];
         if (newRemote.isNotEmpty) await _saveCustomRecipes();
       }
@@ -583,32 +589,44 @@ class RecipeProvider extends ChangeNotifier {
 
   Future<void> _saveFavorites() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recipeFavoritesKey, _favoriteIds.toList());
+    await prefs.setStringList(
+      _recipeUserKey(_recipeFavoritesKey),
+      _favoriteIds.toList(),
+    );
   }
 
   Future<void> _loadFavorites() async {
     final prefs = await SharedPreferences.getInstance();
-    _favoriteIds = (prefs.getStringList(_recipeFavoritesKey) ?? []).toSet();
+    _favoriteIds =
+        (prefs.getStringList(_recipeUserKey(_recipeFavoritesKey)) ?? [])
+            .toSet();
   }
 
   Future<void> _saveRecent() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_recipeRecentKey, _recentlyViewedIds);
+    await prefs.setStringList(
+      _recipeUserKey(_recipeRecentKey),
+      _recentlyViewedIds,
+    );
   }
 
   Future<void> _loadRecent() async {
     final prefs = await SharedPreferences.getInstance();
-    _recentlyViewedIds = prefs.getStringList(_recipeRecentKey) ?? [];
+    _recentlyViewedIds =
+        prefs.getStringList(_recipeUserKey(_recipeRecentKey)) ?? [];
   }
 
   Future<void> _saveCookCounts() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_recipeCookCountsKey, jsonEncode(_cookCounts));
+    await prefs.setString(
+      _recipeUserKey(_recipeCookCountsKey),
+      jsonEncode(_cookCounts),
+    );
   }
 
   Future<void> _loadCookCounts() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_recipeCookCountsKey);
+    final raw = prefs.getString(_recipeUserKey(_recipeCookCountsKey));
     if (raw == null || raw.trim().isEmpty) return;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -624,16 +642,21 @@ class RecipeProvider extends ChangeNotifier {
   Future<void> _saveCustomRecipes() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = _customRecipes.map((r) => r.toJson()).toList();
-    await prefs.setString(_recipeCustomKey, jsonEncode(jsonList));
+    await prefs.setString(
+      _recipeUserKey(_recipeCustomKey),
+      jsonEncode(jsonList),
+    );
   }
 
   Future<void> _loadCustomRecipes() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_recipeCustomKey);
+    final raw = prefs.getString(_recipeUserKey(_recipeCustomKey));
     if (raw == null || raw.trim().isEmpty) return;
     try {
       final decoded = jsonDecode(raw) as List;
-      _customRecipes = decoded.map((e) => Recipe.fromJson(e as Map<String, dynamic>)).toList();
+      _customRecipes = decoded
+          .map((e) => Recipe.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       debugPrint('RecipeProvider custom recipe decode error: $e');
       _customRecipes = [];

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/utils/storage_helper.dart';
 import '../models/workout_program.dart';
 
 class WorkoutProgramProvider extends ChangeNotifier {
@@ -25,18 +26,20 @@ class WorkoutProgramProvider extends ChangeNotifier {
   }
 
   bool get loaded => _loaded;
+  String get _programsKey => StorageHelper.userScopedKey(_kKey);
+  String get _stateKey => StorageHelper.userScopedKey(_kStateKey);
 
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_kKey);
+      final raw = prefs.getString(_programsKey);
       if (raw != null) {
         final list = jsonDecode(raw) as List<dynamic>;
         _programs = list
             .map((e) => WorkoutProgram.fromJson(e as Map<String, dynamic>))
             .toList();
       }
-      final stateRaw = prefs.getString(_kStateKey);
+      final stateRaw = prefs.getString(_stateKey);
       if (stateRaw != null) {
         final state = jsonDecode(stateRaw) as Map<String, dynamic>;
         _activeProgramId = state['activeProgramId']?.toString();
@@ -94,11 +97,11 @@ class WorkoutProgramProvider extends ChangeNotifier {
   Future<void> _persist() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-      _kKey,
+      _programsKey,
       jsonEncode(_programs.map((p) => p.toJson()).toList()),
     );
     await prefs.setString(
-      _kStateKey,
+      _stateKey,
       jsonEncode({
         'activeProgramId': _activeProgramId,
         'completedDayIds': _completedDayIds.toList(),

@@ -133,7 +133,8 @@ class DietTabContainer extends StatelessWidget {
               case 'add_custom_food':
                 return _buildRoute(const AddCustomFoodPage(), settings);
               case 'diet_chat':
-                return _buildRoute(const DietChatPage(), settings);
+                final initialMessage = settings.arguments as String?;
+                return _buildRoute(DietChatPage(initialMessage: initialMessage), settings);
               case 'nutrition_trends':
                 return _buildRoute(const NutritionTrendsPage(), settings);
               case 'nutrition_guide':

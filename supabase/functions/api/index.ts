@@ -1839,40 +1839,71 @@ function normalizePlanId(planId: string): string {
   return normalized || "monthly";
 }
 
-async function handleUpgradePremiumIap(req: Request): Promise<Response> {
-  const userId = await userIdFromAuthorization(req);
-  const user = await findUserById(userId);
-  if (!user) return errorResponse("Kullanici bulunamadi.", 404);
+// ─── RevenueCat entegrasyonu ─────────────────────────────────────────────────
+// Abonelik dogrulamasi RevenueCat uzerinden yapilir:
+//   - Client satin almayi RevenueCat SDK ile yapar (app_user_id = users.id)
+//   - handlePremiumSync: RevenueCat REST API'den entitlement durumunu ceker
+//   - handleRevenueCatWebhook: yenileme/iptal/bitis eventlerini isler
+//
+// Gerekli env degiskenleri (Supabase secrets):
+//   REVENUECAT_SECRET_API_KEY  → RevenueCat dashboard → API Keys → Secret key (sk_...)
+//   REVENUECAT_WEBHOOK_AUTH    → Webhook ayarindaki Authorization header degeri
+//   IAP_VERIFY_MODE            → "dev" ise dogrulamasiz test moduna dusulur (default: strict)
 
-  if (isPremiumUser(user)) {
-    return jsonResponse(premiumStatusMap(user, "Premium zaten aktif."));
+const REVENUECAT_ENTITLEMENT_ID = "premium";
+
+interface RevenueCatEntitlementState {
+  active: boolean;
+  planId: string;
+  expiresAt: string | null;
+}
+
+async function fetchRevenueCatEntitlement(
+  appUserId: string,
+): Promise<RevenueCatEntitlementState> {
+  const secretKey = asString(Deno.env.get("REVENUECAT_SECRET_API_KEY")).trim();
+  if (!secretKey) {
+    throw new Error("REVENUECAT_SECRET_API_KEY ortam degiskeni ayarlanmamis");
   }
 
-  const body = await readJson(req);
-  const platform = asString(body.platform).trim();
-  const planId = normalizePlanId(asString(body.planId));
-  const purchaseToken = asString(body.purchaseToken);
-  const receiptData = asString(body.receiptData);
-  const transactionId = asString(body.transactionId);
-
-  if (!platform || !planId) {
-    return errorResponse("platform ve planId zorunludur.");
+  const response = await fetch(
+    `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`RevenueCat API hatasi: ${response.status}`);
   }
 
-  const verifyMode = (Deno.env.get("IAP_VERIFY_MODE") ?? "dev").toLowerCase();
-  if (verifyMode !== "dev" && verifyMode !== "apple") {
-    return jsonResponse(
-      { error: "IAP strict dogrulama Supabase function icin henuz aktif degil." },
-      402,
-    );
+  const json = await response.json() as Record<string, unknown>;
+  const subscriber = (json.subscriber ?? {}) as Record<string, unknown>;
+  const entitlements = (subscriber.entitlements ?? {}) as Record<string, unknown>;
+  const entitlement = entitlements[REVENUECAT_ENTITLEMENT_ID] as
+    | Record<string, unknown>
+    | undefined;
+
+  if (!entitlement) {
+    return { active: false, planId: "monthly", expiresAt: null };
   }
 
-  if (!purchaseToken && !receiptData && !transactionId) {
-    return jsonResponse({ error: "Satinalma kaniti eksik." }, 402);
-  }
+  const expiresAt = asString(entitlement.expires_date) || null;
+  const active = expiresAt === null ||
+    new Date(expiresAt).getTime() > Date.now();
+  const planId = planFromProductId(asString(entitlement.product_identifier)) ??
+    "monthly";
+  return { active, planId, expiresAt };
+}
 
-  const months = planId === "yearly" ? 12 : 1;
-  const expiresAt = addMonths(new Date(), months).toISOString();
+async function activatePremiumForUser(
+  userId: number,
+  planId: string,
+  expiresAt: string | null,
+  transactionId?: string,
+): Promise<UserRow> {
   const { data, error } = await supabase
     .from("users")
     .update({
@@ -1887,12 +1918,138 @@ async function handleUpgradePremiumIap(req: Request): Promise<Response> {
     .eq("id", userId)
     .select("*")
     .single();
-
   if (error) throw new Error(`Database update failed: ${error.message}`);
+  return data as UserRow;
+}
+
+async function handlePremiumSync(req: Request): Promise<Response> {
+  const userId = await userIdFromAuthorization(req);
+  const user = await findUserById(userId);
+  if (!user) return errorResponse("Kullanici bulunamadi.", 404);
+
+  const body = await readJson(req).catch(() => ({} as Record<string, unknown>));
+  const transactionId = asString(body.transactionId);
+
+  // Test modu: store kurulumu tamamlanmadan simulatorde akisi denemek icin.
+  // Production'da IAP_VERIFY_MODE kesinlikle "dev" OLMAMALI.
+  const verifyMode = asString(Deno.env.get("IAP_VERIFY_MODE")).toLowerCase();
+  if (verifyMode === "dev") {
+    const planId = normalizePlanId(asString(body.planId));
+    const months = planId === "yearly" ? 12 : 1;
+    const expiresAt = addMonths(new Date(), months).toISOString();
+    const data = await activatePremiumForUser(
+      userId,
+      planId,
+      expiresAt,
+      transactionId,
+    );
+    return jsonResponse({
+      ...premiumStatusMap(data, "Premium aktivasyonu basarili! (dev mod)"),
+      transactionId,
+    });
+  }
+
+  const state = await fetchRevenueCatEntitlement(String(userId));
+  if (!state.active) {
+    return jsonResponse(
+      {
+        error:
+          "Aktif abonelik bulunamadi. Odeme henuz islenmediyse birkac dakika " +
+          "sonra 'Satin alimlari geri yukle' ile tekrar dene.",
+      },
+      402,
+    );
+  }
+
+  const data = await activatePremiumForUser(
+    userId,
+    state.planId,
+    state.expiresAt,
+    transactionId,
+  );
   return jsonResponse({
     ...premiumStatusMap(data, "Premium aktivasyonu basarili!"),
     transactionId,
   });
+}
+
+async function handleRevenueCatWebhook(req: Request): Promise<Response> {
+  const expectedAuth = asString(Deno.env.get("REVENUECAT_WEBHOOK_AUTH")).trim();
+  if (!expectedAuth) {
+    return jsonResponse({ error: "Webhook yapilandirilmamis." }, 503);
+  }
+  const authHeader = (req.headers.get("authorization") ?? "").trim();
+  if (authHeader !== expectedAuth) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  const body = await readJson(req);
+  const event = (body.event ?? {}) as Record<string, unknown>;
+  const type = asString(event.type).toUpperCase();
+  const appUserId = asString(event.app_user_id);
+
+  // logIn cagrilmadan olusan anonim RevenueCat kullanicilari eslenemez.
+  if (!appUserId || appUserId.startsWith("$RCAnonymousID")) {
+    return jsonResponse({ status: "ignored", reason: "anonymous_user" });
+  }
+  const userId = Number.parseInt(appUserId, 10);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return jsonResponse({ status: "ignored", reason: "invalid_user_id" });
+  }
+  const user = await findUserById(userId);
+  if (!user) {
+    return jsonResponse({ status: "ignored", reason: "unknown_user" });
+  }
+
+  const planId = planFromProductId(asString(event.product_id)) ?? "monthly";
+  const expirationMs = typeof event.expiration_at_ms === "number"
+    ? event.expiration_at_ms
+    : null;
+  const expiresAt = expirationMs
+    ? new Date(expirationMs).toISOString()
+    : null;
+  const transactionId = asString(event.original_transaction_id) ||
+    asString(event.transaction_id);
+
+  switch (type) {
+    case "INITIAL_PURCHASE":
+    case "RENEWAL":
+    case "UNCANCELLATION":
+    case "PRODUCT_CHANGE":
+    case "SUBSCRIPTION_EXTENDED":
+      await activatePremiumForUser(userId, planId, expiresAt, transactionId);
+      break;
+    case "CANCELLATION": {
+      // Otomatik yenileme kapatildi — erisim donem sonuna kadar devam eder.
+      const { error } = await supabase
+        .from("users")
+        .update({
+          premium_cancel_at_period_end: true,
+          premium_canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) throw new Error(`Database update failed: ${error.message}`);
+      break;
+    }
+    case "EXPIRATION": {
+      const { error } = await supabase
+        .from("users")
+        .update({
+          premium_tier: "free",
+          premium_cancel_at_period_end: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) throw new Error(`Database update failed: ${error.message}`);
+      break;
+    }
+    default:
+      // BILLING_ISSUE, TRANSFER, TEST vb. — simdilik islem gerekmez.
+      break;
+  }
+
+  return jsonResponse({ status: "ok", handled: type });
 }
 
 async function handleDowngradePremium(req: Request): Promise<Response> {
@@ -1975,6 +2132,37 @@ async function consumeRateLimit(
   return { ok: true, remaining: Math.max(0, maxRequests - count - 1) };
 }
 
+async function getRemainingRateLimit(
+  userId: number,
+  scope: string,
+  maxRequests: number,
+  windowSeconds: number,
+): Promise<{ remaining: number; retryAfterSeconds?: number }> {
+  const now = new Date();
+  const { data: current, error: readError } = await supabase
+    .from("ai_rate_limits")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("scope", scope)
+    .maybeSingle();
+  if (readError) throw new Error(`Database query failed: ${readError.message}`);
+
+  if (!current) return { remaining: maxRequests };
+
+  const windowStart = new Date(asString(current.window_start));
+  const elapsedSeconds = Math.floor((now.getTime() - windowStart.getTime()) / 1000);
+  if (!Number.isFinite(elapsedSeconds) || elapsedSeconds >= windowSeconds) {
+    return { remaining: maxRequests };
+  }
+
+  const count = typeof current.request_count === "number" ? current.request_count : 0;
+  const remaining = Math.max(0, maxRequests - count);
+  return {
+    remaining,
+    retryAfterSeconds: remaining <= 0 ? Math.max(1, windowSeconds - elapsedSeconds) : undefined,
+  };
+}
+
 function extractJsonObject(text: string): Record<string, unknown> | null {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
@@ -1984,6 +2172,144 @@ function extractJsonObject(text: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+const workoutIntentKeywords = [
+  "antrenman",
+  "antreman",
+  "egzersiz",
+  "hareket",
+  "workout",
+  "training",
+  "spor",
+  "gym",
+  "salon",
+  "set",
+  "tekrar",
+  "squat",
+  "bench",
+  "deadlift",
+  "bacak",
+  "gogus",
+  "göğüs",
+  "sirt",
+  "sırt",
+  "omuz",
+  "kol",
+  "kardiyo",
+  "plato",
+  "deload",
+];
+
+const majorMuscleGroups = [
+  "CHEST",
+  "BACK",
+  "LEGS",
+  "SHOULDERS",
+  "BICEPS",
+  "TRICEPS",
+  "CORE",
+  "GLUTES",
+  "CARDIO",
+];
+
+function isWorkoutIntent(question: string): boolean {
+  const lower = question.toLowerCase();
+  return workoutIntentKeywords.some((keyword) => lower.includes(keyword));
+}
+
+function normalizedMuscleGroup(value: unknown): string {
+  const group = asString(value).trim().toUpperCase();
+  return group || "GENERAL";
+}
+
+function daysBetween(date: Date, now: Date): number {
+  return Math.floor((now.getTime() - date.getTime()) / 86_400_000);
+}
+
+function listOrDash(values: string[], limit = 5): string {
+  const clean = [...new Set(values.filter(Boolean))].sort().slice(0, limit);
+  return clean.length ? clean.join(", ") : "-";
+}
+
+async function buildWorkoutRecommendationBasis(
+  userId: number,
+  user: UserRow | null,
+  question: string,
+  dailySummary: Record<string, unknown>,
+): Promise<string> {
+  if (!isWorkoutIntent(question)) return "";
+
+  const since = new Date(Date.now() - 28 * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from("workouts")
+    .select("name,muscle_group,workout_date,difficulty,sets,reps,weight")
+    .eq("user_id", userId)
+    .gte("workout_date", since)
+    .order("workout_date", { ascending: false });
+
+  const rows = error ? [] : (data ?? []);
+  const now = new Date();
+  const sevenDaysAgo = now.getTime() - 7 * 86_400_000;
+  const fourteenDaysAgo = now.getTime() - 14 * 86_400_000;
+  const recent7 = rows.filter((row) => {
+    const date = new Date(asString(row.workout_date));
+    return Number.isFinite(date.getTime()) && date.getTime() >= sevenDaysAgo;
+  });
+
+  const fourWeekCounts = new Map<string, number>();
+  const lastByGroup = new Map<string, Date>();
+  for (const row of rows) {
+    const group = normalizedMuscleGroup(row.muscle_group);
+    fourWeekCounts.set(group, (fourWeekCounts.get(group) ?? 0) + 1);
+
+    const date = new Date(asString(row.workout_date));
+    if (!Number.isFinite(date.getTime()) || date.getTime() < fourteenDaysAgo) {
+      continue;
+    }
+    const current = lastByGroup.get(group);
+    if (!current || date > current) lastByGroup.set(group, date);
+  }
+
+  const avoidHeavy: string[] = [];
+  const recovered: string[] = [];
+  for (const [group, date] of lastByGroup.entries()) {
+    const days = daysBetween(date, now);
+    if (days <= 1) avoidHeavy.push(`${group} (${days} gun)`);
+    if (days >= 3) recovered.push(`${group} (${days} gun)`);
+  }
+
+  const undertrained = majorMuscleGroups
+    .filter((group) => (fourWeekCounts.get(group) ?? 0) <= 1)
+    .filter((group) => !avoidHeavy.some((item) => item.startsWith(`${group} `)))
+    .map((group) => `${group} (${fourWeekCounts.get(group) ?? 0}/4 hafta)`);
+
+  const hardSessions = recent7.filter((row) => {
+    const difficulty = asString(row.difficulty).trim().toUpperCase();
+    return difficulty === "HARD" || difficulty === "MAX";
+  }).length;
+  const bestFocus = recent7.length >= 5
+    ? "RECOVERY_OR_TECHNIQUE"
+    : undertrained[0]?.split(" (")[0] ??
+      recovered[0]?.split(" (")[0] ??
+      "FULL_BODY_BASELINE";
+
+  const goal = asString(user?.goal) || asString(dailySummary.goal) ||
+    "maintain";
+  const location = asString(user?.workout_location) ||
+    asString(dailySummary.workoutLocation) || "home";
+  const equipment = asString(user?.equipment_type) ||
+    asString(dailySummary.equipmentType) || "bodyweight";
+
+  return `Workout recommendation basis:
+- Decision order: safety > recovery > goal > equipment > muscle balance > progressive overload.
+- Goal/equipment: ${goal} / ${location} / ${equipment}
+- Last 7 days: ${recent7.length} sessions, ${hardSessions} hard/max.
+- Avoid heavy today: ${listOrDash(avoidHeavy)}
+- Recovered candidates: ${listOrDash(recovered)}
+- Undertrained candidates: ${listOrDash(undertrained)}
+- Best current focus: ${bestFocus}
+- Response rule: first actionItems item must start with "Neye gore:" and explain the basis briefly.`;
 }
 
 async function callGemini(prompt: string): Promise<string> {
@@ -2014,14 +2340,18 @@ async function handleAiCoach(req: Request): Promise<Response> {
   const userId = await userIdFromAuthorization(req);
   const user = await findUserById(userId);
   const premium = isPremiumUser(user);
+  let dailyRemaining: number | null = null;
   if (!premium) {
     const quota = await consumeRateLimit(userId, "coach_free_daily", 2, 86400);
     if (!quota.ok) {
       return jsonResponse({
         error: "Gunluk 2 ucretsiz AI koc hakkin doldu. Premium ile sinirsiz devam edebilirsin.",
         upgradeRequired: true,
+        remainingFreeRequests: 0,
+        retryAfterSeconds: quota.retryAfterSeconds,
       }, 403);
     }
+    dailyRemaining = quota.remaining ?? 0;
   }
   const burst = await consumeRateLimit(userId, premium ? "coach_premium" : "coach", premium ? 75 : 10, premium ? 86400 : 300);
   if (!burst.ok) {
@@ -2031,13 +2361,41 @@ async function handleAiCoach(req: Request): Promise<Response> {
   const body = await readJson(req);
   const question = asString(body.question).trim();
   const goal = asString(body.goal) || asString(user?.goal) || "maintain";
-  const summary = JSON.stringify(body.dailySummary ?? {});
+  const rawDailySummary = body.dailySummary;
+  const dailySummary: Record<string, unknown> =
+    rawDailySummary && typeof rawDailySummary === "object" &&
+      !Array.isArray(rawDailySummary)
+      ? rawDailySummary as Record<string, unknown>
+      : {};
+  const summary = JSON.stringify(dailySummary);
+  const workoutBasis = await buildWorkoutRecommendationBasis(
+    userId,
+    user,
+    question,
+    dailySummary,
+  );
   const prompt = `Sen PusulaFit icin Turkce/English yanit verebilen fitness kocusun.
 JSON disinda metin yazma. Sema:
 {"todayFocus":"string","actionItems":["string"],"nutritionNote":"string","suggestedPrompts":["string"],"isAchievement":false}
+
+Mobil okunabilirlik kurallari:
+- todayFocus en fazla 2 kisa cumle olsun. Baslik, madde, tablo veya uzun paragraf yazma.
+- actionItems 3-6 adet olsun. Her item tek satir ve en fazla 110 karakter olsun.
+- Her actionItems girdisi tek egzersiz/tek adim anlatsin; alt madde, ic ice liste veya "\\n" kullanma.
+- Antreman plani icin format: "Squat: 3 set x 8-10 tekrar · 90 sn dinlen".
+- Isinma, ana hareketler, soguma gibi bolumleri gerekiyorsa ayri kisa item olarak yaz.
+- Markdown basliklari (#, ##), uzun aciklama bloklari ve tekrar eden cumleler kullanma.
+
+Antreman onerisi kurallari:
+- Oneriyi rastgele verme; workout basis varsa onu kullan.
+- Guvenlik/toparlanma, hedef, ekipman, kas dengesi ve progresif yukleme sirasiyla karar ver.
+- Antreman cevabinda actionItems[0] mutlaka "Neye gore:" ile baslasin.
+- Son 0-1 gunde agir calisilan kasi tekrar agir yazma; gerekirse teknik/mobilite ver.
+
 Goal: ${goal}
 Question: ${question}
-Daily summary: ${summary}`;
+Daily summary: ${summary}
+${workoutBasis}`;
   const text = await callGemini(prompt);
   const parsed = extractJsonObject(text);
   return jsonResponse({
@@ -2046,7 +2404,23 @@ Daily summary: ${summary}`;
     nutritionNote: asString(parsed?.nutritionNote) || "Bugun tabagina protein ve lif eklemeyi hedefle.",
     suggestedPrompts: Array.isArray(parsed?.suggestedPrompts) ? parsed?.suggestedPrompts : ["Bugun ne calismaliyim?", "Beslenmemi yorumla"],
     isAchievement: parsed?.isAchievement === true,
-    remainingFreeRequests: premium ? null : burst.remaining,
+    remainingFreeRequests: premium ? null : dailyRemaining,
+  });
+}
+
+async function handleAiCoachQuota(req: Request): Promise<Response> {
+  const userId = await userIdFromAuthorization(req);
+  const user = await findUserById(userId);
+  const premium = isPremiumUser(user);
+  const quota = premium
+    ? null
+    : await getRemainingRateLimit(userId, "coach_free_daily", 2, 86400);
+
+  return jsonResponse({
+    premium,
+    freeDailyLimit: 2,
+    remainingFreeRequests: premium ? null : (quota?.remaining ?? 0),
+    retryAfterSeconds: quota?.retryAfterSeconds,
   });
 }
 
@@ -2249,6 +2623,67 @@ function toExerciseResponse(row: Record<string, unknown>): Record<string, unknow
   };
 }
 
+function exerciseLibraryInstructions(
+  row: Record<string, unknown>,
+  language: string,
+): string | null {
+  const normalized = language.trim().toLowerCase();
+  const languageColumn = `instructions_${normalized}`;
+  const localized = asString(row[languageColumn]).trim();
+  const fallback = asString(row.instructions_en).trim();
+  return localized || fallback || null;
+}
+
+function exerciseLibrarySteps(
+  row: Record<string, unknown>,
+  language: string,
+): string[] {
+  const normalized = language.trim().toLowerCase();
+  const localized =
+    normalized === "tr" ? jsonArray(row.instruction_steps_tr) : [];
+  const fallback = jsonArray(row.instruction_steps_en);
+  return (localized.length ? localized : fallback).map((item) =>
+    asString(item),
+  ).filter(Boolean);
+}
+
+function toExerciseLibraryResponse(
+  row: Record<string, unknown>,
+  language: string,
+): Record<string, unknown> {
+  return {
+    id: asString(row.id),
+    name: asString(row.name),
+    category: asString(row.category),
+    bodyPart: asString(row.body_part),
+    equipment: asString(row.equipment),
+    instructions: exerciseLibraryInstructions(row, language),
+    instructionSteps: exerciseLibrarySteps(row, language),
+    muscleGroup: row.muscle_group ?? null,
+    secondaryMuscles: jsonArray(row.secondary_muscles).map((item) =>
+      asString(item),
+    ).filter(Boolean),
+    target: row.target ?? null,
+    mediaId: row.media_id ?? null,
+  };
+}
+
+function fallbackExerciseLibraryRows(): Record<string, unknown>[] {
+  return Object.values(fallbackExerciseCatalog).flat().map((exercise) => ({
+    id: String(exercise.id ?? ""),
+    name: exercise.name,
+    category: asString(exercise.muscleGroup).toLowerCase(),
+    bodyPart: asString(exercise.muscleGroup).toLowerCase(),
+    equipment: "body weight",
+    instructions: exercise.instructions ?? exercise.description ?? null,
+    instructionSteps: jsonArray(null),
+    muscleGroup: exercise.muscleGroup ?? null,
+    secondaryMuscles: jsonArray(null),
+    target: asString(exercise.muscleGroup).toLowerCase(),
+    mediaId: null,
+  }));
+}
+
 const fallbackExerciseCatalog: Record<string, Record<string, unknown>[]> = {
   CHEST: [
     { id: 9301, muscleGroup: "CHEST", name: "Bench Press", description: "Gogus kuvveti icin temel itis egzersizi.", instructions: "Kurek kemiklerini sikistir, bar kontrollu insin.", tips: "Dirsekleri omuz hizasinin cok disina acma." },
@@ -2294,10 +2729,74 @@ async function handleExerciseGroups(): Promise<Response> {
   return jsonResponse(groups.length ? groups : Object.keys(fallbackExerciseCatalog));
 }
 
+async function handleExerciseLibraryMetadata(
+  column: "category" | "equipment",
+  fallback: string[],
+): Promise<Response> {
+  const { data, error } = await supabase
+    .from("exercise_library")
+    .select(column)
+    .order(column, { ascending: true })
+    .limit(2000);
+  if (error) return jsonResponse(fallback);
+  const values = [
+    ...new Set((data ?? []).map((row) => asString(row[column])).filter(Boolean)),
+  ];
+  return jsonResponse(values.length ? values : fallback);
+}
+
+async function handleExerciseLibraryById(
+  exerciseId: string,
+  req: Request,
+): Promise<Response> {
+  const url = new URL(req.url);
+  const language = url.searchParams.get("language") ?? "tr";
+  const { data, error } = await supabase
+    .from("exercise_library")
+    .select("*")
+    .eq("id", decodeURIComponent(exerciseId))
+    .maybeSingle();
+  if (error) throw new Error(`Database query failed: ${error.message}`);
+  if (!data) return errorResponse("Exercise not found", 404);
+  return jsonResponse(toExerciseLibraryResponse(data, language));
+}
+
+async function handleExerciseLibrary(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const language = url.searchParams.get("language") ?? "tr";
+  const category = url.searchParams.get("category")?.trim();
+  const equipment = url.searchParams.get("equipment")?.trim();
+  const target = url.searchParams.get("target")?.trim();
+  const search = url.searchParams.get("search")?.trim();
+
+  let query = supabase.from("exercise_library").select("*");
+
+  if (category) query = query.eq("category", category);
+  if (equipment) query = query.eq("equipment", equipment);
+  if (target) query = query.eq("target", target);
+  if (search) query = query.ilike("name", `%${search}%`);
+
+  const { data, error } = await query
+    .order("name", { ascending: true })
+    .limit(2000);
+  if (error) {
+    return jsonResponse(fallbackExerciseLibraryRows());
+  }
+  return jsonResponse(
+    (data ?? []).map((row) => toExerciseLibraryResponse(row, language)),
+  );
+}
+
+async function handleBodyweightExerciseLibrary(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  url.searchParams.set("equipment", "body weight");
+  return await handleExerciseLibrary(new Request(url.toString(), req));
+}
+
 async function handleExercises(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const muscleGroup = url.searchParams.get("muscleGroup")?.trim();
-  if (!muscleGroup) return errorResponse("muscleGroup gerekli");
+  if (!muscleGroup) return await handleExerciseLibrary(req);
 
   const { data, error } = await supabase
     .from("exercises")
@@ -2757,12 +3256,21 @@ async function route(req: Request): Promise<Response> {
     }, 410);
   }
 
+  if (path === "/api/user/premium/sync" && req.method === "POST") {
+    return await handlePremiumSync(req);
+  }
+
+  // Eski istemci surumleri icin geriye donuk uyumluluk — ayni handler.
   if (path === "/api/user/upgrade-premium/iap" && req.method === "POST") {
-    return await handleUpgradePremiumIap(req);
+    return await handlePremiumSync(req);
   }
 
   if (path === "/api/user/downgrade-premium" && req.method === "POST") {
     return await handleDowngradePremium(req);
+  }
+
+  if (path === "/api/webhooks/revenuecat" && req.method === "POST") {
+    return await handleRevenueCatWebhook(req);
   }
 
   if (path === "/api/apple/notifications" && req.method === "POST") {
@@ -2785,6 +3293,50 @@ async function route(req: Request): Promise<Response> {
 
   if (path === "/api/exercises/groups" && req.method === "GET") {
     return await handleExerciseGroups();
+  }
+
+  if (path === "/api/exercises/categories" && req.method === "GET") {
+    return await handleExerciseLibraryMetadata("category", [
+      "waist",
+      "upper arms",
+      "upper legs",
+      "back",
+      "chest",
+      "shoulders",
+      "lower legs",
+      "lower arms",
+      "cardio",
+      "neck",
+    ]);
+  }
+
+  if (path === "/api/exercises/equipment" && req.method === "GET") {
+    return await handleExerciseLibraryMetadata("equipment", [
+      "body weight",
+      "dumbbell",
+      "cable",
+      "barbell",
+      "leverage machine",
+      "band",
+      "smith machine",
+      "kettlebell",
+      "weighted",
+      "stability ball",
+      "ez barbell",
+    ]);
+  }
+
+  if (path === "/api/exercises/bodyweight" && req.method === "GET") {
+    return await handleBodyweightExerciseLibrary(req);
+  }
+
+  if (
+    segments.length === 3 &&
+    segments[0] === "api" &&
+    segments[1] === "exercises" &&
+    req.method === "GET"
+  ) {
+    return await handleExerciseLibraryById(segments[2], req);
   }
 
   if (path === "/api/exercises" && req.method === "GET") {
@@ -2831,6 +3383,10 @@ async function route(req: Request): Promise<Response> {
 
   if (path === "/api/ai/coach" && req.method === "POST") {
     return await handleAiCoach(req);
+  }
+
+  if (path === "/api/ai/coach/quota" && req.method === "GET") {
+    return await handleAiCoachQuota(req);
   }
 
   if (path === "/api/ai/nutrition" && req.method === "POST") {

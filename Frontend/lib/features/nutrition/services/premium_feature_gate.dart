@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/constants/premium_features.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/premium_screen.dart';
 
@@ -21,7 +22,10 @@ class PremiumFeatureGate {
     final auth = context.read<AuthProvider>();
 
     // 1. Hızlı yol: önbelleklenmiş tier
-    if (auth.user?.premiumTier?.toLowerCase().trim() == 'premium') {
+    if (isPremiumTier(
+      auth.user?.premiumTier,
+      expiresAt: auth.user?.premiumExpiresAt,
+    )) {
       return true;
     }
 
@@ -214,15 +218,18 @@ class PremiumFeatureGate {
       final data = response.data;
       if (data is! Map) return false;
       final isActive = data['isActive'] == true;
+      final expiresAt = data['expiresAt'] != null
+          ? DateTime.tryParse(data['expiresAt'].toString())
+          : null;
       auth.setPremiumActive(
-        isActive,
-        premiumPlan: data['planId']?.toString(),
-        premiumExpiresAt: data['expiresAt'] != null
-            ? DateTime.tryParse(data['expiresAt'].toString())
-            : null,
+        isActive ||
+            isPremiumTier(data['tier']?.toString(), expiresAt: expiresAt),
+        premiumPlan: normalizePremiumPlanId(data['planId']?.toString()),
+        premiumExpiresAt: expiresAt,
         premiumCancelAtPeriodEnd: data['cancelAtPeriodEnd'] == true,
       );
-      return isActive;
+      return isActive ||
+          isPremiumTier(data['tier']?.toString(), expiresAt: expiresAt);
     } catch (_) {
       return false;
     }

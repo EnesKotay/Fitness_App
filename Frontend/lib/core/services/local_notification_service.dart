@@ -44,8 +44,19 @@ class LocalNotificationService {
     if (_initialized) return;
 
     tz_data.initializeTimeZones();
-    final String tzName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(tzName));
+    try {
+      final String tzName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(tzName));
+    } catch (e) {
+      debugPrint(
+        'LocalNotificationService: Timezone tespit hatası, varsayılan İstanbul yapılıyor: $e',
+      );
+      try {
+        tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
+      } catch (_) {
+        tz.setLocalLocation(tz.UTC);
+      }
+    }
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -103,6 +114,8 @@ class LocalNotificationService {
 
   /// Bildirim izni iste (iOS + Android 13+)
   Future<bool> requestPermission() async {
+    await init();
+
     final ios = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
@@ -124,6 +137,35 @@ class LocalNotificationService {
       return granted ?? false;
     }
     return true;
+  }
+
+  Future<bool> areNotificationsEnabled() async {
+    await init();
+
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android != null) {
+      return await android.areNotificationsEnabled() ?? false;
+    }
+
+    // iOS izin durumu bu plugin API'sinde doğrudan okunmadığı için izin isteme
+    // akışını kullanıyoruz; daha önce izin verildiyse kullanıcıya tekrar sormaz.
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+    if (ios != null) {
+      return await requestPermission();
+    }
+
+    return true;
+  }
+
+  Future<bool> ensurePermission() async {
+    if (await areNotificationsEnabled()) return true;
+    return requestPermission();
   }
 
   // ── Su hatırlatıcıları ─────────────────────────────────────────────────────
@@ -250,12 +292,35 @@ class LocalNotificationService {
     await _plugin.cancel(_dailySummaryReminderId);
 
     final quotes = [
-      {'title': '🌟 Bugün harika bir adım attın!', 'body': 'Yarın daha da güçlü olacaksın, harika ilerliyorsun, durma! 💪'},
-      {'title': '🔥 İstikrar başarının anahtarıdır.', 'body': 'Küçük adımlar, büyük sonuçlar doğurur. Günlük özetini kontrol et ve devam et!'},
-      {'title': '⚡ Sınırlarını aşmaya hazır mısın?', 'body': 'Kasların yorulur ama hedeflerin asla. Bugünkü durumunu hemen gör!'},
-      {'title': '📈 Harika bir gün daha bitti!', 'body': 'Bugünkü çabaların yarınki seni inşa ediyor. Gününü değerlendirmek için tıkla.'},
-      {'title': '🙏 Başarı disiplinle gelir.', 'body': 'Bugün gösterdiğin kararlılık için kendine teşekkür et ve özetini incele.'},
-      {'title': '🚀 Güçlenmek zaman alır.', 'body': 'Her gün %1 daha iyi olmak, seni zirveye taşıyacak. İlerlemeni hemen kaydet!'},
+      {
+        'title': '🌟 Bugün harika bir adım attın!',
+        'body': 'Yarın daha da güçlü olacaksın, harika ilerliyorsun, durma! 💪',
+      },
+      {
+        'title': '🔥 İstikrar başarının anahtarıdır.',
+        'body':
+            'Küçük adımlar, büyük sonuçlar doğurur. Günlük özetini kontrol et ve devam et!',
+      },
+      {
+        'title': '⚡ Sınırlarını aşmaya hazır mısın?',
+        'body':
+            'Kasların yorulur ama hedeflerin asla. Bugünkü durumunu hemen gör!',
+      },
+      {
+        'title': '📈 Harika bir gün daha bitti!',
+        'body':
+            'Bugünkü çabaların yarınki seni inşa ediyor. Gününü değerlendirmek için tıkla.',
+      },
+      {
+        'title': '🙏 Başarı disiplinle gelir.',
+        'body':
+            'Bugün gösterdiğin kararlılık için kendine teşekkür et ve özetini incele.',
+      },
+      {
+        'title': '🚀 Güçlenmek zaman alır.',
+        'body':
+            'Her gün %1 daha iyi olmak, seni zirveye taşıyacak. İlerlemeni hemen kaydet!',
+      },
     ];
     final index = DateTime.now().second % quotes.length;
     final randomQuote = quotes[index];
@@ -281,9 +346,21 @@ class LocalNotificationService {
     await _plugin.cancel(_morningRecoveryId);
 
     final quotes = [
-      {'title': '🌅 Günaydın! Vücudun bugün ne kadar hazır?', 'body': 'Uyku ve toparlanma durumunu kontrol et, antrenman planını ona göre yap.'},
-      {'title': '🔋 Enerjini nasıl hissediyorsun?', 'body': 'Toparlanma skorunu kontrol et ve güne güçlü bir başlangıç yap!'},
-      {'title': '☀️ Yeni gün, yeni hedefler.', 'body': 'Kasların yeterince dinlendi mi? Öğrenmek için uygulamaya göz at.'},
+      {
+        'title': '🌅 Günaydın! Vücudun bugün ne kadar hazır?',
+        'body':
+            'Uyku ve toparlanma durumunu kontrol et, antrenman planını ona göre yap.',
+      },
+      {
+        'title': '🔋 Enerjini nasıl hissediyorsun?',
+        'body':
+            'Toparlanma skorunu kontrol et ve güne güçlü bir başlangıç yap!',
+      },
+      {
+        'title': '☀️ Yeni gün, yeni hedefler.',
+        'body':
+            'Kasların yeterince dinlendi mi? Öğrenmek için uygulamaya göz at.',
+      },
     ];
     final index = DateTime.now().day % quotes.length;
     final quote = quotes[index];
@@ -295,7 +372,9 @@ class LocalNotificationService {
       hour: time.hour,
       minute: time.minute,
     );
-    debugPrint('LocalNotificationService: Sabah toparlanma hatırlatıcısı planlandı');
+    debugPrint(
+      'LocalNotificationService: Sabah toparlanma hatırlatıcısı planlandı',
+    );
   }
 
   Future<void> cancelMorningRecoveryReminder() async {
@@ -308,21 +387,12 @@ class LocalNotificationService {
 
   /// iOS app badge sayısını sıfırla (kırmızı badge'i kaldır)
   Future<void> clearAppBadge() async {
-    // iOS için badge sıfırlama - tüm pending bildirimleri iptal et
-    await _plugin.cancelAll();
-
-    // iOS badge sayısını 0'a çekmek için boş bir bildirim gönder ve hemen iptal et
     final iosImpl = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     if (iosImpl != null) {
-      // Badge iznini yeniden talep et (bu badge'i sıfırlar)
-      await iosImpl.requestPermissions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await iosImpl.requestPermissions(alert: true, badge: true, sound: true);
     }
   }
 
@@ -332,6 +402,12 @@ class LocalNotificationService {
     required String body,
   }) async {
     await init();
+    if (!await ensurePermission()) {
+      debugPrint(
+        'LocalNotificationService: Remote bildirim gösterilemedi, izin yok',
+      );
+      return;
+    }
     await _plugin.show(
       40000 + id,
       title,
@@ -376,30 +452,72 @@ class LocalNotificationService {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduled,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _androidChannel.id,
-          _androidChannel.name,
-          channelDescription: _androidChannel.description,
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduled,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: false,
+            presentSound: true,
+          ),
         ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: false,
-          presentSound: true,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time, // her gün tekrar et
+      );
+    } catch (e) {
+      debugPrint('LocalNotificationService: zonedSchedule hatası ($id): $e');
+    }
+  }
+
+  /// Anında test bildirimi gönderir
+  Future<bool> sendTestNotificationImmediate() async {
+    await init();
+    if (!await ensurePermission()) {
+      debugPrint('LocalNotificationService: Test bildirimi için izin yok');
+      return false;
+    }
+    try {
+      await _plugin.show(
+        999,
+        '🔔 Bildirim Testi',
+        'Harika! PusulaFit bildirimleri cihazınızda başarıyla çalışıyor. 💪',
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _androidChannel.id,
+            _androidChannel.name,
+            channelDescription: _androidChannel.description,
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            playSound: true,
+            enableVibration: true,
+          ),
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time, // her gün tekrar et
-    );
+      );
+      debugPrint('LocalNotificationService: Test bildirimi tetiklendi');
+      return true;
+    } catch (e) {
+      debugPrint('LocalNotificationService: Test bildirimi hatası: $e');
+      return false;
+    }
   }
 }

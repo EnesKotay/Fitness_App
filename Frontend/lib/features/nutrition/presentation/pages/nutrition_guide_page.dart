@@ -15,6 +15,7 @@ import '../../data/datasources/weekly_meal_plan_storage.dart';
 import '../../domain/entities/meal_type.dart';
 import '../../domain/entities/nutrition_preferences.dart';
 import '../../domain/entities/planned_meal.dart';
+import '../../domain/entities/food_item.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../models/nutrition_ai_response.dart';
 import '../../services/ai_customized_plan_mapper.dart';
@@ -29,6 +30,7 @@ import 'weekly_meal_plan_page.dart';
 part 'nutrition_guide_models.dart';
 part 'nutrition_guide_data.dart';
 part 'nutrition_guide_components.dart';
+part 'nutrition_quick_log_sheet.dart';
 
 class NutritionGuidePage extends StatefulWidget {
   const NutritionGuidePage({super.key});
@@ -363,10 +365,27 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
     ];
   }
 
-  void _openFoodSearch() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FoodSearchPage(selectedMealType: _suggestedMealType()),
+  void _openFoodSearch({MealType? mealType}) {
+    final selectedMeal = mealType ?? _suggestedMealType();
+    _openQuickLogSheet(selectedMeal);
+  }
+
+  void _openQuickLogSheet(MealType mealType) {
+    final goal = _goals[_selectedIndex];
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _NutritionQuickLogSheet(
+        mealType: mealType,
+        goal: goal,
+        onFoodSearch: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => FoodSearchPage(selectedMealType: mealType),
+            ),
+          );
+        },
       ),
     );
   }
@@ -540,6 +559,7 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
     final insights = _buildInsights(provider, goal);
     final isPremiumUser = isPremiumTier(
       context.watch<AuthProvider>().user?.premiumTier,
+      expiresAt: context.watch<AuthProvider>().user?.premiumExpiresAt,
     );
     final hasProfile = provider.profile != null;
     final topPad = MediaQuery.of(context).padding.top;
@@ -763,7 +783,7 @@ class _NutritionGuidePageState extends State<NutritionGuidePage>
           _SmartNowCard(
                 goal: goal,
                 provider: provider,
-                onFoodSearch: _openFoodSearch,
+                onFoodSearch: (mealType) => _openFoodSearch(mealType: mealType),
                 workoutProvider: context.read<WorkoutProvider>(),
               )
               .animate(key: ValueKey('smart_${goal.label}'))

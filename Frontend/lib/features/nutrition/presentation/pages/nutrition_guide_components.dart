@@ -150,7 +150,7 @@ String _fallbackFoodFor({
 class _SmartNowCard extends StatelessWidget {
   final _Goal goal;
   final DietProvider provider;
-  final VoidCallback onFoodSearch;
+  final void Function(MealType) onFoodSearch;
   final WorkoutProvider? workoutProvider;
 
   const _SmartNowCard({
@@ -588,7 +588,7 @@ class _SmartNowCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 // Dolu gradient buton
                 GestureDetector(
-                  onTap: onFoodSearch,
+                  onTap: () => onFoodSearch(currentMealType),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -846,7 +846,7 @@ class _SmartNowCard extends StatelessWidget {
 
           // ── Yemek fikirleri ──
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
             child: Row(
               children: [
                 Text(
@@ -892,9 +892,134 @@ class _SmartNowCard extends StatelessWidget {
               ],
             ),
           ),
+
+          // ── Yapay Zeka Koçu Kısayolları ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Divider(color: Colors.white.withValues(alpha: 0.05), height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(Icons.psychology_rounded, size: 14, color: activeColor.withValues(alpha: 0.8)),
+                    const SizedBox(width: 5),
+                    Text(
+                      'AI Koç\'a Danış:',
+                      style: GoogleFonts.dmSans(
+                        color: Colors.white.withValues(alpha: 0.5),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _buildDynamicAiPrompts(remaining, proteinGap, carbGap, fatGap, currentMealType)
+                      .map(
+                        (prompt) => GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, 'diet_chat', arguments: prompt.query);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.03),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: activeColor.withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  prompt.emoji,
+                                  style: const TextStyle(fontSize: 11.5),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  prompt.label,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  List<({String label, String query, String emoji})> _buildDynamicAiPrompts(
+    double remaining,
+    double proteinGap,
+    double carbGap,
+    double fatGap,
+    MealType currentMealType,
+  ) {
+    final list = <({String label, String query, String emoji})>[];
+
+    if (proteinGap > 15) {
+      list.add((
+        label: 'Protein Önerisi',
+        query: 'Kalan protein açığım olan ${proteinGap.round()} gramı kapatmak için ne yiyebilirim? Pratik ve yüksek proteinli seçenekler söyler misin?',
+        emoji: '🥚',
+      ));
+    }
+
+    if (remaining > 300) {
+      list.add((
+        label: '${currentMealType.label} Tavsiyesi',
+        query: 'Kalan ${remaining.round()} kalorim için bana hedeflerime uygun sağlıklı bir ${currentMealType.label} alternatifi önerir misin?',
+        emoji: '🍲',
+      ));
+    } else if (remaining > 50 && remaining <= 300) {
+      list.add((
+        label: 'Hafif Atıştırmalık',
+        query: 'Bugün kalan kalori bütçem sadece ${remaining.round()} kcal. Beni tok tutacak hafif bir atıştırmalık önerir misin?',
+        emoji: '🍏',
+      ));
+    } else {
+      list.add((
+        label: 'Günü Kapatma Tavsiyesi',
+        query: 'Kalori hedefimi doldurdum. Gece açlığı bastırmak veya uyku öncesi toparlanmayı desteklemek için ne yapmalıyım?',
+        emoji: '🥗',
+      ));
+    }
+
+    if (provider.waterLiters < 1.5) {
+      list.add((
+        label: 'Su İçme Etkisi',
+        query: 'Bugün henüz ${(provider.waterLiters * 1000).round()}ml su içtim. Su içmenin yağ yakımına ve antrenman performansıma etkileri nedir?',
+        emoji: '💧',
+      ));
+    }
+
+    list.add((
+      label: 'İlerleme Analizi',
+      query: 'Bugünkü kalori ve makro dağılımıma göre hedeflerimi tutturma oranımı analiz edip geri bildirim verir misin?',
+      emoji: '📈',
+    ));
+
+    return list;
   }
 }
 
@@ -3348,12 +3473,11 @@ class _DailyPlanCardState extends State<_DailyPlanCard> {
                         ),
                       ),
                     // Ayırıcı
-                    if (widget.onAiCustomizeTap != null)
-                      Container(
-                        width: 1,
-                        height: 28,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
+                    Container(
+                      width: 1,
+                      height: 28,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
                     // Kopyala Butonu
                     Expanded(
                       child: GestureDetector(
@@ -3395,6 +3519,50 @@ class _DailyPlanCardState extends State<_DailyPlanCard> {
                         ),
                       ),
                     ),
+                    // Ayırıcı
+                    Container(
+                      width: 1,
+                      height: 28,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    // Market Listesine Ekle Butonu
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _exportToGroceryList(context, smartPlan),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 54),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 12,
+                          ),
+                          color: const Color(0xFF64D2FF).withValues(alpha: 0.08),
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.shopping_cart_rounded,
+                                    color: Color(0xFF64D2FF),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Text(
+                                    'Alışverişe Ekle',
+                                    style: GoogleFonts.inter(
+                                      color: const Color(0xFF64D2FF),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -3402,6 +3570,43 @@ class _DailyPlanCardState extends State<_DailyPlanCard> {
           ),
         ),
       ),
+    );
+  }
+
+  void _exportToGroceryList(BuildContext context, SmartDailyPlan smartPlan) {
+    final items = <String>[];
+    for (final meal in smartPlan.meals) {
+      if (meal.ingredients.isNotEmpty) {
+        items.addAll(meal.ingredients);
+      } else {
+        for (final part in meal.food.split('+')) {
+          final trimmed = part.trim();
+          if (trimmed.isNotEmpty) {
+            items.add(trimmed);
+          }
+        }
+      }
+    }
+    
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Eklenecek malzeme bulunamadı.'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    Navigator.pushNamed(
+      context,
+      'smart_grocery_list',
+      arguments: {
+        'seedItems': items,
+        'seedReason': '${widget.goal.label} planından malzemeler aktarıldı.',
+        'seedMealName': '${widget.goal.label} Günü',
+      },
     );
   }
 }

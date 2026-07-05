@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
+import '../../core/api/api_client.dart';
 import '../../core/services/ai_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/preferences/app_preferences.dart';
@@ -13,6 +14,8 @@ import '../tracking/providers/tracking_provider.dart';
 import '../workout/providers/workout_provider.dart';
 import '../workout/providers/workout_program_provider.dart';
 import '../workout/providers/streak_provider.dart';
+import '../workout/providers/exercise_library_provider.dart';
+import '../workout/services/exercise_library_service.dart';
 import '../weight/presentation/providers/weight_provider.dart';
 import '../ai_coach/providers/weekly_plan_provider.dart';
 import '../recipes/presentation/state/recipe_provider.dart';
@@ -50,6 +53,12 @@ class AppProviders {
     ChangeNotifierProvider(create: (_) => WeeklyPlanProvider()..init()),
     ChangeNotifierProvider(create: (_) => RecipeProvider()),
     Provider(create: (_) => AIService()),
+    Provider(create: (_) => ExerciseLibraryService(ApiClient())),
+    ChangeNotifierProvider(
+      create: (context) => ExerciseLibraryProvider(
+        context.read<ExerciseLibraryService>(),
+      ),
+    ),
     ChangeNotifierProxyProvider3<
       WeightProvider,
       WorkoutProvider,

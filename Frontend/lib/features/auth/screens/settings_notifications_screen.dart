@@ -466,6 +466,68 @@ class _SettingsNotificationsScreenState
               ),
             ],
           ]),
+          const SizedBox(height: 16),
+          _sectionHeader('TEST'),
+          _buildCard([
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notification_important_rounded,
+                  color: _accent,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Test Bildirimi Gönder',
+                style: TextStyle(
+                  color: _textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              subtitle: const Text(
+                'Cihazın bildirim alıp almadığını test etmek için anlık bildirim tetikle.',
+                style: TextStyle(color: _textSecondary, fontSize: 12.5),
+              ),
+              trailing: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: _textSecondary,
+                size: 14,
+              ),
+              onTap: () async {
+                if (!_enabled) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lütfen önce bildirimleri etkinleştirin.'),
+                      backgroundColor: Colors.amber,
+                    ),
+                  );
+                  return;
+                }
+
+                final sent = await LocalNotificationService.instance
+                    .sendTestNotificationImmediate();
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        sent
+                            ? 'Test bildirimi cihazınıza gönderildi! 🔔'
+                            : 'Bildirim izni verilmediği için test gönderilemedi.',
+                      ),
+                      backgroundColor: sent ? _accent : Colors.redAccent,
+                    ),
+                  );
+                }
+              },
+            ),
+          ]),
           const SizedBox(height: 40),
         ],
       ),

@@ -470,6 +470,12 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             const SizedBox(height: 20),
 
             // ── Öğünler bölümü ─────────────────────────────────────────────
+            // Empty state (sadece görsel, öğünleri gizlemez)
+            if (provider.entries.isEmpty) ...[
+              _buildEmptyMealsState(context),
+              const SizedBox(height: 16),
+            ],
+
             _buildSectionHeader(
               icon: Icons.restaurant_menu_rounded,
               label: 'Öğünler',
@@ -485,7 +491,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             ).animate().fadeIn(delay: 140.ms, duration: 300.ms),
             const SizedBox(height: 10),
 
-            // ── Öğün kartları ──────────────────────────────────────────────
+            // ── Öğün kartları (her zaman göster) ──────────────────────────────
             ...MealType.values.map((type) {
               final index = type.index;
               return Padding(
@@ -715,7 +721,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                               Text(
                                 isOver
                                     ? '+$overAmount'
-                                    : remaining.round().toString(),
+                                    : (remaining + burned).round().toString(),
                                 style: GoogleFonts.dmSans(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w800,
@@ -735,6 +741,28 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                                   letterSpacing: 0.3,
                                 ),
                               ),
+                              if (burned > 0 && !isOver) ...[
+                                const SizedBox(height: 3),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.local_fire_department_rounded,
+                                      size: 10,
+                                      color: Colors.orange.shade300,
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      '+${burned.round()}',
+                                      style: GoogleFonts.dmSans(
+                                        fontSize: 9,
+                                        color: Colors.orange.shade300,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -819,33 +847,33 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
                 endIndent: 20,
               ),
 
-              // ── Makro mini strip ──────────────────────────────────────────
+              // ── Makro progress bar'ları ─────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+                child: Column(
                   children: [
-                    _miniMacro(
-                      'Protein',
-                      t.totalProtein,
-                      targets.protein,
-                      const Color(0xFF5B9BFF),
-                      icon: Icons.fitness_center_rounded,
+                    _buildMacroProgressBar(
+                      emoji: '🥩',
+                      label: 'Protein',
+                      current: t.totalProtein,
+                      target: targets.protein,
+                      color: Colors.red.shade300,
                     ),
-                    _macroSeparator(),
-                    _miniMacro(
-                      'Karb',
-                      t.totalCarb,
-                      targets.carb,
-                      const Color(0xFF4CD1A3),
-                      icon: Icons.grass_rounded,
+                    const SizedBox(height: 12),
+                    _buildMacroProgressBar(
+                      emoji: '🍞',
+                      label: 'Karbonhidrat',
+                      current: t.totalCarb,
+                      target: targets.carb,
+                      color: Colors.amber.shade300,
                     ),
-                    _macroSeparator(),
-                    _miniMacro(
-                      'Yağ',
-                      t.totalFat,
-                      targets.fat,
-                      const Color(0xFFFFB74D),
-                      icon: Icons.water_drop_rounded,
+                    const SizedBox(height: 12),
+                    _buildMacroProgressBar(
+                      emoji: '🥑',
+                      label: 'Yağ',
+                      current: t.totalFat,
+                      target: targets.fat,
+                      color: Colors.green.shade300,
                     ),
                   ],
                 ),
@@ -900,116 +928,6 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _miniMacro(
-    String label,
-    double value,
-    double target,
-    Color color, {
-    IconData? icon,
-  }) {
-    final progress = target > 0 ? (value / target).clamp(0.0, 1.0) : 0.0;
-    final remaining = (target - value).clamp(0, double.infinity);
-    final isComplete = value >= target && target > 0;
-
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Circular progress with value inside
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: CircularProgressIndicator(
-                    value: 1,
-                    strokeWidth: 3.5,
-                    color: color.withValues(alpha: 0.12),
-                  ),
-                ),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0, end: progress),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutCubic,
-                  builder: (_, v, _) => SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: CircularProgressIndicator(
-                      value: v,
-                      strokeWidth: 3.5,
-                      strokeCap: StrokeCap.round,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        isComplete ? const Color(0xFF43E97B) : color,
-                      ),
-                    ),
-                  ),
-                ),
-                Text(
-                  '${value.round()}',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    height: 1.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Label
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 10, color: color),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                label,
-                style: GoogleFonts.dmSans(
-                  fontSize: 10.5,
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          // Target info
-          Text(
-            target > 0
-                ? (isComplete
-                      ? '✓ ${target.round()}g'
-                      : '${remaining.round()}g kaldı')
-                : '—',
-            style: GoogleFonts.dmSans(
-              fontSize: 9,
-              color: isComplete
-                  ? const Color(0xFF43E97B).withValues(alpha: 0.8)
-                  : Colors.white.withValues(alpha: 0.35),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _macroSeparator() {
-    return Container(
-      width: 1,
-      height: 44,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      color: Colors.white.withValues(alpha: 0.06),
     );
   }
 
@@ -1519,6 +1437,7 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
   // ─── FAB ──────────────────────────────────────────────────────────────────
   Widget _buildFAB(BuildContext context) {
     return FloatingActionButton.extended(
+      heroTag: 'diet_dashboard_add_food_fab',
       onPressed: () => ScanOptionsSheet.show(
         context,
         defaultMealType: MealType.snack,
@@ -1659,51 +1578,66 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
     }
   }
 
-  Widget _buildQuickAddSuggestions(BuildContext context, DietProvider provider) {
+  Widget _buildQuickAddSuggestions(
+    BuildContext context,
+    DietProvider provider,
+  ) {
     final hour = DateTime.now().hour;
     MealType smartType;
     String titleText;
-    List<Map<String, String>> suggestions;
+    List<Map<String, dynamic>> suggestions;
 
     if (hour >= 5 && hour < 11) {
       smartType = MealType.breakfast;
-      titleText = 'Pratik Kahvaltı';
+      titleText = '✨ Kahvaltı Önerileri';
       suggestions = [
-        {'name': 'Haşlanmış yumurta', 'emoji': '🍳'},
-        {'name': 'Beyaz peynir', 'emoji': '🧀'},
-        {'name': 'Zeytin', 'emoji': '🫒'},
-        {'name': 'Tam buğday ekmeği', 'emoji': '🍞'},
-        {'name': 'Yulaf ezmesi', 'emoji': '🥣'},
+        {'name': 'Haşlanmış yumurta', 'emoji': '🍳', 'kcal': 78},
+        {'name': 'Beyaz peynir', 'emoji': '🧀', 'kcal': 90},
+        {'name': 'Zeytin', 'emoji': '🫒', 'kcal': 45},
+        {'name': 'Tam buğday ekmeği', 'emoji': '🍞', 'kcal': 80},
+        {'name': 'Yulaf ezmesi', 'emoji': '🥣', 'kcal': 150},
+        {'name': 'Muz', 'emoji': '🍌', 'kcal': 89},
+        {'name': 'Yeşil çay', 'emoji': '🍵', 'kcal': 2},
+        {'name': 'Ceviz', 'emoji': '🌰', 'kcal': 185},
       ];
     } else if (hour >= 11 && hour < 16) {
       smartType = MealType.lunch;
-      titleText = 'Hızlı Öğle Yemeği';
+      titleText = '✨ Öğle Önerileri';
       suggestions = [
-        {'name': 'Tavuk göğsü', 'emoji': '🍗'},
-        {'name': 'Pirinç pilavı', 'emoji': '🍚'},
-        {'name': 'Mevsim salatası', 'emoji': '🥗'},
-        {'name': 'Yoğurt', 'emoji': '🥛'},
-        {'name': 'Izgara köfte', 'emoji': '🥩'},
+        {'name': 'Tavuk göğsü', 'emoji': '🍗', 'kcal': 165},
+        {'name': 'Pirinç pilavı', 'emoji': '🍚', 'kcal': 130},
+        {'name': 'Mevsim salatası', 'emoji': '🥗', 'kcal': 50},
+        {'name': 'Yoğurt', 'emoji': '🥛', 'kcal': 59},
+        {'name': 'Izgara köfte', 'emoji': '🥩', 'kcal': 250},
+        {'name': 'Makarna', 'emoji': '🍝', 'kcal': 158},
+        {'name': 'Somon', 'emoji': '🐟', 'kcal': 206},
+        {'name': 'Bulgur pilavı', 'emoji': '🌾', 'kcal': 83},
       ];
     } else if (hour >= 17 && hour < 22) {
       smartType = MealType.dinner;
-      titleText = 'Hafif Akşam Yemeği';
+      titleText = '✨ Akşam Önerileri';
       suggestions = [
-        {'name': 'Mercimek çorbası', 'emoji': '🍲'},
-        {'name': 'Izgara köfte', 'emoji': '🥩'},
-        {'name': 'Sebze yemeği', 'emoji': '🥦'},
-        {'name': 'Ayran', 'emoji': '🥤'},
-        {'name': 'Somon', 'emoji': '🐟'},
+        {'name': 'Mercimek çorbası', 'emoji': '🍲', 'kcal': 116},
+        {'name': 'Izgara tavuk', 'emoji': '🍗', 'kcal': 165},
+        {'name': 'Sebze yemeği', 'emoji': '🥦', 'kcal': 90},
+        {'name': 'Ayran', 'emoji': '🥤', 'kcal': 37},
+        {'name': 'Ton balığı', 'emoji': '🐟', 'kcal': 184},
+        {'name': 'Kinoa', 'emoji': '🌱', 'kcal': 120},
+        {'name': 'Omlet', 'emoji': '🍳', 'kcal': 154},
+        {'name': 'Çoban salatası', 'emoji': '🥗', 'kcal': 95},
       ];
     } else {
       smartType = MealType.snack;
-      titleText = 'Sağlıklı Atıştırmalık';
+      titleText = '✨ Atıştırmalık Önerileri';
       suggestions = [
-        {'name': 'Muz', 'emoji': '🍌'},
-        {'name': 'Elma', 'emoji': '🍎'},
-        {'name': 'Badem', 'emoji': '🥜'},
-        {'name': 'Filtre kahve', 'emoji': '☕'},
-        {'name': 'Ayran', 'emoji': '🥤'},
+        {'name': 'Muz', 'emoji': '🍌', 'kcal': 89},
+        {'name': 'Elma', 'emoji': '🍎', 'kcal': 52},
+        {'name': 'Badem', 'emoji': '🥜', 'kcal': 164},
+        {'name': 'Filtre kahve', 'emoji': '☕', 'kcal': 2},
+        {'name': 'Ayran', 'emoji': '🥤', 'kcal': 37},
+        {'name': 'Çilek', 'emoji': '🍓', 'kcal': 32},
+        {'name': 'Portakal', 'emoji': '🍊', 'kcal': 47},
+        {'name': 'Yoğurt', 'emoji': '🥛', 'kcal': 59},
       ];
     }
 
@@ -1755,88 +1689,129 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
             physics: const BouncingScrollPhysics(),
             child: Row(
               children: suggestions.map((item) {
-                final name = item['name']!;
-                final emoji = item['emoji']!;
+                final name = item['name'] as String;
+                final emoji = item['emoji'] as String;
+                final kcal = item['kcal'] as int;
                 final isLoading = _loadingPillName == name;
 
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 10),
                   child: GestureDetector(
-                    onTap: isLoading ? null : () async {
-                      HapticFeedback.mediumImpact();
-                      setState(() {
-                        _loadingPillName = name;
-                      });
-                      try {
-                        final results = await provider.searchFoods(name);
-                        if (results.isNotEmpty) {
-                          final food = results.first;
-                          if (mounted) {
-                            Navigator.of(context, rootNavigator: false)
-                                .pushNamed(
-                                  'portion',
-                                  arguments: {'food': food, 'mealType': smartType},
-                                ).then((_) {
-                                  if (mounted) setState(() => _loadingPillName = null);
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            HapticFeedback.mediumImpact();
+                            setState(() {
+                              _loadingPillName = name;
+                            });
+                            try {
+                              final results = await provider.searchFoods(name);
+                              if (results.isNotEmpty) {
+                                final food = results.first;
+                                if (mounted) {
+                                  Navigator.of(context, rootNavigator: false)
+                                      .pushNamed(
+                                        'portion',
+                                        arguments: {
+                                          'food': food,
+                                          'mealType': smartType,
+                                        },
+                                      )
+                                      .then((_) {
+                                        if (mounted)
+                                          setState(
+                                            () => _loadingPillName = null,
+                                          );
+                                      });
+                                }
+                              } else {
+                                if (mounted) {
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: false,
+                                  ).pushNamed('search', arguments: smartType);
+                                }
+                              }
+                            } catch (e) {
+                              debugPrint('Quick log suggestion error: $e');
+                              if (mounted) {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: false,
+                                ).pushNamed('search', arguments: smartType);
+                              }
+                            } finally {
+                              if (mounted) {
+                                setState(() {
+                                  _loadingPillName = null;
                                 });
-                          }
-                        } else {
-                          // Fallback to searching with name pre-filled
-                          if (mounted) {
-                            Navigator.of(context, rootNavigator: false)
-                                .pushNamed('search', arguments: smartType);
-                          }
-                        }
-                      } catch (e) {
-                        debugPrint('Quick log suggestion error: $e');
-                        if (mounted) {
-                          Navigator.of(context, rootNavigator: false)
-                              .pushNamed('search', arguments: smartType);
-                        }
-                      } finally {
-                        if (mounted) {
-                          setState(() {
-                            _loadingPillName = null;
-                          });
-                        }
-                      }
-                    },
+                              }
+                            }
+                          },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      width: 130,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.secondary.withValues(alpha: 0.12),
+                            AppColors.secondary.withValues(alpha: 0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.10),
+                          color: AppColors.secondary.withValues(alpha: 0.2),
                         ),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isLoading)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 6),
+                            const Center(
                               child: SizedBox(
-                                width: 12,
-                                height: 12,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white70,
+                                  ),
                                 ),
                               ),
                             )
                           else
-                            Text(
-                              emoji,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                          const SizedBox(width: 5),
+                            Text(emoji, style: const TextStyle(fontSize: 28)),
+                          const SizedBox(height: 6),
                           Text(
                             name,
                             style: GoogleFonts.dmSans(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 11.5,
                               fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade800.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '$kcal kcal',
+                              style: GoogleFonts.dmSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.orange.shade200,
+                              ),
                             ),
                           ),
                         ],
@@ -1849,6 +1824,133 @@ class _DietDashboardPageState extends State<DietDashboardPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyMealsState(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.secondary.withValues(alpha: 0.08),
+            AppColors.primary.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Text('🍽️', style: TextStyle(fontSize: 28)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'İlk öğününü ekle',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withValues(alpha: 0.95),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Öğün kartlarından başlayabilirsin',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_downward_rounded,
+            color: AppColors.secondary.withValues(alpha: 0.6),
+            size: 20,
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.02);
+  }
+
+  MealType _detectCurrentMealType() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 11) return MealType.breakfast;
+    if (hour >= 11 && hour < 16) return MealType.lunch;
+    if (hour >= 17 && hour < 22) return MealType.dinner;
+    return MealType.snack;
+  }
+
+  Widget _buildMacroProgressBar({
+    required String emoji,
+    required String label,
+    required double current,
+    required double target,
+    required Color color,
+  }) {
+    final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    final isOver = current > target && target > 0;
+    final remaining = (target - current).clamp(0, double.infinity);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.dmSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${current.round()}/${target.round()}g',
+              style: GoogleFonts.dmSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isOver ? Colors.red.shade300 : color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: progress),
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeOutCubic,
+            builder: (_, value, __) => LinearProgressIndicator(
+              value: value,
+              minHeight: 6,
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
+              valueColor: AlwaysStoppedAnimation(
+                isOver ? Colors.red.shade400 : color,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

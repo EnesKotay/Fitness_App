@@ -87,10 +87,7 @@ class _SettingsNutritionScreenState extends State<SettingsNutritionScreen> {
               subtitle: 'Et içermeyen besinleri göster',
               value: _prefs.vegetarian,
               onChanged: (v) => _update(
-                _prefs.copyWith(
-                  vegetarian: v,
-                  vegan: v ? false : _prefs.vegan,
-                ),
+                _prefs.copyWith(vegetarian: v, vegan: v ? false : _prefs.vegan),
               ),
             ),
             _divider(),
@@ -140,8 +137,11 @@ class _SettingsNutritionScreenState extends State<SettingsNutritionScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      color: _accent, size: 20),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: _accent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -161,6 +161,7 @@ class _SettingsNutritionScreenState extends State<SettingsNutritionScreen> {
       ),
       floatingActionButton: _dirty
           ? FloatingActionButton.extended(
+              heroTag: 'settings_nutrition_save_fab',
               onPressed: _save,
               backgroundColor: _accent,
               foregroundColor: Colors.white,
@@ -241,9 +242,9 @@ class _SettingsNutritionScreenState extends State<SettingsNutritionScreen> {
   }
 
   Widget _divider() => const Divider(
-        height: 1,
-        indent: 72,
-        endIndent: 16,
-        color: Colors.white10,
-      );
+    height: 1,
+    indent: 72,
+    endIndent: 16,
+    color: Colors.white10,
+  );
 }

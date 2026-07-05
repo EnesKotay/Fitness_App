@@ -93,6 +93,24 @@ public class AiCoachController {
     @Inject
     com.fitness.service.WeeklyDigestService weeklyDigestService;
 
+    @GET
+    @Path("/coach/quota")
+    public Response coachQuota(@Context HttpHeaders headers) {
+        try {
+            Long userId = resolveUserId(headers);
+            boolean isPremium = entitlementService.isPremium(userId);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("premium", isPremium);
+            payload.put("freeDailyLimit", entitlementService.freeCoachDailyMaxRequests());
+            payload.put("remainingFreeRequests", isPremium ? null : entitlementService.remainingFreeCoachRequests(userId));
+            return Response.ok(payload).build();
+        } catch (SecurityException e) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .build();
+        }
+    }
+
     @POST
     @Path("/coach")
     public Response coach(@Context HttpHeaders headers, AiCoachRequest request) {
@@ -110,6 +128,7 @@ public class AiCoachController {
                     Map<String, Object> payload = new HashMap<>();
                     payload.put("error", "Gunluk 2 ucretsiz AI koç hakkin doldu. Premium ile sinirsiz devam edebilirsin.");
                     payload.put("upgradeRequired", true);
+                    payload.put("remainingFreeRequests", 0);
                     return Response.status(Response.Status.FORBIDDEN).entity(payload).build();
                 }
                 consumedFreeEntitlement = true;
@@ -195,8 +214,16 @@ public class AiCoachController {
                 entitlementService.refundFreeCoachRequest(userId);
             }
             logResult("bad_gateway", userId, startNs);
+            Map<String, Object> payload = new HashMap<>();
+            String errorMsg = e.getMessage();
+            if (errorMsg != null && errorMsg.contains("timeout")) {
+                payload.put("error", "AI yanıt süresi doldu. Lütfen tekrar deneyin.");
+                payload.put("timeout", true);
+            } else {
+                payload.put("error", escapeJson(errorMsg));
+            }
             return Response.status(Response.Status.BAD_GATEWAY)
-                    .entity("{\"error\": \"" + escapeJson(e.getMessage()) + "\"}")
+                    .entity(payload)
                     .build();
         }
     }
@@ -213,6 +240,7 @@ public class AiCoachController {
                           @RestForm("taskModeInstruction") String taskModeInstruction,
                           @RestForm("personality") String personality,
                           @RestForm("personalityInstruction") String personalityInstruction,
+                          @RestForm("userMemory") String userMemory,
                           @RestForm("conversationHistory") String conversationHistoryJson,
                           @RestForm("dailySummary") String dailySummaryJson) {
         long startNs = System.nanoTime();
@@ -250,6 +278,7 @@ public class AiCoachController {
             request.taskModeInstruction = taskModeInstruction;
             request.personality = personality;
             request.personalityInstruction = personalityInstruction;
+            request.userMemory = userMemory;
 
             if (conversationHistoryJson != null && !conversationHistoryJson.isBlank()) {
                 try {

@@ -37,6 +37,10 @@ public class AiEntitlementService {
         return aiProviderRouter.isPremium(userId);
     }
 
+    public int freeCoachDailyMaxRequests() {
+        return freeCoachDailyMaxRequests;
+    }
+
     public void ensurePremium(Long userId, String featureName) {
         if (isPremium(userId)) {
             return;

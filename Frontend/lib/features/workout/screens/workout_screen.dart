@@ -34,6 +34,7 @@ import '../../../core/widgets/page_guide_button.dart';
 import '../services/exercise_parser_service.dart';
 import '../data/preset_programs_data.dart';
 import '../widgets/muscle_heatmap_widget.dart';
+import 'exercise_library_screen.dart';
 
 part 'workout_screen_components.dart';
 part 'tabs/explore_tab.dart';
@@ -833,6 +834,7 @@ class _WorkoutScreenState extends State<WorkoutScreen>
   Widget build(BuildContext context) {
     final isPremium = isPremiumTier(
       context.watch<AuthProvider>().user?.premiumTier,
+      expiresAt: context.watch<AuthProvider>().user?.premiumExpiresAt,
     );
 
     return ValueListenableBuilder<bool>(
@@ -983,24 +985,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         }
                       },
                     ),
-                    IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      onPressed: () => _openAddWorkoutPage(context),
-                    ),
                     const SizedBox(width: 8),
                   ],
                   bottom: PreferredSize(
@@ -1126,8 +1110,6 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                             _ExploreTab(
                               isPremium: isPremium,
                               onOpenExerciseGuide: _openExerciseGuide,
-                              onOpenAddWorkoutPage: () =>
-                                  _openAddWorkoutPage(context),
                               onOpenQuickStart: (preset) =>
                                   _openQuickStartWorkout(context, preset),
                               onOpenTemplateWorkout: (template) =>
@@ -1175,11 +1157,12 @@ class _WorkoutScreenState extends State<WorkoutScreen>
         final userId = authProvider.user?.id;
         if (userId == null) return const SizedBox.shrink();
         return FloatingActionButton.extended(
+          heroTag: 'workout_add_session_fab',
           onPressed: () => _showAddWorkoutSheet(context),
           backgroundColor: const Color(0xFF2E7D32),
           icon: const Icon(Icons.add, color: Colors.white),
           label: const Text(
-            'Antrenman',
+            'Antrenman kaydet',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
           ),
         );
@@ -1237,7 +1220,8 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                     context,
                     title: 'Serbest Antrenman',
                     plans: [],
-                    onFinish: (summary) => _saveCompletedSession(context, summary),
+                    onFinish: (summary) =>
+                        _saveCompletedSession(context, summary),
                   );
                 },
                 child: Container(
@@ -1260,7 +1244,9 @@ class _WorkoutScreenState extends State<WorkoutScreen>
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2E7D32).withValues(alpha: 0.22),
+                          color: const Color(
+                            0xFF2E7D32,
+                          ).withValues(alpha: 0.22),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: const Icon(

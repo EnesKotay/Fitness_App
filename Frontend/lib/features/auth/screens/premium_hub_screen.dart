@@ -40,6 +40,37 @@ class PremiumHubScreen extends StatefulWidget {
 class _PremiumHubScreenState extends State<PremiumHubScreen> {
   bool _cancelLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _refreshPremiumStatus(),
+    );
+  }
+
+  Future<void> _refreshPremiumStatus() async {
+    try {
+      final response = await ApiClient().get(ApiConstants.premiumStatus);
+      final data = response.data;
+      if (!mounted || data is! Map) return;
+      final expiresAt = data['expiresAt'] != null
+          ? DateTime.tryParse(data['expiresAt'].toString())
+          : null;
+      context.read<AuthProvider>().setPremiumActive(
+        data['isActive'] == true ||
+            isPremiumTier(data['tier']?.toString(), expiresAt: expiresAt),
+        premiumPlan: normalizePremiumPlanId(data['planId']?.toString()),
+        premiumExpiresAt: expiresAt,
+        premiumCancelAtPeriodEnd: data['cancelAtPeriodEnd'] == true,
+        premiumCanceledAt: data['canceledAt'] != null
+            ? DateTime.tryParse(data['canceledAt'].toString())
+            : null,
+      );
+    } catch (e) {
+      debugPrint('PremiumHubScreen: premium durum yenileme hatası: $e');
+    }
+  }
+
   Future<void> _cancelMembership() async {
     // Apple IAP abonelikleri yalnızca mağaza üzerinden iptal edilebilir.
     // App Store Guideline 3.1.2(b): uygulama içi iptaller yanıltıcı sayılır.
@@ -184,16 +215,17 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    final isPremium = user?.premiumTier == 'premium';
+    final isPremium = isPremiumTier(
+      user?.premiumTier,
+      expiresAt: user?.premiumExpiresAt,
+    );
     final expiresAt = user?.premiumExpiresAt;
-    final plan = user?.premiumPlan;
+    final plan = normalizePremiumPlanId(user?.premiumPlan);
     final cancelAtEnd = user?.premiumCancelAtPeriodEnd == true;
     final isMonthly = plan == 'monthly';
 
     final planTotalDays = plan == 'yearly' ? 365 : 30;
-    final daysLeft = expiresAt != null
-        ? expiresAt.difference(DateTime.now()).inDays.clamp(0, planTotalDays)
-        : 0;
+    final daysLeft = premiumDaysLeft(expiresAt, totalDays: planTotalDays);
 
     return Scaffold(
       backgroundColor: _bg,
@@ -555,11 +587,7 @@ class _PremiumHubScreenState extends State<PremiumHubScreen> {
           const SizedBox(height: 12),
           const Text(
             'Ücretsiz plan seni takipte tutar. Premium ise yorumlama, planlama ve karar verme yükünü üstlenir.',
-            style: TextStyle(
-              color: _textMuted,
-              fontSize: 12,
-              height: 1.4,
-            ),
+            style: TextStyle(color: _textMuted, fontSize: 12, height: 1.4),
           ),
         ],
       ),
@@ -594,14 +622,18 @@ class _MembershipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
-    final planPrice = plan == 'yearly' ? '799,99₺ / yıl' : '149₺ / ay';
+    final normalizedPlan = normalizePremiumPlanId(plan);
+    final planLabel = normalizedPlan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
+    final planPrice = normalizedPlan == 'yearly'
+        ? '799,99₺ / yıl'
+        : '149₺ / ay';
     final statusColor = cancelAtEnd
         ? Colors.orangeAccent
         : const Color(0xFF69F0AE);
     final statusLabel = cancelAtEnd ? 'İptal Planlandı' : 'Aktif';
-    final totalDays = plan == 'yearly' ? 365 : 30;
-    final progress = (daysLeft / totalDays).clamp(0.0, 1.0);
+    final totalDays = normalizedPlan == 'yearly' ? 365 : 30;
+    final safeDaysLeft = premiumDaysLeft(expiresAt, totalDays: totalDays);
+    final progress = (safeDaysLeft / totalDays).clamp(0.0, 1.0);
 
     return Container(
       decoration: BoxDecoration(
@@ -742,7 +774,7 @@ class _MembershipCard extends StatelessWidget {
                         text: TextSpan(
                           children: [
                             TextSpan(
-                              text: '$daysLeft',
+                              text: '$safeDaysLeft',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
@@ -776,7 +808,7 @@ class _MembershipCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 20),
                 // Daire grafik
-                _DaysArc(progress: progress, daysLeft: daysLeft),
+                _DaysArc(progress: progress, daysLeft: safeDaysLeft),
               ],
             ),
           ),
@@ -798,7 +830,9 @@ class _MembershipCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      plan == 'yearly' ? '365 günlük dönem' : '30 günlük dönem',
+                      normalizedPlan == 'yearly'
+                          ? '365 günlük dönem'
+                          : '30 günlük dönem',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 11,
@@ -1224,9 +1258,13 @@ class _AiCard extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                color: locked ? Colors.white.withValues(alpha: 0.03) : accentColor.withValues(alpha: 0.12),
+                color: locked
+                    ? Colors.white.withValues(alpha: 0.03)
+                    : accentColor.withValues(alpha: 0.12),
                 border: Border.all(
-                  color: locked ? Colors.white.withValues(alpha: 0.08) : accentColor.withValues(alpha: 0.25),
+                  color: locked
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : accentColor.withValues(alpha: 0.25),
                 ),
               ),
               child: Icon(
@@ -1294,7 +1332,9 @@ class _AiCard extends StatelessWidget {
                   Text(
                     description,
                     style: TextStyle(
-                      color: locked ? _textMuted.withValues(alpha: 0.4) : _textMuted,
+                      color: locked
+                          ? _textMuted.withValues(alpha: 0.4)
+                          : _textMuted,
                       fontSize: 12,
                       height: 1.35,
                     ),
@@ -1356,9 +1396,13 @@ class _SmallCard extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(11),
-                    color: locked ? Colors.white.withValues(alpha: 0.03) : accentColor.withValues(alpha: 0.12),
+                    color: locked
+                        ? Colors.white.withValues(alpha: 0.03)
+                        : accentColor.withValues(alpha: 0.12),
                     border: Border.all(
-                      color: locked ? Colors.white.withValues(alpha: 0.08) : accentColor.withValues(alpha: 0.25),
+                      color: locked
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : accentColor.withValues(alpha: 0.25),
                     ),
                   ),
                   child: Icon(

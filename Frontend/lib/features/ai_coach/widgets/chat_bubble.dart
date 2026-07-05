@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'dart:io';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
@@ -14,23 +15,215 @@ import '../../nutrition/domain/entities/user_profile.dart';
 import '../../nutrition/domain/entities/meal_type.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../shell/main_shell.dart';
+import '../../workout/models/exercise_library_model.dart';
+import '../../workout/screens/exercise_guide_screen.dart';
+import '../../workout/screens/exercise_library_screen.dart';
+import '../../workout/services/exercise_catalog_index.dart';
+import '../../workout/services/exercise_library_service.dart';
 import '../controllers/ai_coach_controller.dart';
 import '../models/ai_coach_models.dart';
 import 'package:provider/provider.dart';
 import 'ai_coach_widgets.dart';
 
-class _FollowUpSuggestion {
-  final String label;
-  final String prompt;
-  final IconData icon;
-  final Color color;
 
-  _FollowUpSuggestion({
-    required this.label,
-    required this.prompt,
-    required this.icon,
-    required this.color,
+class _ExerciseHighlightBuilder extends MarkdownElementBuilder {
+  final ValueChanged<String> onTap;
+
+  _ExerciseHighlightBuilder({required this.onTap});
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final label = element.textContent;
+    final clean = _cleanExerciseHighlight(label);
+    final style =
+        preferredStyle ??
+        GoogleFonts.dmSans(
+          color: const Color(0xFFEBC374),
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
+        );
+
+    final matchesCatalog =
+        ExerciseCatalogIndex.instance.resolve(clean) != null;
+    if (!matchesCatalog && !_looksLikeExerciseHighlight(clean)) {
+      return Text(label, style: style);
+    }
+
+    return Semantics(
+      button: true,
+      label: '$clean egzersiz detayını aç',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => onTap(label),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 1),
+          child: Text(
+            label,
+            style: style.copyWith(
+              decoration: TextDecoration.underline,
+              decorationColor: const Color(0xFFEBC374).withValues(alpha: 0.55),
+              decorationThickness: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _cleanExerciseHighlight(String value) {
+  return value
+      .replaceAll(RegExp(r'^\s*[-•]?\s*\d+[.)]\s*'), '')
+      .replaceAll(RegExp(r'[:：]\s*$'), '')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+bool _looksLikeExerciseHighlight(String value) {
+  final text = _normalizeExerciseText(value);
+  if (text.length < 3) return false;
+  if (RegExp(r'\d+\s*(dk|dakika|saniye|sn|set|tekrar)').hasMatch(text)) {
+    return false;
+  }
+  if (_containsAny(text, const [
+    'isinma',
+    'dinlenme',
+    'sure',
+    'onemli not',
+    'not',
+    'hedef',
+    'protein',
+    'kalori',
+    'makro',
+  ])) {
+    return false;
+  }
+  return _containsAny(text, const [
+    'squat',
+    'bench',
+    'deadlift',
+    'row',
+    'pulldown',
+    'pull down',
+    'pullup',
+    'pull up',
+    'pullover',
+    'pushup',
+    'push up',
+    'press',
+    'curl',
+    'raise',
+    'fly',
+    'plank',
+    'lunge',
+    'extension',
+    'face pull',
+    'barbell',
+    'dumbbell',
+    'cable',
+    'lat',
+    'leg',
+    'shoulder',
+    'chest',
+    'seated',
+    'sinav',
+    'mekik',
+    'barfiks',
+    'cekis',
+    'pres',
+  ]);
+}
+
+List<String> _exerciseSearchQueries(String label) {
+  final clean = _cleanExerciseHighlight(label);
+  final withoutParentheses = clean
+      .replaceAll(RegExp(r'\s*\([^)]*\)'), '')
+      .trim();
+  final parentheses = RegExp(
+    r'\(([^)]+)\)',
+  ).allMatches(clean).map((m) => m.group(1)?.trim()).whereType<String>();
+
+  final translated = _translateExerciseHint(withoutParentheses);
+  final queries = <String>[
+    translated,
+    withoutParentheses,
+    clean,
+    ...parentheses.map(_translateExerciseHint),
+    ..._knownExerciseAliases(clean),
+  ];
+
+  final seen = <String>{};
+  return queries
+      .map(_cleanExerciseHighlight)
+      .where((q) => q.length >= 3)
+      .where((q) => seen.add(_normalizeExerciseText(q)))
+      .take(6)
+      .toList();
+}
+
+String _translateExerciseHint(String value) {
+  var text = value;
+  final replacements = <RegExp, String>{
+    RegExp(r'\bgeniş tutuş\b', caseSensitive: false): 'Wide Grip',
+    RegExp(r'\bgenis tutus\b', caseSensitive: false): 'Wide Grip',
+    RegExp(r'\bdar tutuş\b', caseSensitive: false): 'Close Grip',
+    RegExp(r'\bdar tutus\b', caseSensitive: false): 'Close Grip',
+    RegExp(r'\boturarak kablo çekiş\b', caseSensitive: false):
+        'Seated Cable Row',
+    RegExp(r'\boturarak kablo cekis\b', caseSensitive: false):
+        'Seated Cable Row',
+    RegExp(r'\beğilerek sıra\b', caseSensitive: false): 'Barbell Row',
+    RegExp(r'\begilerek sira\b', caseSensitive: false): 'Barbell Row',
+    RegExp(r'\byüz çekiş\b', caseSensitive: false): 'Face Pull',
+    RegExp(r'\byuz cekis\b', caseSensitive: false): 'Face Pull',
+  };
+  replacements.forEach((pattern, replacement) {
+    text = text.replaceAll(pattern, replacement);
   });
+  return text.trim();
+}
+
+List<String> _knownExerciseAliases(String value) {
+  final text = _normalizeExerciseText(value);
+  final aliases = <String>[];
+  if (text.contains('wide grip') && text.contains('lat pulldown')) {
+    aliases.add('Wide Grip Lat Pulldown');
+  }
+  if (text.contains('lat pulldown')) aliases.add('Lat Pulldown');
+  if (text.contains('barbell row')) aliases.add('Barbell Row');
+  if (text.contains('seated cable row')) aliases.add('Seated Cable Row');
+  if (text.contains('cable row')) aliases.add('Cable Row');
+  if (text.contains('dumbbell pullover')) aliases.add('Dumbbell Pullover');
+  if (text.contains('barbell pullover')) aliases.add('Barbell Pullover');
+  if (text.contains('face pull')) {
+    aliases
+      ..add('Face Pull')
+      ..add('Cable Face Pull');
+  }
+  return aliases;
+}
+
+String _normalizeExerciseText(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll('ı', 'i')
+      .replaceAll('ğ', 'g')
+      .replaceAll('ü', 'u')
+      .replaceAll('ş', 's')
+      .replaceAll('ö', 'o')
+      .replaceAll('ç', 'c')
+      .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
+bool _containsAny(String text, Iterable<String> needles) {
+  return needles.any(text.contains);
 }
 
 class ChatBubble extends StatefulWidget {
@@ -58,53 +251,57 @@ class _ChatBubbleState extends State<ChatBubble> {
       if (isSummary) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF121E30),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFEBC374).withValues(alpha: 0.18),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.summarize_rounded,
-                      size: 13,
-                      color: Color(0xFFEBC374),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Konuşma özeti',
-                      style: GoogleFonts.dmSans(
-                        color: const Color(0xFFEBC374),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+          child:
+              Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF121E30),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFEBC374).withValues(alpha: 0.18),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  widget.message.content.replaceFirst(
-                    RegExp(r'^📝 Önceki konuşma özeti:\n+'),
-                    '',
-                  ),
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.62),
-                    fontSize: 12.5,
-                    fontStyle: FontStyle.italic,
-                    height: 1.55,
-                  ),
-                ),
-              ],
-            ),
-          ).animate().fadeIn(duration: 250.ms, curve: Curves.easeOut).slideY(begin: 0.03, end: 0, curve: Curves.easeOutCubic),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.summarize_rounded,
+                              size: 13,
+                              color: Color(0xFFEBC374),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Konuşma özeti',
+                              style: GoogleFonts.dmSans(
+                                color: const Color(0xFFEBC374),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.message.content.replaceFirst(
+                            RegExp(r'^📝 Önceki konuşma özeti:\n+'),
+                            '',
+                          ),
+                          style: GoogleFonts.dmSans(
+                            color: Colors.white.withValues(alpha: 0.62),
+                            fontSize: 12.5,
+                            fontStyle: FontStyle.italic,
+                            height: 1.55,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(duration: 250.ms, curve: Curves.easeOut)
+                  .slideY(begin: 0.03, end: 0, curve: Curves.easeOutCubic),
         );
       }
       return Padding(
@@ -135,7 +332,10 @@ class _ChatBubbleState extends State<ChatBubble> {
                   )
                   .animate()
                   .fadeIn(duration: 200.ms, curve: Curves.easeOut)
-                  .scale(begin: const Offset(0.98, 0.98), curve: Curves.easeOutCubic),
+                  .scale(
+                    begin: const Offset(0.98, 0.98),
+                    curve: Curves.easeOutCubic,
+                  ),
         ),
       );
     }
@@ -328,8 +528,8 @@ class _ChatBubbleState extends State<ChatBubble> {
                                       child: _buildActionButton(context, a),
                                     ),
                               ],
-                              // Follow-up suggestions
-                              if (!isError) _buildFollowUpChips(context),
+                              // Follow-up suggestions removed
+                              // (rendered dynamically below the message list instead)
                             ],
                           ),
                         ),
@@ -414,82 +614,97 @@ class _ChatBubbleState extends State<ChatBubble> {
               if (_reaction != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              (_reaction!
-                                      ? const Color(0xFF34D399)
-                                      : const Color(0xFFFF6B6B))
-                                  .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color:
-                                (_reaction!
-                                        ? const Color(0xFF34D399)
-                                        : const Color(0xFFFF6B6B))
-                                    .withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          _reactionReason != null
-                              ? 'Not aldım: ${_feedbackReasonLabel(_reactionReason!)}'
-                              : _reaction!
-                              ? 'Neyi iyi buldun?'
-                              : 'Neyi düzeltmeliyim?',
-                          style: GoogleFonts.dmSans(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children:
-                            (_reaction!
-                                    ? const [
-                                        ('clear', 'Netti'),
-                                        ('practical', 'Pratikti'),
-                                        ('personal', 'Kişiseldi'),
-                                      ]
-                                    : const [
-                                        ('too_generic', 'Çok genel'),
-                                        ('too_long', 'Çok uzun'),
-                                        ('too_hard', 'Çok zor'),
-                                        ('not_actionable', 'Somut değil'),
-                                      ])
-                                .map(
-                                  (item) => _buildFeedbackChip(
-                                    label: item.$2,
-                                    active: _reactionReason == item.$1,
-                                    positive: _reaction!,
-                                    onTap: () {
-                                      setState(() => _reactionReason = item.$1);
-                                      context
-                                          .read<AiCoachController>()
-                                          .sendFeedback(
-                                            widget.message,
-                                            isPositive: _reaction!,
-                                            reason: item.$1,
-                                            coachingPreference:
-                                                _coachingPreferenceFor(item.$1),
-                                          );
-                                    },
+                  child:
+                      Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      (_reaction!
+                                              ? const Color(0xFF34D399)
+                                              : const Color(0xFFFF6B6B))
+                                          .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color:
+                                        (_reaction!
+                                                ? const Color(0xFF34D399)
+                                                : const Color(0xFFFF6B6B))
+                                            .withValues(alpha: 0.25),
                                   ),
-                                )
-                                .toList(),
-                      ),
-                    ],
-                  ).animate().fadeIn(duration: 180.ms, curve: Curves.easeOut).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+                                ),
+                                child: Text(
+                                  _reactionReason != null
+                                      ? 'Not aldım: ${_feedbackReasonLabel(_reactionReason!)}'
+                                      : _reaction!
+                                      ? 'Neyi iyi buldun?'
+                                      : 'Neyi düzeltmeliyim?',
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children:
+                                    (_reaction!
+                                            ? const [
+                                                ('clear', 'Netti'),
+                                                ('practical', 'Pratikti'),
+                                                ('personal', 'Kişiseldi'),
+                                              ]
+                                            : const [
+                                                ('too_generic', 'Çok genel'),
+                                                ('too_long', 'Çok uzun'),
+                                                ('too_hard', 'Çok zor'),
+                                                (
+                                                  'not_actionable',
+                                                  'Somut değil',
+                                                ),
+                                              ])
+                                        .map(
+                                          (item) => _buildFeedbackChip(
+                                            label: item.$2,
+                                            active: _reactionReason == item.$1,
+                                            positive: _reaction!,
+                                            onTap: () {
+                                              setState(
+                                                () => _reactionReason = item.$1,
+                                              );
+                                              context
+                                                  .read<AiCoachController>()
+                                                  .sendFeedback(
+                                                    widget.message,
+                                                    isPositive: _reaction!,
+                                                    reason: item.$1,
+                                                    coachingPreference:
+                                                        _coachingPreferenceFor(
+                                                          item.$1,
+                                                        ),
+                                                  );
+                                            },
+                                          ),
+                                        )
+                                        .toList(),
+                              ),
+                            ],
+                          )
+                          .animate()
+                          .fadeIn(duration: 180.ms, curve: Curves.easeOut)
+                          .slideY(
+                            begin: 0.08,
+                            end: 0,
+                            curve: Curves.easeOutCubic,
+                          ),
                 ),
             ],
           ),
@@ -691,31 +906,40 @@ class _ChatBubbleState extends State<ChatBubble> {
 
   Widget _buildMarkdownContent() {
     if (widget.message.isThinking) return _buildThinkingDots();
-    // \n → markdown hard line break (two spaces + newline)
-    final data = widget.message.content.replaceAll('\n', '  \n');
+    // Katalogdaki egzersiz adlarını tıklanabilir (bold) hale getir,
+    // sonra \n → markdown hard line break (iki boşluk + newline).
+    final linkified = widget.message.role == ChatRole.assistant
+        ? ExerciseCatalogIndex.instance.linkify(widget.message.content)
+        : widget.message.content;
+    final data = linkified.replaceAll('\n', '  \n');
     return MarkdownBody(
       data: data,
       shrinkWrap: true,
+      builders: {
+        'strong': _ExerciseHighlightBuilder(
+          onTap: (label) => _openExerciseHighlight(context, label),
+        ),
+      },
       styleSheet: MarkdownStyleSheet(
         p: GoogleFonts.dmSans(
           color: Colors.white.withValues(alpha: 0.88),
-          fontSize: 15,
-          height: 1.7,
+          fontSize: 14.5,
+          height: 1.5,
           fontWeight: FontWeight.w400,
         ),
         strong: GoogleFonts.dmSans(
           color: const Color(0xFFEBC374),
           fontWeight: FontWeight.w700,
-          fontSize: 15,
+          fontSize: 14.5,
         ),
         em: GoogleFonts.dmSans(
           color: Colors.white.withValues(alpha: 0.75),
           fontStyle: FontStyle.italic,
-          fontSize: 15,
+          fontSize: 14.5,
         ),
         listBullet: GoogleFonts.dmSans(
           color: const Color(0xFFEBC374),
-          fontSize: 15,
+          fontSize: 14.5,
         ),
         blockquote: GoogleFonts.dmSans(
           color: Colors.white.withValues(alpha: 0.6),
@@ -733,9 +957,10 @@ class _ChatBubbleState extends State<ChatBubble> {
           fontWeight: FontWeight.w600,
         ),
         h3: GoogleFonts.dmSans(
-          color: Colors.white.withValues(alpha: 0.9),
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
+          color: const Color(0xFFEBC374),
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0,
         ),
         code: GoogleFonts.dmMono(
           color: const Color(0xFFEBC374),
@@ -746,10 +971,118 @@ class _ChatBubbleState extends State<ChatBubble> {
           color: Colors.black26,
           borderRadius: BorderRadius.circular(8),
         ),
-        blockSpacing: 6,
+        blockSpacing: 8,
         pPadding: EdgeInsets.zero,
       ),
     );
+  }
+
+  Future<void> _openExerciseHighlight(
+    BuildContext context,
+    String rawLabel,
+  ) async {
+    final cleanLabel = _cleanExerciseHighlight(rawLabel);
+
+    // Önce yerel antrenman veritabanıyla (katalog) eşleştir:
+    // eşleşirse doğrudan Egzersiz Rehberi sayfasını aç (internet gerekmez).
+    final localMatch = ExerciseCatalogIndex.instance.resolve(cleanLabel);
+    if (localMatch != null) {
+      final info = localMatch.groupInfo;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ExerciseGuideScreen(
+            exercise: localMatch.exercise,
+            accentColor: info?.color ?? const Color(0xFFEBC374),
+            muscleGroupLabel: info?.label,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!_looksLikeExerciseHighlight(cleanLabel)) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        duration: const Duration(milliseconds: 900),
+        content: Text('$cleanLabel aranıyor...'),
+      ),
+    );
+
+    try {
+      final service = context.read<ExerciseLibraryService>();
+      final exercise = await _findExerciseForHighlight(service, cleanLabel);
+      if (!context.mounted) return;
+      messenger.hideCurrentSnackBar();
+
+      if (exercise != null) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: const Color(0xFF101820),
+          builder: (context) => DraggableScrollableSheet(
+            initialChildSize: 0.72,
+            minChildSize: 0.45,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (context, scrollController) => ExerciseLibraryDetailSheet(
+              exercise: exercise,
+              scrollController: scrollController,
+            ),
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          SnackBar(content: Text('$cleanLabel için arama açıldı.')),
+        );
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ExerciseLibraryScreen(initialSearch: cleanLabel),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      messenger.hideCurrentSnackBar();
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ExerciseLibraryScreen(initialSearch: cleanLabel),
+        ),
+      );
+    }
+  }
+
+  Future<ExerciseLibrary?> _findExerciseForHighlight(
+    ExerciseLibraryService service,
+    String label,
+  ) async {
+    for (final query in _exerciseSearchQueries(label)) {
+      final results = await service.searchExercises(query);
+      if (results.isEmpty) continue;
+      return _bestExerciseMatch(results, query) ?? results.first;
+    }
+    return null;
+  }
+
+  ExerciseLibrary? _bestExerciseMatch(
+    List<ExerciseLibrary> results,
+    String query,
+  ) {
+    final normalizedQuery = _normalizeExerciseText(query);
+    for (final exercise in results) {
+      if (_normalizeExerciseText(exercise.name) == normalizedQuery) {
+        return exercise;
+      }
+    }
+    for (final exercise in results) {
+      final name = _normalizeExerciseText(exercise.name);
+      if (name.contains(normalizedQuery) || normalizedQuery.contains(name)) {
+        return exercise;
+      }
+    }
+    return null;
   }
 
   Widget _buildMacroRingChart(BuildContext context) {
@@ -762,71 +1095,80 @@ class _ChatBubbleState extends State<ChatBubble> {
 
     return Padding(
       padding: const EdgeInsets.only(top: 14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 64,
-              height: 64,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 18,
-                  sections: [
-                    PieChartSectionData(
-                      value: p,
-                      color: const Color(0xFF34D399),
-                      radius: 10,
-                      showTitle: false,
+      child:
+          Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: PieChart(
+                        PieChartData(
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 18,
+                          sections: [
+                            PieChartSectionData(
+                              value: p,
+                              color: const Color(0xFF34D399),
+                              radius: 10,
+                              showTitle: false,
+                            ),
+                            PieChartSectionData(
+                              value: c,
+                              color: const Color(0xFF73D4FF),
+                              radius: 10,
+                              showTitle: false,
+                            ),
+                            PieChartSectionData(
+                              value: f,
+                              color: const Color(0xFFEBC374),
+                              radius: 10,
+                              showTitle: false,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    PieChartSectionData(
-                      value: c,
-                      color: const Color(0xFF73D4FF),
-                      radius: 10,
-                      showTitle: false,
-                    ),
-                    PieChartSectionData(
-                      value: f,
-                      color: const Color(0xFFEBC374),
-                      radius: 10,
-                      showTitle: false,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bugünkü Makrolar',
+                            style: GoogleFonts.dmSans(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _macroRow('Protein', p, const Color(0xFF34D399), 'g'),
+                          const SizedBox(height: 3),
+                          _macroRow('Karb', c, const Color(0xFF73D4FF), 'g'),
+                          const SizedBox(height: 3),
+                          _macroRow('Yağ', f, const Color(0xFFEBC374), 'g'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Bugünkü Makrolar',
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white.withValues(alpha: 0.5),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  _macroRow('Protein', p, const Color(0xFF34D399), 'g'),
-                  const SizedBox(height: 3),
-                  _macroRow('Karb', c, const Color(0xFF73D4FF), 'g'),
-                  const SizedBox(height: 3),
-                  _macroRow('Yağ', f, const Color(0xFFEBC374), 'g'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ).animate().fadeIn(duration: 250.ms, curve: Curves.easeOut).slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
+              )
+              .animate()
+              .fadeIn(duration: 250.ms, curve: Curves.easeOut)
+              .slideY(begin: 0.05, end: 0, curve: Curves.easeOutCubic),
     );
   }
 
@@ -857,147 +1199,6 @@ class _ChatBubbleState extends State<ChatBubble> {
         ),
       ],
     );
-  }
-
-  Widget _buildFollowUpChips(BuildContext context) {
-    // AI cevabından context'e göre akıllı follow-up önerileri
-    final suggestions = _generateFollowUpSuggestions();
-    if (suggestions.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lightbulb_outline_rounded,
-                size: 12,
-                color: Colors.white.withValues(alpha: 0.4),
-              ),
-              const SizedBox(width: 5),
-              Text(
-                'Devam et',
-                style: GoogleFonts.dmSans(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: suggestions.map<Widget>((suggestion) {
-              return GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  final controller = context.read<AiCoachController>();
-                  controller.submitPrompt(suggestion.prompt);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: suggestion.color.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: suggestion.color.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(suggestion.icon, size: 12, color: suggestion.color),
-                      const SizedBox(width: 5),
-                      Text(
-                        suggestion.label,
-                        style: GoogleFonts.dmSans(
-                          color: Colors.white.withValues(alpha: 0.82),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<_FollowUpSuggestion> _generateFollowUpSuggestions() {
-    final content = widget.message.content.toLowerCase();
-    final suggestions = <_FollowUpSuggestion>[];
-
-    // Kalori/beslenme bahsedildiyse
-    if (content.contains('kalori') || content.contains('kcal')) {
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Yeterli mi?',
-        prompt: 'Bu kalori miktarı hedefim için yeterli mi?',
-        icon: Icons.help_outline_rounded,
-        color: const Color(0xFFEBC374),
-      ));
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Öğün önerisi',
-        prompt: 'Kalan kalorim için öğün öner',
-        icon: Icons.restaurant_rounded,
-        color: const Color(0xFF81C784),
-      ));
-    }
-
-    // Protein bahsedildiyse
-    if (content.contains('protein')) {
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Protein kaynakları',
-        prompt: 'Hangi besinler iyi protein kaynağı?',
-        icon: Icons.egg_rounded,
-        color: const Color(0xFF34D399),
-      ));
-    }
-
-    // Antrenman bahsedildiyse
-    if (content.contains('antrenman') || content.contains('egzersiz')) {
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Detaylı plan',
-        prompt: 'Bu antrenman için detaylı set/tekrar planı ver',
-        icon: Icons.fitness_center_rounded,
-        color: const Color(0xFF73D4FF),
-      ));
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Doğru form',
-        prompt: 'Bu hareketlerin doğru formunu detaylı anlat',
-        icon: Icons.info_outline_rounded,
-        color: const Color(0xFFBC74EB),
-      ));
-    }
-
-    // Plan bahsedildiyse
-    if (content.contains('plan') || content.contains('program')) {
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Yarına devam',
-        prompt: 'Yarın için plan hazırla',
-        icon: Icons.calendar_today_rounded,
-        color: const Color(0xFF6B9FFF),
-      ));
-    }
-
-    // Genel soru sorulmuşsa
-    if (content.contains('?')) {
-      suggestions.add(_FollowUpSuggestion(
-        label: 'Daha basit anlat',
-        prompt: 'Bunu daha basit açıklar mısın?',
-        icon: Icons.translate_rounded,
-        color: const Color(0xFFFF8A65),
-      ));
-    }
-
-    return suggestions.take(3).toList();
   }
 
   Widget _buildPlainContent(bool isError) {
@@ -1130,10 +1331,12 @@ class _ChatBubbleState extends State<ChatBubble> {
         _switchToMainTab(context, 1);
         break;
       case 'ADD_WATER':
-        context.read<DietProvider>().addWater(0.25);
+        final amountLiters = _parseWaterAmount(action.data);
+        context.read<DietProvider>().addWater(amountLiters);
+        final amountMl = (amountLiters * 1000).round();
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('250ml su eklendi! 💧')));
+        ).showSnackBar(SnackBar(content: Text('${amountMl}ml su eklendi! 💧')));
         break;
       case 'TRACK_WEIGHT':
         _switchToMainTab(context, 2);
@@ -1157,6 +1360,41 @@ class _ChatBubbleState extends State<ChatBubble> {
         _handleRememberFact(context, action.data);
         break;
     }
+  }
+
+  double _parseWaterAmount(String? data) {
+    if (data == null || data.trim().isEmpty) return 0.25;
+    try {
+      final decoded = jsonDecode(data);
+      if (decoded is Map<String, dynamic>) {
+        final raw =
+            decoded['amountLiters'] ??
+            decoded['liters'] ??
+            decoded['amount'] ??
+            decoded['ml'];
+        final unit = decoded['unit']?.toString().toLowerCase();
+        final parsed = raw is num
+            ? raw.toDouble()
+            : double.tryParse(raw?.toString().replaceAll(',', '.') ?? '');
+        if (parsed == null || parsed <= 0) return 0.25;
+        final isMl =
+            unit == 'ml' ||
+            (decoded.containsKey('ml') && !decoded.containsKey('amountLiters'));
+        final liters = isMl ? parsed / 1000 : parsed;
+        return liters.clamp(0.1, 3.0);
+      }
+    } catch (_) {
+      final match = RegExp(r'(\d+(?:[,.]\d+)?)').firstMatch(data);
+      final parsed = double.tryParse(
+        match?.group(1)?.replaceAll(',', '.') ?? '',
+      );
+      if (parsed != null && parsed > 0) {
+        return parsed > 10
+            ? (parsed / 1000).clamp(0.1, 3.0)
+            : parsed.clamp(0.1, 3.0);
+      }
+    }
+    return 0.25;
   }
 
   Future<void> _handleRememberFact(BuildContext context, String? data) async {
@@ -1336,7 +1574,10 @@ class _ChatBubbleState extends State<ChatBubble> {
     }
   }
 
-  Future<void> _handleWorkoutSessionSave(BuildContext context, String? data) async {
+  Future<void> _handleWorkoutSessionSave(
+    BuildContext context,
+    String? data,
+  ) async {
     if (data == null || data.isEmpty) return;
     try {
       final Map<String, dynamic> sessionData = jsonDecode(data);
@@ -1344,16 +1585,15 @@ class _ChatBubbleState extends State<ChatBubble> {
 
       // Set default startedAt / finishedAt times if missing
       if (!sessionData.containsKey('startedAt')) {
-        sessionData['startedAt'] = DateTime.now().subtract(const Duration(minutes: 45)).toIso8601String();
+        sessionData['startedAt'] = DateTime.now()
+            .subtract(const Duration(minutes: 45))
+            .toIso8601String();
       }
       if (!sessionData.containsKey('finishedAt')) {
         sessionData['finishedAt'] = DateTime.now().toIso8601String();
       }
 
-      await apiClient.post(
-        ApiConstants.workoutSessions,
-        data: sessionData,
-      );
+      await apiClient.post(ApiConstants.workoutSessions, data: sessionData);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1591,7 +1831,7 @@ class _TypingBubbleState extends State<TypingBubble>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Analiz ediliyor',
+                  'Analiz ediliyor (max 45s)',
                   style: GoogleFonts.dmSans(
                     color: Colors.white.withValues(alpha: 0.58),
                     fontSize: 13,

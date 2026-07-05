@@ -60,7 +60,10 @@ class _WeeklyCheckInScreenState extends State<WeeklyCheckInScreen> {
     final weight = context.watch<WeightProvider>();
     final streak = context.watch<StreakProvider>();
     final auth = context.watch<AuthProvider>();
-    final isPremium = isPremiumTier(auth.user?.premiumTier);
+    final isPremium = isPremiumTier(
+      auth.user?.premiumTier,
+      expiresAt: auth.user?.premiumExpiresAt,
+    );
 
     final targetKcal = diet.effectiveTargetKcal;
     final avgKcal = _average((d) => d.totalKcal);

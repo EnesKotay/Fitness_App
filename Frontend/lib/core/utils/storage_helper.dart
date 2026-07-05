@@ -241,6 +241,20 @@ class StorageHelper {
   /// Kullanıcıya özel pref key (her hesap kendi verisini görsün).
   static String _userKey(String base) => '${base}_${getUserStorageSuffix()}';
 
+  static String userScopedKey(String base) => _userKey(base);
+
+  static String? _emailKey(String base) {
+    final email = _safeEmail(getUserEmail());
+    if (email.isEmpty) return null;
+    return '${base}_$email';
+  }
+
+  static String? _userIdKey(String base) {
+    final id = getUserId();
+    if (id == null) return null;
+    return '${base}_user_$id';
+  }
+
   static Future<bool> saveUserEmail(String email) async {
     if (_prefs == null) return false;
     try {
@@ -303,33 +317,48 @@ class StorageHelper {
       _prefs?.getInt(_userKey(StorageKeys.targetCalories));
 
   static Future<bool> saveAppLanguageCode(String value) async {
-    return await _prefs?.setString(StorageKeys.appLanguageCode, value) ?? false;
+    return await _prefs?.setString(
+          _userKey(StorageKeys.appLanguageCode),
+          value,
+        ) ??
+        false;
   }
 
   static String? getAppLanguageCode() =>
-      _prefs?.getString(StorageKeys.appLanguageCode);
+      _prefs?.getString(_userKey(StorageKeys.appLanguageCode));
 
   static Future<bool> saveAppUnitSystem(String value) async {
-    return await _prefs?.setString(StorageKeys.appUnitSystem, value) ?? false;
+    return await _prefs?.setString(
+          _userKey(StorageKeys.appUnitSystem),
+          value,
+        ) ??
+        false;
   }
 
   static String? getAppUnitSystem() =>
-      _prefs?.getString(StorageKeys.appUnitSystem);
+      _prefs?.getString(_userKey(StorageKeys.appUnitSystem));
 
   static Future<bool> saveAppMarketRegion(String value) async {
-    return await _prefs?.setString(StorageKeys.appMarketRegion, value) ?? false;
+    return await _prefs?.setString(
+          _userKey(StorageKeys.appMarketRegion),
+          value,
+        ) ??
+        false;
   }
 
   static String? getAppMarketRegion() =>
-      _prefs?.getString(StorageKeys.appMarketRegion);
+      _prefs?.getString(_userKey(StorageKeys.appMarketRegion));
 
   static Future<bool> saveUsExperiencePromptSeen(bool seen) async {
-    return await _prefs?.setBool(StorageKeys.usExperiencePromptSeen, seen) ??
+    return await _prefs?.setBool(
+          _userKey(StorageKeys.usExperiencePromptSeen),
+          seen,
+        ) ??
         false;
   }
 
   static bool getUsExperiencePromptSeen() =>
-      _prefs?.getBool(StorageKeys.usExperiencePromptSeen) ?? false;
+      _prefs?.getBool(_userKey(StorageKeys.usExperiencePromptSeen)) ?? false;
 
   // Hedef makrolar - kullanıcıya göre ayrı
   static Future<bool> saveTargetProtein(double g) async {
@@ -630,9 +659,7 @@ class StorageHelper {
   }
 
   static bool getOnboardingDone() {
-    return _prefs?.getBool(_userKey(StorageKeys.onboardingDone)) ??
-        _prefs?.getBool(StorageKeys.onboardingDone) ??
-        false;
+    return _prefs?.getBool(_userKey(StorageKeys.onboardingDone)) ?? false;
   }
 
   static Future<bool> savePendingInitialProfileSetup(bool value) async {
@@ -737,20 +764,54 @@ class StorageHelper {
   /// Yeni kayıt olan kullanıcıya 1 kere gösterilen uygulama tur rehberi.
   static Future<bool> saveAppTourSeen(bool value) async {
     if (_prefs == null) return false;
-    return await _prefs!.setBool(_userKey(StorageKeys.appTourSeen), value);
+    var ok = await _prefs!.setBool(_userKey(StorageKeys.appTourSeen), value);
+    final emailKey = _emailKey(StorageKeys.appTourSeen);
+    if (emailKey != null) {
+      ok = await _prefs!.setBool(emailKey, value) && ok;
+    }
+    return ok;
   }
 
   static bool getAppTourSeen() {
-    return _prefs?.getBool(_userKey(StorageKeys.appTourSeen)) ?? false;
+    final emailKey = _emailKey(StorageKeys.appTourSeen);
+    if (emailKey != null && _prefs?.containsKey(emailKey) == true) {
+      return _prefs!.getBool(emailKey) ?? false;
+    }
+    final scopedKey = _userKey(StorageKeys.appTourSeen);
+    if (_prefs?.containsKey(scopedKey) == true) {
+      return _prefs!.getBool(scopedKey) ?? false;
+    }
+    final idKey = _userIdKey(StorageKeys.appTourSeen);
+    if (idKey != null && _prefs?.containsKey(idKey) == true) {
+      return _prefs!.getBool(idKey) ?? false;
+    }
+    return false;
   }
 
   static Future<bool> savePendingAppTour(bool value) async {
     if (_prefs == null) return false;
-    return await _prefs!.setBool(_userKey(StorageKeys.pendingAppTour), value);
+    var ok = await _prefs!.setBool(_userKey(StorageKeys.pendingAppTour), value);
+    final emailKey = _emailKey(StorageKeys.pendingAppTour);
+    if (emailKey != null) {
+      ok = await _prefs!.setBool(emailKey, value) && ok;
+    }
+    return ok;
   }
 
   static bool getPendingAppTour() {
-    return _prefs?.getBool(_userKey(StorageKeys.pendingAppTour)) ?? false;
+    final emailKey = _emailKey(StorageKeys.pendingAppTour);
+    if (emailKey != null && _prefs?.containsKey(emailKey) == true) {
+      return _prefs!.getBool(emailKey) ?? false;
+    }
+    final scopedKey = _userKey(StorageKeys.pendingAppTour);
+    if (_prefs?.containsKey(scopedKey) == true) {
+      return _prefs!.getBool(scopedKey) ?? false;
+    }
+    final idKey = _userIdKey(StorageKeys.pendingAppTour);
+    if (idKey != null && _prefs?.containsKey(idKey) == true) {
+      return _prefs!.getBool(idKey) ?? false;
+    }
+    return false;
   }
 
   static Future<bool> saveAssistantFabCorner(String value) async {

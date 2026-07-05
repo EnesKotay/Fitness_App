@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/utils/storage_helper.dart';
+
 /// Persists AI coach sessions.
 /// Current session: single key per user (overwritten each message).
 /// History: one key per day per user + an index for listing.
@@ -50,11 +52,17 @@ class AiCoachSessionService {
     // Update index
     final index = _loadIndex(prefs, userId);
     index.removeWhere((e) => e['date'] == date);
-    final firstUserMsg = messages
-        .firstWhere((m) => m['role'] == 'user', orElse: () => {'content': ''})['content'] ?? '';
+    final firstUserMsg =
+        messages.firstWhere(
+          (m) => m['role'] == 'user',
+          orElse: () => {'content': ''},
+        )['content'] ??
+        '';
     index.insert(0, {
       'date': date,
-      'preview': firstUserMsg.length > 100 ? '${firstUserMsg.substring(0, 100)}…' : firstUserMsg,
+      'preview': firstUserMsg.length > 100
+          ? '${firstUserMsg.substring(0, 100)}…'
+          : firstUserMsg,
       'count': messages.length.toString(),
       'savedAt': DateTime.now().toIso8601String(),
     });
@@ -70,16 +78,24 @@ class AiCoachSessionService {
     return _decodeMessages(prefs.getString(_historyKey(userId, date)));
   }
 
-  List<Map<String, dynamic>> listSessions({required int userId, required SharedPreferences prefs}) {
+  List<Map<String, dynamic>> listSessions({
+    required int userId,
+    required SharedPreferences prefs,
+  }) {
     return _loadIndex(prefs, userId);
   }
 
-  Future<List<Map<String, dynamic>>> listSessionsAsync({required int userId}) async {
+  Future<List<Map<String, dynamic>>> listSessionsAsync({
+    required int userId,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     return _loadIndex(prefs, userId);
   }
 
-  Future<void> deleteHistorySession({required int userId, required String date}) async {
+  Future<void> deleteHistorySession({
+    required int userId,
+    required String date,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_historyKey(userId, date));
     final index = _loadIndex(prefs, userId);
@@ -95,7 +111,9 @@ class AiCoachSessionService {
     for (final item in index) {
       final date = item['date']?.toString() ?? '';
       if (date.isEmpty) continue;
-      history[date] = _decodeMessages(prefs.getString(_historyKey(userId, date)));
+      history[date] = _decodeMessages(
+        prefs.getString(_historyKey(userId, date)),
+      );
     }
 
     return <String, dynamic>{
@@ -113,7 +131,10 @@ class AiCoachSessionService {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return [];
-      return decoded.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList();
+      return decoded
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
     } catch (_) {
       return [];
     }
@@ -126,10 +147,12 @@ class AiCoachSessionService {
       if (decoded is! List) return [];
       return decoded
           .whereType<Map>()
-          .map((m) => {
-                'role': m['role']?.toString() ?? '',
-                'content': m['content']?.toString() ?? '',
-              })
+          .map(
+            (m) => {
+              'role': m['role']?.toString() ?? '',
+              'content': m['content']?.toString() ?? '',
+            },
+          )
           .where((m) => m['role']!.isNotEmpty && m['content']!.isNotEmpty)
           .toList();
     } catch (_) {
@@ -137,7 +160,9 @@ class AiCoachSessionService {
     }
   }
 
-  String _currentKey(int userId) => '$_currentKeyPrefix$userId';
-  String _historyKey(int userId, String date) => '$_historyPrefix${userId}_$date';
-  String _indexKey(int userId) => '$_indexPrefix$userId';
+  String _currentKey(int userId) =>
+      StorageHelper.userScopedKey(_currentKeyPrefix);
+  String _historyKey(int userId, String date) =>
+      StorageHelper.userScopedKey('$_historyPrefix$date');
+  String _indexKey(int userId) => StorageHelper.userScopedKey(_indexPrefix);
 }

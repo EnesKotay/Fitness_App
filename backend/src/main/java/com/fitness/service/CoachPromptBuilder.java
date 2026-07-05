@@ -66,6 +66,18 @@ public class CoachPromptBuilder {
         6. TEMPORAL FLEXIBILITY: Answer for the exact time frame the user specifies. If they mention 'yarın' (tomorrow), 'hafta sonu' (weekend), 'akşam' (evening), 'sabah' (morning), or any future period — respond for THAT time. The user's daily data shows today's context, but never force a time-based frame unless the user explicitly asks about right now.
         7. COACH-LIKE CONVERSATION: Do not sound like a canned FAQ. React to the user's exact words, recent history, and available trends. If the request is vague, give one useful next step and ask at most one short clarifying question.
         8. PERSONALIZATION: Use memory, feedback, and trends quietly. Never say "according to your data" unless it helps. Make the answer feel remembered, not robotic.
+        9. SAFETY FIRST: If the user mentions pain, injury, dizziness, chest pain, fainting, pregnancy, illness, or a medical condition, reduce intensity, avoid diagnosis, avoid maximal lifts/HIIT, and tell them to consult a qualified professional when symptoms are severe, persistent, or unusual.
+        10. ADAPTIVE PROGRAMMING: If the user reports a workout was too easy, increase only one variable at a time (load, reps, sets, or density). If they report fatigue, soreness, poor sleep, or pain, deload or simplify. Never prescribe a large jump without context.
+        11. FEEDBACK LOOP: For plans, end with one short check-in inside `actionItems` or `suggestedPrompts` asking difficulty, pain, energy, or completion. Use that future feedback to adjust the next plan.
+        12. MEMORY DISCIPLINE: Treat long-term memory as durable user facts. Do not contradict saved injuries, dietary restrictions, equipment limits, or coaching preferences unless the user explicitly updates them.
+        13. FOLLOW-UP AWARENESS: If the user says a short follow-up like "bunu hafiflet", "alternatif ver", "kaydet", "daha basit", infer the object from conversation history. Do not reset to a generic daily plan.
+        14. CLARIFY WITHOUT STALLING: If a request is vague, make one reasonable assumption, give a small useful answer, and ask at most one short clarifying question. Never answer only with "hangi hedef?" or "ne istiyorsun?".
+        15. MOBILE READABILITY: The answer is shown inside a narrow phone chat bubble. Keep it scan-friendly:
+            - todayFocus: max 2 short sentences, no bullets, no headings, no nested lists.
+            - actionItems: each item must be ONE compact line, max 110 characters.
+            - Never put multiple exercises inside one action item. One exercise/step per item.
+            - Do not use Markdown headings (#, ##), tables, long paragraphs, or sub-bullets.
+            - For workout plans, use this item shape: "Squat: 3 set x 8-10 tekrar · 90 sn dinlen".
         """;
 
     // Haftalık plan modu için özel talimat
@@ -97,6 +109,11 @@ public class CoachPromptBuilder {
         FIELD USAGE RULES:
         - todayFocus: ALWAYS answer the question directly. Never write only a generic intro like "I prepared a plan for you" — that alone is useless. Write the actual answer.
         - actionItems: Use for lists of exercises, meal items, steps, tips. Each item is a string. Example for exercise request: ["💪 Şınav: 3 set x 15 tekrar", "🔥 Mekik: 3 set x 20 tekrar", "🦵 Squat: 3 set x 15 tekrar", "⚡ Plank: 3 set x 45 saniye"]. Leave empty [] only for single-sentence answers.
+        - For readability, actionItems must be atomic and flat: no "\\n", no bullets inside strings, no headings inside strings, no item longer than 110 characters.
+        - For longer plans, return 3-6 most important items first. Put warm-up/cool-down as separate short items only if needed.
+        - For workout recommendations, actionItems[0] should briefly explain the basis: "Neye göre: hedef + toparlanma + ekipman".
+        - Adaptive prescriptions must include intensity details when relevant: sets, reps, rest, RPE/RIR, duration, or a concrete nutrition quantity. Use the user's equipment and recent training context.
+        - Avoid filler such as "sağlıklı beslen", "düzenli egzersiz yap", or "bol su iç" unless paired with an exact amount, example, or timing.
         - nutritionNote: Only for nutrition tips. Leave "" for workout/recovery/general questions.
         - suggestedPrompts: ALWAYS provide exactly 3 context-aware, short, high-value follow-up questions in Turkish that the user can ask next to explore their training, diet, or progress. Keep each prompt short (less than 6 words). Example: ["Bu planı hafiflet", "Isınma hareketleri ekle", "Alternatif besinler ne?"]
 
@@ -107,6 +124,10 @@ public class CoachPromptBuilder {
         ADD FOOD RULE:
         2. If the user tells you they ate a specific food and you estimate its calories, offer to log it:
         {"label": "Günlüğe Ekle (850 kcal)", "type": "ADD_FOOD", "data": "{\\"name\\":\\"İskender\\",\\"kcal\\":850,\\"protein\\":40,\\"carbs\\":60,\\"fat\\":35,\\"mealType\\":\\"lunch\\"}"}
+
+        ADD WATER RULE:
+        2b. If the user says they drank a specific amount of water, offer to log it:
+        {"label": "Suyu Ekle", "type": "ADD_WATER", "data": "{\\"amountLiters\\":0.5}"}
 
         SAVE_WORKOUT RULE:
         3. If you provide a workout plan in actionItems (exercises with sets/reps), you MUST offer to save it.
@@ -136,6 +157,68 @@ public class CoachPromptBuilder {
 
         Otherwise, leave "actions" empty.
         """;
+
+    private static final String[] SAFETY_KEYWORDS = {
+            "ağrı", "agri", "ağrıyor", "agriyor", "acı", "aci", "sakat", "incin",
+            "dizim", "belim", "omzum", "bileğim", "bilegim", "baş dön", "bas don",
+            "göğüs ağr", "gogus agr", "nefes darl", "bayıl", "bayil", "tansiyon",
+            "diyabet", "hamile", "hastayım", "hastayim"
+    };
+
+    private static final String[] NUTRITION_KEYWORDS = {
+            "ne yesem", "ne yemeliyim", "ne yiy", "ne iç", "ne ic", "öğün", "ogun",
+            "yemek", "menü", "menu", "tarif", "beslen", "kalori", "kcal", "makro",
+            "protein", "karbonhidrat", "karb", "yağ", "yag", "diyet", "porsiyon",
+            "gram", "kahvalt", "öğle", "ogle", "öğlene", "oglene", "akşam yeme",
+            "aksam yeme", "akşama", "aksama", "ara öğün", "ara ogun", "atıştır",
+            "atistir", "tabak", "yulaf", "yumurta", "tavuk", "salata", "pilav",
+            "yoğurt", "yogurt"
+    };
+
+    private static final String[] FOOD_LOG_KEYWORDS = {
+            "yedim", "içtim", "ictim", "tükettim", "tukettim", "günlüğe ekle",
+            "gunluge ekle", "yediğim", "yedigim", "yemeği ekle", "yemegi ekle",
+            "öğünü ekle", "ogunu ekle", "kaç kalori", "kac kalori", "kalorisi ne"
+    };
+
+    private static final String[] HYDRATION_KEYWORDS = {
+            "su içtim", "su ictim", "su ekle", "su kaydet", "su hedef",
+            "su tüket", "su tuket", "hidrasyon", "susuz", "kaç litre", "kac litre"
+    };
+
+    private static final String[] RECIPE_SHOPPING_KEYWORDS = {
+            "tarif", "nasıl piş", "nasil pis", "malzeme", "alışveriş", "alisveris",
+            "market", "alışveriş list", "alisveris list", "market list", "menü hazırla",
+            "menu hazirla", "meal prep"
+    };
+
+    private static final String[] SUPPLEMENT_KEYWORDS = {
+            "kreatin", "creatine", "whey", "protein tozu", "preworkout", "pre-workout",
+            "bcaa", "omega", "magnezyum", "vitamin", "kafein", "supplement"
+    };
+
+    private static final String[] WORKOUT_KEYWORDS = {
+            "antrenman program", "antreman program", "antrenman plan", "antreman plan",
+            "antrenman ver", "antrenman", "antreman", "hareket",
+            "egzersiz", "workout", "set", "tekrar", "gym", "spor", "salon",
+            "evde çalış", "evde calis", "ne çalış", "ne calis", "çalışmalıyım",
+            "calismaliyim", "full body", "split", "push pull", "bacak", "göğüs",
+            "gogus", "sırt", "sirt", "omuz", "kol", "kardiyo", "koşu", "kosu",
+            "ısınma", "isinma", "esneme", "formum", "teknik"
+    };
+
+    private static final String[] ANALYSIS_KEYWORDS = {
+            "nasılım", "nasilim", "analiz", "değerlendir", "degerlendir",
+            "ilerleme", "trend", "kilo veriyor muyum", "kilo alıyor muyum",
+            "kilo aliyor muyum", "yağ yakıyor muyum", "yag yakiyor muyum",
+            "durumum", "gidişat", "gidisat", "hedefe yakın", "hedefe yakin", "rapor"
+    };
+
+    private static final String[] RECOVERY_KEYWORDS = {
+            "zorlan", "motivasyon", "bıktım", "biktim", "olmuyor", "moral", "üşen",
+            "usen", "yapamıyorum", "yapamiyorum", "stres", "toparlan", "dinlen",
+            "uyku", "yorgun", "enerjim yok", "çok yoruldum", "cok yoruldum"
+    };
 
     /**
      * Build a prompt for the AI coach based on the user's request.
@@ -224,6 +307,15 @@ public class CoachPromptBuilder {
             prompt.append(WEEKLY_PLAN_INSTRUCTION).append("\n");
         } else if (request.taskMode != null && !request.taskMode.isBlank()) {
             prompt.append("CURRENT LENS: ").append(request.taskMode.trim()).append(" (Focus on this aspect if the question is vague)\n");
+        }
+        if (request.taskModeInstruction != null && !request.taskModeInstruction.isBlank()) {
+            prompt.append("TASK MODE INSTRUCTION: ")
+                    .append(sanitizeUserInput(request.taskModeInstruction, 300))
+                    .append("\n");
+        }
+        String intentInstruction = buildIntentInstruction(request);
+        if (!intentInstruction.isEmpty()) {
+            prompt.append(intentInstruction).append("\n");
         }
         prompt.append("\n").append(JSON_FORMAT_INSTRUCTION).append("\n");
 
@@ -377,6 +469,24 @@ public class CoachPromptBuilder {
 
         // 5. FEW-SHOT EXAMPLES
         prompt.append("""
+            --- SAFETY AND ADAPTATION CHECKLIST ---
+            Before answering, silently check:
+            - Is there pain/injury/illness risk? If yes, lower intensity and add a professional-care warning when appropriate.
+            - Is the user under-recovered? If sleep, hydration, soreness, or workload suggests risk, choose recovery or technique over intensity.
+            - Can the plan be measured? Include concrete load/reps/time/portion targets.
+            - What should the user report back? Ask for one short feedback signal: difficulty / pain / energy / completion.
+
+            --- TURKISH USER QUESTION PLAYBOOK ---
+            Route these common phrases carefully:
+            - "kahvaltı/öğle/akşam/ara öğün öner" -> meal suggestions with portions and protein/kcal estimate.
+            - "şunu yedim/içtim, kaç kalori" -> estimate kcal/macros and offer ADD_FOOD if specific enough.
+            - "su içtim / su ekle" -> hydration response and ADD_WATER when amount is clear; do not discuss calories.
+            - "kreatin/whey/protein tozu kullanayım mı" -> supplement guidance with dose/timing/cautions.
+            - "dizim/belim/omzum ağrıyor" -> safety-first; stop or reduce intensity, no diagnosis.
+            - "bunu hafiflet / daha kolay / alternatif ver" -> use conversation history to modify the previous plan or meal.
+            - "nasılım / durumum / hedefe yakın mıyım" -> interpret 2-3 metrics and give one next step.
+            - "ne yapayım" with no topic -> give one small default action based on current lens, then ask one short clarification.
+
             --- EXAMPLES OF IDEAL RESPONSES ---
             Example 1:
             User: "bana evde yapılacak hareketler söyle"
@@ -416,26 +526,166 @@ public class CoachPromptBuilder {
 
         return String.format(Locale.US, """
             Goal: %s | TDEE: %s kcal
-            Weight: %s kg -> Target: %s kg (Change: %s kg/wk)
+            Weight: %s kg -> Target: %s kg (Change: %s kg/wk) | BMI: %s
             Nutrition Today: %d kcal eaten / %s kcal target (P: %sg, C: %sg, F: %sg)
-            Activity Today: %d workouts (%s min), %s steps
+            Activity Today: %d workouts (%s min), %s steps | Sleep: %s h | Water: %s L
             7-Day Trends: avg calories %s kcal, recent calories %s, avg water %s L, weekly weight change %s kg
             Meals Today: %s
             Workout Highlights: %s
             Training Setup: %s | Equipment: %s
-            Profile: %s age, %s cm height, %s
+            Profile: %s age, %s cm height, %s | Activity level: %s
             """,
             normalizeGoal(request.goal),
             nullableInt(s.tdee),
-            nullableDouble(s.currentWeightKg), nullableDouble(s.targetWeightKg), nullableDouble(s.weeklyWeightChangeKg),
+            nullableDouble(s.currentWeightKg), nullableDouble(s.targetWeightKg), nullableDouble(s.weeklyWeightChangeKg), nullableDouble(s.bmi),
             safeInt(s.calories), nullableInt(s.targetCalories),
             nullableInt(s.proteinGrams), nullableInt(s.carbsGrams), nullableInt(s.fatGrams),
-            safeInt(s.workouts), nullableInt(s.workoutMinutes), nullableInt(s.steps),
+            safeInt(s.workouts), nullableInt(s.workoutMinutes), nullableInt(s.steps), nullableDouble(s.sleepHours), nullableDouble(s.waterLiters),
             nullableInt(s.avgCaloriesLast7Days), formatIntList(s.recentDaysCalories), nullableDouble(s.avgWaterLast7Days), nullableDouble(s.weeklyWeightChangeKg),
             formatStringList(s.mealNames), formatStringList(s.workoutHighlights),
             locationLabel, equipmentLabel,
-            nullableInt(s.userAge), nullableDouble(s.userHeightCm), s.userGender != null ? s.userGender : "unknown"
+            nullableInt(s.userAge), nullableDouble(s.userHeightCm), s.userGender != null ? s.userGender : "unknown",
+            s.activityLevel != null && !s.activityLevel.isBlank() ? sanitizeUserInput(s.activityLevel, 60) : "unknown"
         );
+    }
+
+    private String buildIntentInstruction(AiCoachRequest request) {
+        String q = request.question == null ? "" : request.question.toLowerCase(Locale.ROOT);
+        String mode = request.taskMode == null ? "" : request.taskMode.toLowerCase(Locale.ROOT);
+
+        if (containsAny(q, SAFETY_KEYWORDS)) {
+            return """
+                --- DETECTED INTENT: SAFETY / PAIN / INJURY ---
+                Safety overrides the current lens if they conflict.
+                Requirements:
+                - Do not diagnose. Do not prescribe maximal lifting, HIIT, or pushing through pain.
+                - todayFocus should answer the concern with a cautious, calming first step.
+                - actionItems: 1-3 low-risk steps such as stop/scale down, mobility, rest, hydration, or seek professional care.
+                - Tell the user to consult a qualified professional for severe, persistent, spreading, chest, dizziness, fainting, or unusual symptoms.
+                """;
+        }
+
+        if (containsAny(q, HYDRATION_KEYWORDS)) {
+            return """
+                --- DETECTED INTENT: HYDRATION / WATER LOG ---
+                The user expects water guidance or a water logging action.
+                Requirements:
+                - Use today's water amount and target when available.
+                - If the user logged a concrete amount, offer ADD_WATER when possible.
+                - If the question is about how much to drink, give a practical range and timing across the day.
+                - Keep actionItems short and avoid treating water as calories.
+                """;
+        }
+
+        if (containsAny(q, RECIPE_SHOPPING_KEYWORDS)) {
+            return """
+                --- DETECTED INTENT: RECIPE / SHOPPING / MEAL PREP ---
+                The user expects practical food output, not a workout plan.
+                Requirements:
+                - For recipes: include ingredients with quantities, short preparation steps, kcal/protein estimate, and offer CREATE_RECIPE.
+                - For shopping lists: group items by category, include useful quantities, and offer GENERATE_SHOPPING_LIST.
+                - Keep Turkish-food-friendly options and align with the user's calorie/protein target when available.
+                """;
+        }
+
+        if (containsAny(q, FOOD_LOG_KEYWORDS)) {
+            return """
+                --- DETECTED INTENT: FOOD LOG / CALORIE ESTIMATE ---
+                The user likely wants a food estimate or log action.
+                Requirements:
+                - Estimate kcal, protein, carbs, and fat with portions if possible.
+                - If the food is specific enough, offer ADD_FOOD with mealType.
+                - If the amount is missing, give a conservative estimate and ask one short portion question.
+                """;
+        }
+
+        if (containsAny(q, SUPPLEMENT_KEYWORDS)) {
+            return """
+                --- DETECTED INTENT: SUPPLEMENT QUESTION ---
+                The user expects supplement guidance, not a generic diet/workout plan.
+                Requirements:
+                - Answer whether it is useful for their goal, typical evidence-based dose/range when appropriate, timing, and cautions.
+                - Avoid medical certainty; mention professional advice for medical conditions, medication, pregnancy, kidney/liver issues, or unusual symptoms.
+                - Keep actionItems short and practical.
+                """;
+        }
+
+        if (containsAny(q, NUTRITION_KEYWORDS) || "nutrition".equals(mode)) {
+            return """
+                --- DETECTED INTENT: NUTRITION / MEAL REQUEST ---
+                This detected intent overrides CURRENT LENS if they conflict.
+                The user expects food choices with useful quantities.
+                Requirements:
+                - Use today's kcal, protein, carb, fat, meals, and target calories when available.
+                - actionItems should include portions such as grams, servings, kcal, or macros.
+                - If they ask for breakfast/lunch/dinner/snack, recommend that specific meal.
+                - For recipes, include ingredients and short prep steps; offer CREATE_RECIPE.
+                - For food already eaten, estimate kcal/macros and offer ADD_FOOD when specific enough.
+                - Avoid generic advice like "eat healthy"; give Turkish-food-friendly options.
+                """;
+        }
+
+        if (containsAny(q, WORKOUT_KEYWORDS)
+                || "workout".equals(mode) || "weekly_plan".equals(mode)) {
+            return """
+                --- DETECTED INTENT: WORKOUT / PROGRAM REQUEST ---
+                The user expects actual exercises, not a vague promise.
+                Recommendation decision order:
+                1) Safety and injury limits.
+                2) Recovery: avoid heavy loading for muscle groups trained in the last 0-1 days.
+                3) Goal: bulk=hypertrophy volume, strength=low reps/long rest, cut=maintain strength + manageable conditioning, maintain=balanced.
+                4) Equipment/location: never prescribe unavailable equipment.
+                5) Muscle balance: prioritize recovered and undertrained groups from the workout context.
+                6) Progressive overload: change only one variable at a time; use RPE 7-8 when history is thin.
+                Requirements:
+                - todayFocus: one short coaching sentence naming the selected focus and why.
+                - actionItems[0]: "Neye göre: ..." with max 110 characters.
+                - actionItems: include concrete exercises or session steps with sets/reps/rest/RPE or duration.
+                - Respect equipment, workout location, injuries, fatigue, and recent training context.
+                - If the user asks for a weekly plan, provide day-by-day structure.
+                - Offer SAVE_WORKOUT or SAVE_WORKOUT_SESSION when a complete workout is provided.
+                """;
+        }
+
+        if (containsAny(q, ANALYSIS_KEYWORDS)
+                || "analysis".equals(mode)) {
+            return """
+                --- DETECTED INTENT: PROGRESS ANALYSIS ---
+                The user expects interpretation, not a generic plan.
+                Requirements:
+                - Mention only the most relevant 2-3 metrics.
+                - Explain what is good, what is risky/missing, and the next concrete step.
+                - Use trends and memory when available; do not invent unavailable data.
+                """;
+        }
+
+        if (containsAny(q, RECOVERY_KEYWORDS)
+                || "recovery".equals(mode)) {
+            return """
+                --- DETECTED INTENT: EMOTIONAL / RECOVERY SUPPORT ---
+                The user needs empathy plus a tiny executable next step.
+                Requirements:
+                - todayFocus: validate the feeling briefly.
+                - actionItems: 1-3 very small actions, low friction, measurable.
+                - Ask one short check-in question. Avoid overwhelming plans.
+                """;
+        }
+
+        return """
+            --- DETECTED INTENT: DIRECT QUESTION ---
+            Answer the exact question first. If it is simple, keep actionItems empty or very short.
+            Do not force diet/weight/training context unless it directly improves the answer.
+            """;
+    }
+
+    private boolean containsAny(String text, String... needles) {
+        if (text == null || text.isBlank()) return false;
+        for (String needle : needles) {
+            if (needle != null && !needle.isBlank() && text.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String resolveWorkoutLocation(String location) {

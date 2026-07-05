@@ -36,8 +36,8 @@ class AiCoachService {
 
       final baseOptions = Options(
         headers: {'Authorization': 'Bearer $token'},
-        sendTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 45),
       );
       final richPayload = {
         'goal': goal.name,
@@ -84,14 +84,34 @@ class AiCoachService {
         throw ApiException(message: 'Koç yanıtı beklenmeyen formatta.');
       }
       return CoachResponse.fromJson(raw);
+    } on DioException catch (e) {
+      // Timeout durumları
+      if (e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        throw ApiException(
+          message:
+              'AI yanıt süresi doldu. Lütfen tekrar deneyin. Sorunuz çok uzunsa kısaltmayı deneyin.',
+          statusCode: 408,
+        );
+      }
+      // Connection hatası
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout) {
+        throw ApiException(
+          message: 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.',
+          statusCode: 0,
+        );
+      }
+      // Diğer Dio hataları
+      throw ApiException(message: 'Bir hata oluştu. Lütfen tekrar deneyin.');
     } catch (e) {
       if (e is ApiException) {
         if (e.statusCode == 429) {
           final retry = _extractRetryAfterSeconds(e.data);
           throw ApiException(
             message: retry != null
-                ? 'Cok fazla istek. ${retry}s sonra tekrar dene.'
-                : 'Cok fazla istek. Lutfen biraz sonra tekrar dene.',
+                ? 'Çok fazla istek. ${retry}s sonra tekrar dene.'
+                : 'Çok fazla istek. Lütfen biraz sonra tekrar dene.',
             statusCode: 429,
             data: e.data,
           );
@@ -104,7 +124,7 @@ class AiCoachService {
           if (backendError.contains('GEMINI_API_KEY')) {
             throw ApiException(
               message:
-                  'AI servisi henüz hazır değil. Backend GEMINI_API_KEY ayarını kontrol et.',
+                  'AI servisi henüz hazır değil. Lütfen daha sonra tekrar deneyin.',
             );
           }
           if (backendError.isNotEmpty) {
@@ -207,6 +227,7 @@ class AiCoachService {
     CoachTaskMode taskMode = CoachTaskMode.nutrition,
     List<CoachConversationTurn> conversationHistory =
         const <CoachConversationTurn>[],
+    String? userMemory,
   }) async {
     try {
       final token = StorageHelper.getToken();
@@ -229,6 +250,8 @@ class AiCoachService {
         'conversationHistory': jsonEncode(
           conversationHistory.map((turn) => turn.toJson()).toList(),
         ),
+        if (userMemory != null && userMemory.isNotEmpty)
+          'userMemory': userMemory,
       });
 
       Response<dynamic> response;
@@ -238,8 +261,8 @@ class AiCoachService {
           data: formData,
           options: Options(
             headers: {'Authorization': 'Bearer $token'},
-            sendTimeout: const Duration(seconds: 30),
-            receiveTimeout: const Duration(seconds: 60),
+            sendTimeout: const Duration(seconds: 40),
+            receiveTimeout: const Duration(seconds: 90),
           ),
         );
       } on ApiException catch (e) {
@@ -254,14 +277,16 @@ class AiCoachService {
             'personality': personality.name,
             'personalityInstruction': personality.instruction,
             'dailySummary': dailySummaryJson,
+            if (userMemory != null && userMemory.isNotEmpty)
+              'userMemory': userMemory,
           });
           response = await _apiClient.post(
             '${ApiConstants.apiPrefix}/ai/vision',
             data: fallbackForm,
             options: Options(
               headers: {'Authorization': 'Bearer $token'},
-              sendTimeout: const Duration(seconds: 30),
-              receiveTimeout: const Duration(seconds: 60),
+              sendTimeout: const Duration(seconds: 40),
+              receiveTimeout: const Duration(seconds: 90),
             ),
           );
         } else {

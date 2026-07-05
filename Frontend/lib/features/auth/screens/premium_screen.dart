@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_exception.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/constants/premium_features.dart';
 import '../../../../core/services/iap_service.dart';
 import '../../../../core/utils/storage_helper.dart';
 import '../../../core/widgets/premium_state_badge.dart';
@@ -70,6 +71,7 @@ class _PremiumScreenState extends State<PremiumScreen>
     with SingleTickerProviderStateMixin {
   final IapService _iap = IapService.instance;
   bool _isPremiumActive = false;
+  bool _isCheckingPremiumStatus = true;
   bool _canCancel = false;
   bool _cancelAtPeriodEnd = false;
   String? _activePlanId;
@@ -96,7 +98,7 @@ class _PremiumScreenState extends State<PremiumScreen>
     );
     _iap.addListener(_onIapChanged);
     _iapSubscription = _iap.purchaseResultStream.listen(_handlePurchaseResult);
-    unawaited(_iap.refreshProducts());
+    _syncPremiumStateFromAuth();
     _checkStatus();
   }
 
@@ -114,13 +116,34 @@ class _PremiumScreenState extends State<PremiumScreen>
     if (mounted) setState(() {});
   }
 
+  bool _isActivePremiumTier(String? tier, DateTime? expiresAt) {
+    return isPremiumTier(tier, expiresAt: expiresAt);
+  }
+
+  void _syncPremiumStateFromAuth() {
+    final user = context.read<AuthProvider>().user;
+    final isActive = _isActivePremiumTier(
+      user?.premiumTier,
+      user?.premiumExpiresAt,
+    );
+    if (!isActive) return;
+    _isPremiumActive = true;
+    _activePlanId = user?.premiumPlan;
+    _premiumExpiresAt = user?.premiumExpiresAt;
+    _cancelAtPeriodEnd = user?.premiumCancelAtPeriodEnd == true;
+  }
+
   Future<void> _checkStatus() async {
+    if (mounted) {
+      setState(() => _isCheckingPremiumStatus = true);
+    }
+
     try {
       final response = await ApiClient().get(ApiConstants.premiumStatus);
       final data = response.data;
       if (mounted && data is Map) {
         final isActive = data['isActive'] == true;
-        final planId = data['planId']?.toString();
+        final planId = normalizePremiumPlanId(data['planId']?.toString());
         final expiresAtRaw = data['expiresAt']?.toString();
         final expiresAt = expiresAtRaw == null || expiresAtRaw.isEmpty
             ? null
@@ -146,9 +169,20 @@ class _PremiumScreenState extends State<PremiumScreen>
           _canCancel = canCancel;
           _cancelAtPeriodEnd = cancelAtPeriodEnd;
         });
+
+        if (!isActive) {
+          unawaited(_iap.refreshProducts());
+        }
       }
     } catch (e) {
       debugPrint('PremiumScreen: durum kontrol hatası: $e');
+      if (!_isPremiumActive) {
+        unawaited(_iap.refreshProducts());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingPremiumStatus = false);
+      }
     }
   }
 
@@ -235,26 +269,49 @@ class _PremiumScreenState extends State<PremiumScreen>
     }
 
     try {
+      final optimisticPlan = normalizePremiumPlanId(result.planId);
+      final optimisticExpiresAt =
+          result.expiresAt ??
+          DateTime.now().add(
+            optimisticPlan == 'yearly'
+                ? const Duration(days: 365)
+                : const Duration(days: 30),
+          );
+      context.read<AuthProvider>().setPremiumActive(
+        true,
+        premiumPlan: optimisticPlan,
+        premiumExpiresAt: optimisticExpiresAt,
+        premiumCancelAtPeriodEnd: false,
+      );
+      setState(() {
+        _isPremiumActive = true;
+        _activePlanId = optimisticPlan;
+        _premiumExpiresAt = optimisticExpiresAt;
+        _cancelAtPeriodEnd = false;
+      });
+
+      // Satın alma RevenueCat'e işlendi; backend RevenueCat REST API'sinden
+      // abonelik durumunu çekip kullanıcının premium alanlarını günceller.
       await ApiClient()
           .post(
-            ApiConstants.verifyIapPurchase,
+            ApiConstants.premiumSync,
             data: {
               'planId': result.planId,
-              'purchaseToken': result.purchaseToken,
-              'receiptData': result.receiptData,
               'transactionId': result.transactionId,
               'platform': Platform.isAndroid ? 'android' : 'ios',
             },
           )
           .timeout(const Duration(seconds: 20));
 
-      result.complete?.call();
-
       if (!mounted) return;
       await _checkStatus().timeout(const Duration(seconds: 12));
       if (!mounted) return;
 
-      if (_isPremiumActive) {
+      if (_isPremiumActive ||
+          isPremiumTier(
+            context.read<AuthProvider>().user?.premiumTier,
+            expiresAt: context.read<AuthProvider>().user?.premiumExpiresAt,
+          )) {
         await _showSuccessSheet();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -593,7 +650,13 @@ class _PremiumScreenState extends State<PremiumScreen>
                 SizedBox(height: safe.top + 56),
                 _buildLightHero(),
                 const SizedBox(height: 28),
-                if (!_isPremiumActive) ...[
+                if (_isCheckingPremiumStatus && !_isPremiumActive) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildStatusLoadingCard(),
+                  ),
+                  const SizedBox(height: 40),
+                ] else if (!_isPremiumActive) ...[
                   _buildHighlightScroll(),
                   const SizedBox(height: 28),
                   _buildLightFeatures(),
@@ -630,13 +693,48 @@ class _PremiumScreenState extends State<PremiumScreen>
             ),
           ),
           // ── Sticky bottom CTA ──
-          if (!_isPremiumActive)
+          if (!_isPremiumActive && !_isCheckingPremiumStatus)
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
               child: _buildStickyBottomCta(safe.bottom),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusLoadingCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF18181B),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF27272A)),
+      ),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: Color(0xFFFF7B3E),
+              strokeWidth: 2.5,
+            ),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Premium durumun kontrol ediliyor...',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -1204,6 +1302,7 @@ class _PremiumScreenState extends State<PremiumScreen>
   // ── Active user card ─────────────────────────────────────────────────────────
 
   Widget _buildActiveCard() {
+    final activePlan = normalizePremiumPlanId(_activePlanId);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -1262,7 +1361,7 @@ class _PremiumScreenState extends State<PremiumScreen>
                   ),
                 ),
                 child: Text(
-                  _activePlanId == 'yearly' ? 'Yıllık' : 'Aylık',
+                  activePlan == 'yearly' ? 'Yıllık' : 'Aylık',
                   style: const TextStyle(
                     color: Color(0xFFFF7B3E),
                     fontSize: 12,
@@ -1309,7 +1408,7 @@ class _PremiumScreenState extends State<PremiumScreen>
   }
 
   String _buildActiveSubscriptionText() {
-    final planLabel = switch (_activePlanId) {
+    final planLabel = switch (normalizePremiumPlanId(_activePlanId)) {
       'monthly' => 'Aylık plan aktif.',
       'yearly' => 'Yıllık plan aktif.',
       _ => 'Premium plan aktif.',

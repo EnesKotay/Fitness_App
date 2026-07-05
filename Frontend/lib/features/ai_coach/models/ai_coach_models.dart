@@ -211,10 +211,7 @@ class CoachConversationTurn {
 
   const CoachConversationTurn({required this.role, required this.content});
 
-  Map<String, dynamic> toJson() => {
-    'role': role,
-    'content': content,
-  };
+  Map<String, dynamic> toJson() => {'role': role, 'content': content};
 }
 
 @immutable
@@ -239,6 +236,9 @@ class CoachResponse {
   /// Remaining free requests for today — set by backend, null for premium.
   final int? remainingFreeRequests;
 
+  /// A long-term memory fact saved by the backend AI flow.
+  final String? memorySaved;
+
   // V6: Dynamic Prompt Chips
   final List<String>? suggestedPrompts;
 
@@ -250,6 +250,7 @@ class CoachResponse {
     this.media,
     this.isAchievement = false,
     this.remainingFreeRequests,
+    this.memorySaved,
     this.suggestedPrompts,
   });
 
@@ -311,6 +312,7 @@ class CoachResponse {
       remainingFreeRequests: json['remainingFreeRequests'] is int
           ? json['remainingFreeRequests'] as int
           : null,
+      memorySaved: json['memorySaved']?.toString(),
       suggestedPrompts: parseSuggestedPrompts(json['suggestedPrompts']),
     );
   }

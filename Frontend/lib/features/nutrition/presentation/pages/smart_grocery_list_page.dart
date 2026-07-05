@@ -83,7 +83,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
     'Kategoriler ve yemek fikirleri toparlıyor...',
   ];
 
-  bool get _hasPremiumAccess => _isPremium;
+  bool get _hasPremiumAccess => true;
 
   static const List<GuideStep> _guideSteps = [
     GuideStep(
@@ -214,7 +214,10 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
   Future<void> _checkPremiumAndFetch() async {
     try {
       final auth = context.read<AuthProvider>();
-      if (isPremiumTier(auth.user?.premiumTier)) {
+      if (isPremiumTier(
+        auth.user?.premiumTier,
+        expiresAt: auth.user?.premiumExpiresAt,
+      )) {
         if (mounted) {
           setState(() {
             _isPremium = true;
@@ -975,7 +978,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         ),
         _buildActionChip(
           icon: Icons.ios_share_rounded,
-          label: 'Paylas',
+          label: 'Paylaş',
           onTap: _shareList,
         ),
         _buildActionChip(
@@ -987,6 +990,17 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
             setState(() => _showOnlyPending = !_showOnlyPending);
           },
         ),
+        _buildActionChip(
+          icon: Icons.restaurant_menu_rounded,
+          label: 'Tarif Bul',
+          onTap: _findRecipes,
+        ),
+        if (_checkedItems.isNotEmpty)
+          _buildActionChip(
+            icon: Icons.delete_sweep_rounded,
+            label: 'Seçilenleri Temizle',
+            onTap: _clearCompleted,
+          ),
       ],
     );
   }
@@ -1020,6 +1034,128 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _findRecipes() {
+    Navigator.pushNamed(context, 'recipes');
+  }
+
+  Future<void> _clearCompleted() async {
+    if (_checkedItems.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        title: const Text(
+          'Seçilenleri Sil',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Alındı olarak işaretlenmiş tüm ürünleri listenizden silmek istediğinize emin misiniz?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Sil',
+              style: TextStyle(color: AppColors.secondary),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _groceryList.removeWhere(
+        (item) => _checkedItems.contains(item.normalizedName),
+      );
+      _checkedItems.clear();
+    });
+
+    await _persistGroceryState(_groceryList, _reason, _mealIdeas);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Tamamlanan ürünler temizlendi ✓'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildShoppingProgressBar() {
+    final total = _groceryList.length;
+    if (total == 0) return const SizedBox.shrink();
+
+    final checked = _checkedItems.length;
+    final ratio = checked / total;
+    final pct = (ratio * 100).round();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Alışveriş İlerlemesi',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '$checked / $total ürün ($pct%)',
+                style: TextStyle(
+                  color: ratio >= 1.0
+                      ? const Color(0xFF30D158)
+                      : AppColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 6,
+              backgroundColor: Colors.white.withValues(alpha: 0.06),
+              valueColor: AlwaysStoppedAnimation(
+                ratio >= 1.0 ? const Color(0xFF30D158) : AppColors.secondary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1479,9 +1615,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isPremiumAccess =
-        isPremiumTier(context.watch<AuthProvider>().user?.premiumTier) ||
-        _isPremium;
+    final isPremiumAccess = true;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -1634,7 +1768,12 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
                           delay: 80.ms,
                           duration: 300.ms,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
+                        _buildShoppingProgressBar().animate().fadeIn(
+                          delay: 120.ms,
+                          duration: 300.ms,
+                        ),
+                        const SizedBox(height: 14),
                         ..._buildSections().asMap().entries.map((entry) {
                           final index = entry.key;
                           final section = entry.value;
@@ -1660,6 +1799,7 @@ class _SmartGroceryListPageState extends State<SmartGroceryListPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'smart_grocery_add_item_fab',
         onPressed: _showAddCustomItemDialog,
         backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,

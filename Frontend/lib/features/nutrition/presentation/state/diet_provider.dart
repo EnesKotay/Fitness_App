@@ -31,6 +31,7 @@ import '../../models/nutrition_ai_response.dart';
 import '../../../../core/models/workout.dart';
 import '../../../../core/services/pdf_report_service.dart';
 import '../../../../core/models/daily_diet_log.dart';
+import '../../../../core/services/lock_screen_widget_service.dart';
 
 /// Günlük makro hedefleri (gram).
 class MacroTargets {
@@ -71,6 +72,13 @@ class DietProvider with ChangeNotifier {
   DietProvider() {
     _diaryRepo = LocalDiaryRepository();
     _diaryService = DiaryService(_diaryRepo);
+  }
+
+  /// Her state değişiminde iOS kilit ekranı widget'ını (debounce'lu) besle.
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    LockScreenWidgetService.scheduleUpdate(this);
   }
   final _hive = HiveDietStorage();
   final _uuid = const Uuid();

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/api/services/tracking_service.dart';
 import '../../../core/models/body_measurement.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/utils/storage_helper.dart';
 import '../../sync/domain/entities/pending_sync.dart';
 import '../../sync/services/offline_sync_service.dart';
 
@@ -26,7 +27,9 @@ class TrackingProvider with ChangeNotifier {
 
   String get _todayKey {
     final now = DateTime.now();
-    return '$_sleepPrefPrefix${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final dateKey =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return StorageHelper.userScopedKey('$_sleepPrefPrefix$dateKey');
   }
 
   /// Uyku Verisini Yükle (Lokal)
@@ -58,7 +61,9 @@ class TrackingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _bodyMeasurements = await _trackingService.getUserBodyMeasurements(userId);
+      _bodyMeasurements = await _trackingService.getUserBodyMeasurements(
+        userId,
+      );
       // Sort newest first
       _bodyMeasurements.sort((a, b) => b.date.compareTo(a.date));
       _isLoading = false;
@@ -71,7 +76,10 @@ class TrackingProvider with ChangeNotifier {
   }
 
   /// Yeni Vücut Ölçüsü Oluştur
-  Future<bool> createBodyMeasurement(int userId, BodyMeasurementRequest request) async {
+  Future<bool> createBodyMeasurement(
+    int userId,
+    BodyMeasurementRequest request,
+  ) async {
     if (userId <= 0) {
       _errorMessage = 'Kullanıcı bulunamadı. Lütfen tekrar giriş yapın.';
       notifyListeners();
@@ -82,13 +90,17 @@ class TrackingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final measurement = await _trackingService.createBodyMeasurement(userId, request);
+      final measurement = await _trackingService.createBodyMeasurement(
+        userId,
+        request,
+      );
       _upsertMeasurement(measurement);
       _isLoading = false;
       notifyListeners();
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (e.message.contains('SocketException') ||
+          e.message.contains('Failed host lookup')) {
         // Çevrimdışı senaryo: Sıraya ekle ve optimistic olarak UI'a ekle
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
@@ -151,24 +163,32 @@ class TrackingProvider with ChangeNotifier {
         request,
       );
 
-      _bodyMeasurements.removeWhere((m) => m.id == measurementId && m.id != updated.id);
+      _bodyMeasurements.removeWhere(
+        (m) => m.id == measurementId && m.id != updated.id,
+      );
       _upsertMeasurement(updated);
       _isLoading = false;
       notifyListeners();
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (e.message.contains('SocketException') ||
+          e.message.contains('Failed host lookup')) {
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
           PendingSync(
             id: id,
             entityType: 'body_measurement',
             action: 'update',
-            payload: jsonEncode({'id': measurementId, 'data': request.toJson()}),
+            payload: jsonEncode({
+              'id': measurementId,
+              'data': request.toJson(),
+            }),
           ),
         );
         // Optimistic UI Update
-        final existingIndex = _bodyMeasurements.indexWhere((m) => m.id == measurementId);
+        final existingIndex = _bodyMeasurements.indexWhere(
+          (m) => m.id == measurementId,
+        );
         if (existingIndex != -1) {
           final previous = _bodyMeasurements[existingIndex];
           _bodyMeasurements[existingIndex] = BodyMeasurement(
@@ -218,7 +238,8 @@ class TrackingProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
-      if (e.message.contains('SocketException') || e.message.contains('Failed host lookup')) {
+      if (e.message.contains('SocketException') ||
+          e.message.contains('Failed host lookup')) {
         final id = const Uuid().v4();
         await OfflineSyncService().addToQueue(
           PendingSync(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/api/services/auth_service.dart';
+import '../../../core/utils/storage_helper.dart';
 
 class UserMemoryFact {
   final String category;
@@ -33,9 +34,11 @@ class AiUserMemoryService {
   static const _keyPrefix = 'ai_user_memory_v1_';
   static const int maxFacts = 30;
 
+  String get _key => StorageHelper.userScopedKey(_keyPrefix);
+
   Future<List<UserMemoryFact>> getFacts(int userId) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_keyPrefix$userId');
+    final raw = prefs.getString(_key);
     if (raw == null || raw.isEmpty) {
       return _restoreFromAccount(userId);
     }
@@ -70,13 +73,13 @@ class AiUserMemoryService {
 
   Future<void> clearAll(int userId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('$_keyPrefix$userId');
+    await prefs.remove(_key);
   }
 
   Future<void> _persist(int userId, List<UserMemoryFact> facts) async {
     final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode(facts.map((f) => f.toJson()).toList());
-    await prefs.setString('$_keyPrefix$userId', encoded);
+    await prefs.setString(_key, encoded);
     try {
       await AuthService().updateMeProfile({'aiMemorySummary': encoded});
     } catch (_) {}
@@ -97,7 +100,7 @@ class AiUserMemoryService {
       if (facts.isNotEmpty) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
-          '$_keyPrefix$userId',
+          _key,
           jsonEncode(facts.map((f) => f.toJson()).toList()),
         );
       }

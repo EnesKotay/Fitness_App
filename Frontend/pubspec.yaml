@@ -5,7 +5,7 @@ publish_to: 'none'
 # version: MAJOR.MINOR.PATCH+BUILD_NUMBER
 # MAJOR.MINOR.PATCH → App Store'da görünen versiyon (CFBundleShortVersionString)
 # BUILD_NUMBER      → App Store Connect'e her yüklemede artırılmalı (CFBundleVersion)
-version: 1.1.5+1
+version: 1.1.6+2
 
 environment:
   sdk: ^3.10.7
@@ -23,6 +23,7 @@ dependencies:
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
   flutter_markdown: ^0.7.7+1
+  markdown: ^7.3.0
   confetti: ^0.8.0
   
   # HTTP Client
@@ -76,8 +77,8 @@ dependencies:
   # Offline Sync
   connectivity_plus: ^6.1.0
 
-  # In-App Purchase (App Store & Google Play abonelik)
-  in_app_purchase: ^3.2.0
+  # In-App Purchase — RevenueCat (App Store & Google Play abonelik)
+  purchases_flutter: ^9.0.0
 
   # App Review
   in_app_review: ^2.0.9
@@ -94,6 +95,7 @@ dependencies:
   # App Icon Generator
   flutter_launcher_icons: ^0.14.3
   upgrader: ^13.4.0
+  home_widget: ^0.9.3
 
 dependency_overrides:
   # objective_c 9.x native dylib iOS simülatörde yüklenemiyor (iOS 26 uyumsuzluk).

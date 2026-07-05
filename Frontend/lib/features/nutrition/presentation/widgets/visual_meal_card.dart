@@ -171,73 +171,252 @@ class VisualMealCard extends StatelessWidget {
   Widget _buildEntryItem(FoodEntry entry) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Row(
-          children: [
-            // Renkli nokta
-            Container(
-              width: 8,
-              height: 8,
+      child: Builder(
+        builder: (context) => Dismissible(
+          key: Key(entry.id),
+          direction: DismissDirection.endToStart,
+          background: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            margin: const EdgeInsets.only(bottom: 3),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Colors.red.shade600.withValues(alpha: 0.9),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.delete_sweep_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          confirmDismiss: (direction) async {
+            return await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: AppColors.backgroundCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                title: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange.shade300, size: 24),
+                    const SizedBox(width: 10),
+                    const Text('Silmek istediğine emin misin?'),
+                  ],
+                ),
+                content: Text(
+                  '${entry.foodName} kaydı silinecek.',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('İptal'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Sil'),
+                  ),
+                ],
+              ),
+            ) ?? false;
+          },
+          onDismissed: (_) => onDelete(entry.id),
+          child: InkWell(
+            onLongPress: () => _showQuickActionsSheet(context, entry),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.7),
-                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              ),
+              child: Row(
+                children: [
+              // Renkli nokta
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _color.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // Yemek adı & gram
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.foodName,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${entry.grams.round()}g  •  ${entry.calculatedKcal.round()} kcal',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Düzenle butonu
+              if (onEdit != null)
+                _actionButton(
+                  icon: Icons.edit_rounded,
+                  color: const Color(0xFF5B9BFF),
+                  tooltip: 'Düzenle',
+                  onTap: () => onEdit!(entry),
+                ),
+
+              const SizedBox(width: 4),
+
+              // Sil butonu
+              _actionButton(
+                icon: Icons.delete_outline_rounded,
+                color: const Color(0xFFFF6B6B),
+                tooltip: 'Sil',
+                onTap: () => onDelete(entry.id),
+              ),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
+          ),
+        ),
+      ),
+    );
+  }
 
-            // Yemek adı & gram
-            Expanded(
+  void _showQuickActionsSheet(BuildContext context, FoodEntry entry) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.backgroundCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     entry.foodName,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white.withValues(alpha: 0.95),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     '${entry.grams.round()}g  •  ${entry.calculatedKcal.round()} kcal',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.45),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
               ),
             ),
-
-            // Düzenle butonu
+            const SizedBox(height: 20),
             if (onEdit != null)
-              _actionButton(
+              _quickActionTile(
                 icon: Icons.edit_rounded,
-                color: const Color(0xFF5B9BFF),
-                tooltip: 'Düzenle',
-                onTap: () => onEdit!(entry),
+                label: 'Düzenle',
+                color: Colors.blue.shade300,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onEdit!(entry);
+                },
               ),
-
-            const SizedBox(width: 4),
-
-            // Sil butonu
-            _actionButton(
-              icon: Icons.delete_outline_rounded,
-              color: const Color(0xFFFF6B6B),
-              tooltip: 'Sil',
-              onTap: () => onDelete(entry.id),
+            _quickActionTile(
+              icon: Icons.delete_rounded,
+              label: 'Sil',
+              color: Colors.red.shade300,
+              onTap: () {
+                Navigator.pop(ctx);
+                onDelete(entry.id);
+              },
             ),
+            const SizedBox(height: 10),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _quickActionTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

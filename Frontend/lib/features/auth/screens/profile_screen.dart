@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/api_constants.dart';
+import '../../../core/constants/premium_features.dart';
 import '../../../core/preferences/app_preferences.dart';
 import '../../../core/utils/storage_helper.dart';
 import '../../nutrition/data/datasources/hive_diet_storage.dart';
@@ -92,8 +93,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  bool _isPremium(AuthProvider authProvider) =>
-      authProvider.user?.premiumTier?.toLowerCase().trim() == 'premium';
+  bool _isPremium(AuthProvider authProvider) => isPremiumTier(
+    authProvider.user?.premiumTier,
+    expiresAt: authProvider.user?.premiumExpiresAt,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -577,7 +580,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildMembershipCard(AuthProvider authProvider) {
     final isPremium = _isPremium(authProvider);
     final user = authProvider.user;
-    final plan = user?.premiumPlan?.toLowerCase().trim();
+    final plan = normalizePremiumPlanId(user?.premiumPlan);
     final expiresAt = user?.premiumExpiresAt;
     final cancelAtEnd = user?.premiumCancelAtPeriodEnd == true;
     final isMonthly = plan == 'monthly';
@@ -666,9 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     final totalDays = plan == 'yearly' ? 365 : 30;
-    final daysLeft = expiresAt != null
-        ? expiresAt.difference(DateTime.now()).inDays.clamp(0, totalDays)
-        : 0;
+    final daysLeft = premiumDaysLeft(expiresAt, totalDays: totalDays);
     final planLabel = plan == 'yearly' ? 'Yıllık Plan' : 'Aylık Plan';
     final planPrice = plan == 'yearly' ? '1.199₺ / yıl' : '149₺ / ay';
     final statusColor = cancelAtEnd
@@ -1710,7 +1711,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Yaş',
                   value: profile != null ? '${profile.age}' : '--',
                   tone: _warmAccent,
-                  onTap: profile == null ? () => _openEditProfile(context) : null,
+                  onTap: profile == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1722,7 +1725,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ? AppUnits.formatHeight(profile.height, appPrefs)
                       : '--',
                   tone: _softBlue,
-                  onTap: profile == null ? () => _openEditProfile(context) : null,
+                  onTap: profile == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
             ],
@@ -1738,7 +1743,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ? AppUnits.formatWeight(latestWeight, appPrefs)
                       : '--',
                   tone: _freshGreen,
-                  onTap: latestWeight == null ? () => _openEditProfile(context) : null,
+                  onTap: latestWeight == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1748,7 +1755,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Hedef',
                   value: _goalLabel(profile?.goal),
                   tone: _warmAccent,
-                  onTap: profile?.goal == null ? () => _openEditProfile(context) : null,
+                  onTap: profile?.goal == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
             ],
@@ -1762,7 +1771,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Cinsiyet',
                   value: _genderLabel(profile?.gender),
                   tone: _softBlue,
-                  onTap: profile?.gender == null ? () => _openEditProfile(context) : null,
+                  onTap: profile?.gender == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1772,7 +1783,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                   label: 'Aktivite',
                   value: _activityLabel(profile?.activityLevel),
                   tone: _freshGreen,
-                  onTap: profile?.activityLevel == null ? () => _openEditProfile(context) : null,
+                  onTap: profile?.activityLevel == null
+                      ? () => _openEditProfile(context)
+                      : null,
                 ),
               ),
             ],
@@ -1796,7 +1809,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [tone.withValues(alpha: isEmpty ? 0.06 : 0.12), tone.withValues(alpha: 0.02)],
+          colors: [
+            tone.withValues(alpha: isEmpty ? 0.06 : 0.12),
+            tone.withValues(alpha: 0.02),
+          ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
@@ -1825,7 +1841,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               if (isEmpty)
-                Icon(Icons.edit_outlined, size: 12, color: tone.withValues(alpha: 0.7)),
+                Icon(
+                  Icons.edit_outlined,
+                  size: 12,
+                  color: tone.withValues(alpha: 0.7),
+                ),
             ],
           ),
           const SizedBox(height: 8),

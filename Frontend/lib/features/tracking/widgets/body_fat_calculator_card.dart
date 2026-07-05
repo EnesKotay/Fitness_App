@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/storage_helper.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../nutrition/domain/entities/user_profile.dart';
 import '../providers/tracking_provider.dart';
@@ -18,6 +19,7 @@ class BodyFatCalculatorCard extends StatefulWidget {
 
 class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
   static const _prefsKey = 'body_fat_neck_cm';
+  String get _userPrefsKey => StorageHelper.userScopedKey(_prefsKey);
 
   double? _neckCm;
 
@@ -29,13 +31,13 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
 
   Future<void> _loadNeck() async {
     final prefs = await SharedPreferences.getInstance();
-    final v = prefs.getDouble(_prefsKey);
+    final v = prefs.getDouble(_userPrefsKey);
     if (v != null && mounted) setState(() => _neckCm = v);
   }
 
   Future<void> _saveNeck(double v) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_prefsKey, v);
+    await prefs.setDouble(_userPrefsKey, v);
   }
 
   // ── Navy Formülü ─────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
   // Kadın: <14 Atlet, 14-24 Fit, 25-31 Orta, >32 Yüksek
   static _FatCategory _categorize(double fat, Gender gender) {
     if (gender == Gender.male) {
-      if (fat < 6)  return _FatCategory.athlete;
+      if (fat < 6) return _FatCategory.athlete;
       if (fat < 18) return _FatCategory.fit;
       if (fat < 25) return _FatCategory.average;
       return _FatCategory.high;
@@ -92,8 +94,10 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Boyun Ölçüsü',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Boyun Ölçüsü',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,14 +105,18 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
             Text(
               'Boyun çevresini santimetre olarak gir.\nAdam\'s apple hizasından ölç.',
               style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55), fontSize: 12, height: 1.5),
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 12,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: ctrl,
               autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
               ],
@@ -116,13 +124,17 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
               decoration: InputDecoration(
                 suffixText: 'cm',
                 suffixStyle: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.4), fontSize: 14),
+                  color: Colors.white.withValues(alpha: 0.4),
+                  fontSize: 14,
+                ),
                 enabledBorder: UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: Colors.white.withValues(alpha: 0.2))),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
                 focusedBorder: const UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: AppColors.primary, width: 2)),
+                  borderSide: BorderSide(color: AppColors.primary, width: 2),
+                ),
               ),
             ),
           ],
@@ -130,17 +142,20 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('İptal',
-                style: TextStyle(color: Colors.white54)),
+            child: const Text('İptal', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () {
               final v = double.tryParse(ctrl.text.trim());
               if (v != null && v > 10 && v < 70) Navigator.pop(ctx, v);
             },
-            child: const Text('Kaydet',
-                style: TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Kaydet',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -180,8 +195,9 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
           }
         }
 
-        final category =
-            fatPercent != null ? _categorize(fatPercent, gender) : null;
+        final category = fatPercent != null
+            ? _categorize(fatPercent, gender)
+            : null;
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -211,24 +227,34 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
                         color: const Color(0xFF64D2FF).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.water_drop_rounded,
-                          color: Color(0xFF64D2FF), size: 18),
+                      child: const Icon(
+                        Icons.water_drop_rounded,
+                        color: Color(0xFF64D2FF),
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Vücut Yağ Oranı',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3)),
+                          Text(
+                            'Vücut Yağ Oranı',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
                           SizedBox(height: 1),
-                          Text('Navy Formülü ile hesaplanır',
-                              style:
-                                  TextStyle(color: Colors.white38, fontSize: 11)),
+                          Text(
+                            'Navy Formülü ile hesaplanır',
+                            style: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -242,7 +268,9 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
                   onTap: _editNeck,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 9),
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
                     decoration: BoxDecoration(
                       color: _neckCm == null
                           ? AppColors.primary.withValues(alpha: 0.10)
@@ -256,11 +284,13 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.straighten_rounded,
-                            size: 15,
-                            color: _neckCm == null
-                                ? AppColors.primary
-                                : Colors.white38),
+                        Icon(
+                          Icons.straighten_rounded,
+                          size: 15,
+                          color: _neckCm == null
+                              ? AppColors.primary
+                              : Colors.white38,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Boyun ölçüsü',
@@ -311,12 +341,19 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           children: [
-            Icon(Icons.straighten_rounded,
-                color: Colors.white.withValues(alpha: 0.2), size: 40),
+            Icon(
+              Icons.straighten_rounded,
+              color: Colors.white.withValues(alpha: 0.2),
+              size: 40,
+            ),
             const SizedBox(height: 12),
-            Text('Bel ölçüsü gerekmektedir',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
+            Text(
+              'Bel ölçüsü gerekmektedir',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       ),
@@ -329,16 +366,27 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
           children: [
-            Icon(Icons.info_outline_rounded,
-                color: AppColors.primary.withValues(alpha: 0.5), size: 32),
+            Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.primary.withValues(alpha: 0.5),
+              size: 32,
+            ),
             const SizedBox(height: 10),
-            Text('Yukarıdan boyun ölçüsünü gir',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.45), fontSize: 13)),
+            Text(
+              'Yukarıdan boyun ölçüsünü gir',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('Navy formülü için zorunludur',
-                style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.25), fontSize: 11)),
+            Text(
+              'Navy formülü için zorunludur',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.25),
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ),
@@ -346,7 +394,10 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
   }
 
   Widget _buildResult(
-      double? fatPercent, _FatCategory? category, Gender gender) {
+    double? fatPercent,
+    _FatCategory? category,
+    Gender gender,
+  ) {
     if (fatPercent == null || category == null) {
       return _buildNoDataState();
     }
@@ -366,7 +417,9 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
               CustomPaint(
                 size: const Size(110, 110),
                 painter: _CircularFatPainter(
-                    progress: progress, color: catColor),
+                  progress: progress,
+                  color: catColor,
+                ),
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -374,15 +427,19 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
                   Text(
                     '${fatPercent.toStringAsFixed(1)}%',
                     style: TextStyle(
-                        color: catColor,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5),
+                      color: catColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  Text('Yağ',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          fontSize: 11)),
+                  Text(
+                    'Yağ',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.4),
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -394,32 +451,40 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: catColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: catColor.withValues(alpha: 0.3)),
                 ),
-                child: Text(catLabel,
-                    style: TextStyle(
-                        color: catColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800)),
+                child: Text(
+                  catLabel,
+                  style: TextStyle(
+                    color: catColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
               _buildRefRow(
-                  gender == Gender.male ? '< 6%' : '< 14%',
-                  'Atlet',
-                  const Color(0xFF64D2FF)),
+                gender == Gender.male ? '< 6%' : '< 14%',
+                'Atlet',
+                const Color(0xFF64D2FF),
+              ),
               _buildRefRow(
-                  gender == Gender.male ? '6–17%' : '14–24%',
-                  'Fit / Orta',
-                  AppColors.primaryLight),
+                gender == Gender.male ? '6–17%' : '14–24%',
+                'Fit / Orta',
+                AppColors.primaryLight,
+              ),
               _buildRefRow(
-                  gender == Gender.male ? '> 25%' : '> 32%',
-                  'Yüksek',
-                  AppColors.warning),
+                gender == Gender.male ? '> 25%' : '> 32%',
+                'Yüksek',
+                AppColors.warning,
+              ),
             ],
           ),
         ),
@@ -433,17 +498,26 @@ class _BodyFatCalculatorCardState extends State<BodyFatCalculatorCard> {
       child: Row(
         children: [
           Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
           const SizedBox(width: 6),
-          Text(range,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55), fontSize: 11)),
+          Text(
+            range,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              fontSize: 11,
+            ),
+          ),
           const SizedBox(width: 4),
-          Text(label,
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.35), fontSize: 10)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.35),
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );

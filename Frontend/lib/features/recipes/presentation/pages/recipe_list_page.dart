@@ -71,28 +71,32 @@ class _RecipeListPageState extends State<RecipeListPage> {
       title: 'Tarif Keşfet',
       description:
           'Sağlıklı Türk ve dünya mutfağından yüzlerce tarif var. Her tarifte malzeme listesi, pişirme adımları ve porsiyon başına kalori/makro değerleri görünür.',
-      tip: 'Üstteki kategorilerden (Kahvaltı, Öğle, Akşam, Atıştırmalık) filtreleyerek hızlı bul.',
+      tip:
+          'Üstteki kategorilerden (Kahvaltı, Öğle, Akşam, Atıştırmalık) filtreleyerek hızlı bul.',
     ),
     GuideStep(
       emoji: '🔍',
       title: 'Ara ve Filtrele',
       description:
           'Arama çubuğuna malzeme ismi veya yemek adı yaz. Filtrele butonuyla kalori aralığı, pişirme süresi veya diyet tipine (vejetaryen, protein ağırlıklı vb.) göre daralt.',
-      tip: 'Evdeki malzemeye göre ara — "yoğurt ile" yazarsan yoğurtlu tarifler gelir.',
+      tip:
+          'Evdeki malzemeye göre ara — "yoğurt ile" yazarsan yoğurtlu tarifler gelir.',
     ),
     GuideStep(
       emoji: '❤️',
       title: 'Favorile',
       description:
           'Tarif detayını aç → sağ üstteki kalp ❤️ ikonuna dokun → Favorilere ekle. Favori tariflerine Tarifler → Favoriler sekmesinden hızlıca ulaşabilirsin.',
-      tip: 'Haftalık menüne aldığın tarifleri favorile — bir dahaki plan oluşturmada ön plana çıkarılır.',
+      tip:
+          'Haftalık menüne aldığın tarifleri favorile — bir dahaki plan oluşturmada ön plana çıkarılır.',
     ),
     GuideStep(
       emoji: '➕',
       title: 'Kendi Tarifini Ekle',
       description:
           'Sağ üstteki "+" butonuna dokun → tarif adı, malzemeler ve besin değerlerini gir → Kaydet. Aileden gelen özel bir tarif veya kendi geliştirdiğin menü olabilir.',
-      tip: 'Tarif oluştururken AI Koç\'a malzemeleri söyle, kalorisini hesaplatabilirsin.',
+      tip:
+          'Tarif oluştururken AI Koç\'a malzemeleri söyle, kalorisini hesaplatabilirsin.',
     ),
   ];
 
@@ -516,6 +520,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
           backgroundColor: AppColors.background,
           extendBodyBehindAppBar: true,
           floatingActionButton: FloatingActionButton.extended(
+            heroTag: 'recipe_list_add_custom_recipe_fab',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AddCustomRecipePage()),
@@ -524,7 +529,10 @@ class _RecipeListPageState extends State<RecipeListPage> {
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Özel Tarif Ekle', style: TextStyle(fontWeight: FontWeight.w700)),
+            label: const Text(
+              'Özel Tarif Ekle',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
           body: AppGradientBackground(
             imagePath: 'assets/images/nutrition_bg_dark.png',
@@ -543,7 +551,9 @@ class _RecipeListPageState extends State<RecipeListPage> {
                     ),
                     SliverToBoxAdapter(child: _buildSearchBar(provider)),
                     const SliverToBoxAdapter(child: SizedBox(height: 4)),
-                    SliverToBoxAdapter(child: _buildFilterRow(context, provider)),
+                    SliverToBoxAdapter(
+                      child: _buildFilterRow(context, provider),
+                    ),
                     if (provider.searchQuery.isNotEmpty ||
                         provider.showOnlyFavorites ||
                         provider.selectedCategory != 'tümü' ||
@@ -596,7 +606,11 @@ class _RecipeListPageState extends State<RecipeListPage> {
                           ),
                         ),
                         SliverToBoxAdapter(
-                          child: _buildFeaturedCard(context, featured, provider),
+                          child: _buildFeaturedCard(
+                            context,
+                            featured,
+                            provider,
+                          ),
                         ),
                         if (recentRecipes.isNotEmpty) ...[
                           const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -642,11 +656,11 @@ class _RecipeListPageState extends State<RecipeListPage> {
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 240,
-                            childAspectRatio: 0.71,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
+                                maxCrossAxisExtent: 240,
+                                childAspectRatio: 0.71,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
                           delegate: SliverChildBuilderDelegate(
                             (ctx, i) => _RecipeCard(
                               recipe: gridItems[i],
@@ -704,9 +718,7 @@ class _RecipeListPageState extends State<RecipeListPage> {
           right: 20,
           bottom: 20,
         ),
-        decoration: const BoxDecoration(
-          color: Colors.transparent,
-        ),
+        decoration: const BoxDecoration(color: Colors.transparent),
         child: Stack(
           children: [
             Positioned(

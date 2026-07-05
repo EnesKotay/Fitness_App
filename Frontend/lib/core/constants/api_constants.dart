@@ -67,6 +67,7 @@ class ApiConstants {
 
   // AI Endpoints
   static const String aiCoach = '$apiPrefix/ai/coach';
+  static const String aiCoachQuota = '$apiPrefix/ai/coach/quota';
   static const String aiInsights = '$apiPrefix/ai/insights';
   static const String aiSummarize = '$apiPrefix/ai/summarize';
   static const String aiNutrition = '$apiPrefix/ai/nutrition';
@@ -81,11 +82,23 @@ class ApiConstants {
   // Premium Endpoints
   static const String premiumStatus = '$apiPrefix/user/premium-status';
   static const String upgradePremium = '$apiPrefix/user/upgrade-premium';
-  static const String verifyIapPurchase = '$apiPrefix/user/upgrade-premium/iap';
+  /// RevenueCat üzerinden abonelik durumunu backend ile senkronlar.
+  static const String premiumSync = '$apiPrefix/user/premium/sync';
   static const String downgradePremium = '$apiPrefix/user/downgrade-premium';
 
   // Exercise Endpoints (bolge / egzersiz listesi)
   static const String exerciseGroups = '$apiPrefix/exercises/groups';
   static String exercisesByGroup(String muscleGroup) =>
       '$apiPrefix/exercises?muscleGroup=$muscleGroup';
+
+  // Exercise Library Endpoints
+  static const String exerciseLibrary = '$apiPrefix/exercises';
+  static String exerciseLibraryItem(String exerciseId) =>
+      '$apiPrefix/exercises/$exerciseId';
+  static const String exerciseLibraryBodyweight =
+      '$apiPrefix/exercises/bodyweight';
+  static const String exerciseLibraryCategories =
+      '$apiPrefix/exercises/categories';
+  static const String exerciseLibraryEquipment =
+      '$apiPrefix/exercises/equipment';
 }

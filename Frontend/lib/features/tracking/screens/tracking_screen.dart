@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/preferences/app_preferences.dart';
 import '../../../core/widgets/app_gradient_background.dart';
-import '../../weight/domain/entities/weight_entry.dart';
 import '../../weight/presentation/providers/weight_provider.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../workout/providers/workout_provider.dart';
@@ -227,48 +225,6 @@ class _TrackingScreenState extends State<TrackingScreen> {
           padding: const EdgeInsets.only(right: 4),
           child: Center(child: PageGuideButton(onTap: _showGuide)),
         ),
-        Selector<WeightProvider, WeightEntry?>(
-          selector: (_, p) => p.latestEntry,
-          builder: (context, latest, child) {
-            if (latest == null) return const SizedBox.shrink();
-            final prefs = context.watch<AppPreferences>();
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Text(
-                    AppUnits.formatWeight(latest.weightKg, prefs),
-                    style: const TextStyle(
-                      color: AppColors.primaryLight,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        IconButton(
-          onPressed: () => WeightTrackingView.showEntrySheet(context),
-          icon: const Icon(
-            Icons.add_rounded,
-            color: AppColors.primaryLight,
-            size: 26,
-          ),
-          tooltip: 'Kilo ekle',
-        ),
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(50),
@@ -436,70 +392,132 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Widget _buildMeasurementDetailsPanel(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-          childrenPadding: const EdgeInsets.only(bottom: 14),
-          collapsedShape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
-          ),
-          backgroundColor: Colors.white.withValues(alpha: 0.035),
-          collapsedBackgroundColor: Colors.white.withValues(alpha: 0.035),
-          iconColor: AppColors.primaryLight,
-          collapsedIconColor: Colors.white54,
-          leading: const Icon(
-            Icons.dashboard_customize_rounded,
-            color: AppColors.primaryLight,
-            size: 18,
-          ),
-          title: const Text(
-            'Görsel analizler',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showVisualAnalysisSheet(context),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.035),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.dashboard_customize_rounded,
+                    color: AppColors.primaryLight,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Görsel analizler',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Fotoğraf, silüet ve vücut kompozisyonu',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.42),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.primaryLight,
+                  size: 22,
+                ),
+              ],
             ),
           ),
-          subtitle: Text(
-            'Fotoğraf, silüet ve vücut kompozisyonu',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.42),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  void _showVisualAnalysisSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.82,
+        minChildSize: 0.45,
+        maxChildSize: 0.94,
+        builder: (sheetContext, controller) => Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
             ),
           ),
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: ProgressPhotoCard(),
-            ),
-            const SizedBox(height: 14),
-            Consumer<TrackingProvider>(
-              builder: (context, tracking, _) => BodySilhouetteCard(
-                measurement: tracking.bodyMeasurements.isNotEmpty
-                    ? tracking.bodyMeasurements.first
-                    : null,
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Consumer2<TrackingProvider, DietProvider>(
+              const SizedBox(height: 18),
+              const Text(
+                'Görsel analizler',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const ProgressPhotoCard(),
+              const SizedBox(height: 14),
+              Consumer<TrackingProvider>(
+                builder: (context, tracking, _) => BodySilhouetteCard(
+                  measurement: tracking.bodyMeasurements.isNotEmpty
+                      ? tracking.bodyMeasurements.first
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Consumer2<TrackingProvider, DietProvider>(
                 builder: (context, tracking, diet, _) => BodyCompositionCard(
                   profile: diet.profile,
                   measurements: tracking.bodyMeasurements,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -811,10 +829,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) {
-            const suffix = 'Mezura değişimlerime göre kas gelişimi ve incelme için 3 kritik madde söyle.';
+            const suffix =
+                'Mezura değişimlerime göre kas gelişimi ve incelme için 3 kritik madde söyle.';
             final ctx = contextBuffer.toString();
             final maxCtx = 480 - suffix.length;
-            final safeCtx = ctx.length > maxCtx ? ctx.substring(0, maxCtx) : ctx;
+            final safeCtx = ctx.length > maxCtx
+                ? ctx.substring(0, maxCtx)
+                : ctx;
             return AiCoachInsightSheet(
               goal: 'Kas gelişimi ve bölgesel incelme',
               question: '$safeCtx$suffix',
@@ -1129,8 +1150,15 @@ class _FeatureRow extends StatelessWidget {
 
 // ─── Performans Sekmesi ───────────────────────────────────────────────────────
 
-class _PerformanceTab extends StatelessWidget {
+class _PerformanceTab extends StatefulWidget {
   const _PerformanceTab();
+
+  @override
+  State<_PerformanceTab> createState() => _PerformanceTabState();
+}
+
+class _PerformanceTabState extends State<_PerformanceTab> {
+  int _selectedSection = 0;
 
   static const _accentBlue = Color(0xFF64D2FF);
   static const _accentOrange = Color(0xFFFFA56E);
@@ -1322,6 +1350,7 @@ class _PerformanceTab extends StatelessWidget {
         final monthlyCount = _monthlyWorkoutCount(workouts);
         final prevWeekCount = _previousWeekWorkoutCount(workouts);
         final activeWeekdays = _activeWeekdays(workouts);
+        final risingPrs = _risingPrCount(displayPRs, workouts);
 
         return CustomScrollView(
           physics: const BouncingScrollPhysics(
@@ -1329,219 +1358,286 @@ class _PerformanceTab extends StatelessWidget {
           ),
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // ── Haftalık Özet Kartı ───────────────────────────────────────
-            const SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(child: WeeklySummaryCard()),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: _PerformanceReadCard(read: performanceRead),
+              sliver: SliverToBoxAdapter(child: _buildSectionSwitcher()),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            if (_selectedSection == 0) ...[
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(child: WeeklySummaryCard()),
               ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            // ── Performans AI Analizi butonu ────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: _PerformanceAiButton(
-                  weeklyCount: weeklyCount,
-                  weeklyVol: weeklyVol,
-                  monthlyKcal: monthlyKcal,
-                  risingPrs: _risingPrCount(displayPRs, workouts),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: _PerformanceReadCard(read: performanceRead),
                 ),
               ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            // ── Haftalık özet ─────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Başlık + haftalık aktivite takvimi
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _sectionTitle(
-                            'Bu Hafta',
-                            Icons.bar_chart_rounded,
-                            _accentBlue,
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: _PerformanceAiButton(
+                    weeklyCount: weeklyCount,
+                    weeklyVol: weeklyVol,
+                    monthlyKcal: monthlyKcal,
+                    risingPrs: risingPrs,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: _buildStatsOverview(
+                    activeWeekdays: activeWeekdays,
+                    weeklyCount: weeklyCount,
+                    prevWeekCount: prevWeekCount,
+                    weeklyVol: weeklyVol,
+                    previousWeeklyVol: previousWeeklyVol,
+                    monthlyKcal: monthlyKcal,
+                    monthlyCount: monthlyCount,
+                  ),
+                ),
+              ),
+              Consumer2<WorkoutProvider, DietProvider>(
+                builder: (context, wprov, diet, _) {
+                  final waterLiters = diet.waterLiters;
+                  return SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: RecoveryScoreCard(
+                        workoutProvider: wprov,
+                        waterLiters: waterLiters,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: _PeriodizationCard(workouts: workouts),
+                ),
+              ),
+            ] else if (_selectedSection == 1) ...[
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: MuscleRadarChart(workouts: workouts),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: VolumeTrendChart(workouts: workouts),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: DifficultyPieChart(workouts: workouts),
+                ),
+              ),
+            ] else ...[
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Kişisel Rekorlar',
+                        Icons.emoji_events_rounded,
+                        _accentOrange,
+                      ),
+                      const SizedBox(height: 10),
+                      if (displayPRs.isEmpty)
+                        _emptyState(
+                          'Henüz antrenman kaydı yok.\nPR\'ların burada görünecek.',
+                        )
+                      else
+                        ...displayPRs.asMap().entries.map(
+                          (e) => _PRRow(
+                            rank: e.key + 1,
+                            exerciseName: e.value.key,
+                            weight: e.value.value,
+                            trend: _prTrend(e.value.key, workouts),
+                            history: wp.maxWeightsFor(e.value.key),
+                            allWorkouts: workouts,
                           ),
                         ),
-                        _WeekDots(activeWeekdays: activeWeekdays),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _statChip(
-                          icon: Icons.fitness_center_rounded,
-                          label: 'Seans',
-                          value: weeklyCount.toDouble(),
-                          suffix: ' antrenman',
-                          color: _accentOrange,
-                          trend: prevWeekCount == 0
-                              ? null
-                              : weeklyCount - prevWeekCount,
-                          trendLabel: 'geçen haftadan',
-                        ),
-                        const SizedBox(width: 8),
-                        _statChip(
-                          icon: Icons.scale_rounded,
-                          label: 'Hacim',
-                          value: weeklyVol > 0 ? (weeklyVol / 1000) : 0,
-                          suffix: ' ton',
-                          isDecimal: true,
-                          color: _accentBlue,
-                          trend: previousWeeklyVol == 0
-                              ? null
-                              : (weeklyVol - previousWeeklyVol > 0
-                                    ? 1
-                                    : weeklyVol - previousWeeklyVol < 0
-                                    ? -1
-                                    : 0),
-                          trendLabel: 'geçen haftaya göre',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _sectionTitle(
-                      'Son 30 Gün',
-                      Icons.local_fire_department_rounded,
-                      _accentGreen,
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        _statChip(
-                          icon: Icons.local_fire_department_rounded,
-                          label: 'Yakılan Kalori',
-                          value: monthlyKcal > 0 ? monthlyKcal : 0,
-                          suffix: ' kcal',
-                          color: _accentGreen,
-                        ),
-                        const SizedBox(width: 8),
-                        _statChip(
-                          icon: Icons.fitness_center_rounded,
-                          label: 'Antrenman',
-                          value: monthlyCount.toDouble(),
-                          suffix: ' seans',
-                          color: _accentOrange,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: MuscleRadarChart(workouts: workouts),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: VolumeTrendChart(workouts: workouts),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: DifficultyPieChart(workouts: workouts),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-            // ── Kişisel Rekorlar ──────────────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle(
-                      'Kişisel Rekorlar',
-                      Icons.emoji_events_rounded,
-                      _accentOrange,
-                    ),
-                    const SizedBox(height: 10),
-                    if (displayPRs.isEmpty)
-                      _emptyState(
-                        'Henüz antrenman kaydı yok.\nPR\'ların burada görünecek.',
-                      )
-                    else
-                      ...displayPRs.asMap().entries.map(
-                        (e) => _PRRow(
-                          rank: e.key + 1,
-                          exerciseName: e.value.key,
-                          weight: e.value.value,
-                          trend: _prTrend(e.value.key, workouts),
-                          history: wp.maxWeightsFor(e.value.key),
-                          allWorkouts: workouts,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Antrenman Geçmişi ────────────────────────────────────────────────
-            const SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(child: WorkoutHistoryCard()),
-            ),
-
-            // ── Toparlanma Skoru ─────────────────────────────────────────────────────────
-            Consumer2<WorkoutProvider, DietProvider>(
-              builder: (context, wprov, diet, _) {
-                final waterLiters = diet.waterLiters;
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: RecoveryScoreCard(
-                      workoutProvider: wprov,
-                      waterLiters: waterLiters,
-                    ),
+                    ],
                   ),
-                );
-              },
-            ),
-
-            // ── Periodizasyon ────────────────────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              sliver: SliverToBoxAdapter(
-                child: _PeriodizationCard(workouts: workouts),
+                ),
               ),
-            ),
-
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(child: WorkoutHistoryCard()),
+              ),
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSectionSwitcher() {
+    const labels = ['Özet', 'Grafikler', 'Geçmiş'];
+    final icons = [
+      Icons.dashboard_rounded,
+      Icons.insights_rounded,
+      Icons.history_rounded,
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+      ),
+      child: Row(
+        children: List.generate(labels.length, (index) {
+          final selected = _selectedSection == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedSection = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.primary.withValues(alpha: 0.22)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: selected
+                        ? AppColors.primary.withValues(alpha: 0.42)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icons[index],
+                      color: selected ? AppColors.primaryLight : Colors.white38,
+                      size: 15,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      labels[index],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.48),
+                        fontSize: 12.5,
+                        fontWeight: selected
+                            ? FontWeight.w800
+                            : FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildStatsOverview({
+    required Set<int> activeWeekdays,
+    required int weeklyCount,
+    required int prevWeekCount,
+    required double weeklyVol,
+    required double previousWeeklyVol,
+    required double monthlyKcal,
+    required int monthlyCount,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _sectionTitle(
+                'Bu Hafta',
+                Icons.bar_chart_rounded,
+                _accentBlue,
+              ),
+            ),
+            _WeekDots(activeWeekdays: activeWeekdays),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _statChip(
+              icon: Icons.fitness_center_rounded,
+              label: 'Seans',
+              value: weeklyCount.toDouble(),
+              suffix: ' antrenman',
+              color: _accentOrange,
+              trend: prevWeekCount == 0 ? null : weeklyCount - prevWeekCount,
+              trendLabel: 'geçen haftadan',
+            ),
+            const SizedBox(width: 8),
+            _statChip(
+              icon: Icons.scale_rounded,
+              label: 'Hacim',
+              value: weeklyVol > 0 ? (weeklyVol / 1000) : 0,
+              suffix: ' ton',
+              isDecimal: true,
+              color: _accentBlue,
+              trend: previousWeeklyVol == 0
+                  ? null
+                  : (weeklyVol - previousWeeklyVol > 0
+                        ? 1
+                        : weeklyVol - previousWeeklyVol < 0
+                        ? -1
+                        : 0),
+              trendLabel: 'geçen haftaya göre',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _sectionTitle(
+          'Son 30 Gün',
+          Icons.local_fire_department_rounded,
+          _accentGreen,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _statChip(
+              icon: Icons.local_fire_department_rounded,
+              label: 'Yakılan Kalori',
+              value: monthlyKcal > 0 ? monthlyKcal : 0,
+              suffix: ' kcal',
+              color: _accentGreen,
+            ),
+            const SizedBox(width: 8),
+            _statChip(
+              icon: Icons.fitness_center_rounded,
+              label: 'Antrenman',
+              value: monthlyCount.toDouble(),
+              suffix: ' seans',
+              color: _accentOrange,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -2151,13 +2247,12 @@ class _PerformanceAiButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-          ),
+          color: AppColors.primary.withValues(alpha: 0.12),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.28)),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF8E2DE2).withValues(alpha: 0.32),
+              color: AppColors.primary.withValues(alpha: 0.10),
               blurRadius: 14,
               offset: const Offset(0, 5),
             ),
@@ -2166,12 +2261,16 @@ class _PerformanceAiButton extends StatelessWidget {
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
+            Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.primaryLight,
+              size: 18,
+            ),
             SizedBox(width: 8),
             Text(
               'Performans Analizi Al',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.primaryLight,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),
@@ -2204,10 +2303,13 @@ class _PerformanceAiButton extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) {
-        const suffix = 'Performansımı değerlendir, önümüzdeki 7 gün için 3 kritik nokta söyle.';
+        const suffix =
+            'Performansımı değerlendir, önümüzdeki 7 gün için 3 kritik nokta söyle.';
         final ctxStr = ctx.toString();
         final maxCtx = 480 - suffix.length;
-        final safeCtx = ctxStr.length > maxCtx ? ctxStr.substring(0, maxCtx) : ctxStr;
+        final safeCtx = ctxStr.length > maxCtx
+            ? ctxStr.substring(0, maxCtx)
+            : ctxStr;
         return AiCoachInsightSheet(
           goal: 'Performans Gelişimi',
           question: '$safeCtx$suffix',

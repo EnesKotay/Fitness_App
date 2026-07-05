@@ -47,7 +47,205 @@ class ChatMessage {
 }
 
 class AiCoachController extends ChangeNotifier {
-  static const int maxPromptLength = 500;
+  static const int maxPromptLength = 800;
+  static const List<String> _safetyKeywords = [
+    'ağrı',
+    'agri',
+    'ağrıyor',
+    'agriyor',
+    'acı',
+    'aci',
+    'sakat',
+    'incin',
+    'dizim',
+    'belim',
+    'omzum',
+    'bileğim',
+    'bilegim',
+    'baş dön',
+    'bas don',
+    'göğüs ağr',
+    'gogus agr',
+    'nefes darl',
+    'bayıl',
+    'bayil',
+    'tansiyon',
+    'diyabet',
+    'hamile',
+    'hastayım',
+    'hastayim',
+  ];
+  static const List<String> _nutritionKeywords = [
+    'kahvalt',
+    'öğle',
+    'ogle',
+    'öğlene',
+    'oglene',
+    'akşam yeme',
+    'aksam yeme',
+    'akşama',
+    'aksama',
+    'ara öğün',
+    'ara ogun',
+    'atıştır',
+    'atistir',
+    'ne yesem',
+    'ne yemeliyim',
+    'ne yiy',
+    'ne iç',
+    'ne ic',
+    'yemek öner',
+    'yemek oner',
+    'öğün öner',
+    'ogun oner',
+    'menü',
+    'menu',
+    'tarif',
+    'beslen',
+    'kalori',
+    'kcal',
+    'makro',
+    'protein',
+    'karbonhidrat',
+    'karb',
+    'yağ',
+    'yag',
+    'diyet',
+    'porsiyon',
+    'gram',
+    'tabak',
+    'alışveriş',
+    'alisveris',
+    'market',
+    'malzeme',
+    'yulaf',
+    'yumurta',
+    'tavuk',
+    'salata',
+    'pilav',
+    'yoğurt',
+    'yogurt',
+  ];
+  static const List<String> _foodLogKeywords = [
+    'yedim',
+    'içtim',
+    'ictim',
+    'tükettim',
+    'tukettim',
+    'yediğim',
+    'yedigim',
+    'günlüğe ekle',
+    'gunluge ekle',
+    'yemeği ekle',
+    'yemegi ekle',
+    'öğünü ekle',
+    'ogunu ekle',
+    'kaç kalori',
+    'kac kalori',
+    'kalorisi ne',
+  ];
+  static const List<String> _hydrationKeywords = [
+    'su içtim',
+    'su ictim',
+    'su ekle',
+    'su kaydet',
+    'su hedef',
+    'su tüket',
+    'su tuket',
+    'hidrasyon',
+    'susuz',
+    'kaç litre',
+    'kac litre',
+  ];
+  static const List<String> _supplementKeywords = [
+    'kreatin',
+    'creatine',
+    'whey',
+    'protein tozu',
+    'preworkout',
+    'pre-workout',
+    'bcaa',
+    'omega',
+    'magnezyum',
+    'vitamin',
+    'kafein',
+    'supplement',
+  ];
+  static const List<String> _workoutKeywords = [
+    'antrenman',
+    'antreman',
+    'egzersiz',
+    'hareket',
+    'program',
+    'set',
+    'tekrar',
+    'gym',
+    'spor',
+    'salon',
+    'evde çalış',
+    'evde calis',
+    'ne çalış',
+    'ne calis',
+    'çalışmalıyım',
+    'calismaliyim',
+    'full body',
+    'split',
+    'push pull',
+    'bacak',
+    'göğüs',
+    'gogus',
+    'sırt',
+    'sirt',
+    'omuz',
+    'kol',
+    'kardiyo',
+    'koşu',
+    'kosu',
+    'ısınma',
+    'isinma',
+    'esneme',
+    'formum',
+    'teknik',
+  ];
+  static const List<String> _analysisKeywords = [
+    'analiz',
+    'nasılım',
+    'nasilim',
+    'değerlendir',
+    'degerlendir',
+    'ilerleme',
+    'trend',
+    'durumum',
+    'gidişat',
+    'gidisat',
+    'kilo veriyor muyum',
+    'kilo alıyor muyum',
+    'kilo aliyor muyum',
+    'yağ yakıyor muyum',
+    'yag yakiyor muyum',
+    'hedefe yakın',
+    'hedefe yakin',
+    'rapor',
+  ];
+  static const List<String> _recoveryKeywords = [
+    'toparlan',
+    'dinlen',
+    'uyku',
+    'yorgun',
+    'zorlan',
+    'motivasyon',
+    'moral',
+    'stres',
+    'üşen',
+    'usen',
+    'yapamıyorum',
+    'yapamiyorum',
+    'bıktım',
+    'biktim',
+    'enerjim yok',
+    'çok yoruldum',
+    'cok yoruldum',
+  ];
 
   AiCoachController({
     AiCoachService? service,
@@ -78,6 +276,8 @@ class AiCoachController extends ChangeNotifier {
   DailySummary _dailySummary;
   CoachPersonality _personality = CoachPersonality.supportive;
   CoachTaskMode _taskMode = CoachTaskMode.plan;
+  bool _isSessionRestored = false;
+  bool get isSessionRestored => _isSessionRestored;
 
   void _addInitialMessage() {
     _messages.add(
@@ -182,8 +382,32 @@ class AiCoachController extends ChangeNotifier {
     final lower = lastResponse.toLowerCase();
     final chips = <String>[];
 
+    // Entity extraction: Besin isimleri
+    final foodEntities = _extractFoodEntities(lower);
+    if (foodEntities.isNotEmpty) {
+      final food = foodEntities.first;
+      chips.add('$food için tarif ver');
+      chips.add('$food yerine ne yiyebilirim?');
+      chips.add('$food kaç kalori?');
+    }
+
+    // Entity extraction: Sayısal hedefler
+    final numberMatch = RegExp(
+      r'(\d+)\s*(gram|g|kcal|kalori|dakika|kg)',
+    ).firstMatch(lower);
+    if (numberMatch != null && chips.length < 4) {
+      final amount = numberMatch.group(1);
+      final unit = numberMatch.group(2);
+      if (unit == 'gram' || unit == 'g') {
+        chips.add('$amount$unit protein nasıl alırım?');
+      } else if (unit == 'kcal' || unit == 'kalori') {
+        chips.add('$amount$unit eklemek için ne yemeliyim?');
+      }
+    }
+
     // --- Nutrition-specific context ---
-    if (lower.contains('kalori') || lower.contains('kcal')) {
+    if ((lower.contains('kalori') || lower.contains('kcal')) &&
+        chips.length < 4) {
       final s = _dailySummary;
       if (s.targetCalories != null && s.calories > 0) {
         final diff = s.targetCalories! - s.calories;
@@ -195,7 +419,9 @@ class AiCoachController extends ChangeNotifier {
       } else {
         chips.add('Bugünkü kalori hedefim nedir?');
       }
-      chips.add('Bu kalori miktarıyla kilo verebilir miyim?');
+      if (chips.length < 4) {
+        chips.add('Bu kalori miktarıyla kilo verebilir miyim?');
+      }
     }
 
     if (lower.contains('protein')) {
@@ -273,27 +499,86 @@ class AiCoachController extends ChangeNotifier {
     }
 
     // --- Motivation / emotional context ---
-    if (lower.contains('motivasyon') ||
-        lower.contains('baş') ||
-        lower.contains('zor') ||
-        lower.contains('dur') ||
-        lower.contains('sabır')) {
+    if ((lower.contains('motivasyon') ||
+            lower.contains('başar') ||
+            lower.contains('zor') ||
+            lower.contains('dur') ||
+            lower.contains('sabır')) &&
+        chips.length < 4) {
       chips.add('İlerleme göremiyorum, bu normal mi?');
       chips.add('Küçük ama kalıcı bir alışkanlık nasıl oluşturabilirim?');
     }
 
+    // Sentiment analysis: AI olumlu mu, olumsuz mu?
+    if (chips.length < 4) {
+      if (lower.contains('yeterli değil') ||
+          lower.contains('artırmalı') ||
+          lower.contains('eksik')) {
+        chips.add('Bunu nasıl düzeltebilirim?');
+        chips.add('En hızlı çözüm ne?');
+      } else if (lower.contains('harika') ||
+          lower.contains('mükemmel') ||
+          lower.contains('iyi gidiyor')) {
+        chips.add('Bir sonraki hedefim ne olmalı?');
+        chips.add('Bu başarıyı nasıl sürdürebilirim?');
+      }
+    }
+
     // Pad to 3-4 chips with context-neutral follow-ups if needed
     final fallbacks = [
-      'Bu konuda daha detaylı açıklar mısın?',
-      'Bunu bir haftalık plana nasıl yansıtabilirim?',
-      'Başka hangi faktörleri göz önünde bulundurmalıyım?',
-      'Benim verilerime göre en kritik adım ne?',
+      'Bunu daha basit açıklar mısın?',
+      'Daha detaylı açıklar mısın?',
+      'Bunu plana nasıl yansıtabilirim?',
+      'Başka ne yapmalıyım?',
     ];
     for (final f in fallbacks) {
       if (chips.length >= 4) break;
       if (!chips.contains(f)) chips.add(f);
     }
     return chips.take(4).toList();
+  }
+
+  /// Extracts food entities from AI response
+  List<String> _extractFoodEntities(String text) {
+    final foods = <String>[];
+    final foodPatterns = [
+      r'\b(tavuk|chicken)\b',
+      r'\b(yumurta|egg)\b',
+      r'\b(pirinç|rice)\b',
+      r'\b(makarna|pasta)\b',
+      r'\b(peynir|cheese)\b',
+      r'\b(süt|milk)\b',
+      r'\b(muz|banana)\b',
+      r'\b(elma|apple)\b',
+      r'\b(patates|potato)\b',
+      r'\b(ekmek|bread)\b',
+      r'\b(mercimek|lentil)\b',
+      r'\b(nohut|chickpea)\b',
+      r'\b(balık|fish)\b',
+      r'\b(ton|tuna)\b',
+      r'\b(somon|salmon)\b',
+      r'\b(hindi|turkey)\b',
+      r'\b(biftek|steak)\b',
+      r'\b(avokado|avocado)\b',
+      r'\b(fıstık|peanut|nut)\b',
+    ];
+
+    for (final pattern in foodPatterns) {
+      final match = RegExp(pattern, caseSensitive: false).firstMatch(text);
+      if (match != null) {
+        final food = match.group(1)!;
+        // Türkçe normalize et
+        if (food.toLowerCase().contains('chicken')) {
+          foods.add('tavuk');
+        } else if (food.toLowerCase().contains('egg')) {
+          foods.add('yumurta');
+        } else {
+          foods.add(food.toLowerCase());
+        }
+      }
+    }
+
+    return foods.take(2).toList(); // Max 2 besin
   }
 
   // ─── Server-backed quota (overrides local SharedPrefs count) ───
@@ -463,23 +748,34 @@ class AiCoachController extends ChangeNotifier {
   /// Restore messages from previous session. Call once after init from the screen.
   Future<void> restoreSession() async {
     final uid = _userId;
-    if (uid == null) return;
-    // Load persistent memory alongside conversation
-    _userMemoryFacts = await _memoryService.getFacts(uid);
-    final stored = await _sessionService.loadSession(userId: uid);
-    if (stored.isEmpty) return;
-    // Replace welcome message with stored history
-    _messages.clear();
-    for (final m in stored) {
-      _messages.add(
-        ChatMessage(
-          id: 'restored_${DateTime.now().microsecondsSinceEpoch}',
-          role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
-          content: m['content']!,
-        ),
-      );
+    if (uid == null) {
+      _isSessionRestored = true;
+      notifyListeners();
+      return;
     }
-    notifyListeners();
+    try {
+      // Load persistent memory alongside conversation
+      _userMemoryFacts = await _memoryService.getFacts(uid);
+      final stored = await _sessionService.loadSession(userId: uid);
+      if (stored.isNotEmpty) {
+        // Replace welcome message with stored history
+        _messages.clear();
+        for (final m in stored) {
+          _messages.add(
+            ChatMessage(
+              id: 'restored_${DateTime.now().microsecondsSinceEpoch}',
+              role: m['role'] == 'user' ? ChatRole.user : ChatRole.assistant,
+              content: m['content']!,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring session: $e');
+    } finally {
+      _isSessionRestored = true;
+      notifyListeners();
+    }
   }
 
   Future<void> _persistSession() async {
@@ -614,18 +910,61 @@ class AiCoachController extends ChangeNotifier {
       return false;
     }
 
+    await _rememberFactsFromUserPrompt(normalized);
     final memoryContext = _memoryService.buildContextString(_userMemoryFacts);
+    final effectiveTaskMode = _inferTaskModeFromPrompt(normalized, _taskMode);
+    if (effectiveTaskMode != _taskMode) {
+      _taskMode = effectiveTaskMode;
+    }
     final snapshot = CoachRequestSnapshot(
       prompt: normalized,
       goal: _goal,
       summary: _dailySummary,
       personality: _personality,
-      taskMode: _taskMode,
+      taskMode: effectiveTaskMode,
       conversationHistory: _buildConversationMemory(),
       imagePath: _selectedImage?.path,
       userMemory: memoryContext.isNotEmpty ? memoryContext : null,
     );
     return _submitSnapshot(snapshot, recordAsLast: true);
+  }
+
+  CoachTaskMode _inferTaskModeFromPrompt(
+    String prompt,
+    CoachTaskMode fallback,
+  ) {
+    final text = prompt.toLowerCase();
+    bool hasAny(Iterable<String> values) {
+      return values.any(text.contains);
+    }
+
+    if (hasAny(_safetyKeywords)) {
+      return CoachTaskMode.recovery;
+    }
+
+    if (hasAny(_hydrationKeywords)) {
+      return CoachTaskMode.recovery;
+    }
+
+    if (hasAny(_nutritionKeywords) ||
+        hasAny(_foodLogKeywords) ||
+        hasAny(_supplementKeywords)) {
+      return CoachTaskMode.nutrition;
+    }
+
+    if (hasAny(_workoutKeywords)) {
+      return CoachTaskMode.workout;
+    }
+
+    if (hasAny(_analysisKeywords)) {
+      return CoachTaskMode.analysis;
+    }
+
+    if (hasAny(_recoveryKeywords)) {
+      return CoachTaskMode.recovery;
+    }
+
+    return fallback;
   }
 
   List<CoachConversationTurn> _buildConversationMemory() {
@@ -700,6 +1039,7 @@ class AiCoachController extends ChangeNotifier {
             personality: snapshot.personality,
             taskMode: snapshot.taskMode,
             conversationHistory: snapshot.conversationHistory,
+            userMemory: snapshot.userMemory,
           );
           if (_selectedImage?.path == requestImagePath) {
             _selectedImage = null;
@@ -725,28 +1065,14 @@ class AiCoachController extends ChangeNotifier {
         );
       }
 
-      final contentBuffer = StringBuffer();
-      if (response.focus.isNotEmpty) {
-        contentBuffer.write(response.focus);
-      }
-      if (response.todoItems.isNotEmpty) {
-        if (contentBuffer.isNotEmpty) contentBuffer.write('\n\n');
-        for (final item in response.todoItems) {
-          contentBuffer.writeln('- $item');
-        }
-      }
-      if (response.nutritionNote.isNotEmpty) {
-        if (contentBuffer.isNotEmpty) contentBuffer.write('\n\n');
-        contentBuffer.write(response.nutritionNote);
-      }
-      String fullContent = contentBuffer.isNotEmpty
-          ? contentBuffer.toString().trim()
-          : 'Sana yardımcı olmaya hazırım!';
+      String fullContent = _buildReadableCoachContent(response);
 
       // Step: Achievement Check
       if (response.isAchievement) {
         _shouldShowConfetti = true;
       }
+
+      unawaited(_saveBackendMemory(response.memorySaved));
 
       _messages.removeWhere((m) => m.id == thinkingId);
 
@@ -814,14 +1140,36 @@ class AiCoachController extends ChangeNotifier {
       _messages.removeWhere((m) => m.id == thinkingId);
       _errorMessage = e.message;
       String errorContent = e.message;
-      if (e.statusCode == 429) {
+      final remaining = _extractRemainingFreeRequests(e.data);
+      if (remaining != null) {
+        updateFromServerQuota(remaining);
+      }
+
+      // Timeout hatası
+      if (e.statusCode == 408 || e.statusCode == 504) {
+        errorContent =
+            '⏱️ AI yanıt süresi doldu.\n\n'
+            'Öneriler:\n'
+            '• Sorunuzu daha kısa yapın\n'
+            '• Tekrar deneyin\n'
+            '• İnternet bağlantınızı kontrol edin';
+      }
+      // Rate limit
+      else if (e.statusCode == 429) {
         final retryAfterSeconds = _extractRetryAfterSeconds(e);
         if (retryAfterSeconds != null) {
           _startCooldown(retryAfterSeconds);
           errorContent =
-              'Çok fazla istek. ${retryAfterSeconds}s sonra tekrar deneyebilirsin.';
+              '⏳ Çok fazla istek. ${retryAfterSeconds}s sonra tekrar deneyebilirsin.';
         }
       }
+      // Bağlantı hatası
+      else if (e.statusCode == 0) {
+        errorContent =
+            '🔌 Bağlantı hatası.\n\n'
+            'İnternet bağlantınızı kontrol edin ve tekrar deneyin.';
+      }
+
       _messages.add(
         ChatMessage(
           id: 'err_${DateTime.now().millisecondsSinceEpoch}',
@@ -831,9 +1179,15 @@ class AiCoachController extends ChangeNotifier {
         ),
       );
       return false;
-    } catch (_) {
+    } catch (e) {
       _messages.removeWhere((m) => m.id == thinkingId);
-      const errMsg = 'Koç yanıtı oluşturulamadı. Lütfen tekrar dene.';
+
+      // Timeout exception
+      String errMsg = 'Koç yanıtı oluşturulamadı. Lütfen tekrar dene.';
+      if (e.toString().toLowerCase().contains('timeout')) {
+        errMsg = '⏱️ Zaman aşımı. Sorunuzu kısaltıp tekrar deneyin.';
+      }
+
       _errorMessage = errMsg;
       _messages.add(
         ChatMessage(
@@ -848,6 +1202,112 @@ class AiCoachController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  int? _extractRemainingFreeRequests(dynamic data) {
+    if (data is! Map) return null;
+    final raw = data['remainingFreeRequests'];
+    if (raw is int) return raw.clamp(0, 999).toInt();
+    if (raw is num) return raw.toInt().clamp(0, 999).toInt();
+    return null;
+  }
+
+  String _buildReadableCoachContent(CoachResponse response) {
+    final contentBuffer = StringBuffer();
+    final focus = _compactCoachText(response.focus, maxLength: 260);
+    final actionItems = response.todoItems
+        .map((item) => _compactCoachText(item, maxLength: 130))
+        .where((item) => item.isNotEmpty)
+        .take(6)
+        .toList();
+    final basisItems = actionItems
+        .where(_isWorkoutBasisItem)
+        .map(_stripWorkoutBasisPrefix)
+        .where((item) => item.isNotEmpty)
+        .toList();
+    final planItems = actionItems
+        .where((item) => !_isWorkoutBasisItem(item))
+        .toList();
+    final nutritionNote = _compactCoachText(
+      response.nutritionNote,
+      maxLength: 180,
+    );
+
+    if (focus.isNotEmpty) {
+      contentBuffer.writeln('### Özet');
+      contentBuffer.writeln(focus);
+    }
+
+    if (basisItems.isNotEmpty) {
+      if (contentBuffer.isNotEmpty) contentBuffer.writeln();
+      contentBuffer.writeln('### Neye göre');
+      contentBuffer.writeln(basisItems.first);
+    }
+
+    if (planItems.isNotEmpty) {
+      if (contentBuffer.isNotEmpty) contentBuffer.writeln();
+      contentBuffer.writeln('### Plan');
+      for (final item in planItems) {
+        contentBuffer.writeln('- $item');
+      }
+    }
+
+    if (nutritionNote.isNotEmpty) {
+      if (contentBuffer.isNotEmpty) contentBuffer.writeln();
+      contentBuffer.writeln('### Beslenme');
+      contentBuffer.writeln(nutritionNote);
+    }
+
+    return contentBuffer.isNotEmpty
+        ? contentBuffer.toString().trim()
+        : 'Sana yardımcı olmaya hazırım!';
+  }
+
+  String _compactCoachText(String value, {required int maxLength}) {
+    var text = value
+        .replaceAll(r'\n', '\n')
+        .replaceAll(RegExp(r'#{1,6}\s*'), '')
+        .replaceAll(RegExp(r'^\s*[-•]\s*', multiLine: true), '')
+        .replaceAll(RegExp(r'^\s*\d+[.)]\s*', multiLine: true), '')
+        .replaceAll(RegExp(r'\s*\n+\s*'), ' · ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'\s*·\s*·\s*'), ' · ')
+        .trim();
+
+    text = text.replaceAll(RegExp(r'^[:：·\s]+|[:：·\s]+$'), '');
+    if (text.length <= maxLength) return text;
+
+    final clipped = text.substring(0, maxLength).trimRight();
+    final lastSentence = clipped.lastIndexOf(RegExp(r'[.!?]'));
+    if (lastSentence > maxLength * 0.55) {
+      return clipped.substring(0, lastSentence + 1).trim();
+    }
+
+    final lastSpace = clipped.lastIndexOf(' ');
+    final safeEnd = lastSpace > maxLength * 0.65 ? lastSpace : clipped.length;
+    return '${clipped.substring(0, safeEnd).trim()}...';
+  }
+
+  bool _isWorkoutBasisItem(String value) {
+    final lower = value.toLowerCase();
+    return lower.startsWith('neye göre') ||
+        lower.startsWith('neye gore') ||
+        lower.startsWith('neden:') ||
+        lower.startsWith('gerekçe:') ||
+        lower.startsWith('gerekce:');
+  }
+
+  String _stripWorkoutBasisPrefix(String value) {
+    return value
+        .replaceFirst(
+          RegExp(r'^neye g[öo]re\s*[:：-]?\s*', caseSensitive: false),
+          '',
+        )
+        .replaceFirst(
+          RegExp(r'^(neden|gerek[çc]e)\s*[:：-]?\s*', caseSensitive: false),
+          '',
+        )
+        .trim();
   }
 
   Future<void> retryLastPrompt() async {
@@ -936,6 +1396,112 @@ class AiCoachController extends ChangeNotifier {
         p.contains('öğün');
   }
 
+  Future<void> _rememberFactsFromUserPrompt(String prompt) async {
+    final uid = _userId;
+    if (uid == null) return;
+
+    final fact = _extractMemoryFact(prompt);
+    if (fact == null || fact.fact.isEmpty) return;
+
+    await _memoryService.saveFact(uid, fact);
+    _userMemoryFacts = await _memoryService.getFacts(uid);
+  }
+
+  UserMemoryFact? _extractMemoryFact(String prompt) {
+    final text = prompt.trim();
+    if (text.length < 4) return null;
+
+    final lower = text.toLowerCase();
+    final now = DateTime.now();
+
+    bool hasAny(List<String> terms) => terms.any(lower.contains);
+
+    if (hasAny([
+      'dizim ağr',
+      'dizim agr',
+      'belim ağr',
+      'belim agr',
+      'omzum ağr',
+      'omzum agr',
+      'sakat',
+      'incin',
+      'fıtık',
+      'fitik',
+      'ameliyat',
+    ])) {
+      return UserMemoryFact(
+        category: 'saglik',
+        fact: 'Kullanıcı sağlık/form uyarısı paylaştı: $text',
+        savedAt: now,
+      );
+    }
+
+    if (hasAny([
+      'vejetaryen',
+      'vegan',
+      'laktoz',
+      'gluten',
+      'alerji',
+      'sevmiyorum',
+      'yemiyorum',
+      'tercih',
+    ])) {
+      return UserMemoryFact(
+        category: 'beslenme',
+        fact: 'Kullanıcının beslenme tercihi/kısıtı: $text',
+        savedAt: now,
+      );
+    }
+
+    if (hasAny([
+      'evde çalış',
+      'evde calis',
+      'salonda çalış',
+      'salonda calis',
+      'dambıl',
+      'dumbbell',
+      'ekipman',
+      'barbell',
+    ])) {
+      return UserMemoryFact(
+        category: 'antrenman',
+        fact: 'Kullanıcının antrenman ortamı/ekipmanı: $text',
+        savedAt: now,
+      );
+    }
+
+    if (hasAny([
+      'hedefim',
+      'kilo vermek',
+      'kas yapmak',
+      'güçlenmek',
+      'guclenmek',
+      'yağ yak',
+      'yag yak',
+    ])) {
+      return UserMemoryFact(
+        category: 'hedef',
+        fact: 'Kullanıcının hedef bilgisi: $text',
+        savedAt: now,
+      );
+    }
+
+    return null;
+  }
+
+  Future<void> _saveBackendMemory(String? memory) async {
+    final uid = _userId;
+    final fact = memory?.trim();
+    if (uid == null || fact == null || fact.isEmpty) return;
+
+    await _memoryService.saveFact(
+      uid,
+      UserMemoryFact(category: 'ai', fact: fact, savedAt: DateTime.now()),
+    );
+    _userMemoryFacts = await _memoryService.getFacts(uid);
+    notifyListeners();
+  }
+
   /// Yaygın Türkçe yazım hatalarını düzelt ve keyword'leri normalize et
   String _normalizeTurkish(String text) {
     return text
@@ -982,25 +1548,24 @@ class AiCoachController extends ChangeNotifier {
 
     // First message: skip mode prefix if the user's question already has a clear topic.
     final lower = trimmed.toLowerCase();
-    final hasTopic =
-        lower.contains('kalori') ||
-        lower.contains('protein') ||
-        lower.contains('makro') ||
-        lower.contains('antrenman') ||
-        lower.contains('egzersiz') ||
-        lower.contains('spor') ||
-        lower.contains('kilo') ||
-        lower.contains('ağırlık') ||
-        lower.contains('yemek') ||
-        lower.contains('öğün') ||
-        lower.contains('kahvaltı') ||
-        lower.contains('su') ||
-        lower.contains('uyku') ||
-        lower.contains('toparlanma') ||
-        lower.contains('plan') ||
-        lower.contains('ne yap') ||
-        lower.contains('analiz') ||
-        lower.contains('nasıl');
+    final hasTopic = [
+      ..._safetyKeywords,
+      ..._nutritionKeywords,
+      ..._foodLogKeywords,
+      ..._hydrationKeywords,
+      ..._supplementKeywords,
+      ..._workoutKeywords,
+      ..._analysisKeywords,
+      ..._recoveryKeywords,
+      'kilo',
+      'ağırlık',
+      'agirlik',
+      'su',
+      'plan',
+      'ne yap',
+      'nasıl',
+      'nasil',
+    ].any(lower.contains);
     if (hasTopic) return trimmed;
 
     // Vague first message (e.g., just "merhaba") — add mode context to help the AI.

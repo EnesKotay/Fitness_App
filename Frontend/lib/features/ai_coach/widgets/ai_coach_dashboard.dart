@@ -95,54 +95,57 @@ class AiCoachDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Koçun bugünkü verileri buna göre yorumlayacak.',
+                  hasAnyMetric
+                      ? 'Koçun bugünkü verileri buna göre yorumlayacak.'
+                      : 'İlk kayıt geldiğinde özet otomatik netleşir.',
                   style: GoogleFonts.dmSans(
                     color: Colors.white.withValues(alpha: 0.5),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _MetricTile(
-                      icon: Icons.local_fire_department_rounded,
-                      value: summary.calories > 0
-                          ? '${summary.calories}'
-                          : null,
-                      label: 'kcal',
-                      color: const Color(0xFFFF7043),
-                    ),
-                    const SizedBox(width: 8),
-                    _MetricTile(
-                      icon: Icons.water_drop_rounded,
-                      value: summary.waterLiters > 0
-                          ? summary.waterLiters.toStringAsFixed(1)
-                          : null,
-                      label: 'litre',
-                      color: const Color(0xFF4FACFE),
-                    ),
-                    const SizedBox(width: 8),
-                    _MetricTile(
-                      icon: Icons.fitness_center_rounded,
-                      value: summary.workouts > 0
-                          ? '${summary.workouts}'
-                          : null,
-                      label: 'seans',
-                      color: const Color(0xFF34D399),
-                    ),
-                    const SizedBox(width: 8),
-                    _MetricTile(
-                      icon: Icons.timer_outlined,
-                      value: summary.workoutMinutes > 0
-                          ? '${summary.workoutMinutes}'
-                          : null,
-                      label: 'dakika',
-                      color: const Color(0xFFA78BFA),
-                    ),
-                  ],
-                ),
-                if (!hasAnyMetric) ...[
+                if (hasAnyMetric) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _MetricTile(
+                        icon: Icons.local_fire_department_rounded,
+                        value: summary.calories > 0
+                            ? '${summary.calories}'
+                            : null,
+                        label: 'kcal',
+                        color: const Color(0xFFFF7043),
+                      ),
+                      const SizedBox(width: 8),
+                      _MetricTile(
+                        icon: Icons.water_drop_rounded,
+                        value: summary.waterLiters > 0
+                            ? summary.waterLiters.toStringAsFixed(1)
+                            : null,
+                        label: 'litre',
+                        color: const Color(0xFF4FACFE),
+                      ),
+                      const SizedBox(width: 8),
+                      _MetricTile(
+                        icon: Icons.fitness_center_rounded,
+                        value: summary.workouts > 0
+                            ? '${summary.workouts}'
+                            : null,
+                        label: 'seans',
+                        color: const Color(0xFF34D399),
+                      ),
+                      const SizedBox(width: 8),
+                      _MetricTile(
+                        icon: Icons.timer_outlined,
+                        value: summary.workoutMinutes > 0
+                            ? '${summary.workoutMinutes}'
+                            : null,
+                        label: 'dakika',
+                        color: const Color(0xFFA78BFA),
+                      ),
+                    ],
+                  ),
+                ] else ...[
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,

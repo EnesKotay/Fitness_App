@@ -88,7 +88,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "Products.storekit">
+         identifier = "../Runner/Products.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction

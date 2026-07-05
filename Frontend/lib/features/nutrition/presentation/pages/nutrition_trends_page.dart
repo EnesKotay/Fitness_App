@@ -54,6 +54,10 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
       final provider = Provider.of<DietProvider>(context, listen: false);
       final isPremium = isPremiumTier(
         Provider.of<AuthProvider>(context, listen: false).user?.premiumTier,
+        expiresAt: Provider.of<AuthProvider>(
+          context,
+          listen: false,
+        ).user?.premiumExpiresAt,
       );
       if (!isPremium) {
         if (mounted) {
@@ -923,9 +927,8 @@ class _NutritionTrendsPageState extends State<NutritionTrendsPage> {
                         lineTouchData: LineTouchData(
                           touchTooltipData: LineTouchTooltipData(
                             tooltipBorderRadius: BorderRadius.circular(10),
-                            getTooltipColor: (_) => AppColors.surface.withValues(
-                              alpha: 0.92,
-                            ),
+                            getTooltipColor: (_) =>
+                                AppColors.surface.withValues(alpha: 0.92),
                             getTooltipItems: (spots) => spots
                                 .map(
                                   (s) => LineTooltipItem(

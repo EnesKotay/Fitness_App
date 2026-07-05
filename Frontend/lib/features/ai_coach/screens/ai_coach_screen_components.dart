@@ -22,24 +22,6 @@ class _AnimatedMeshBackgroundState extends State<_AnimatedMeshBackground> {
             ),
           ),
         ),
-        _buildAura(
-          const Color(0xFF0F6B85),
-          380,
-          alignment: Alignment.topRight,
-          offset: const Offset(80, -90),
-        ),
-        _buildAura(
-          const Color(0xFF0C8C6C),
-          320,
-          alignment: Alignment.topLeft,
-          offset: const Offset(-100, 120),
-        ),
-        _buildAura(
-          const Color(0xFF5E3A1B),
-          280,
-          alignment: Alignment.bottomCenter,
-          offset: const Offset(0, 180),
-        ),
         IgnorePointer(
           child: CustomPaint(
             painter: _CoachBackdropPainter(),
@@ -63,47 +45,6 @@ class _AnimatedMeshBackgroundState extends State<_AnimatedMeshBackground> {
       ],
     );
   }
-
-  Widget _buildAura(
-    Color color,
-    double size, {
-    required Alignment alignment,
-    required Offset offset,
-  }) {
-    return Align(
-          alignment: alignment,
-          child: Transform.translate(
-            offset: offset,
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    color.withValues(alpha: 0.22),
-                    color.withValues(alpha: 0.08),
-                    Colors.transparent,
-                  ],
-                  stops: const [0.0, 0.35, 1.0],
-                ),
-              ),
-            ),
-          ),
-        )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .move(
-          begin: const Offset(0, 0),
-          end: const Offset(18, 24),
-          duration: 12.seconds,
-          curve: Curves.easeInOut,
-        )
-        .scale(
-          begin: const Offset(1, 1),
-          end: const Offset(1.08, 1.08),
-          duration: 10.seconds,
-        );
-  }
 }
 
 class _CoachBackdropPainter extends CustomPainter {
@@ -112,12 +53,12 @@ class _CoachBackdropPainter extends CustomPainter {
     final linePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: 0.035);
+      ..color = Colors.white.withValues(alpha: 0.024);
 
     final beamPaint = Paint()
       ..shader = LinearGradient(
         colors: [
-          const Color(0xFF73D4FF).withValues(alpha: 0.05),
+          const Color(0xFF73D4FF).withValues(alpha: 0.032),
           Colors.transparent,
         ],
         begin: Alignment.topCenter,

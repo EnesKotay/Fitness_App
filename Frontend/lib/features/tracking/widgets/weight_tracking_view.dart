@@ -548,6 +548,13 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 14)),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(child: _buildAiButton(context)),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 14)),
+          SliverToBoxAdapter(child: _buildTrendInsightCard(context, provider)),
+          const SliverToBoxAdapter(child: SizedBox(height: 14)),
           SliverToBoxAdapter(
             child: _buildTrackingDetailsPanel(context, provider),
           ),
@@ -945,8 +952,6 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
-              _buildAiButton(context),
             ],
           ),
         ),
@@ -1007,26 +1012,70 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
   Widget _buildAiButton(BuildContext context) {
     return InkWell(
       onTap: () => _openAiAnalysis(context),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.26)),
+          color: AppColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.24)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Icon(Icons.auto_awesome, color: AppColors.primaryLight, size: 17),
-            SizedBox(width: 8),
-            Text(
-              'Kilo Yorumu Al',
-              style: TextStyle(
-                color: AppColors.primaryLight,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.24),
+                ),
               ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primaryLight,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Bugünkü yorum',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Kilo gidişatını AI koça kısa analizlet',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.45),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.primaryLight,
+              size: 22,
             ),
           ],
         ),
@@ -1076,10 +1125,13 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) {
-        const suffix = 'Kilo gidişatımı değerlendir, bugün için 3 kritik öneri ver.';
+        const suffix =
+            'Kilo gidişatımı değerlendir, bugün için 3 kritik öneri ver.';
         final ctxStr = weightCtx.toString();
         final maxCtx = 480 - suffix.length;
-        final safeCtx = ctxStr.length > maxCtx ? ctxStr.substring(0, maxCtx) : ctxStr;
+        final safeCtx = ctxStr.length > maxCtx
+            ? ctxStr.substring(0, maxCtx)
+            : ctxStr;
         return AiCoachInsightSheet(
           goal: 'Hedef Kilo: $targetStr',
           question: '$safeCtx$suffix',
@@ -1119,7 +1171,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
             color: AppColors.primaryLight,
           ),
           title: const Text(
-            'Detaylar',
+            'Derin Analizler',
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
@@ -1127,7 +1179,7 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
             ),
           ),
           subtitle: Text(
-            'Hız koçu, hedef zaman çizelgesi ve istikrar haritası',
+            'Hedef zaman çizelgesi ve istikrar haritası',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -1137,8 +1189,6 @@ class _WeightTrackingViewState extends State<WeightTrackingView> {
             ),
           ),
           children: [
-            _buildTrendInsightCard(context, provider),
-            const SizedBox(height: 12),
             GoalTimelineCard(
               weightProvider: provider,
               dietProvider: context.watch<DietProvider>(),

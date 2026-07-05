@@ -127,6 +127,8 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _maybeStartTour() async {
     if (!mounted) return;
+    final hasEmail = StorageHelper.getUserEmail()?.trim().isNotEmpty == true;
+    if (!hasEmail) return;
     final shouldShowTour =
         StorageHelper.getPendingAppTour() && !StorageHelper.getAppTourSeen();
     if (!shouldShowTour) return;
@@ -973,18 +975,18 @@ class _AssistantFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = compact ? 124.0 : 148.0;
-    final height = compact ? 50.0 : 58.0;
-    final radius = compact ? 20.0 : 24.0;
+    final width = compact ? 108.0 : 148.0;
+    final height = compact ? 48.0 : 58.0;
+    final radius = compact ? 22.0 : 24.0;
     final iconBox = compact ? 34.0 : 40.0;
-    final iconRadius = compact ? 12.0 : 14.0;
+    final iconRadius = compact ? 13.0 : 14.0;
 
     return Material(
       color: Colors.transparent,
       child: Tooltip(
         message: 'Asistan Menüsü',
         child: Opacity(
-          opacity: compact ? 0.9 : 1,
+          opacity: compact ? 0.96 : 1,
           child: DecoratedBox(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radius),
@@ -1048,9 +1050,9 @@ class _AssistantFab extends StatelessWidget {
                           ),
                         ),
                         Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: compact ? 8 : 10,
+                            vertical: compact ? 7 : 8,
                           ),
                           child: Row(
                             children: [
@@ -1077,52 +1079,68 @@ class _AssistantFab extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              SizedBox(width: compact ? 8 : 10),
+                              SizedBox(width: compact ? 7 : 10),
                               Expanded(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Asistan',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.dmSans(
-                                        color: Colors.white,
-                                        fontSize: compact ? 12.5 : 13.5,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.2,
-                                      ),
-                                    ),
-                                    if (!compact) ...[
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        'Koç ve araçlar',
+                                child: compact
+                                    ? Text(
+                                        'Koç',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: GoogleFonts.dmSans(
                                           color: Colors.white.withValues(
-                                            alpha: 0.56,
+                                            alpha: 0.96,
                                           ),
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0,
                                         ),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Asistan',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.dmSans(
+                                              color: Colors.white,
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 1),
+                                          Text(
+                                            'Koç ve araçlar',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.dmSans(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.56,
+                                              ),
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ],
-                                ),
                               ),
                               Container(
-                                width: compact ? 24 : 28,
-                                height: compact ? 24 : 28,
+                                width: compact ? 22 : 28,
+                                height: compact ? 22 : 28,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.04),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(
+                                    compact ? 9 : 10,
+                                  ),
                                 ),
                                 child: Icon(
                                   Icons.chevron_right_rounded,
                                   color: Colors.white.withValues(alpha: 0.48),
-                                  size: 18,
+                                  size: compact ? 16 : 18,
                                 ),
                               ),
                             ],

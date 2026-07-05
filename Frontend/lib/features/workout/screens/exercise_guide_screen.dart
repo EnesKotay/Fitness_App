@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/constants/premium_features.dart';
 import '../../../core/models/exercise.dart';
 import '../../../core/models/workout.dart';
 import '../../../core/models/workout_models.dart';
@@ -705,12 +706,16 @@ class _ExerciseGuideScreenState extends State<ExerciseGuideScreen>
     final nav = Navigator.of(context); // Async gap oncesi navigator'i al
 
     // Streak güncelle — async
-    streakProvider.onWorkoutCompleted([widget.exercise.muscleGroup]).then((badge) {
+    streakProvider.onWorkoutCompleted([widget.exercise.muscleGroup]).then((
+      badge,
+    ) {
       if (!nav.mounted) return;
       if (badge != null) {
         // Rozet kazanıldı — overlay göster
-        final isPremiumUser =
-            authProvider.user?.premiumTier?.toLowerCase().trim() == 'premium';
+        final isPremiumUser = isPremiumTier(
+          authProvider.user?.premiumTier,
+          expiresAt: authProvider.user?.premiumExpiresAt,
+        );
 
         showDialog<void>(
           context: nav.context, // Root/aktif navigator context'ini kullan

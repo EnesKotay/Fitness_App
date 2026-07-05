@@ -111,6 +111,7 @@ class _ChatInterfaceWidgetState extends State<ChatInterfaceWidget> {
               Consumer<AiCoachController>(
                 builder: (context, controller, _) {
                   return FloatingActionButton(
+                    heroTag: 'ai_coach_chat_send_fab',
                     onPressed: controller.isLoading ? null : _sendMessage,
                     backgroundColor: const Color(0xFF00D9FF),
                     child: controller.isLoading

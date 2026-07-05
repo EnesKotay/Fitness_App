@@ -7,15 +7,12 @@ import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/services/iap_service.dart';
+import 'core/services/lock_screen_widget_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/notification_scheduler_service.dart';
 import 'core/utils/storage_helper.dart';
 import 'features/nutrition/data/datasources/hive_diet_storage.dart';
-import 'features/nutrition/presentation/state/diet_provider.dart';
-import 'features/auth/providers/auth_provider.dart';
-import 'features/workout/providers/workout_provider.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'core/theme/app_theme.dart';
 import 'core/api/api_client.dart';
 import 'core/routes/app_routes.dart';
@@ -25,9 +22,9 @@ import 'core/preferences/app_preferences.dart';
 import 'core/routes/app_page_transitions.dart';
 import 'core/widgets/global_offline_banner.dart';
 import 'features/shell/app_providers.dart';
+import 'features/shell/main_shell.dart';
 import 'features/splash/luxury_splash_screen.dart';
 import 'core/utils/app_logger.dart'; // Added AppLogger import
-import 'package:upgrader/upgrader.dart'; // Added upgrader import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +54,15 @@ void main() async {
 
   // Türkçe tarih formatı - arka planda yükle (main thread bloklamasın)
   unawaited(initializeDateFormatting('tr_TR'));
+
+  // iOS kilit ekranı widget'ı için App Group bağlantısı
+  unawaited(LockScreenWidgetService.init());
+
+  // Widget'a dokununca Beslenme sekmesine geç (derin bağlantı)
+  LockScreenWidgetService.onSwitchTab = (index) {
+    MainShell.tabSwitchRequest.value = index;
+  };
+  unawaited(LockScreenWidgetService.registerDeepLinks());
 
   if (CrashReportingService.canInitialize) {
     await SentryFlutter.init((options) {
@@ -256,13 +262,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
               },
             ),
           ),
-          home: UpgradeAlert(
-            upgrader: Upgrader(
-              languageCode: 'tr',
-              messages: UpgraderMessages(code: 'tr'),
-            ),
-            child: const LuxurySplashScreen(),
-          ),
+          home: const LuxurySplashScreen(),
           routes: AppRoutes.getRoutes(),
         ),
       ),

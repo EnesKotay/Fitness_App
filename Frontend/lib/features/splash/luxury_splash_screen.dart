@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/services/update_checker_service.dart';
 import '../../core/utils/storage_helper.dart';
 import '../auth/providers/auth_provider.dart';
 import '../workout/providers/workout_provider.dart';
@@ -41,9 +42,10 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
 
     // Scale animation - elastic bounce
     _scaleController = AnimationController(
@@ -99,6 +101,10 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
       final isOffline = connectivityResult.contains(ConnectivityResult.none);
 
       _updateProgress(0.4);
+      if (!mounted) return;
+      if (!isOffline) {
+        await UpdateCheckerService.checkAndPrompt(context);
+      }
       if (!mounted) return;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -201,17 +207,14 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF05070A),
-                    Color(0xFF0C0F17),
-                  ],
+                  colors: [Color(0xFF05070A), Color(0xFF0C0F17)],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
               ),
             ),
           ),
-          
+
           // Aurora Blob 1: Top-Right Green Glow
           Positioned(
             top: -100,
@@ -272,13 +275,19 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                     scale: _scaleAnimation,
                     child: SingleChildScrollView(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             // 3D Luxury Logo - with rotate & glow animations
                             AnimatedBuilder(
-                              animation: Listenable.merge([_glowAnimation, _rotateAnimation]),
+                              animation: Listenable.merge([
+                                _glowAnimation,
+                                _rotateAnimation,
+                              ]),
                               builder: (context, child) {
                                 return Transform.rotate(
                                   angle: _rotateAnimation.value,
@@ -288,27 +297,45 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: const Color(0xFFEBC374).withValues(alpha: 0.25),
+                                        color: const Color(
+                                          0xFFEBC374,
+                                        ).withValues(alpha: 0.25),
                                         width: 1.5,
                                       ),
                                       boxShadow: [
                                         // Outer glow - amber/gold
                                         BoxShadow(
-                                          color: const Color(0xFFEBC374).withValues(alpha: 0.45 * _glowAnimation.value),
-                                          blurRadius: 100 * _glowAnimation.value,
-                                          spreadRadius: 30 * _glowAnimation.value,
+                                          color: const Color(0xFFEBC374)
+                                              .withValues(
+                                                alpha:
+                                                    0.45 * _glowAnimation.value,
+                                              ),
+                                          blurRadius:
+                                              100 * _glowAnimation.value,
+                                          spreadRadius:
+                                              30 * _glowAnimation.value,
                                         ),
                                         // Mid glow - orange
                                         BoxShadow(
-                                          color: const Color(0xFFFF9800).withValues(alpha: 0.35 * _glowAnimation.value),
+                                          color: const Color(0xFFFF9800)
+                                              .withValues(
+                                                alpha:
+                                                    0.35 * _glowAnimation.value,
+                                              ),
                                           blurRadius: 70 * _glowAnimation.value,
-                                          spreadRadius: 20 * _glowAnimation.value,
+                                          spreadRadius:
+                                              20 * _glowAnimation.value,
                                         ),
                                         // Inner glow - green
                                         BoxShadow(
-                                          color: const Color(0xFF2E7D32).withValues(alpha: 0.25 * _glowAnimation.value),
+                                          color: const Color(0xFF2E7D32)
+                                              .withValues(
+                                                alpha:
+                                                    0.25 * _glowAnimation.value,
+                                              ),
                                           blurRadius: 50 * _glowAnimation.value,
-                                          spreadRadius: 10 * _glowAnimation.value,
+                                          spreadRadius:
+                                              10 * _glowAnimation.value,
                                         ),
                                       ],
                                     ),
@@ -346,7 +373,9 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                   letterSpacing: 3,
                                   shadows: [
                                     Shadow(
-                                      color: Colors.black.withValues(alpha: 0.4),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       blurRadius: 12,
                                       offset: const Offset(0, 4),
                                     ),
@@ -362,7 +391,9 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                               shaderCallback: (bounds) => LinearGradient(
                                 colors: [
                                   Colors.white.withValues(alpha: 0.95),
-                                  const Color(0xFFEBC374).withValues(alpha: 0.85),
+                                  const Color(
+                                    0xFFEBC374,
+                                  ).withValues(alpha: 0.85),
                                 ],
                               ).createShader(bounds),
                               child: Text(
@@ -390,7 +421,9 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                       borderRadius: BorderRadius.circular(15),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.4),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.4,
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
@@ -403,17 +436,24 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                           // Background
                                           Container(
                                             decoration: BoxDecoration(
-                                              color: Colors.white.withValues(alpha: 0.03),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.03,
+                                              ),
                                               border: Border.all(
-                                                color: Colors.white.withValues(alpha: 0.08),
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.08,
+                                                ),
                                                 width: 1.0,
                                               ),
-                                              borderRadius: BorderRadius.circular(15),
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
                                             ),
                                           ),
                                           // Animated progress gradient
                                           AnimatedContainer(
-                                            duration: const Duration(milliseconds: 400),
+                                            duration: const Duration(
+                                              milliseconds: 400,
+                                            ),
                                             curve: Curves.easeOutCubic,
                                             width: 280 * _progress,
                                             decoration: BoxDecoration(
@@ -424,10 +464,13 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                                   Color(0xFF2E7D32),
                                                 ],
                                               ),
-                                              borderRadius: BorderRadius.circular(15),
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: const Color(0xFFEBC374).withValues(alpha: 0.5),
+                                                  color: const Color(
+                                                    0xFFEBC374,
+                                                  ).withValues(alpha: 0.5),
                                                   blurRadius: 12,
                                                   spreadRadius: 2,
                                                 ),
@@ -443,12 +486,23 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                                   width: 280 * _progress,
                                                   decoration: BoxDecoration(
                                                     gradient: LinearGradient(
-                                                      begin: Alignment.centerLeft,
-                                                      end: Alignment.centerRight,
+                                                      begin:
+                                                          Alignment.centerLeft,
+                                                      end:
+                                                          Alignment.centerRight,
                                                       colors: [
-                                                        Colors.white.withValues(alpha: 0),
-                                                        Colors.white.withValues(alpha: 0.25 * _glowAnimation.value),
-                                                        Colors.white.withValues(alpha: 0),
+                                                        Colors.white.withValues(
+                                                          alpha: 0,
+                                                        ),
+                                                        Colors.white.withValues(
+                                                          alpha:
+                                                              0.25 *
+                                                              _glowAnimation
+                                                                  .value,
+                                                        ),
+                                                        Colors.white.withValues(
+                                                          alpha: 0,
+                                                        ),
                                                       ],
                                                     ),
                                                   ),
@@ -473,7 +527,9 @@ class _LuxurySplashScreenState extends State<LuxurySplashScreen>
                                         fontWeight: FontWeight.w600,
                                         color: _progress >= 1.0
                                             ? const Color(0xFFEBC374)
-                                            : Colors.white.withValues(alpha: 0.65),
+                                            : Colors.white.withValues(
+                                                alpha: 0.65,
+                                              ),
                                         letterSpacing: 0.8,
                                       ),
                                     ),

@@ -16,9 +16,6 @@ class _ExploreTab extends StatefulWidget {
   )
   onOpenExerciseGuide;
 
-  /// Antrenman kayıt sayfası
-  final VoidCallback onOpenAddWorkoutPage;
-
   /// Hızlı başlat preset seansı
   final void Function(_QuickStartPreset preset) onOpenQuickStart;
 
@@ -46,7 +43,6 @@ class _ExploreTab extends StatefulWidget {
 
   const _ExploreTab({
     required this.onOpenExerciseGuide,
-    required this.onOpenAddWorkoutPage,
     required this.onOpenQuickStart,
     required this.onOpenTemplateWorkout,
     required this.onSaveTemplate,
@@ -74,6 +70,7 @@ class _ExploreTabState extends State<_ExploreTab> {
   String _selectedSubRegion = 'Tümü';
   String _regionSearchQuery = '';
   String _exerciseSearchQuery = '';
+  String _libraryQuickFilter = 'Tümü';
   bool _loadingGroups = true;
   bool _loadingExercises = false;
   String? _errorMessage;
@@ -253,12 +250,53 @@ class _ExploreTabState extends State<_ExploreTab> {
     final source = _muscleGroups.isEmpty
         ? kMuscleGroupInfo.keys.toList()
         : _muscleGroups;
-    if (normalizedQuery.isEmpty) return source;
-    return source.where((code) {
+    final quickFiltered = source.where((code) {
+      final normalizedCode = _normalizeMuscleGroupCode(code);
+      return switch (_libraryQuickFilter) {
+        'Üst Vücut' => const {
+          'CHEST',
+          'BACK',
+          'SHOULDERS',
+          'BICEPS',
+          'TRICEPS',
+          'FOREARMS',
+        }.contains(normalizedCode),
+        'Alt Vücut' => const {'LEGS', 'GLUTES'}.contains(normalizedCode),
+        'Core' => const {'CORE', 'CARDIO'}.contains(normalizedCode),
+        'Favoriler' => _favoriteExercises.any(
+          (fav) =>
+              fav.muscleGroup != null &&
+              _normalizeMuscleGroupCode(fav.muscleGroup!) == normalizedCode,
+        ),
+        _ => true,
+      };
+    }).toList();
+    if (normalizedQuery.isEmpty) return quickFiltered;
+    return quickFiltered.where((code) {
       final info = kMuscleGroupInfo[code];
       final haystack = _normalizeSearchText('$code ${info?.label ?? ''}');
       return haystack.contains(normalizedQuery);
     }).toList();
+  }
+
+  int _exerciseCountForGroup(String code) =>
+      _exerciseCatalogForGroup(_normalizeMuscleGroupCode(code)).length;
+
+  int _exerciseCountForGroups(List<String> groups) => groups.fold<int>(
+    0,
+    (total, group) => total + _exerciseCountForGroup(group),
+  );
+
+  void _openFullExerciseLibrary() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ExerciseLibraryScreen(
+          initialSearch: _regionSearchQuery.trim().isEmpty
+              ? null
+              : _regionSearchQuery.trim(),
+        ),
+      ),
+    );
   }
 
   List<Exercise> _filteredExercisesForSelectedRegion() {
@@ -530,9 +568,8 @@ class _ExploreTabState extends State<_ExploreTab> {
   Widget _buildRegionGrid() {
     final list = _filteredMuscleGroups();
     final globalMatches = _globalExerciseMatches();
+    final totalExercises = _exerciseCountForGroups(list);
     final provider = context.watch<WorkoutProvider>();
-    final recovery = RecoveryEngine.computeAll(provider.workouts);
-    final stats = provider.workoutStats;
 
     return CustomScrollView(
       slivers: [
@@ -594,72 +631,7 @@ class _ExploreTabState extends State<_ExploreTab> {
             ),
           ),
         ),
-        // 3. Hazır Programlar
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Consumer<WorkoutProgramProvider>(
-              builder: (context, programProvider, _) => _PresetProgramsSection(
-                onAddProgram: (program) {
-                  programProvider.saveProgram(program);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '"${program.name}" programına eklendi!',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      backgroundColor: const Color(0xFF2E7D32),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      duration: const Duration(seconds: 3),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        // 4. Analiz Slaytı (Carousel)
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: _InsightsCarouselSection(
-              workouts: provider.workouts,
-              recoveryStatuses: recovery,
-              stats: stats,
-              onStartProgression: (plan) {
-                final templateData = (
-                  exerciseName: plan.name,
-                  sets: plan.sets,
-                  reps: plan.reps,
-                  workoutName: plan.name,
-                  duration: 30,
-                  muscleGroup: plan.muscleGroup,
-                  difficulty: 'Orta',
-                );
-                final parentState = context
-                    .findAncestorStateOfType<_WorkoutScreenState>();
-                parentState?._openActiveSession(
-                  context,
-                  title: '${plan.name} ilerleme seansı',
-                  plans: [plan],
-                  onFinish: (summary) => parentState._saveCompletedSession(
-                    context,
-                    summary,
-                    difficulty: templateData.difficulty,
-                    fallbackMuscleGroup: templateData.muscleGroup,
-                  ),
-                );
-              },
-              onSelectGroup: _selectMuscleGroup,
-            ),
-          ),
-        ),
-        // Boşluk
-        const SliverToBoxAdapter(child: SizedBox(height: 6)),
-        // Egzersiz Kütüphanesi Başlığı
+        // 3. Egzersiz Kütüphanesi
         SliverAppBar(
           pinned: true,
           elevation: 0,
@@ -668,8 +640,8 @@ class _ExploreTabState extends State<_ExploreTab> {
           automaticallyImplyLeading: false,
           toolbarHeight:
               _regionSearchQuery.trim().isNotEmpty && globalMatches.isNotEmpty
-              ? 172
-              : 116,
+              ? 148
+              : 96,
           flexibleSpace: ClipRRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -682,7 +654,7 @@ class _ExploreTabState extends State<_ExploreTab> {
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,9 +677,9 @@ class _ExploreTabState extends State<_ExploreTab> {
                         ),
                         const SizedBox(width: 10),
                         const Text(
-                          'Kas Grupları',
+                          'Egzersiz Kütüphanesi',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                             letterSpacing: -0.2,
@@ -715,9 +687,9 @@ class _ExploreTabState extends State<_ExploreTab> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     SizedBox(
-                      height: 44,
+                      height: 40,
                       child: TextField(
                         controller: _regionSearchController,
                         onChanged: (value) =>
@@ -797,35 +769,73 @@ class _ExploreTabState extends State<_ExploreTab> {
             ),
           )
         else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.82,
+          SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _buildLibraryControlPanel(
+                  visibleGroupCount: list.length,
+                  visibleExerciseCount: totalExercises,
+                ),
               ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final code = list[index];
-                final info =
-                    kMuscleGroupInfo[code] ??
-                    (
-                      label: code,
-                      color: const Color(0xFF2E7D32),
-                      icon: Icons.fitness_center,
-                      imageUrl: 'assets/images/ust_göğüs_kasi_hareketleri.jpg',
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 14,
+                    crossAxisSpacing: 14,
+                    childAspectRatio: 0.9,
+                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final code = list[index];
+                    final info =
+                        kMuscleGroupInfo[code] ??
+                        (
+                          label: code,
+                          color: const Color(0xFF2E7D32),
+                          icon: Icons.fitness_center,
+                          imageUrl:
+                              'assets/images/ust_göğüs_kasi_hareketleri.jpg',
+                        );
+                    return _RegionCard(
+                      label: info.label,
+                      color: info.color,
+                      icon: info.icon,
+                      imageUrl: info.imageUrl,
+                      exerciseCount: _exerciseCountForGroup(code),
+                      onTap: () => _selectMuscleGroup(code),
                     );
-                return _RegionCard(
-                  label: info.label,
-                  color: info.color,
-                  icon: info.icon,
-                  imageUrl: info.imageUrl,
-                  onTap: () => _selectMuscleGroup(code),
-                );
-              }, childCount: list.length),
+                  }, childCount: list.length),
+                ),
+              ),
+            ],
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Consumer<WorkoutProgramProvider>(
+              builder: (context, programProvider, _) => _PresetProgramsSection(
+                onAddProgram: (program) {
+                  programProvider.saveProgram(program);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '"${program.name}" programına eklendi!',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      backgroundColor: const Color(0xFF2E7D32),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
+        ),
         if (_errorMessage != null)
           SliverToBoxAdapter(
             child: Padding(
@@ -943,6 +953,92 @@ class _ExploreTabState extends State<_ExploreTab> {
     );
   }
 
+  Widget _buildLibraryControlPanel({
+    required int visibleGroupCount,
+    required int visibleExerciseCount,
+  }) {
+    const filters = ['Tümü', 'Üst Vücut', 'Alt Vücut', 'Core', 'Favoriler'];
+    final hasFavorites = _favoriteExercises.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.045),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.075)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _LibraryMetricPill(
+                          icon: Icons.grid_view_rounded,
+                          value: '$visibleGroupCount',
+                          label: 'bölge',
+                          color: const Color(0xFF66BB6A),
+                        ),
+                        _LibraryMetricPill(
+                          icon: Icons.fitness_center_rounded,
+                          value: '$visibleExerciseCount',
+                          label: 'hareket',
+                          color: const Color(0xFF5AC8FA),
+                        ),
+                        _LibraryMetricPill(
+                          icon: Icons.star_rounded,
+                          value: '${_favoriteExercises.length}',
+                          label: 'favori',
+                          color: const Color(0xFFEBC374),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _LibraryIconButton(
+                    icon: Icons.open_in_full_rounded,
+                    tooltip: 'Tüm hareketleri aç',
+                    onTap: _openFullExerciseLibrary,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  children: filters.map((filter) {
+                    final disabled = filter == 'Favoriler' && !hasFavorites;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _LibraryFilterChip(
+                        label: filter,
+                        selected: _libraryQuickFilter == filter,
+                        disabled: disabled,
+                        onTap: disabled
+                            ? null
+                            : () {
+                                setState(() => _libraryQuickFilter = filter);
+                              },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Egzersiz listesi görünümü ─────────────────────────────────────────────
 
   Widget _buildExerciseList() {
@@ -1038,49 +1134,6 @@ class _ExploreTabState extends State<_ExploreTab> {
                         Color(0xFF0A0A0A),
                       ],
                       stops: [0.3, 0.65, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: 20,
-                  bottom: 52,
-                  child: GestureDetector(
-                    onTap: widget.onOpenAddWorkoutPage,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: info.color,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: info.color.withValues(alpha: 0.5),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.add_rounded,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            'Antrenman Kaydet',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import '../../../core/services/iap_service.dart';
 
 /// Premium plan seçim kartı - gerçek App Store fiyatlarıyla
 class PremiumPlanCard extends StatelessWidget {
   final String productId;
-  final ProductDetails? product;
+  final IapProduct? product;
   final bool isSelected;
   final bool isPopular;
   final VoidCallback onTap;
@@ -30,7 +29,7 @@ class PremiumPlanCard extends StatelessWidget {
 
     // Gerçek App Store fiyatı varsa onu kullan
     final displayPrice = product?.price ?? defaultPrice;
-    final currency = product?.currencySymbol ?? '₺';
+    final currency = product?.currencyCode ?? '₺';
 
     return GestureDetector(
       onTap: isLoading ? null : onTap,
@@ -143,7 +142,7 @@ class PremiumPlanCard extends StatelessWidget {
                 if (!isMonthly) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '~${(product != null ? (double.tryParse(product!.price) ?? 800) / 12 : 66.66).toStringAsFixed(2)}$currency/ay',
+                    '~${(product != null ? product!.rawPrice / 12 : 66.66).toStringAsFixed(2)}$currency/ay',
                     style: TextStyle(
                       fontSize: 14,
                       color: isSelected

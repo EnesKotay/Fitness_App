@@ -25,6 +25,15 @@ class NotificationSchedulerService {
       return;
     }
 
+    final granted = await notifications.ensurePermission();
+    if (!granted) {
+      await notifications.cancelAll();
+      debugPrint(
+        'NotificationSchedulerService: Bildirim izni yok, planlama durduruldu',
+      );
+      return;
+    }
+
     if (StorageHelper.getNotifWater()) {
       final intervalHours = await WaterReminderService.instance
           .getIntervalHours();
@@ -58,7 +67,8 @@ class NotificationSchedulerService {
 
     if (StorageHelper.getNotifDailySummary()) {
       await notifications.scheduleDailySummaryReminder();
-      await notifications.scheduleMorningRecoveryReminder(); // Sabah da toparlanma skoru at
+      await notifications
+          .scheduleMorningRecoveryReminder(); // Sabah da toparlanma skoru at
     } else {
       await notifications.cancelDailySummaryReminder();
       await notifications.cancelMorningRecoveryReminder();

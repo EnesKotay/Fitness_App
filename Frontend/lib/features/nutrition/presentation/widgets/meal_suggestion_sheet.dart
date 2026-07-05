@@ -15,7 +15,7 @@ void showMealSuggestionSheet(BuildContext context) {
     tabNav = Navigator.of(context, rootNavigator: false);
   } catch (_) {}
 
-  Navigator.of(context).push(
+  Navigator.of(context, rootNavigator: true).push(
     MaterialPageRoute<void>(
       builder: (_) => MealSuggestionPage(tabNavigator: tabNav),
       fullscreenDialog: true,
@@ -31,9 +31,9 @@ class MealSuggestionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0C10),
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(56),
+        preferredSize: const Size.fromHeight(58),
         child: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -87,7 +87,7 @@ class MealSuggestionPage extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
+                          letterSpacing: 0,
                         ),
                       ),
                     ),
@@ -337,6 +337,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   _SuggestionRefinement _refinement = _SuggestionRefinement.smart;
   final Set<String> _mutedTokens = <String>{};
   bool _macroExpanded = false;
+  int _loadSerial = 0;
   static const _debounceMs = 400;
 
   // Porsiyon
@@ -385,8 +386,12 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
   }
 
   Future<void> _load() async {
+    final requestId = ++_loadSerial;
     _fadeCtrl.reset();
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _aiReasoning = null;
+    });
     final provider = Provider.of<DietProvider>(context, listen: false);
     final query = _searchQuery.trim().isEmpty ? null : _searchQuery.trim();
     try {
@@ -395,20 +400,34 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
         limit: query != null ? 80 : 60,
         query: query,
       );
-      final reasoning = await provider.getAISuggestionReasoning(
-        list.map((e) => e.item).toList(),
-      );
-      if (mounted) {
+      if (!mounted || requestId != _loadSerial) return;
+      setState(() {
+        _suggestions = list;
+        _loading = false;
+      });
+      _fadeCtrl.forward();
+      _loadReasoningFor(list, requestId);
+    } catch (_) {
+      if (mounted && requestId == _loadSerial) {
         setState(() {
-          _suggestions = list;
-          _aiReasoning = reasoning;
+          _suggestions = const [];
           _loading = false;
         });
-        _fadeCtrl.forward();
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _loadReasoningFor(
+    List<SuggestedFoodInsight> suggestions,
+    int requestId,
+  ) async {
+    if (suggestions.isEmpty) return;
+    final provider = Provider.of<DietProvider>(context, listen: false);
+    final reasoning = await provider.getAISuggestionReasoning(
+      suggestions.map((e) => e.item).toList(),
+    );
+    if (!mounted || requestId != _loadSerial || reasoning.isEmpty) return;
+    setState(() => _aiReasoning = reasoning);
   }
 
   Future<void> _refreshReasoning() async {
@@ -814,11 +833,17 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     return true;
   }
 
+  String _dedupeKey(FoodItem food) {
+    return '${food.name.trim().toLowerCase()}|${food.category.trim().toLowerCase()}';
+  }
+
   List<SuggestedFoodInsight> _applyRefinement(
     List<SuggestedFoodInsight> source,
   ) {
+    final seen = <String>{};
     final filtered = source.where((item) {
       if (!_matchesMutedKeywords(item.item)) return false;
+      if (!seen.add(_dedupeKey(item.item))) return false;
       return true;
     }).toList();
 
@@ -1166,10 +1191,19 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
 
     // Progress percentages (how much consumed out of target)
     final targetKcal = provider.effectiveTargetKcal;
-    final pKcal = (targetKcal > 0 ? t.totalKcal / targetKcal : 0.0).clamp(0.0, 1.0);
-    final pProt = targets.protein > 0 ? (t.totalProtein / targets.protein).clamp(0.0, 1.0) : 0.0;
-    final pCarb = targets.carb > 0 ? (t.totalCarb / targets.carb).clamp(0.0, 1.0) : 0.0;
-    final pFat = targets.fat > 0 ? (t.totalFat / targets.fat).clamp(0.0, 1.0) : 0.0;
+    final pKcal = (targetKcal > 0 ? t.totalKcal / targetKcal : 0.0).clamp(
+      0.0,
+      1.0,
+    );
+    final pProt = targets.protein > 0
+        ? (t.totalProtein / targets.protein).clamp(0.0, 1.0)
+        : 0.0;
+    final pCarb = targets.carb > 0
+        ? (t.totalCarb / targets.carb).clamp(0.0, 1.0)
+        : 0.0;
+    final pFat = targets.fat > 0
+        ? (t.totalFat / targets.fat).clamp(0.0, 1.0)
+        : 0.0;
 
     final visibleSuggestions = _applyRefinement(_suggestions);
     final comboPlans = _buildComboPlans(visibleSuggestions);
@@ -1182,6 +1216,10 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     return Stack(
       children: [
         CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
           slivers: [
             SliverToBoxAdapter(child: _buildHeader()),
             if (_aiReasoning != null && _aiReasoning!.isNotEmpty && !_loading)
@@ -1253,6 +1291,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                   remF: remF,
                 ),
               ],
+              const SliverToBoxAdapter(child: _ListEndCap()),
             ],
           ],
         ),
@@ -1267,7 +1306,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final provider = Provider.of<DietProvider>(context, listen: false);
     final searchActive = _searchQuery.trim().isNotEmpty;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 72, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -1349,7 +1388,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                                   color: Colors.white,
                                   fontSize: 26,
                                   fontWeight: FontWeight.w900,
-                                  letterSpacing: -1.0,
+                                  letterSpacing: 0,
                                   height: 1.1,
                                 ),
                               ),
@@ -1737,10 +1776,11 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             const SizedBox(height: 10),
             _buildMealTypeSelector(provider),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(child: _buildSuggestionModeSelector(provider)),
-                const SizedBox(width: 8),
+                ..._buildSuggestionModeChips(provider),
                 _buildFilterButton(provider),
               ],
             ),
@@ -1964,92 +2004,74 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     );
   }
 
-  Widget _buildSuggestionModeSelector(DietProvider provider) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          ...[
-            (SuggestionMode.balanced, 'Dengeli', Icons.balance_rounded),
-            (
-              SuggestionMode.highProtein,
-              'Yüksek Protein',
-              Icons.fitness_center_rounded,
-            ),
-            (SuggestionMode.lowCarb, 'Düşük Karb', Icons.eco_rounded),
-          ].map((e) {
-            final mode = e.$1;
-            final label = e.$2;
-            final icon = e.$3;
-            final selected = provider.suggestionMode == mode;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  provider.setSuggestionMode(mode);
-                  _load();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: selected
-                        ? LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.2),
-                              AppColors.primary.withValues(alpha: 0.08),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: selected
-                        ? null
-                        : Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: selected
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : Colors.white.withValues(alpha: 0.1),
-                      width: selected ? 1.4 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        icon,
-                        size: 13,
-                        color: selected
-                            ? AppColors.primaryLight
-                            : Colors.white38,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          color: selected
-                              ? AppColors.primaryLight
-                              : Colors.white54,
-                          fontSize: 11.5,
-                          fontWeight: selected
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                        ),
-                      ),
+  List<Widget> _buildSuggestionModeChips(DietProvider provider) {
+    final modes = [
+      (SuggestionMode.balanced, 'Dengeli', Icons.balance_rounded),
+      (
+        SuggestionMode.highProtein,
+        'Yüksek Protein',
+        Icons.fitness_center_rounded,
+      ),
+      (SuggestionMode.lowCarb, 'Düşük Karb', Icons.eco_rounded),
+    ];
+
+    return modes.map((e) {
+      final mode = e.$1;
+      final label = e.$2;
+      final icon = e.$3;
+      final selected = provider.suggestionMode == mode;
+      return GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          provider.setSuggestionMode(mode);
+          _load();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.2),
+                      AppColors.primary.withValues(alpha: 0.08),
                     ],
-                  ),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: selected ? null : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary.withValues(alpha: 0.5)
+                  : Colors.white.withValues(alpha: 0.1),
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: selected ? AppColors.primaryLight : Colors.white38,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? AppColors.primaryLight : Colors.white54,
+                  fontSize: 11.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
-            );
-          }),
-        ],
-      ),
-    );
+            ],
+          ),
+        ),
+      );
+    }).toList();
   }
 
   List<String> _smartChips() {
@@ -2883,7 +2905,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           ),
         ),
         SizedBox(
-          height: 340,
+          height: 304,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -2946,7 +2968,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           ),
         ),
         SizedBox(
-          height: 320,
+          height: 270,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2962,7 +2984,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     return Container(
       width: 286,
       margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -2981,8 +3003,8 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           Row(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.chartBlue.withValues(alpha: 0.16),
@@ -2998,25 +3020,29 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                       combo.title,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 14.5,
+                        fontSize: 14,
                         fontWeight: FontWeight.w800,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       combo.subtitle,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.56),
-                        fontSize: 11.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -3037,12 +3063,14 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
             combo.reason,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.72),
-              fontSize: 11.8,
+              fontSize: 11.4,
               height: 1.4,
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -3061,7 +3089,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                       '${item.item.name} ${item.suggestedPortionG.round()}g',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 10.5,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -3069,10 +3097,10 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 )
                 .toList(),
           ),
-          const SizedBox(height: 8),
+          const Spacer(),
           SizedBox(
             width: double.infinity,
-            height: 38,
+            height: 36,
             child: ElevatedButton(
               onPressed: () => _quickAddCombo(combo, provider),
               style: ElevatedButton.styleFrom(
@@ -3110,6 +3138,8 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     final scoreColor = _scoreColor(score);
     final badges = _badges(food);
     final isQuickAdding = _quickAddedId == food.id;
+    final portionKcal = (food.kcalPer100g * suggestion.suggestedPortionG / 100)
+        .round();
 
     return GestureDetector(
       onTap: () => _openPortionOverlay(suggestion),
@@ -3147,7 +3177,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -3243,13 +3273,13 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               // Food icon + category
               Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -3267,7 +3297,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                     child: Center(
                       child: Text(
                         _foodEmoji(food),
-                        style: const TextStyle(fontSize: 22),
+                        style: const TextStyle(fontSize: 20),
                       ),
                     ),
                   ),
@@ -3292,7 +3322,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                           _MealSuggestionHeuristics.prepLabel(food),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.35),
-                            fontSize: 9.5,
+                            fontSize: 9.2,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -3307,66 +3337,41 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 food.name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 15.5,
                   fontWeight: FontWeight.w900,
                   height: 1.2,
-                  letterSpacing: -0.3,
+                  letterSpacing: 0,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
-              // Macro pills
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
+              Row(
                 children: [
-                  _macroPill(
-                    '${food.kcalPer100g.round()} kcal',
+                  _compactMetric(
+                    '${suggestion.suggestedPortionG.round()}g',
+                    '$portionKcal kcal',
                     AppColors.secondary,
                   ),
-                  _macroPill(
+                  const SizedBox(width: 6),
+                  _compactMetric(
                     'P ${food.proteinPer100g.round()}g',
+                    '100g',
                     AppColors.chartBlue,
-                  ),
-                  _macroPill(
-                    'K ${food.carbPer100g.round()}g',
-                    AppColors.chartGreen,
                   ),
                 ],
               ),
               if (badges.isNotEmpty) ...[
                 const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: badges.first.color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: badges.first.color.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Text(
-                    badges.first.label,
-                    style: TextStyle(
-                      color: badges.first.color,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+                _softBadge(badges.first.label, badges.first.color),
               ],
-              const SizedBox(height: 8),
               // Reason chip
               if (suggestion.reasons.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
-                    vertical: 5,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.10),
@@ -3393,9 +3398,9 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                             ),
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            height: 1.35,
+                            height: 1.25,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -3403,22 +3408,13 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                   ),
                 ),
               ],
-              const SizedBox(height: 6),
-              Text(
-                '${suggestion.suggestedPortionG.round()}g · ${(food.kcalPer100g * suggestion.suggestedPortionG / 100).round()} kcal',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
 
               const Spacer(),
               // Glow add button
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: double.infinity,
-                height: 38,
+                height: 36,
                 decoration: BoxDecoration(
                   gradient: isQuickAdding
                       ? LinearGradient(
@@ -3536,7 +3532,7 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w900,
-                letterSpacing: -0.2,
+                letterSpacing: 0,
               ),
             ),
           ),
@@ -3736,23 +3732,22 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
                           const SizedBox(height: 8),
 
                           // Row 2: macro pills
-                          Row(
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 5,
                             children: [
                               _macroPill(
                                 '${food.kcalPer100g.round()} kcal',
                                 AppColors.secondary,
                               ),
-                              const SizedBox(width: 5),
                               _macroPill(
                                 'P ${food.proteinPer100g.round()}g',
                                 AppColors.chartBlue,
                               ),
-                              const SizedBox(width: 5),
                               _macroPill(
                                 'K ${food.carbPer100g.round()}g',
                                 AppColors.chartGreen,
                               ),
-                              const SizedBox(width: 5),
                               _macroPill(
                                 'Y ${food.fatPer100g.round()}g',
                                 const Color(0xFFFFB74D),
@@ -4493,6 +4488,66 @@ class _MealSuggestionContentState extends State<_MealSuggestionContent>
     );
   }
 
+  Widget _compactMetric(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.11),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.45),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _softBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     final hasQuery = _searchQuery.trim().isNotEmpty;
     final hiddenByRefinement =
@@ -4681,6 +4736,47 @@ class _PulsingDotState extends State<_PulsingDot>
             BoxShadow(
               color: widget.color.withValues(alpha: _anim.value * 0.5),
               blurRadius: 4,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ListEndCap extends StatelessWidget {
+  const _ListEndCap();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 34),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.035),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.primaryLight,
+              size: 16,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                'Öneriler günün hedeflerine göre sıralandı.',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.48),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         ),

@@ -14,7 +14,8 @@ import '../../../auth/providers/auth_provider.dart';
 
 /// Sohbet botu: "Bugün ne yedim?" → özet; "Öğle yemeğine döner ekle" → ekle ve onayla.
 class DietChatPage extends StatefulWidget {
-  const DietChatPage({super.key});
+  final String? initialMessage;
+  const DietChatPage({super.key, this.initialMessage});
 
   @override
   State<DietChatPage> createState() => _DietChatPageState();
@@ -105,6 +106,10 @@ class _DietChatPageState extends State<DietChatPage> {
       _checkPremiumBadge();
       _checkBackendStatus();
       await _checkFirstVisitGuide();
+      if (widget.initialMessage != null && widget.initialMessage!.isNotEmpty) {
+        _controller.text = widget.initialMessage!;
+        _handleSend();
+      }
     });
   }
 

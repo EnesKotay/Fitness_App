@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../../../core/api/services/auth_service.dart';
+import '../../../core/constants/premium_features.dart';
+import '../../../core/services/iap_service.dart';
 import '../../../core/models/auth_models.dart';
 import '../../../core/models/user.dart';
 import '../../../core/api/api_exception.dart';
@@ -187,6 +190,7 @@ class AuthProvider with ChangeNotifier {
   /// Çıkış yap
   Future<void> logout() async {
     _runLogoutCallbacks();
+    unawaited(IapService.instance.logOut());
     await _authService.logout();
     _user = null;
     _isAuthenticated = false;
@@ -202,6 +206,7 @@ class AuthProvider with ChangeNotifier {
     try {
       await _authService.deleteMyAccount();
       _runLogoutCallbacks();
+      unawaited(IapService.instance.logOut());
       await StorageHelper.clearDeletedAccountData();
       _user = null;
       _isAuthenticated = false;
@@ -268,6 +273,9 @@ class AuthProvider with ChangeNotifier {
       );
     }
     _isAuthenticated = true;
+    if (cachedId != null && cachedId > 0) {
+      unawaited(IapService.instance.logIn(cachedId.toString()));
+    }
     notifyListeners();
 
     // Arka planda server'dan güncel kullanıcı bilgilerini al.
@@ -277,6 +285,7 @@ class AuthProvider with ChangeNotifier {
       await StorageHelper.saveUserId(user.id);
       await StorageHelper.saveUserEmail(user.email);
       await StorageHelper.saveUserName(user.name);
+      unawaited(IapService.instance.logIn(user.id.toString()));
       notifyListeners();
     } on ApiException catch (e) {
       // Sadece token geçersizse (401) oturumu kapat.
@@ -344,6 +353,9 @@ class AuthProvider with ChangeNotifier {
     await StorageHelper.saveUserEmail(response.user.email);
     await StorageHelper.saveUserId(response.user.id);
     await StorageHelper.saveUserName(response.user.name);
+    // RevenueCat kullanıcısını backend user ID ile eşle — abonelik durumu
+    // backend'de bu ID üzerinden doğrulanır.
+    unawaited(IapService.instance.logIn(response.user.id.toString()));
     notifyListeners();
   }
 
@@ -383,7 +395,7 @@ class AuthProvider with ChangeNotifier {
     } else {
       _user = current.copyWith(
         premiumTier: 'premium',
-        premiumPlan: premiumPlan ?? current.premiumPlan,
+        premiumPlan: normalizePremiumPlanId(premiumPlan) ?? current.premiumPlan,
         premiumExpiresAt: premiumExpiresAt ?? current.premiumExpiresAt,
         premiumCancelAtPeriodEnd:
             premiumCancelAtPeriodEnd ?? current.premiumCancelAtPeriodEnd,

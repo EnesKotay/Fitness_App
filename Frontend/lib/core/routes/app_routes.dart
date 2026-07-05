@@ -7,7 +7,6 @@ import '../../features/ai_coach/screens/weekly_check_in_screen.dart';
 import '../../features/ai_coach/screens/weekly_plan_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
-import '../../features/auth/screens/login_screen.dart';
 import '../../features/auth/screens/clean_login_screen.dart';
 import '../../features/auth/screens/profile_screen.dart';
 import '../../features/auth/screens/settings_help_screen.dart';
@@ -15,6 +14,7 @@ import '../../features/auth/screens/settings_language_units_screen.dart';
 import '../../features/auth/screens/settings_notifications_screen.dart';
 import '../../features/auth/screens/settings_nutrition_screen.dart';
 import '../../features/workout/screens/achievements_screen.dart';
+import '../../features/workout/screens/exercise_library_screen.dart';
 import '../../features/auth/screens/settings_password_screen.dart';
 import '../../features/auth/screens/settings_privacy_screen.dart';
 import '../../features/nutrition/presentation/pages/profile_setup_page.dart';
@@ -23,7 +23,8 @@ import '../../features/onboarding/onboarding_page.dart';
 import '../../features/shell/main_shell.dart';
 import '../../features/tasks/screens/daily_tasks_screen.dart';
 import '../../features/workout/providers/workout_provider.dart';
-import 'package:upgrader/upgrader.dart';
+import '../../features/weight/presentation/providers/weight_provider.dart';
+import '../utils/storage_helper.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -33,6 +34,7 @@ class AppRoutes {
   static const weeklyCheckIn = '/weekly-check-in';
   static const weeklyPlan = '/weekly-plan';
   static const dailyTasks = '/daily-tasks';
+  static const exerciseLibrary = '/exercise-library';
   static const home = '/home';
   static const forgotPassword = '/forgot-password';
 
@@ -52,19 +54,11 @@ class AppRoutes {
     return {
       '/login': (context) => const CleanLoginScreen(),
       '/onboarding': (context) => const OnboardingPage(),
-      home: (context) => _guard(
-        context,
-        UpgradeAlert(
-          upgrader: Upgrader(
-            languageCode: 'tr',
-            messages: UpgraderMessages(code: 'tr'),
-          ),
-          child: const MainShell(),
-        ),
-      ),
+      home: (context) => _guard(context, const MainShell()),
       aiCoach: (context) {
         final dietProvider = context.read<DietProvider>();
         final workout = context.read<WorkoutProvider>();
+        final weightProvider = context.read<WeightProvider>();
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
         final todayWorkouts = workout.workouts
@@ -86,6 +80,22 @@ class AppRoutes {
             .toSet()
             .take(6)
             .toList();
+        final profile = dietProvider.profile;
+        final totals = dietProvider.totals;
+        final currentWeight =
+            weightProvider.latestEntry?.weightKg ?? profile?.weightKg;
+        final targetCalories = dietProvider.effectiveTargetKcal.round();
+        final targetWeight = profile?.targetWeight;
+        final heightM = (profile?.heightCm ?? 0) / 100;
+        final bmi = currentWeight != null && heightM > 0
+            ? currentWeight / (heightM * heightM)
+            : null;
+        final mealNames = dietProvider.entries
+            .map((entry) => entry.foodName.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .take(8)
+            .toList();
         final summary = DailySummary(
           steps: 0,
           calories: dietProvider.totals.totalKcal.round(),
@@ -94,6 +104,25 @@ class AppRoutes {
           workouts: todayWorkoutCount,
           workoutMinutes: todayWorkoutMinutes,
           workoutHighlights: todayWorkoutHighlights,
+          targetCalories: targetCalories > 0 ? targetCalories : null,
+          currentWeightKg: currentWeight,
+          targetWeightKg: targetWeight,
+          bmi: bmi,
+          proteinGrams: totals.totalProtein.round(),
+          carbsGrams: totals.totalCarb.round(),
+          fatGrams: totals.totalFat.round(),
+          mealNames: mealNames,
+          weeklyWeightChangeKg: weightProvider.entries.length >= 2
+              ? weightProvider.weeklyChange
+              : null,
+          weightStreak: weightProvider.currentStreak,
+          userAge: profile?.age,
+          userHeightCm: profile?.heightCm,
+          userGender: profile?.gender.name,
+          activityLevel: profile?.activityLevel.name,
+          tdee: profile?.tdee.round(),
+          workoutLocation: StorageHelper.getWorkoutLocation(),
+          equipmentType: StorageHelper.getEquipmentType(),
         );
         return _guard(context, AiCoachScreen(initialSummary: summary));
       },
@@ -101,6 +130,8 @@ class AppRoutes {
       weeklyCheckIn: (context) => _guard(context, const WeeklyCheckInScreen()),
       weeklyPlan: (context) => _guard(context, const WeeklyPlanScreen()),
       dailyTasks: (context) => _guard(context, const DailyTasksScreen()),
+      exerciseLibrary: (context) =>
+          _guard(context, const ExerciseLibraryScreen()),
       '/profile': (context) => _guard(context, const ProfileScreen()),
       '/profile-setup': (context) => _guard(context, const ProfileSetupPage()),
       '/settings-password': (context) =>

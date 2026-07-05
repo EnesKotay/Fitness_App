@@ -214,7 +214,10 @@ class _ProfileSetupPageState extends State<ProfileSetupPage> {
       if (widget.navigateToHomeOnSave) {
         await StorageHelper.saveOnboardingDone(true);
         await StorageHelper.savePendingOnboardingSummary(true);
-        await StorageHelper.savePendingAppTour(true);
+        if (StorageHelper.getPendingAppTour() &&
+            !StorageHelper.getAppTourSeen()) {
+          await StorageHelper.savePendingAppTour(true);
+        }
         try {
           await LocalNotificationService.instance.requestPermission();
         } catch (e) {

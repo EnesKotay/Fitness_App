@@ -43,7 +43,7 @@ class AppAnalytics {
   static const _maxEvents = 240;
   static const _baseKey = 'app_analytics_events_v1';
 
-  static String get _key => '${StorageHelper.getUserStorageSuffix()}_$_baseKey';
+  static String get _key => StorageHelper.userScopedKey(_baseKey);
 
   static Future<void> track(
     String name, {

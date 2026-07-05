@@ -18,7 +18,26 @@ class PremiumFeature {
   });
 }
 
-bool isPremiumTier(String? tier) => tier?.toLowerCase().trim() == 'premium';
+String? normalizePremiumPlanId(String? planId) {
+  final normalized = planId?.toLowerCase().trim();
+  if (normalized == null || normalized.isEmpty) return null;
+  if (normalized.contains('year')) return 'yearly';
+  if (normalized.contains('month')) return 'monthly';
+  return normalized;
+}
+
+bool isPremiumTier(String? tier, {DateTime? expiresAt}) {
+  if (tier?.toLowerCase().trim() != 'premium') return false;
+  return expiresAt == null || expiresAt.isAfter(DateTime.now());
+}
+
+int premiumDaysLeft(DateTime? expiresAt, {required int totalDays}) {
+  if (expiresAt == null) return totalDays;
+  final remainingSeconds = expiresAt.difference(DateTime.now()).inSeconds;
+  if (remainingSeconds <= 0) return 0;
+  final days = (remainingSeconds / Duration.secondsPerDay).ceil();
+  return days.clamp(1, totalDays).toInt();
+}
 
 const premiumFeatures = <PremiumFeature>[
   PremiumFeature(

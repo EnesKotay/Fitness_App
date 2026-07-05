@@ -21,6 +21,139 @@ class _RegionCard extends StatefulWidget {
   State<_RegionCard> createState() => _RegionCardState();
 }
 
+class _LibraryMetricPill extends StatelessWidget {
+  const _LibraryMetricPill({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.50),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LibraryIconButton extends StatelessWidget {
+  const _LibraryIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white.withValues(alpha: 0.82),
+            size: 18,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryFilterChip extends StatelessWidget {
+  const _LibraryFilterChip({
+    required this.label,
+    required this.selected,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? const Color(0xFF66BB6A) : Colors.white;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF66BB6A).withValues(alpha: 0.16)
+              : Colors.white.withValues(alpha: disabled ? 0.025 : 0.055),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF66BB6A).withValues(alpha: 0.42)
+                : Colors.white.withValues(alpha: disabled ? 0.04 : 0.09),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color.withValues(alpha: disabled ? 0.28 : 0.88),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RegionCardState extends State<_RegionCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pressCtrl;
@@ -69,21 +202,18 @@ class _RegionCardState extends State<_RegionCard>
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: widget.color.withValues(alpha: 0.6),
-              width: 1.5,
-            ),
+            border: Border.all(color: widget.color.withValues(alpha: 0.44)),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withValues(alpha: 0.35),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
+                color: widget.color.withValues(alpha: 0.24),
+                blurRadius: 22,
+                spreadRadius: -4,
+                offset: const Offset(0, 12),
               ),
               BoxShadow(
-                color: widget.color.withValues(alpha: 0.15),
-                blurRadius: 40,
-                spreadRadius: -5,
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -116,13 +246,14 @@ class _RegionCardState extends State<_RegionCard>
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.05),
-                      Colors.black.withValues(alpha: 0.78),
+                      Colors.black.withValues(alpha: 0.08),
+                      Colors.black.withValues(alpha: 0.24),
+                      Colors.black.withValues(alpha: 0.88),
                     ],
-                    stops: const [0.1, 1.0],
+                    stops: const [0.0, 0.45, 1.0],
                   ),
                 ),
               ),
@@ -132,24 +263,50 @@ class _RegionCardState extends State<_RegionCard>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Üst: ikon badge
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: widget.color.withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: widget.color.withValues(alpha: 0.45),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.34),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.12),
                             ),
-                          ],
+                          ),
+                          child: Text(
+                            'Rehberli',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.82),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
-                        child: Icon(widget.icon, color: Colors.white, size: 16),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: widget.color.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(11),
+                            boxShadow: [
+                              BoxShadow(
+                                color: widget.color.withValues(alpha: 0.42),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            widget.icon,
+                            color: Colors.white,
+                            size: 17,
+                          ),
+                        ),
+                      ],
                     ),
                     // Alt: label + egzersiz sayısı
                     Column(
@@ -172,31 +329,51 @@ class _RegionCardState extends State<_RegionCard>
                             ],
                           ),
                         ),
-                        if (count > 0) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.45),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: widget.color.withValues(alpha: 0.4),
-                                width: 0.8,
+                        const SizedBox(height: 9),
+                        Row(
+                          children: [
+                            if (count > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: widget.color.withValues(alpha: 0.13),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: widget.color.withValues(alpha: 0.38),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  '$count hareket',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: widget.color,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            const Spacer(),
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 15,
                               ),
                             ),
-                            child: Text(
-                              '$count hareket',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: widget.color,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ],
                     ),
                   ],
@@ -2804,10 +2981,7 @@ class _TodayWorkoutActionCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            accent.withValues(alpha: 0.25),
-            const Color(0xFF141420),
-          ],
+          colors: [accent.withValues(alpha: 0.25), const Color(0xFF141420)],
         ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: accent.withValues(alpha: 0.4), width: 1.5),
@@ -2921,7 +3095,10 @@ class _TodayWorkoutActionCard extends StatelessWidget {
               OutlinedButton(
                 onPressed: onExplore,
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: accent.withValues(alpha: 0.6), width: 1.5),
+                  side: BorderSide(
+                    color: accent.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 16,
@@ -2932,206 +3109,14 @@ class _TodayWorkoutActionCard extends StatelessWidget {
                 ),
                 child: Text(
                   'Bölge Seç',
-                  style: TextStyle(color: accent, fontSize: 15, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressionSpotlightCard extends StatelessWidget {
-  final List<Workout> workouts;
-  final void Function(_SessionExercisePlan plan) onStart;
-
-  const _ProgressionSpotlightCard({
-    required this.workouts,
-    required this.onStart,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (workouts.length < 2) return const SizedBox.shrink();
-    final latest = workouts.first;
-    final hint = ProgressionEngine.compute(
-      history: workouts,
-      exerciseName: latest.name,
-      targetReps: latest.reps ?? 10,
-    );
-    if (hint.lastWeight == null && hint.suggestedWeight <= 0) {
-      return const SizedBox.shrink();
-    }
-    final accent = hint.readilyProgressed
-        ? Colors.amber
-        : hint.trendDirection == TrendDirection.down
-        ? Colors.orangeAccent
-        : const Color(0xFF66BB6A);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: 0.24)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(Icons.trending_up_rounded, color: accent, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${latest.name}: ${hint.weightLabel}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  hint.reason,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
-                    fontSize: 12,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => onStart(
-              _SessionExercisePlan(
-                name: latest.name,
-                sets: latest.sets ?? 3,
-                reps: hint.suggestedReps,
-                muscleGroup: latest.muscleGroup,
-              ),
-            ),
-            child: Text(
-              'Dene',
-              style: TextStyle(color: accent, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WeeklyBalanceCard extends StatelessWidget {
-  final List<Workout> workouts;
-  final void Function(String group) onSelectGroup;
-
-  const _WeeklyBalanceCard({
-    required this.workouts,
-    required this.onSelectGroup,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (workouts.isEmpty) return const SizedBox.shrink();
-    final now = DateTime.now();
-    final weekStart = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    final workedGroups = workouts
-        .where((workout) => !workout.workoutDate.isBefore(weekStart))
-        .map((workout) => workout.muscleGroup ?? workout.workoutType)
-        .whereType<String>()
-        .map((group) => ExerciseParserService.normalizeMuscleGroupCode(group))
-        .where((group) => group.isNotEmpty)
-        .toSet();
-    final missing = kMuscleGroupInfo.keys
-        .where((group) => !workedGroups.contains(group))
-        .take(4)
-        .toList();
-    if (missing.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF151515),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.balance_rounded, color: Color(0xFF66BB6A), size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Haftalık denge',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Bu hafta eksik kalan bölgeleri tamamlamak planı dengeler.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: missing.map((group) {
-              final info = kMuscleGroupInfo[group];
-              final color = info?.color ?? const Color(0xFF66BB6A);
-              return GestureDetector(
-                onTap: () => onSelectGroup(group),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.11),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withValues(alpha: 0.28)),
-                  ),
-                  child: Text(
-                    info?.label ?? group,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
           ),
         ],
       ),
@@ -3292,211 +3277,6 @@ class _HistoryFilterBar extends StatelessWidget {
   }
 }
 
-class _RecoveryInsightsCard extends StatelessWidget {
-  final TodayWorkoutSuggestion? workoutSuggestion;
-  final Map<String, FatigueStatus> recoveryStatuses;
-  final int totalWorkouts;
-  final int totalSets;
-  final int totalCaloriesBurned;
-  final void Function(String group) onSelectGroup;
-
-  const _RecoveryInsightsCard({
-    required this.workoutSuggestion,
-    required this.recoveryStatuses,
-    required this.totalWorkouts,
-    required this.totalSets,
-    required this.totalCaloriesBurned,
-    required this.onSelectGroup,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final freshEntries = recoveryStatuses.entries
-        .where((entry) => entry.value.level == FatigueLevel.fresh)
-        .take(3)
-        .toList();
-    final highlightEntries = freshEntries.isNotEmpty
-        ? freshEntries
-        : recoveryStatuses.entries.take(3).toList();
-    final accent = workoutSuggestion?.color ?? const Color(0xFF2E7D32);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [accent.withValues(alpha: 0.18), const Color(0xFF121212)],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: accent.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  workoutSuggestion?.icon ?? Icons.auto_graph_rounded,
-                  color: accent,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workoutSuggestion?.title ?? 'Bugün için akıllı öneri',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      workoutSuggestion?.detail ??
-                          'Toparlanma durumuna göre hazır bölgeler burada listelenir.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              _MiniStat(label: 'Toplam', value: '$totalWorkouts'),
-              const SizedBox(width: 8),
-              _MiniStat(label: 'Set', value: '$totalSets'),
-              const SizedBox(width: 8),
-              _MiniStat(label: 'Kcal', value: '$totalCaloriesBurned'),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Hazır Bölgeler',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.52),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: highlightEntries.map((entry) {
-              final info = kMuscleGroupInfo[entry.key];
-              final status = entry.value;
-              final isFresh = status.level == FatigueLevel.fresh;
-              final chipColor = isFresh
-                  ? accent
-                  : status.level == FatigueLevel.recovering
-                  ? Colors.amber
-                  : Colors.redAccent;
-              return GestureDetector(
-                onTap: () => onSelectGroup(entry.key),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: chipColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: chipColor.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        info?.label ?? entry.key,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        status.levelLabel,
-                        style: TextStyle(
-                          color: chipColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _MiniStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Weekly Volume Chart ──────────────────────────────────────────────────────
 
 class _WeeklyVolumeChart extends StatelessWidget {
@@ -3529,45 +3309,67 @@ class _WeeklyVolumeChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = _weeklyData();
     final maxVol = data.map((d) => d.volume).fold(0.0, (a, b) => a > b ? a : b);
-    
+
     // Calculate weekly summary
     final now = DateTime.now();
     final weekStart = now.subtract(Duration(days: now.weekday - 1));
     final thisWeekWorkouts = workouts.where((w) {
-      final d = DateTime(w.workoutDate.year, w.workoutDate.month, w.workoutDate.day);
-      return !d.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day));
+      final d = DateTime(
+        w.workoutDate.year,
+        w.workoutDate.month,
+        w.workoutDate.day,
+      );
+      return !d.isBefore(
+        DateTime(weekStart.year, weekStart.month, weekStart.day),
+      );
     }).toList();
-    
+
     final totalWorkouts = thisWeekWorkouts.length;
     final totalVolume = data.map((d) => d.volume).fold(0.0, (a, b) => a + b);
-    final totalDuration = thisWeekWorkouts.map((w) => w.durationMinutes ?? 0).fold(0, (a, b) => a + b);
+    final totalDuration = thisWeekWorkouts
+        .map((w) => w.durationMinutes ?? 0)
+        .fold(0, (a, b) => a + b);
 
     // Calculate last week's volume for Coach Debrief
     final lastWeekStart = weekStart.subtract(const Duration(days: 7));
     final lastWeekWorkouts = workouts.where((w) {
-      final d = DateTime(w.workoutDate.year, w.workoutDate.month, w.workoutDate.day);
-      return !d.isBefore(DateTime(lastWeekStart.year, lastWeekStart.month, lastWeekStart.day)) &&
-             d.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day));
+      final d = DateTime(
+        w.workoutDate.year,
+        w.workoutDate.month,
+        w.workoutDate.day,
+      );
+      return !d.isBefore(
+            DateTime(
+              lastWeekStart.year,
+              lastWeekStart.month,
+              lastWeekStart.day,
+            ),
+          ) &&
+          d.isBefore(DateTime(weekStart.year, weekStart.month, weekStart.day));
     }).toList();
-    
+
     double lastWeekVolume = 0;
     for (final w in lastWeekWorkouts) {
-        final weight = w.weight ?? 0;
-        final reps = w.reps ?? 0;
-        final sets = w.sets ?? 1;
-        lastWeekVolume += weight * reps * sets;
+      final weight = w.weight ?? 0;
+      final reps = w.reps ?? 0;
+      final sets = w.sets ?? 1;
+      lastWeekVolume += weight * reps * sets;
     }
 
     String coachDebrief = 'Koç: Antrenman yapıp kaslarını geliştirmeye başla!';
     if (totalVolume > lastWeekVolume && lastWeekVolume > 0) {
-      coachDebrief = 'Koç: Harika! Geçen haftaya göre +${(totalVolume - lastWeekVolume).toStringAsFixed(0)} kg ekstra hacim. Progressive Overload çalışıyor! 🚀';
+      coachDebrief =
+          'Koç: Harika! Geçen haftaya göre +${(totalVolume - lastWeekVolume).toStringAsFixed(0)} kg ekstra hacim. Progressive Overload çalışıyor! 🚀';
     } else if (totalVolume < lastWeekVolume && now.weekday > 4) {
-      coachDebrief = 'Koç: Geçen haftanın gerisindeyiz. Kalan günlerde açığı kapatalım! 💪';
+      coachDebrief =
+          'Koç: Geçen haftanın gerisindeyiz. Kalan günlerde açığı kapatalım! 💪';
     } else if (totalVolume > 0 && lastWeekVolume == 0) {
-      coachDebrief = 'Koç: İlk haftan çok iyi gidiyor, hacim artmaya devam etmeli!';
+      coachDebrief =
+          'Koç: İlk haftan çok iyi gidiyor, hacim artmaya devam etmeli!';
     }
 
-    if (maxVol == 0 && totalWorkouts == 0 && lastWeekVolume == 0) return const SizedBox.shrink();
+    if (maxVol == 0 && totalWorkouts == 0 && lastWeekVolume == 0)
+      return const SizedBox.shrink();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
@@ -3575,7 +3377,9 @@ class _WeeklyVolumeChart extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141420),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF2E7D32).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFF2E7D32).withValues(alpha: 0.3),
+        ),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF2E7D32).withValues(alpha: 0.08),
@@ -3596,7 +3400,11 @@ class _WeeklyVolumeChart extends StatelessWidget {
                   color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.insights_rounded, color: Color(0xFF66BB6A), size: 16),
+                child: const Icon(
+                  Icons.insights_rounded,
+                  color: Color(0xFF66BB6A),
+                  size: 16,
+                ),
               ),
               const SizedBox(width: 8),
               const Text(
@@ -3621,7 +3429,8 @@ class _WeeklyVolumeChart extends StatelessWidget {
               ),
               _buildSummaryItem(
                 label: 'Süre',
-                value: '${(totalDuration / 60).floor()}s ${totalDuration % 60}d',
+                value:
+                    '${(totalDuration / 60).floor()}s ${totalDuration % 60}d',
                 icon: Icons.timer_rounded,
                 color: Colors.blueAccent,
               ),
@@ -3653,15 +3462,21 @@ class _WeeklyVolumeChart extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isToday
                                 ? const Color(0xFF66BB6A)
-                                : const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                                : const Color(
+                                    0xFF2E7D32,
+                                  ).withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(6),
-                            boxShadow: isToday ? [
-                              BoxShadow(
-                                color: const Color(0xFF66BB6A).withValues(alpha: 0.5),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              )
-                            ] : null,
+                            boxShadow: isToday
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF66BB6A,
+                                      ).withValues(alpha: 0.5),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -3692,11 +3507,17 @@ class _WeeklyVolumeChart extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF66BB6A).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF66BB6A).withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFF66BB6A).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.psychology, color: Color(0xFF66BB6A), size: 18),
+                const Icon(
+                  Icons.psychology,
+                  color: Color(0xFF66BB6A),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -3716,7 +3537,12 @@ class _WeeklyVolumeChart extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryItem({required String label, required String value, required IconData icon, required Color color}) {
+  Widget _buildSummaryItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3870,7 +3696,10 @@ class _WeeklyStreakRow extends StatelessWidget {
               const Spacer(),
               if (currentStreak >= 2)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
@@ -3897,10 +3726,14 @@ class _WeeklyStreakRow extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      if (currentStreak == longestStreak && longestStreak >= 3) ...[
+                      if (currentStreak == longestStreak &&
+                          longestStreak >= 3) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.amber.withValues(alpha: 0.22),
                             borderRadius: BorderRadius.circular(6),
@@ -3958,13 +3791,17 @@ class _WeeklyStreakRow extends StatelessWidget {
                           ? accent
                           : isToday
                           ? accent.withValues(alpha: 0.14)
-                          : Colors.white.withValues(alpha: isFuture ? 0.0 : 0.04),
+                          : Colors.white.withValues(
+                              alpha: isFuture ? 0.0 : 0.04,
+                            ),
                       border: Border.all(
                         color: isToday
                             ? accentLight
                             : hasWorkout
                             ? accentLight.withValues(alpha: 0.45)
-                            : Colors.white.withValues(alpha: isFuture ? 0.05 : 0.09),
+                            : Colors.white.withValues(
+                                alpha: isFuture ? 0.05 : 0.09,
+                              ),
                         width: isToday ? 2 : 1,
                       ),
                       boxShadow: hasWorkout
@@ -3978,7 +3815,11 @@ class _WeeklyStreakRow extends StatelessWidget {
                           : null,
                     ),
                     child: hasWorkout
-                        ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
+                        ? const Icon(
+                            Icons.check_rounded,
+                            size: 15,
+                            color: Colors.white,
+                          )
                         : isToday
                         ? Container(
                             width: 6,
@@ -3993,7 +3834,9 @@ class _WeeklyStreakRow extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withValues(alpha: isFuture ? 0.18 : 0.32),
+                              color: Colors.white.withValues(
+                                alpha: isFuture ? 0.18 : 0.32,
+                              ),
                             ),
                           ),
                   ),
@@ -5233,206 +5076,6 @@ class _QuickActionsRow extends StatelessWidget {
   }
 }
 
-class _InsightsCarouselSection extends StatelessWidget {
-  final List<Workout> workouts;
-  final Map<String, FatigueStatus> recoveryStatuses;
-  final Map<String, dynamic> stats;
-  final void Function(_SessionExercisePlan) onStartProgression;
-  final void Function(String) onSelectGroup;
-
-  const _InsightsCarouselSection({
-    required this.workouts,
-    required this.recoveryStatuses,
-    required this.stats,
-    required this.onStartProgression,
-    required this.onSelectGroup,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (workouts.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.purpleAccent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.insights_rounded,
-                    color: Colors.purpleAccent,
-                    size: 18,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Analiz ve İlerleme',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.03),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.purpleAccent.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.auto_graph_rounded,
-                      size: 32,
-                      color: Colors.purpleAccent.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Henüz Veri Yok',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Antrenman yaptıkça kas gelişimi, toparlanma ve güç analizi grafiklerin burada belirecek.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.5),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.purpleAccent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.insights_rounded,
-                  color: Colors.purpleAccent,
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Text(
-                'Analiz ve İlerleme',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 300, // Carousel yüksekliği biraz daha genişletildi
-          child: PageView(
-            controller: PageController(viewportFraction: 0.92),
-            physics: const BouncingScrollPhysics(),
-            children: [
-              // 1. İlerleme Fırsatı
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: _ProgressionSpotlightCard(
-                    workouts: workouts,
-                    onStart: onStartProgression,
-                  ),
-                ),
-              ),
-              // 2. Toparlanma Insights
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: _RecoveryInsightsCard(
-                    workoutSuggestion: null, // Hero'da kullanıldığı için
-                    recoveryStatuses: recoveryStatuses,
-                    totalWorkouts:
-                        (stats['totalWorkouts'] as num?)?.toInt() ??
-                        workouts.length,
-                    totalSets:
-                        (stats['totalSets'] as num?)?.toInt() ??
-                        workouts.fold<int>(0, (sum, w) => sum + (w.sets ?? 0)),
-                    totalCaloriesBurned:
-                        (stats['totalCaloriesBurned'] as num?)?.toInt() ??
-                        workouts.fold<int>(
-                          0,
-                          (sum, w) => sum + (w.caloriesBurned ?? 0),
-                        ),
-                    onSelectGroup: onSelectGroup,
-                  ),
-                ),
-              ),
-              // 3. Kas Dengesi
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: _WeeklyBalanceCard(
-                    workouts: workouts,
-                    onSelectGroup: onSelectGroup,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        const Center(
-          child: Text(
-            'Grafikler arasında geçiş yapmak için kaydır',
-            style: TextStyle(color: Colors.white30, fontSize: 10),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Hazır Programlar Bölümü ───────────────────────────────────────────────────
 
 class _PresetProgramsSection extends StatefulWidget {
@@ -5447,11 +5090,27 @@ class _PresetProgramsSection extends StatefulWidget {
 class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
   String _filter = 'Tümü';
 
-  static const _filters = ['Tümü', 'Başlangıç', 'Orta', 'İleri', '3 Gün', '4 Gün', '6 Gün', 'Ev'];
+  static const _filters = [
+    'Tümü',
+    'Başlangıç',
+    'Orta',
+    'İleri',
+    '2 Gün',
+    '3 Gün',
+    '4 Gün',
+    '6 Gün',
+    'Ev',
+    'Ekipsiz',
+  ];
 
   List<PresetProgramMeta> get _filtered {
     if (_filter == 'Tümü') return kPresetPrograms;
-    if (_filter == 'Ev') return kPresetPrograms.where((p) => p.tags.contains('Ev')).toList();
+    if (_filter == 'Ev') {
+      return kPresetPrograms.where((p) => p.tags.contains('Ev')).toList();
+    }
+    if (_filter == 'Ekipsiz') {
+      return kPresetPrograms.where((p) => p.tags.contains('Ekipsiz')).toList();
+    }
     if (_filter.endsWith(' Gün')) {
       final days = int.tryParse(_filter.split(' ').first) ?? 0;
       return kPresetPrograms.where((p) => p.daysPerWeek == days).toList();
@@ -5477,9 +5136,15 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFFF9F0A).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFF9F0A).withValues(alpha: 0.20)),
+                  border: Border.all(
+                    color: const Color(0xFFFF9F0A).withValues(alpha: 0.20),
+                  ),
                 ),
-                child: const Icon(Icons.auto_stories_rounded, color: Color(0xFFFF9F0A), size: 17),
+                child: const Icon(
+                  Icons.auto_stories_rounded,
+                  color: Color(0xFFFF9F0A),
+                  size: 17,
+                ),
               ),
               const SizedBox(width: 10),
               Column(
@@ -5487,11 +5152,19 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
                 children: [
                   const Text(
                     'Hazır Programlar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                   Text(
                     '${kPresetPrograms.length} bilimsel program, ekle ve başla',
-                    style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.38), fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.38),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -5516,7 +5189,10 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
                 onTap: () => setState(() => _filter = f),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: selected
                         ? const Color(0xFFFF9F0A).withValues(alpha: 0.18)
@@ -5531,7 +5207,9 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
                   child: Text(
                     f,
                     style: TextStyle(
-                      color: selected ? const Color(0xFFFF9F0A) : Colors.white.withValues(alpha: 0.45),
+                      color: selected
+                          ? const Color(0xFFFF9F0A)
+                          : Colors.white.withValues(alpha: 0.45),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -5549,7 +5227,10 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Text(
               'Bu filtrede program bulunamadı.',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.35),
+                fontSize: 13,
+              ),
             ),
           )
         else
@@ -5565,7 +5246,9 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
                 final meta = programs[i];
                 return Consumer<WorkoutProgramProvider>(
                   builder: (ctx, provider, child) {
-                    final isAdded = provider.programs.any((p) => p.id == meta.id);
+                    final isAdded = provider.programs.any(
+                      (p) => p.id == meta.id,
+                    );
                     return _PresetProgramCard(
                       meta: meta,
                       isAdded: isAdded,
@@ -5580,7 +5263,11 @@ class _PresetProgramsSectionState extends State<_PresetProgramsSection> {
     );
   }
 
-  void _showPreview(BuildContext context, PresetProgramMeta meta, bool isAdded) {
+  void _showPreview(
+    BuildContext context,
+    PresetProgramMeta meta,
+    bool isAdded,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -5639,7 +5326,9 @@ class _PresetProgramCard extends StatelessWidget {
             Container(
               height: 90,
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(22),
+                ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -5682,32 +5371,47 @@ class _PresetProgramCard extends StatelessWidget {
                         const Spacer(),
                         if (isAdded)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF30D158).withValues(alpha: 0.20),
+                              color: const Color(
+                                0xFF30D158,
+                              ).withValues(alpha: 0.20),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: const Color(0xFF30D158).withValues(alpha: 0.40),
+                                color: const Color(
+                                  0xFF30D158,
+                                ).withValues(alpha: 0.40),
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.check_rounded,
-                                    size: 9, color: Color(0xFF30D158)),
+                                const Icon(
+                                  Icons.check_rounded,
+                                  size: 9,
+                                  color: Color(0xFF30D158),
+                                ),
                                 const SizedBox(width: 3),
-                                const Text('Eklendi',
-                                    style: TextStyle(
-                                      color: Color(0xFF30D158),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w800,
-                                    )),
+                                const Text(
+                                  'Eklendi',
+                                  style: TextStyle(
+                                    color: Color(0xFF30D158),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                               ],
                             ),
                           )
                         else if (meta.badge != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
@@ -5732,7 +5436,10 @@ class _PresetProgramCard extends StatelessWidget {
                     bottom: 10,
                     left: 14,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: meta.levelColor.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(6),
@@ -5795,11 +5502,20 @@ class _PresetProgramCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _cardStat(Icons.calendar_today_rounded, '${meta.daysPerWeek}g/h'),
+                  _cardStat(
+                    Icons.calendar_today_rounded,
+                    '${meta.daysPerWeek}g/h',
+                  ),
                   const SizedBox(width: 10),
-                  _cardStat(Icons.timer_outlined, '${meta.avgSessionMinutes}dk'),
+                  _cardStat(
+                    Icons.timer_outlined,
+                    '${meta.avgSessionMinutes}dk',
+                  ),
                   const SizedBox(width: 10),
-                  _cardStat(Icons.fitness_center_rounded, '${meta.totalExercises} hk'),
+                  _cardStat(
+                    Icons.fitness_center_rounded,
+                    '${meta.totalExercises} hk',
+                  ),
                 ],
               ),
             ),
@@ -5846,37 +5562,58 @@ class _PresetProgramPreviewSheet extends StatefulWidget {
       _PresetProgramPreviewSheetState();
 }
 
-class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> {
+class _PresetProgramPreviewSheetState
+    extends State<_PresetProgramPreviewSheet> {
   int _expandedDay = 0;
 
   // Kas grubuna göre renk
   static Color _muscleColor(String mg) {
     switch (mg.toUpperCase()) {
-      case 'CHEST':     return const Color(0xFF5B9BFF);
-      case 'BACK':      return const Color(0xFF30D158);
-      case 'LEGS':      return const Color(0xFFFF9F0A);
-      case 'SHOULDERS': return const Color(0xFFBF5AF2);
-      case 'BICEPS':    return const Color(0xFF32ADE6);
-      case 'TRICEPS':   return const Color(0xFFFF6B6B);
-      case 'CORE':      return const Color(0xFFFFD60A);
-      case 'GLUTES':    return const Color(0xFFFF2D55);
-      default:          return const Color(0xFF8E8E93);
+      case 'CHEST':
+        return const Color(0xFF5B9BFF);
+      case 'BACK':
+        return const Color(0xFF30D158);
+      case 'LEGS':
+        return const Color(0xFFFF9F0A);
+      case 'SHOULDERS':
+        return const Color(0xFFBF5AF2);
+      case 'BICEPS':
+        return const Color(0xFF32ADE6);
+      case 'TRICEPS':
+        return const Color(0xFFFF6B6B);
+      case 'CORE':
+        return const Color(0xFFFFD60A);
+      case 'GLUTES':
+        return const Color(0xFFFF2D55);
+      default:
+        return const Color(0xFF8E8E93);
     }
   }
 
   static String _muscleShort(String mg) {
     switch (mg.toUpperCase()) {
-      case 'CHEST':     return 'Göğüs';
-      case 'BACK':      return 'Sırt';
-      case 'LEGS':      return 'Bacak';
-      case 'SHOULDERS': return 'Omuz';
-      case 'BICEPS':    return 'Biseps';
-      case 'TRICEPS':   return 'Triseps';
-      case 'CORE':      return 'Core';
-      case 'GLUTES':    return 'Kalça';
-      case 'FULL BODY': return 'Full';
-      case 'ARMS':      return 'Kol';
-      default:          return mg;
+      case 'CHEST':
+        return 'Göğüs';
+      case 'BACK':
+        return 'Sırt';
+      case 'LEGS':
+        return 'Bacak';
+      case 'SHOULDERS':
+        return 'Omuz';
+      case 'BICEPS':
+        return 'Biseps';
+      case 'TRICEPS':
+        return 'Triseps';
+      case 'CORE':
+        return 'Core';
+      case 'GLUTES':
+        return 'Kalça';
+      case 'FULL BODY':
+        return 'Full';
+      case 'ARMS':
+        return 'Kol';
+      default:
+        return mg;
     }
   }
 
@@ -5914,7 +5651,9 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: meta.accentColor.withValues(alpha: 0.20)),
+                border: Border.all(
+                  color: meta.accentColor.withValues(alpha: 0.20),
+                ),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -5932,7 +5671,9 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                     decoration: BoxDecoration(
                       color: meta.accentColor.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: meta.accentColor.withValues(alpha: 0.30)),
+                      border: Border.all(
+                        color: meta.accentColor.withValues(alpha: 0.30),
+                      ),
                     ),
                     child: Icon(meta.icon, color: meta.accentColor, size: 28),
                   ),
@@ -5944,32 +5685,63 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: meta.levelColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: meta.levelColor.withValues(alpha: 0.30)),
+                                border: Border.all(
+                                  color: meta.levelColor.withValues(
+                                    alpha: 0.30,
+                                  ),
+                                ),
                               ),
                               child: Text(
                                 meta.level,
-                                style: TextStyle(color: meta.levelColor, fontSize: 9, fontWeight: FontWeight.w800),
+                                style: TextStyle(
+                                  color: meta.levelColor,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
                             if (widget.isAdded) ...[
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF30D158).withValues(alpha: 0.12),
+                                  color: const Color(
+                                    0xFF30D158,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.30)),
+                                  border: Border.all(
+                                    color: const Color(
+                                      0xFF30D158,
+                                    ).withValues(alpha: 0.30),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.check_rounded, size: 9, color: Color(0xFF30D158)),
+                                    Icon(
+                                      Icons.check_rounded,
+                                      size: 9,
+                                      color: Color(0xFF30D158),
+                                    ),
                                     SizedBox(width: 3),
-                                    Text('Zaten Eklendi', style: TextStyle(color: Color(0xFF30D158), fontSize: 9, fontWeight: FontWeight.w800)),
+                                    Text(
+                                      'Zaten Eklendi',
+                                      style: TextStyle(
+                                        color: Color(0xFF30D158),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -6007,13 +5779,33 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
                 children: [
-                  _statBox(Icons.calendar_today_rounded, '${meta.daysPerWeek}', 'gün/hafta', meta.accentColor),
+                  _statBox(
+                    Icons.calendar_today_rounded,
+                    '${meta.daysPerWeek}',
+                    'gün/hafta',
+                    meta.accentColor,
+                  ),
                   const SizedBox(width: 8),
-                  _statBox(Icons.timer_outlined, '${meta.avgSessionMinutes}dk', 'seans', meta.accentColor),
+                  _statBox(
+                    Icons.timer_outlined,
+                    '${meta.avgSessionMinutes}dk',
+                    'seans',
+                    meta.accentColor,
+                  ),
                   const SizedBox(width: 8),
-                  _statBox(Icons.fitness_center_rounded, '${meta.totalExercises}', 'toplam hk', meta.accentColor),
+                  _statBox(
+                    Icons.fitness_center_rounded,
+                    '${meta.totalExercises}',
+                    'toplam hk',
+                    meta.accentColor,
+                  ),
                   const SizedBox(width: 8),
-                  _statBox(Icons.timelapse_rounded, '${meta.durationWeeks}', 'hafta', meta.accentColor),
+                  _statBox(
+                    Icons.timelapse_rounded,
+                    '${meta.durationWeeks}',
+                    'hafta',
+                    meta.accentColor,
+                  ),
                 ],
               ),
             ),
@@ -6116,11 +5908,19 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                   height: 30,
                                   decoration: BoxDecoration(
                                     color: isOpen
-                                        ? meta.accentColor.withValues(alpha: 0.20)
-                                        : meta.accentColor.withValues(alpha: 0.10),
+                                        ? meta.accentColor.withValues(
+                                            alpha: 0.20,
+                                          )
+                                        : meta.accentColor.withValues(
+                                            alpha: 0.10,
+                                          ),
                                     shape: BoxShape.circle,
                                     border: isOpen
-                                        ? Border.all(color: meta.accentColor.withValues(alpha: 0.40))
+                                        ? Border.all(
+                                            color: meta.accentColor.withValues(
+                                              alpha: 0.40,
+                                            ),
+                                          )
                                         : null,
                                   ),
                                   child: Center(
@@ -6137,12 +5937,17 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         day.name,
                                         style: TextStyle(
-                                          color: isOpen ? Colors.white : Colors.white.withValues(alpha: 0.85),
+                                          color: isOpen
+                                              ? Colors.white
+                                              : Colors.white.withValues(
+                                                  alpha: 0.85,
+                                                ),
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.w700,
                                           height: 1.2,
@@ -6152,19 +5957,25 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                       // Kas grubu renk noktaları
                                       Row(
                                         children: [
-                                          ...muscleColors.map((c) => Container(
-                                            width: 6,
-                                            height: 6,
-                                            margin: const EdgeInsets.only(right: 4),
-                                            decoration: BoxDecoration(
-                                              color: c,
-                                              shape: BoxShape.circle,
+                                          ...muscleColors.map(
+                                            (c) => Container(
+                                              width: 6,
+                                              height: 6,
+                                              margin: const EdgeInsets.only(
+                                                right: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: c,
+                                                shape: BoxShape.circle,
+                                              ),
                                             ),
-                                          )),
+                                          ),
                                           Text(
                                             '${day.exercises.length} hareket',
                                             style: TextStyle(
-                                              color: Colors.white.withValues(alpha: 0.35),
+                                              color: Colors.white.withValues(
+                                                alpha: 0.35,
+                                              ),
                                               fontSize: 10.5,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -6189,23 +6000,36 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                           if (isOpen) ...[
                             Container(
                               height: 1,
-                              margin: const EdgeInsets.symmetric(horizontal: 12),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
                               color: Colors.white.withValues(alpha: 0.06),
                             ),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                12,
+                              ),
                               child: Column(
-                                children: day.exercises.asMap().entries.map((entry) {
+                                children: day.exercises.asMap().entries.map((
+                                  entry,
+                                ) {
                                   final idx = entry.key;
                                   final ex = entry.value;
                                   final mColor = _muscleColor(ex.muscleGroup);
                                   final mShort = _muscleShort(ex.muscleGroup);
-                                  final isLast = idx == day.exercises.length - 1;
+                                  final isLast =
+                                      idx == day.exercises.length - 1;
 
                                   return Padding(
-                                    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                                    padding: EdgeInsets.only(
+                                      bottom: isLast ? 0 : 10,
+                                    ),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // Kas rengi sol şerit
                                         Container(
@@ -6213,13 +6037,16 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                           height: ex.note.isEmpty ? 32 : 44,
                                           decoration: BoxDecoration(
                                             color: mColor,
-                                            borderRadius: BorderRadius.circular(99),
+                                            borderRadius: BorderRadius.circular(
+                                              99,
+                                            ),
                                           ),
                                         ),
                                         const SizedBox(width: 10),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
                                                 children: [
@@ -6229,24 +6056,35 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 12.5,
-                                                        fontWeight: FontWeight.w700,
+                                                        fontWeight:
+                                                            FontWeight.w700,
                                                       ),
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   // Set×Tekrar badge
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 7,
+                                                          vertical: 3,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: mColor.withValues(alpha: 0.12),
-                                                      borderRadius: BorderRadius.circular(7),
+                                                      color: mColor.withValues(
+                                                        alpha: 0.12,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            7,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       '${ex.sets}×${ex.reps}',
                                                       style: TextStyle(
                                                         color: mColor,
                                                         fontSize: 11,
-                                                        fontWeight: FontWeight.w900,
+                                                        fontWeight:
+                                                            FontWeight.w900,
                                                       ),
                                                     ),
                                                   ),
@@ -6255,9 +6093,13 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                                   Text(
                                                     '${ex.restSeconds}s',
                                                     style: TextStyle(
-                                                      color: Colors.white.withValues(alpha: 0.28),
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.28,
+                                                          ),
                                                       fontSize: 10,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                 ],
@@ -6265,17 +6107,30 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                               Row(
                                                 children: [
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 5,
+                                                          vertical: 1,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: mColor.withValues(alpha: 0.10),
-                                                      borderRadius: BorderRadius.circular(4),
+                                                      color: mColor.withValues(
+                                                        alpha: 0.10,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       mShort,
                                                       style: TextStyle(
-                                                        color: mColor.withValues(alpha: 0.80),
+                                                        color: mColor
+                                                            .withValues(
+                                                              alpha: 0.80,
+                                                            ),
                                                         fontSize: 9,
-                                                        fontWeight: FontWeight.w700,
+                                                        fontWeight:
+                                                            FontWeight.w700,
                                                       ),
                                                     ),
                                                   ),
@@ -6285,12 +6140,17 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                                                       child: Text(
                                                         ex.note,
                                                         style: TextStyle(
-                                                          color: Colors.white.withValues(alpha: 0.38),
+                                                          color: Colors.white
+                                                              .withValues(
+                                                                alpha: 0.38,
+                                                              ),
                                                           fontSize: 10,
-                                                          fontStyle: FontStyle.italic,
+                                                          fontStyle:
+                                                              FontStyle.italic,
                                                         ),
                                                         maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
                                                       ),
                                                     ),
                                                   ],
@@ -6324,12 +6184,20 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                       decoration: BoxDecoration(
                         color: const Color(0xFF30D158).withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF30D158).withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: const Color(
+                            0xFF30D158,
+                          ).withValues(alpha: 0.35),
+                        ),
                       ),
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.check_circle_rounded, color: Color(0xFF30D158), size: 20),
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF30D158),
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Program Zaten Eklendi',
@@ -6349,7 +6217,10 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [meta.accentColor, meta.accentColor.withValues(alpha: 0.72)],
+                            colors: [
+                              meta.accentColor,
+                              meta.accentColor.withValues(alpha: 0.72),
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
@@ -6363,7 +6234,11 @@ class _PresetProgramPreviewSheetState extends State<_PresetProgramPreviewSheet> 
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                            const Icon(
+                              Icons.add_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             const Text(
                               'Bu Programı Ekle',

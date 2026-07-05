@@ -23,6 +23,7 @@ class _HistoryTab extends StatefulWidget {
 
 class _HistoryTabState extends State<_HistoryTab> {
   _WorkoutHistoryFilter _historyFilter = _WorkoutHistoryFilter.selectedDay;
+  bool _showAnalytics = false;
 
   List<Workout> _filteredWorkouts(WorkoutProvider provider) {
     final now = DateTime.now();
@@ -80,6 +81,9 @@ class _HistoryTabState extends State<_HistoryTab> {
             'd MMMM',
             'tr_TR',
           ).format(provider.selectedDate);
+          final showDeload = RecoveryEngine.isDeloadRecommended(
+            provider.workouts,
+          );
           return ListView(
             padding: const EdgeInsets.all(20).copyWith(bottom: 100),
             children: [
@@ -88,12 +92,15 @@ class _HistoryTabState extends State<_HistoryTab> {
                 onChanged: (f) => setState(() => _historyFilter = f),
               ),
               const SizedBox(height: 16),
-              _WeeklyVolumeChart(workouts: provider.workouts),
-              if (provider.personalRecords.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                _PrHighlightsCard(records: provider.personalRecords),
-              ],
-              const SizedBox(height: 40),
+              _HistoryAnalyticsSection(
+                workouts: provider.workouts,
+                records: provider.personalRecords,
+                showDeload: showDeload,
+                isExpanded: _showAnalytics,
+                onToggle: () =>
+                    setState(() => _showAnalytics = !_showAnalytics),
+              ),
+              const SizedBox(height: 32),
               Center(
                 child: Column(
                   children: [
@@ -146,7 +153,9 @@ class _HistoryTabState extends State<_HistoryTab> {
         }
 
         // ── Deload tespiti ────────────────────────────────────────────────
-        final showDeload = RecoveryEngine.isDeloadRecommended(provider.workouts);
+        final showDeload = RecoveryEngine.isDeloadRecommended(
+          provider.workouts,
+        );
 
         // ── Dolu liste ────────────────────────────────────────────────────
         return RefreshIndicator(
@@ -166,7 +175,7 @@ class _HistoryTabState extends State<_HistoryTab> {
           color: const Color(0xFF2E7D32),
           child: ListView.builder(
             padding: const EdgeInsets.all(20).copyWith(bottom: 100),
-            itemCount: selectedWorkouts.length + 1,
+            itemCount: selectedWorkouts.length + 2,
             itemBuilder: (context, index) {
               if (index == 0) {
                 return Column(
@@ -177,23 +186,26 @@ class _HistoryTabState extends State<_HistoryTab> {
                       onChanged: (f) => setState(() => _historyFilter = f),
                     ),
                     const SizedBox(height: 16),
-                    _WeeklyVolumeChart(workouts: provider.workouts),
-                    if (provider.personalRecords.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      _PrHighlightsCard(records: provider.personalRecords),
-                    ],
-                    const SizedBox(height: 16),
-                    _MuscleGroupChart(workouts: provider.workouts),
-                    const SizedBox(height: 16),
-                    MuscleHeatmapWidget(
-                      fatigueByGroup: RecoveryEngine.computeAll(provider.workouts),
+                    Text(
+                      '${selectedWorkouts.length} kayıt',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    if (showDeload) ...[
-                      const SizedBox(height: 16),
-                      _DeloadBanner(),
-                    ],
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                   ],
+                );
+              }
+              if (index == selectedWorkouts.length + 1) {
+                return _HistoryAnalyticsSection(
+                  workouts: provider.workouts,
+                  records: provider.personalRecords,
+                  showDeload: showDeload,
+                  isExpanded: _showAnalytics,
+                  onToggle: () =>
+                      setState(() => _showAnalytics = !_showAnalytics),
                 );
               }
               final workout = selectedWorkouts[index - 1];
@@ -207,6 +219,125 @@ class _HistoryTabState extends State<_HistoryTab> {
           ),
         );
       },
+    );
+  }
+}
+
+class _HistoryAnalyticsSection extends StatelessWidget {
+  final List<Workout> workouts;
+  final Map<String, double> records;
+  final bool showDeload;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+
+  const _HistoryAnalyticsSection({
+    required this.workouts,
+    required this.records,
+    required this.showDeload,
+    required this.isExpanded,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (workouts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.035),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.purpleAccent.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.insights_rounded,
+                      color: Colors.purpleAccent,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Analiz ve toparlanma',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'Hacim, PR, kas dengesi ve yorgunluk',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.42),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white.withValues(alpha: 0.55),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Column(
+              children: [
+                _WeeklyVolumeChart(workouts: workouts),
+                if (records.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _PrHighlightsCard(records: records),
+                ],
+                const SizedBox(height: 14),
+                _MuscleGroupChart(workouts: workouts),
+                const SizedBox(height: 14),
+                MuscleHeatmapWidget(
+                  fatigueByGroup: RecoveryEngine.computeAll(workouts),
+                ),
+                if (showDeload) ...[
+                  const SizedBox(height: 14),
+                  _DeloadBanner(),
+                ],
+              ],
+            ),
+          ),
+          crossFadeState: isExpanded
+              ? CrossFadeState.showSecond
+              : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 220),
+          firstCurve: Curves.easeOut,
+          secondCurve: Curves.easeOut,
+        ),
+      ],
     );
   }
 }

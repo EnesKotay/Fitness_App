@@ -1032,6 +1032,7 @@ class _WeeklyMealPlanPageState extends State<WeeklyMealPlanPage> {
   Widget build(BuildContext context) {
     final isPremium = isPremiumTier(
       context.watch<AuthProvider>().user?.premiumTier,
+      expiresAt: context.watch<AuthProvider>().user?.premiumExpiresAt,
     );
 
     if (!isPremium) {

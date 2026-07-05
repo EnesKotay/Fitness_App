@@ -25,8 +25,8 @@ import 'chat_history_screen.dart';
 import '../../../core/services/notification_service.dart';
 import '../../nutrition/presentation/state/diet_provider.dart';
 import '../../../core/utils/storage_helper.dart';
-import '../../auth/screens/legal_screen.dart';
 import '../../../core/services/page_guide_service.dart';
+import '../../../core/constants/premium_features.dart';
 import '../../../core/widgets/page_guide_overlay.dart';
 import '../../../core/widgets/page_guide_button.dart';
 
@@ -38,7 +38,8 @@ class AiCoachScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.read<AuthProvider?>()?.user?.id;
+    final userId =
+        context.read<AuthProvider?>()?.user?.id ?? StorageHelper.getUserId();
     return ChangeNotifierProvider<AiCoachController>(
       create: (_) =>
           AiCoachController(initialSummary: initialSummary, userId: userId),
@@ -212,175 +213,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     );
   }
 
-  Widget _buildQuickActionsFAB(AiCoachController controller) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FloatingActionButton(
-          heroTag: 'fab_main',
-          backgroundColor: _brandGold,
-          foregroundColor: Colors.white,
-          elevation: 6,
-          onPressed: () {
-            HapticFeedback.mediumImpact();
-            _showQuickActionsSheet(controller);
-          },
-          child: const Icon(Icons.bolt_rounded, size: 28),
-        ).animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(
-          duration: 2.seconds,
-          color: Colors.white.withValues(alpha: 0.3),
-        ),
-      ],
-    );
-  }
-
-  void _showQuickActionsSheet(AiCoachController controller) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A1F2E), Color(0xFF0F1419)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _brandGold.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.bolt_rounded, color: _brandGold, size: 24),
-                const SizedBox(width: 10),
-                Text(
-                  'Hızlı Aksiyonlar',
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _quickActionTile(
-              'Bugünkü özet',
-              'Günün tamamını değerlendir',
-              Icons.summarize_rounded,
-              const Color(0xFF73D4FF),
-              () {
-                Navigator.pop(context);
-                _applyPrompt(controller, 'Bugünü özetle ve değerlendir');
-              },
-            ),
-            _quickActionTile(
-              'Yarın planı',
-              'Yarın için hazırlık yap',
-              Icons.calendar_today_rounded,
-              const Color(0xFF34D399),
-              () {
-                Navigator.pop(context);
-                _applyPrompt(controller, 'Yarın için detaylı plan hazırla');
-              },
-            ),
-            _quickActionTile(
-              'Kalan makrolar',
-              'Bugün ne kadar alan var',
-              Icons.pie_chart_rounded,
-              const Color(0xFFEBC374),
-              () {
-                Navigator.pop(context);
-                _applyPrompt(controller, 'Kalan makrolarım için öğün öner');
-              },
-            ),
-            _quickActionTile(
-              'Antrenman analizi',
-              'Son seansı değerlendir',
-              Icons.fitness_center_rounded,
-              const Color(0xFFBC74EB),
-              () {
-                Navigator.pop(context);
-                _applyPrompt(controller, 'Son antrenmanımı analiz et');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _quickActionTile(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.dmSans(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: color.withValues(alpha: 0.5),
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   static const List<GuideStep> _guideSteps = [
     GuideStep(
       emoji: '🤖',
@@ -516,7 +348,15 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
   }
 
   void _onAiControllerUpdate() {
-    if (!mounted || !_scrollController.hasClients) return;
+    if (!mounted) return;
+    final serverRemaining = _aiController?.serverRemainingFreePrompts;
+    if (!_isPremium &&
+        serverRemaining != null &&
+        serverRemaining != _remainingFreePrompts) {
+      setState(() => _remainingFreePrompts = serverRemaining);
+    }
+
+    if (!_scrollController.hasClients) return;
     final pos = _scrollController.position;
     // Kullanıcı en alttaysa (300px içindeyse) otomatik scroll yap
     if (pos.maxScrollExtent - pos.pixels < 300) {
@@ -531,7 +371,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
   Future<void> _loadAccessState() async {
     final auth = context.read<AuthProvider?>();
     final user = auth?.user;
-    var isPremium = user?.premiumTier?.toLowerCase().trim() == 'premium';
+    var isPremium = isPremiumTier(
+      user?.premiumTier,
+      expiresAt: user?.premiumExpiresAt,
+    );
 
     if (!isPremium) {
       try {
@@ -552,21 +395,38 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
 
     _syncUserData();
 
-    // Use local count only as a bootstrap; server count takes over after first response.
-    final remaining = isPremium
+    int? serverRemaining;
+    if (!isPremium) {
+      try {
+        serverRemaining = await _usageService.getServerRemainingFreePrompts();
+        if (serverRemaining != null && user != null) {
+          await _usageService.setRemainingFreePrompts(
+            userId: user.id,
+            remaining: serverRemaining,
+          );
+        }
+      } catch (e) {
+        debugPrint('AiCoachScreen: kota kontrol hatası: $e');
+      }
+    }
+
+    final localRemaining = isPremium
         ? AiCoachUsageService.freeDailyPromptLimit
         : (user != null
               ? await _usageService.getRemainingFreePrompts(userId: user.id)
               : 0);
 
     if (mounted) {
+      final controller = context.read<AiCoachController?>();
+      if (serverRemaining != null) {
+        controller?.updateFromServerQuota(serverRemaining);
+      }
       setState(() {
         _isPremium = isPremium;
-        // Prefer controller's server-backed count if already available
-        final serverCount = context
-            .read<AiCoachController?>()
-            ?.serverRemainingFreePrompts;
-        _remainingFreePrompts = serverCount ?? remaining;
+        _remainingFreePrompts =
+            serverRemaining ??
+            controller?.serverRemainingFreePrompts ??
+            localRemaining;
       });
     }
   }
@@ -902,16 +762,12 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               child: const Text('Kapat'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(ctx).pop();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const LegalScreen(initialTab: LegalTab.kvkk),
-                  ),
-                );
+                await Navigator.of(context).pushNamed('/settings-privacy');
+                if (mounted) setState(() {});
               },
-              child: const Text('Aydınlatma Metnini Oku'),
+              child: const Text('Rızayı Aç'),
             ),
           ],
         ),
@@ -941,14 +797,27 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
           if (!mounted) return;
         }
       }
+    }
 
-      if (!_isPremium) {
-        final auth = context.read<AuthProvider?>();
-        final user = auth?.user;
-        if (user != null) {
+    if (!_isPremium) {
+      final auth = context.read<AuthProvider?>();
+      final user = auth?.user;
+      final serverRemaining = controller.serverRemainingFreePrompts;
+      if (user != null) {
+        if (serverRemaining != null) {
+          await _usageService.setRemainingFreePrompts(
+            userId: user.id,
+            remaining: serverRemaining,
+          );
+          if (mounted) {
+            setState(() => _remainingFreePrompts = serverRemaining);
+          }
+        } else if (success) {
           await _usageService.incrementPromptCount(userId: user.id);
-          if (mounted) _loadAccessState();
         }
+      }
+      if (success && mounted) {
+        _loadAccessState();
       }
     }
 
@@ -971,6 +840,15 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
   Widget build(BuildContext context) {
     return Consumer<AiCoachController>(
       builder: (context, controller, _) {
+        if (!controller.isSessionRestored) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF070B16),
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFEBC374)),
+            ),
+          );
+        }
+
         final hasUserMessage = controller.messages.any(
           (message) => message.role == ChatRole.user && !message.isError,
         );
@@ -984,11 +862,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         final firstTurnInFlight =
             hasUserMessage && controller.isLoading && !hasAssistantReply;
         final hasConversation = hasUserMessage && !firstTurnInFlight;
-        final visibleMessages = hasUserMessage
-            ? controller.messages
-                  .where((message) => !message.id.startsWith('welcome_'))
-                  .toList()
-            : controller.messages;
+        final visibleMessages = controller.messages
+            .where((message) => !message.id.startsWith('welcome_'))
+            .toList();
         // Step: Confetti Trigger
         if (controller.shouldShowConfetti) {
           _confettiController.play();
@@ -1171,6 +1047,12 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                                   ),
                                 ),
                               ],
+                              if (hasConversation &&
+                                  !controller.isLoading &&
+                                  !firstTurnInFlight) ...[
+                                const SizedBox(height: 8),
+                                _buildActionChipStrip(controller),
+                              ],
                             ],
                           ),
                           if (_showScrollToBottom)
@@ -1179,6 +1061,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                               right: 16,
                               child:
                                   FloatingActionButton.small(
+                                        heroTag:
+                                            'ai_coach_scroll_to_bottom_fab',
                                         backgroundColor: const Color(
                                           0xFF1F2937,
                                         ).withValues(alpha: 0.9),
@@ -1192,13 +1076,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                                       .animate()
                                       .fadeIn(duration: 200.ms)
                                       .scale(curve: Curves.easeOutBack),
-                            ),
-                          // Quick Actions FAB
-                          if (!_showScrollToBottom && hasConversation)
-                            Positioned(
-                              bottom: 80,
-                              right: 16,
-                              child: _buildQuickActionsFAB(controller),
                             ),
                         ],
                       ),
@@ -1244,6 +1121,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 250;
           final accent = _isPremium ? _brandGold : _brandBlue;
+          final subtitle = _isPremium
+              ? '${controller.taskMode.label} · ${_personalityShortLabel(controller.personality)}'
+              : '${controller.taskMode.label} · $_remainingFreePrompts hak kaldı';
           return Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1299,9 +1179,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               ),
               const SizedBox(height: 2),
               Text(
-                _isPremium
-                    ? 'Bugünün planı, analiz ve hızlı öneriler'
-                    : '$_remainingFreePrompts ücretsiz hak kaldı',
+                subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.dmSans(
@@ -1340,32 +1218,26 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         PopupMenuButton<String>(
           tooltip: 'AI Koç ayarları',
           color: const Color(0xFF0F1528),
+          elevation: 16,
+          offset: const Offset(0, 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          constraints: const BoxConstraints(minWidth: 276),
           child: Container(
             margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.tune_rounded,
-                  color: Colors.white.withValues(alpha: 0.82),
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Ayarlar',
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+            child: Icon(
+              Icons.tune_rounded,
+              color: Colors.white.withValues(alpha: 0.82),
+              size: 18,
             ),
           ),
           onSelected: (value) async {
@@ -1382,6 +1254,8 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 ),
               );
               if (reload == true && mounted) setState(() {});
+            } else if (value == 'regenerate') {
+              await controller.retryLastPrompt();
             } else if (value == 'clear') {
               controller.clearMessages();
             } else if (value == 'memory') {
@@ -1393,154 +1267,208 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
             }
           },
           itemBuilder: (context) => [
-            PopupMenuItem<String>(
+            _coachMenuHeader(),
+            _coachMenuItem(
               value: 'new',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.add_comment_rounded,
-                    size: 18,
-                    color: Color(0xFF73D4FF),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Yeni Sohbet',
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                  ),
-                ],
-              ),
+              icon: Icons.add_comment_rounded,
+              iconColor: _brandBlue,
+              title: 'Yeni Sohbet',
             ),
-            PopupMenuItem<String>(
+            _coachMenuItem(
               value: 'history',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.history_rounded,
-                    size: 18,
-                    color: Color(0xFFEBC374),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Sohbet Geçmişi',
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                  ),
-                ],
-              ),
+              icon: Icons.history_rounded,
+              iconColor: _brandGold,
+              title: 'Sohbet Geçmişi',
             ),
-            const PopupMenuDivider(),
-            PopupMenuItem<String>(
+            _coachMenuSection('Kişiselleştirme'),
+            _coachMenuItem(
               value: 'goal',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.flag_rounded,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Hedef seç',
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                  ),
-                ],
-              ),
+              icon: Icons.flag_rounded,
+              iconColor: const Color(0xFF9CA3AF),
+              title: 'Hedef seç',
             ),
-            PopupMenuItem<String>(
+            _coachMenuItem(
               value: 'personality',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.record_voice_over_rounded,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Koç karakteri',
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                  ),
-                ],
-              ),
+              icon: Icons.record_voice_over_rounded,
+              iconColor: const Color(0xFF9CA3AF),
+              title: 'Koç karakteri',
             ),
-            PopupMenuItem<String>(
+            _coachMenuItem(
               value: 'memory',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.psychology_rounded,
-                    size: 18,
-                    color: Color(0xFFEBC374),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'AI Hafızası',
-                    style: GoogleFonts.dmSans(color: Colors.white),
-                  ),
-                ],
-              ),
+              icon: Icons.psychology_rounded,
+              iconColor: _brandGold,
+              title: 'AI Hafızası',
             ),
-            const PopupMenuDivider(),
-            PopupMenuItem<String>(
+            _coachMenuSection('Sohbet araçları'),
+            _coachMenuItem(
               value: 'regenerate',
               enabled:
                   controller.canRetryLastPrompt &&
                   controller.messages.length > 2,
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.refresh_rounded,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Son Cevabı Yeniden Üret',
-                    style: GoogleFonts.dmSans(color: Colors.white70),
-                  ),
-                ],
-              ),
+              icon: Icons.refresh_rounded,
+              iconColor: const Color(0xFF9CA3AF),
+              title: 'Son Cevabı Yeniden Üret',
             ),
-            PopupMenuItem<String>(
+            _coachMenuItem(
               value: 'clear',
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.delete_sweep_rounded,
-                    size: 18,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Sohbeti Temizle',
-                    style: GoogleFonts.dmSans(color: Colors.white70),
-                  ),
-                ],
-              ),
+              icon: Icons.delete_sweep_rounded,
+              iconColor: const Color(0xFFF87171),
+              title: 'Sohbeti Temizle',
+              destructive: true,
             ),
             if (!_isPremium) ...[
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
+              _coachMenuSection('Premium'),
+              _coachMenuItem(
                 value: 'premium',
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.stars_rounded,
-                      size: 18,
-                      color: Color(0xFFEBC374),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Premium'u aç",
-                      style: GoogleFonts.dmSans(color: const Color(0xFFEBC374)),
-                    ),
-                  ],
-                ),
+                icon: Icons.stars_rounded,
+                iconColor: _brandGold,
+                title: "Premium'u aç",
+                emphasized: true,
               ),
             ],
           ],
         ),
         const SizedBox(width: 4),
       ],
+    );
+  }
+
+  PopupMenuEntry<String> _coachMenuHeader() {
+    return PopupMenuItem<String>(
+      enabled: false,
+      height: 52,
+      padding: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _brandBlue.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: _brandBlue.withValues(alpha: 0.2)),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: _brandBlue,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'AI Koç',
+              style: GoogleFonts.dmSans(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuEntry<String> _coachMenuSection(String title) {
+    return PopupMenuItem<String>(
+      enabled: false,
+      height: 34,
+      padding: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.44),
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ),
+            Container(
+              height: 1,
+              width: 86,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _coachMenuItem({
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    bool enabled = true,
+    bool emphasized = false,
+    bool destructive = false,
+  }) {
+    final textColor = enabled
+        ? (destructive
+              ? const Color(0xFFFFA3A3)
+              : emphasized
+              ? _brandGold
+              : Colors.white.withValues(alpha: 0.92))
+        : Colors.white.withValues(alpha: 0.38);
+    final effectiveIconColor = enabled
+        ? iconColor
+        : Colors.white.withValues(alpha: 0.34);
+    final tileColor = emphasized
+        ? _brandGold.withValues(alpha: 0.08)
+        : Colors.transparent;
+
+    return PopupMenuItem<String>(
+      value: value,
+      enabled: enabled,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: BorderRadius.circular(12),
+          border: emphasized
+              ? Border.all(color: _brandGold.withValues(alpha: 0.14))
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: effectiveIconColor.withValues(
+                  alpha: enabled ? 0.13 : 0.06,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 17, color: effectiveIconColor),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.dmSans(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: emphasized ? FontWeight.w800 : FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1715,8 +1643,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildIntroCard(controller),
-        const SizedBox(height: 10),
-        _buildPersonalitySelector(controller),
         const SizedBox(height: 12),
         _buildStarterPromptSection(controller),
       ],
@@ -1854,139 +1780,67 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
     );
   }
 
-  Widget _buildPersonalitySelector(AiCoachController controller) {
-    const personalities = [
-      (
-        p: CoachPersonality.motivator,
-        icon: Icons.bolt_rounded,
-        name: 'Motivatör',
-        desc: 'Daha direkt ve disiplinli',
-        color: Color(0xFFFF8A65),
-      ),
-      (
-        p: CoachPersonality.scientist,
-        icon: Icons.insights_rounded,
-        name: 'Bilimsel',
-        desc: 'Veri ve analize odaklı',
-        color: Color(0xFF73D4FF),
-      ),
-      (
-        p: CoachPersonality.supportive,
-        icon: Icons.favorite_border_rounded,
-        name: 'Destekçi',
-        desc: 'Daha yumuşak ve motive edici',
-        color: Color(0xFF34D399),
-      ),
-    ];
+  Widget _buildStarterPromptSection(AiCoachController controller) {
+    return _buildStarterPromptGrid(controller);
+  }
 
-    final selectedDesc = personalities
-        .firstWhere((item) => item.p == controller.personality)
-        .desc;
+  String _personalityShortLabel(CoachPersonality personality) {
+    return switch (personality) {
+      CoachPersonality.motivator => 'Disiplinli',
+      CoachPersonality.scientist => 'Bilimsel',
+      CoachPersonality.supportive => 'Destekleyici',
+    };
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 2, bottom: 8),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.tune_rounded,
-                size: 14,
-                color: Color(0xFF73D4FF),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Koç tonu',
-                style: GoogleFonts.dmSans(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  selectedDesc,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: GoogleFonts.dmSans(
-                    color: Colors.white.withValues(alpha: 0.38),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+  Widget _buildIntroMetaPill({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.dmSans(
+              color: Colors.white.withValues(alpha: 0.82),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.035),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-          ),
-          child: Row(
-            children: personalities.map((item) {
-              final selected = controller.personality == item.p;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => controller.setPersonality(item.p),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? item.color.withValues(alpha: 0.16)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected
-                            ? item.color.withValues(alpha: 0.34)
-                            : Colors.transparent,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          item.icon,
-                          size: 16,
-                          color: selected
-                              ? item.color
-                              : Colors.white.withValues(alpha: 0.46),
-                        ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            item.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.dmSans(
-                              color: selected
-                                  ? item.color
-                                  : Colors.white.withValues(alpha: 0.62),
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildStarterPromptSection(AiCoachController controller) {
-    return _buildStarterPromptGrid(controller);
+  String _metricChipPrompt(String label) {
+    final lower = label.toLowerCase();
+    if (lower.contains('kalori') || lower.contains('kcal')) {
+      return 'Bugünkü kalori ve beslenme verilerimi analiz eder misin?';
+    }
+    if (lower.contains('su')) {
+      return 'Bugünkü su tüketimimi yorumlar mısın? Yeterli mi?';
+    }
+    if (lower.contains('hareket') ||
+        lower.contains('antrenman') ||
+        lower.contains('toparlanma')) {
+      return 'Bugünkü hareket ve aktivite durumumu değerlendirir misin?';
+    }
+    if (lower.contains('bmi')) {
+      return 'BMI değerimi yorumlayıp benim için ideal kilo hedeflerini açıklar mısın?';
+    }
+    return 'Bugünkü durumumu analiz edip bir plan önerir misin?';
   }
 
   Widget _buildIntroCard(AiCoachController controller) {
@@ -2013,9 +1867,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         : '$timeGreeting!';
     final contextLine = _buildContextLine(controller);
     final insights = _buildInsightItems(controller);
+    final personalityLabel = _personalityShortLabel(controller.personality);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -2025,7 +1880,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
             const Color(0xFF0C1321).withValues(alpha: 0.98),
           ],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: modelColor.withValues(alpha: 0.16)),
       ),
       child: Column(
@@ -2071,9 +1926,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.dmSans(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: -0.7,
+                        letterSpacing: -0.3,
                       ),
                     ),
                     Text(
@@ -2108,10 +1963,10 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+            padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(14),
@@ -2140,6 +1995,28 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               ],
             ),
           ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              _buildIntroMetaPill(
+                icon: _modeIcon(controller.taskMode),
+                label: controller.taskMode.label,
+                color: _brandBlue,
+              ),
+              _buildIntroMetaPill(
+                icon: Icons.record_voice_over_rounded,
+                label: personalityLabel,
+                color: const Color(0xFFBC74EB),
+              ),
+              _buildIntroMetaPill(
+                icon: modelIcon,
+                label: modelLabel,
+                color: modelColor,
+              ),
+            ],
+          ),
           if (insights.isNotEmpty) ...[
             const SizedBox(height: 12),
             LayoutBuilder(
@@ -2150,46 +2027,62 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                   children: insights
                       .take(3)
                       .map(
-                        (item) => Container(
-                          constraints: BoxConstraints(
-                            maxWidth: constraints.maxWidth,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.035),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: item.$3.withValues(alpha: 0.22),
+                        (item) => InkWell(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            _applyPrompt(
+                              controller,
+                              _metricChipPrompt(item.$2),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: constraints.maxWidth,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  color: item.$3.withValues(alpha: 0.18),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(item.$1, size: 12, color: item.$3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: item.$3.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: item.$3.withValues(alpha: 0.28),
                               ),
-                              const SizedBox(width: 7),
-                              Flexible(
-                                child: Text(
-                                  item.$2,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.dmSans(
-                                    color: Colors.white.withValues(alpha: 0.88),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: item.$3.withValues(alpha: 0.18),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    item.$1,
+                                    size: 12,
+                                    color: item.$3,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 7),
+                                Flexible(
+                                  child: Text(
+                                    item.$2,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.dmSans(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.88,
+                                      ),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       )
@@ -2198,95 +2091,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               },
             ),
           ],
-          const SizedBox(height: 14),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isMorning = hour >= 5 && hour < 17;
-              final accentColor = isMorning
-                  ? const Color(0xFFEBC374)
-                  : const Color(0xFF73D4FF);
-              final buttonText = isMorning
-                  ? 'Sabah planımı hazırla'
-                  : 'Akşam değerlendirmemi yap';
-              final promptToSend = isMorning
-                  ? 'Bugün için kısa, net ve uygulanabilir bir sabah planı hazırlar mısın?'
-                  : 'Bugünkü performansımı kısaca değerlendirip akşam için net bir plan çıkarır mısın?';
-
-              return Container(
-                width: double.infinity,
-                height: 46,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: [
-                      accentColor.withValues(alpha: 0.18),
-                      accentColor.withValues(alpha: 0.06),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: accentColor.withValues(alpha: 0.35),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      spreadRadius: -2,
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => _applyPrompt(controller, promptToSend),
-                    child: Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                                isMorning
-                                    ? Icons.wb_sunny_rounded
-                                    : Icons.nights_stay_rounded,
-                                size: 16,
-                                color: accentColor,
-                              )
-                              .animate(onPlay: (c) => c.repeat(reverse: true))
-                              .scale(
-                                end: const Offset(1.12, 1.12),
-                                duration: 2.seconds,
-                                curve: Curves.easeInOut,
-                              ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              buttonText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.dmSans(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 13,
-                            color: Colors.white.withValues(alpha: 0.6),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -2366,63 +2170,41 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          // Yeni sohbet + geçmiş butonları
-          GestureDetector(
-            onTap: () async {
-              final reload = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => ChatHistoryScreen(controller: controller),
-                ),
-              );
-              if (reload == true && mounted) setState(() {});
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-              ),
-              child: const Icon(
-                Icons.history_rounded,
-                size: 18,
-                color: Color(0xFFEBC374),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          GestureDetector(
-            onTap: () => controller.startNewConversation(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              decoration: BoxDecoration(
-                color: _brandBlue.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _brandBlue.withValues(alpha: 0.18)),
-              ),
-              child: const Icon(
-                Icons.add_comment_rounded,
-                size: 18,
-                color: Color(0xFF73D4FF),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-
   Widget _buildStarterPromptGrid(AiCoachController controller) {
-    // Daha fazla örnek soru
-    final exampleQuestions = [
-      (q: 'Bugün için kısa, net bir plan hazırla', icon: Icons.route_rounded, color: const Color(0xFF73D4FF)),
-      (q: 'Kalan makrolarım için yemek öner', icon: Icons.restaurant_rounded, color: const Color(0xFFEBC374)),
-      (q: 'Son antrenmanımı analiz et', icon: Icons.fitness_center_rounded, color: const Color(0xFF34D399)),
-      (q: 'Protein alımımı nasıl artırabilirim?', icon: Icons.egg_rounded, color: const Color(0xFFFF8A65)),
-      (q: 'Haftalık kilo kaybı planı hazırla', icon: Icons.trending_down_rounded, color: const Color(0xFFBC74EB)),
-      (q: 'Evde yapabileceğim antrenman ver', icon: Icons.home_rounded, color: const Color(0xFF6B9FFF)),
+    final prompts = [
+      (
+        label: 'Planla',
+        subtitle: 'Bugünü sıraya koy',
+        prompt: 'Bugün için kısa, net ve uygulanabilir bir plan hazırla.',
+        icon: Icons.route_rounded,
+        color: const Color(0xFF73D4FF),
+      ),
+      (
+        label: 'Beslenme',
+        subtitle: 'Öğün ve makro öner',
+        prompt: 'Kalan makrolarım için pratik bir öğün öner.',
+        icon: Icons.restaurant_rounded,
+        color: const Color(0xFFEBC374),
+      ),
+      (
+        label: 'Antrenman',
+        subtitle: 'Seansı yorumla',
+        prompt: 'Son antrenmanımı analiz et.',
+        icon: Icons.fitness_center_rounded,
+        color: const Color(0xFF34D399),
+      ),
+      (
+        label: 'Analiz',
+        subtitle: 'Gidişatı oku',
+        prompt: 'Hedefime göre haftalık plan hazırla.',
+        icon: Icons.calendar_month_rounded,
+        color: const Color(0xFFBC74EB),
+      ),
     ];
 
     return Column(
@@ -2436,103 +2218,175 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                 color: const Color(0xFFEBC374).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.tips_and_updates_rounded, size: 14, color: Color(0xFFEBC374)),
+              child: const Icon(
+                Icons.tips_and_updates_rounded,
+                size: 14,
+                color: Color(0xFFEBC374),
+              ),
             ),
             const SizedBox(width: 8),
             Text(
-              'Örnek sorular',
+              'Hızlı başlangıç',
               style: GoogleFonts.dmSans(
                 color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Spacer(),
-            Text(
-              'Kaydır →',
-              style: GoogleFonts.dmSans(
-                color: Colors.white.withValues(alpha: 0.35),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ],
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 110,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: exampleQuestions.length,
-            itemBuilder: (context, index) {
-              final q = exampleQuestions[index];
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: index == exampleQuestions.length - 1 ? 0 : 10,
-                ),
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _applyPrompt(controller, q.q);
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    width: 200,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          q.color.withValues(alpha: 0.12),
-                          q.color.withValues(alpha: 0.05),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 10) / 2;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: prompts.map((item) {
+                return SizedBox(
+                  width: itemWidth,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      _applyPrompt(controller, item.prompt);
+                    },
+                    borderRadius: BorderRadius.circular(18),
+                    child: Container(
+                      height: 74,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: item.color.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: item.color.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: item.color.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(item.icon, size: 17, color: item.color),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  item.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.dmSans(
+                                    color: Colors.white.withValues(alpha: 0.42),
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: q.color.withValues(alpha: 0.25),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: q.color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(q.icon, size: 20, color: q.color),
-                        ),
-                        Text(
-                          q.q,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.dmSans(
-                            color: Colors.white.withValues(alpha: 0.88),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ).animate().fadeIn(
-                  duration: 200.ms,
-                  delay: (index * 40).ms,
-                  curve: Curves.easeOutCubic,
-                ).slideX(
-                  begin: 0.08,
-                  end: 0,
-                  duration: 280.ms,
-                  curve: Curves.easeOutCubic,
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionChipStrip(AiCoachController controller) {
+    final chips = controller.actionChips;
+    if (chips.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 13,
+                color: Colors.white.withValues(alpha: 0.38),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Devam et',
+                style: GoogleFonts.dmSans(
+                  color: Colors.white.withValues(alpha: 0.42),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 36,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: chips.map((chip) {
+              final meta = _chipMeta(chip, controller.taskMode);
+              final chipIcon = meta.$1;
+              final chipColor = meta.$2;
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _applyPrompt(controller, chip);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: chipColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: chipColor.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(chipIcon, size: 13, color: chipColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        chip,
+                        style: GoogleFonts.dmSans(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
-            },
+            }).toList(),
           ),
         ),
       ],
@@ -2544,28 +2398,25 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
       top: false,
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.5),
-                  Colors.black.withValues(alpha: 0.7),
+                  Colors.black.withValues(alpha: 0.42),
+                  Colors.black.withValues(alpha: 0.62),
                 ],
               ),
               border: Border(
-                top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 1.5,
-                ),
+                top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 20,
+                  color: Colors.black.withValues(alpha: 0.24),
+                  blurRadius: 16,
                   spreadRadius: -5,
                   offset: const Offset(0, -5),
                 ),
@@ -2574,7 +2425,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildCompactModeBar(controller),
                 if (controller.isCooldownActive) ...[
                   const SizedBox(height: 6),
                   Container(
@@ -2644,7 +2494,7 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Son ücretsiz Gemini hakkın kaldı. Premium ile Claude tarafında sınırsız ve daha derin devam edersin.',
+                              'Son ücretsiz hak. Premium ile sınırsız devam et.',
                               style: GoogleFonts.dmSans(
                                 color: const Color(0xFFEBC374),
                                 fontSize: 11,
@@ -2697,56 +2547,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                       ],
                     ),
                   ),
-                if (controller.messages.length > 1 &&
-                    !controller.isLoading) ...[
-                  const SizedBox(height: 6),
-                  SizedBox(
-                    height: 34,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: controller.actionChips.map((chip) {
-                        final meta = _chipMeta(chip, controller.taskMode);
-                        final chipIcon = meta.$1;
-                        final chipColor = meta.$2;
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            _applyPrompt(controller, chip);
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 11,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: chipColor.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: chipColor.withValues(alpha: 0.22),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(chipIcon, size: 13, color: chipColor),
-                                const SizedBox(width: 5),
-                                Text(
-                                  chip,
-                                  style: GoogleFonts.dmSans(
-                                    color: Colors.white.withValues(alpha: 0.82),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
                 if (_isListening) ...[
                   const SizedBox(height: 6),
                   Padding(
@@ -2781,9 +2581,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -2793,12 +2593,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                         _surface.withValues(alpha: 0.85),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(26),
+                    borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: controller.isLoading
                           ? _brandGold.withValues(alpha: 0.35)
-                          : Colors.white.withValues(alpha: 0.15),
-                      width: 1.5,
+                          : Colors.white.withValues(alpha: 0.11),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -2820,11 +2619,11 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        width: 38,
-                        height: 38,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(13),
                         ),
                         child: IconButton(
                           icon: Icon(
@@ -2843,13 +2642,13 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                       // V6: Microphone Voice Input Button
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
-                        width: 38,
-                        height: 38,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: _isListening
                               ? const Color(0xFFFF4444).withValues(alpha: 0.15)
                               : Colors.white.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(13),
                           border: Border.all(
                             color: _isListening
                                 ? const Color(0xFFFF4444).withValues(alpha: 0.4)
@@ -2908,9 +2707,9 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
                                 ),
                                 contentPadding: const EdgeInsets.fromLTRB(
                                   0,
-                                  12,
+                                  10,
                                   8,
-                                  12,
+                                  10,
                                 ),
                                 border: InputBorder.none,
                               ),
@@ -2947,96 +2746,6 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
         ),
       ),
     );
-  }
-
-  Widget _buildCompactModeBar(AiCoachController controller) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tight = constraints.maxWidth < 345;
-        return Container(
-          height: 42,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.025),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-          ),
-          child: Row(
-            children: CoachTaskMode.values.map((mode) {
-              final selected = controller.taskMode == mode;
-              final label = _compactModeLabel(mode, tight: tight);
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => controller.setTaskMode(mode),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    margin: const EdgeInsets.symmetric(horizontal: 1),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? _brandBlue.withValues(alpha: 0.14)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: selected
-                            ? _brandBlue.withValues(alpha: 0.28)
-                            : Colors.transparent,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _modeIcon(mode),
-                          size: 13,
-                          color: selected
-                              ? _brandBlue
-                              : Colors.white.withValues(alpha: 0.46),
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.dmSans(
-                              color: selected
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.6),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  String _compactModeLabel(CoachTaskMode mode, {required bool tight}) {
-    if (tight) {
-      return switch (mode) {
-        CoachTaskMode.plan => 'Plan',
-        CoachTaskMode.nutrition => 'Bes.',
-        CoachTaskMode.workout => 'Spor',
-        CoachTaskMode.recovery => 'Dinl.',
-        CoachTaskMode.analysis => 'Analiz',
-      };
-    }
-
-    return switch (mode) {
-      CoachTaskMode.plan => 'Plan',
-      CoachTaskMode.nutrition => 'Beslen',
-      CoachTaskMode.workout => 'Spor',
-      CoachTaskMode.recovery => 'Dinlen',
-      CoachTaskMode.analysis => 'Analiz',
-    };
   }
 
   Future<void> _pickImage(
@@ -3395,88 +3104,67 @@ class _AiCoachScreenBodyState extends State<AiCoachScreenBody>
   }
 
   Widget _buildSendButton(AiCoachController controller) {
-    final disabled = controller.isLoading || controller.isCooldownActive;
-    final showMic = !_hasText && !controller.isLoading;
+    final disabled =
+        controller.isLoading || controller.isCooldownActive || !_hasText;
 
-    return GestureDetector(
-          onTap: disabled
+    final button = GestureDetector(
+      onTap: disabled ? null : () => _handleSend(controller),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: 44,
+        width: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: disabled
+              ? const LinearGradient(
+                  colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
+                )
+              : const LinearGradient(
+                  colors: [Color(0xFFEBC374), Color(0xFFC88934)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+          boxShadow: disabled
               ? null
-              : () {
-                  if (showMic) {
-                    HapticFeedback.lightImpact();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '🎙️ Sesli komut özelliği yakında eklenecek!',
-                          style: GoogleFonts.dmSans(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: const Color(0xFF101826),
-                      ),
-                    );
-                  } else {
-                    _handleSend(controller);
-                  }
-                },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: disabled
-                  ? const LinearGradient(
-                      colors: [Color(0xFF2A2A2A), Color(0xFF1A1A1A)],
-                    )
-                  : const LinearGradient(
-                      colors: [Color(0xFFEBC374), Color(0xFFC88934)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-              boxShadow: disabled
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: const Color(0xFFEBC374).withValues(alpha: 0.35),
-                        blurRadius: 18,
-                        spreadRadius: -4,
-                      ),
-                    ],
-            ),
-            child: Center(
-              child: controller.isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, anim) =>
-                          ScaleTransition(scale: anim, child: child),
-                      child: Icon(
-                        showMic
-                            ? Icons.mic_rounded
-                            : Icons.arrow_upward_rounded,
-                        key: ValueKey(showMic),
-                        color: disabled
-                            ? Colors.white.withValues(alpha: 0.3)
-                            : Colors.white,
-                        size: 20,
-                      ),
-                    ),
-            ),
-          ),
-        )
-        .animate(
-          key: ValueKey(controller.isLoading),
-          onPlay: (c) => controller.isLoading ? c.repeat() : c.forward(),
-        )
+              : [
+                  BoxShadow(
+                    color: const Color(0xFFEBC374).withValues(alpha: 0.35),
+                    blurRadius: 18,
+                    spreadRadius: -4,
+                  ),
+                ],
+        ),
+        child: Center(
+          child: controller.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, anim) =>
+                      ScaleTransition(scale: anim, child: child),
+                  child: Icon(
+                    Icons.arrow_upward_rounded,
+                    key: ValueKey(disabled),
+                    color: disabled
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.white,
+                    size: 20,
+                  ),
+                ),
+        ),
+      ),
+    );
+
+    if (!controller.isLoading) return button;
+
+    return button
+        .animate(key: ValueKey(controller.isLoading), onPlay: (c) => c.repeat())
         .shimmer(
           duration: 1200.ms,
           color: Colors.white.withValues(alpha: 0.15),
